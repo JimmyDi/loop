@@ -45,6 +45,14 @@
 - `src/coding-agent/index.test.ts` checks these boundaries. Run `bun run check:architecture`
   after changing imports or module structure; this check also runs in `bun run check` and `bun test`.
 
+## Feature documentation
+
+- Keep Markdown-only `docs/` directories under both `src/agent` and `src/coding-agent`. Each page covers one implemented feature; do not add placeholder pages for unsupported Pi capabilities.
+- Use each module's README as the entry point and feature index. Keep the root README focused on startup and architecture, linking to detailed feature pages.
+- Organize feature pages around purpose, minimal usage, API/configuration reference, lifecycle and errors, current limitations, and related source/tests where applicable. Follow Pi's topic-oriented organization while documenting Loop's actual contracts.
+- Use relative links and language-tagged code fences. Make commands copyable; use public imports in consumer examples and placeholders for credentials or machine-specific values.
+- Update the relevant feature page when its API or behavior changes. Check Markdown links and TypeScript examples without making real model calls.
+
 ## Validation
 
 - Run relevant tests after changes. For broad changes, run `bun test`, the Biome check, and the affected Bun build commands.
@@ -57,6 +65,15 @@
 - Do not run Git commands unless the user explicitly requests them.
 - Do not create commits, branches, tags, pull requests, or push changes without explicit user authorization.
 - Do not send messages, publish content, or modify external services unless explicitly authorized.
+
+## Pull request titles
+
+- Before creating or renaming a PR, validate its title against Conventional Commits: `<type>[optional scope][!]: <summary>`.
+- Allowed lowercase types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+- Use a non-empty, concise summary describing the final change. Scope is optional; use `!` only for breaking changes.
+- Choose the type by the primary change: `feat` for new capabilities, `fix` for bug fixes, `refactor` for restructuring, and `chore` for maintenance.
+- Examples: `feat(coding-agent): add session recovery`, `refactor!: simplify Loop to CLI and SDK`, `chore: update development dependencies`.
+- Correct a nonconforming proposed title before creating the PR. This naming rule does not authorize Git or GitHub actions.
 
 ## Formatting details
 
@@ -79,7 +96,7 @@
 - Keep exactly four implementation files in src/agent: types.ts, agent-loop.ts, agent.ts
   and index.ts, with colocated tests. Keep the API usage sample in agent.sample.ts beside them;
   it is not part of the public exports. Do not add a separate examples directory, helper
-  directories or placeholder modules.
+  directories or placeholder modules. Feature documentation in `src/agent/docs` is allowed.
 - Keep the minimal Pi-style loop in agent/agent-loop.ts. It owns history writes, consumes
   Pi AI streams and result(), validates tool arguments with Pi AI, and executes tools sequentially.
   Agent owns in-memory history, subscriptions, running state and cancellation.

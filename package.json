@@ -3,36 +3,32 @@
   "version": "0.1.0",
   "private": false,
   "type": "module",
-  "description": "A local-first, provider-agnostic agent harness.",
+  "description": "A local-first agent harness powered by Pi AI.",
   "license": "MIT",
   "bin": {
-    "loop": "./src/cli/index.ts"
+    "loop": "./src/coding-agent/cli.ts"
   },
   "scripts": {
-    "run": "bun ./src/cli/index.ts",
+    "run": "bun ./src/coding-agent/cli.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "check": "biome check .",
-    "desktop:build": "bun build src/desktop/main.ts --target=node --external electron --outdir=dist/desktop && bun build src/desktop/preload.ts --target=node --external electron --format=cjs --outfile=dist/desktop/preload.cjs && bun build src/desktop/renderer/index.html --outdir=dist/desktop/renderer",
-    "desktop:dev": "bun run desktop:build && electron dist/desktop/main.js",
-    "server": "bun run src/server/main.ts",
+    "check": "biome check . && bun run check:architecture",
+    "check:architecture": "bun test src/coding-agent/index.test.ts",
+    "chat": "bun ./src/coding-agent/cli.ts",
     "format": "biome format --write .",
-    "format:check": "biome format ."
+    "format:check": "biome format .",
+    "coding-agent": "bun src/coding-agent/cli.ts"
   },
   "engines": {
     "bun": ">=1.1"
   },
-  "optionalDependencies": {
-    "@earendil-works/pi-ai": "latest"
+  "dependencies": {
+    "@earendil-works/pi-ai": "^0.85.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.4",
     "@types/bun": "latest",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "electron": "^33.0.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "typescript": "^5.7.0",
-    "@biomejs/biome": "^2.5.4"
+    "@types/node": "^22.20.3",
+    "typescript": "^5.7.0"
   }
 }

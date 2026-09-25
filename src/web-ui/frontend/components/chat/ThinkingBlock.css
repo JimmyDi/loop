@@ -1,0 +1,15 @@
+.thinking-block {
+  margin: 8px 0 16px;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+.thinking-block summary {
+  cursor: pointer;
+  padding: 5px 0;
+}
+.thinking-block > div {
+  padding: 10px 14px;
+  border-left: 2px solid var(--line);
+  white-space: pre-wrap;
+  line-height: 1.7;
+}

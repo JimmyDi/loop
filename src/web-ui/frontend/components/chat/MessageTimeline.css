@@ -1,0 +1,36 @@
+.timeline-region {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+.message-timeline {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 32px 30px;
+}
+.timeline-content {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  font-size: 15px;
+  line-height: 1.65;
+}
+.timeline-empty {
+  text-align: center;
+  color: var(--ink-muted);
+  margin-top: 15vh;
+}
+.jump-latest {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  box-shadow: 0 4px 16px #0001;
+}
+@media (max-width: 767px) {
+  .message-timeline {
+    padding: 16px 14px;
+  }
+}

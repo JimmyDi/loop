@@ -1,0 +1,16 @@
+.settings-field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.settings-field input {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+.settings-field small {
+  color: var(--ink-muted);
+  line-height: 1.5;
+}

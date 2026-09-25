@@ -1,0 +1,30 @@
+.project-item {
+  margin: 8px 0;
+}
+.project-heading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+}
+.project-heading > button:first-child {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.project-item > p {
+  margin: 8px 16px;
+  color: var(--ink-muted);
+  font-size: 12px;
+}

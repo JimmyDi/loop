@@ -27,7 +27,7 @@
 
 ## Dependency and call direction
 
-- Application commands flow downward: CLI/SDK -> `coding-agent` -> `agent` -> Pi AI.
+- Application commands flow downward: Web/CLI/SDK -> `coding-agent` -> `agent` -> Pi AI.
 - The terminal entry lives in `coding-agent/cli.ts` and uses core instance APIs.
 - Cross-layer imports must use the lower layer's public `index.ts`; do not import its internal files.
 - `agent` must not import `coding-agent`.
@@ -86,7 +86,7 @@
 - Prefer early returns for guard clauses and multiline blocks for non-trivial conditionals.
 - Keep data types explicit and colocated with their feature; move shared types to dedicated type files when reused.
 - Keep one primary responsibility per file.
-- Keep two top-level source boundaries: `coding-agent` and `agent`.
+- Keep two core source boundaries: `coding-agent` and `agent`. The `src/web-ui` application directory contains its frontend, backend, shared protocol and `docs/`; it consumes the public coding-agent entry, and neither core layer may depend on it.
 - The coding-agent CLI uses core instance methods and subscriptions.
   SDK consumers use the public coding-agent entry.
 - Follow Pi entry points under coding-agent/core: sdk.ts, agent-session.ts,
@@ -109,5 +109,8 @@
   Do not import application or UI implementations into agent. Add resource integrations
   under coding-agent/core only when requested; do not add unused scaffolding.
 - Retain upstream attribution in THIRD_PARTY_NOTICES.md for adapted Pi code.
-- Keep one Bun project. Do not add nested package manifests, dependency installations, or a
-  top-level `packages` directory. Use public `index.ts` files for internal module boundaries.
+- Use one Bun workspace with a shared root `bun.lock`. Run dependency installation from the
+  repository root. `src/web-ui/package.json` owns the Web frontend/backend dependencies and
+  development scripts; do not split frontend and backend into separate packages. Keep agent
+  and coding-agent as source folders without package manifests. Do not add a top-level
+  `packages` directory. Use public `index.ts` files for internal module boundaries.

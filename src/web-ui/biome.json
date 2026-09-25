@@ -1,0 +1,7 @@
+{
+  "root": false,
+  "extends": ["../../biome.json"],
+  "files": {
+    "includes": ["**/*.ts", "**/*.tsx", "**/*.css", "**/*.json", "!node_modules/**", "!dist/**"]
+  }
+}

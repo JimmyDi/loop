@@ -1,0 +1,30 @@
+.session-list {
+  list-style: none;
+  padding: 4px 8px 8px 20px;
+  margin: 0;
+}
+.session-list button {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-muted);
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.session-list button:hover,
+.session-list button[aria-current] {
+  background: #e8edf4;
+  color: var(--ink);
+}
+.session-empty {
+  padding: 8px;
+  color: var(--ink-muted);
+  font-size: 12px;
+}

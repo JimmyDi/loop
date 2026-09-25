@@ -1,0 +1,34 @@
+.session-tabs {
+  display: flex;
+  min-height: 38px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  background: #fafbfc;
+}
+.session-tab {
+  display: flex;
+  align-items: center;
+  max-width: 240px;
+  border-right: 1px solid var(--line);
+  border-bottom: 2px solid transparent;
+}
+.session-tab[data-active="true"] {
+  background: white;
+  border-bottom-color: #2563eb;
+}
+.session-tab button {
+  border: 0;
+  background: none;
+  padding: 9px 12px;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.session-tab button + button {
+  flex-shrink: 0;
+  padding: 6px;
+}

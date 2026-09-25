@@ -1,0 +1,26 @@
+.assistant-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  margin: 16px 0;
+}
+.assistant-avatar {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 23px;
+  background: white;
+}
+.assistant-body {
+  flex: 1;
+  min-width: 0;
+  padding-top: 1px;
+}
+.assistant-message[aria-busy="true"] .assistant-avatar {
+  color: #2563eb;
+}

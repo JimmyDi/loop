@@ -22,12 +22,21 @@ bun src/coding-agent/sdk.sample.ts "Hello, what time is it now?"
 
 For compatible gateways, configure `LOOP_AI_BASE_URL` and credentials as described in [Models](src/coding-agent/docs/models.md). Without a custom URL, OpenAI uses native Responses. With a custom URL, the OpenAI provider uses Chat Completions.
 
+For the browser UI (verified with Bun 1.3.14), run:
+
+```bash
+bun run-dev
+```
+
+Web frontend/backend dependencies live in the private `src/web-ui` workspace. Install once from the root with `bun install`; all packages share `bun.lock`. See [Web UI](src/web-ui/README.md) for startup options and development checks.
+
 ## Documentation
 
 | Module | Start here | Feature guides |
 | --- | --- | --- |
 | Agent | [Overview](src/agent/README.md) | [API](src/agent/docs/agent.md), [loop](src/agent/docs/agent-loop.md), [events](src/agent/docs/events.md), [tools](src/agent/docs/tools.md), [cancellation](src/agent/docs/cancellation.md) |
 | Coding-agent | [Overview](src/coding-agent/README.md) | [SDK](src/coding-agent/docs/sdk.md), [CLI](src/coding-agent/docs/cli.md), [models](src/coding-agent/docs/models.md), [sessions](src/coding-agent/docs/sessions.md) |
+| Web UI | [Overview](src/web-ui/README.md) | [Frontend](src/web-ui/frontend/README.md), [backend](src/web-ui/backend/README.md), [design](src/web-ui/docs/DESIGN.md) |
 
 Each module's README indexes its feature pages. Documentation describes the current Loop implementation; Pi features not implemented here are not part of the API.
 
@@ -49,9 +58,15 @@ src/
     modes/          Interactive and Print consumers
     index.ts        Public exports
     docs/           One Markdown page per feature
+  web-ui/
+    package.json    Shared Web frontend/backend dependencies and scripts
+    frontend/       React components, hooks and styles
+    backend/        Bun HTTP/SSE server over the public coding-agent SDK
+    shared/         HTTP and event contracts
+    docs/           Design and implementation notes
 ```
 
-One Bun project contains both layers. Commands flow downward through public entries; events flow upward through subscriptions. Agent does not import coding-agent. The coding-agent core and SDK do not import terminal modes. `bun run check:architecture` enforces these boundaries.
+One Bun workspace contains the core source folders and the Web application package. Commands flow downward through public entries; events flow upward through subscriptions. Agent does not import coding-agent. The coding-agent core and SDK do not import terminal modes or Web code. `bun run check:architecture` enforces these boundaries.
 
 ```mermaid
 flowchart TD

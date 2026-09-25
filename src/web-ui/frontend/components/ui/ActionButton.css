@@ -1,0 +1,36 @@
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.action-button:hover:not(:disabled) {
+  background: #eef2f7;
+}
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.action-button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+.action-button.primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
+.action-button.ghost {
+  border-color: transparent;
+  background: transparent;
+}

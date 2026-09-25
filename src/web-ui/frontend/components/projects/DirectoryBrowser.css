@@ -1,0 +1,36 @@
+.directory-browser {
+  display: grid;
+  gap: 10px;
+}
+.directory-browser form {
+  display: flex;
+  gap: 8px;
+}
+.directory-browser input {
+  min-width: 0;
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.directory-browser ul {
+  max-height: 240px;
+  overflow: auto;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.directory-browser li button {
+  width: 100%;
+  justify-content: flex-start;
+}
+.directory-current {
+  overflow-wrap: anywhere;
+  color: var(--ink-muted);
+  margin: 0;
+  font-size: 12px;
+}
+.directory-navigation {
+  display: flex;
+  gap: 8px;
+}

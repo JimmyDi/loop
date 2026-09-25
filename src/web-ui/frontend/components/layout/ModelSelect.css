@@ -1,0 +1,14 @@
+.model-select {
+  max-width: 330px;
+  min-width: 0;
+}
+.model-select select {
+  width: 100%;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}

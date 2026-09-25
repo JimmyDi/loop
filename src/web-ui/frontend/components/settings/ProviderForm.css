@@ -1,0 +1,32 @@
+.provider-form,
+.provider-form fieldset {
+  display: grid;
+  gap: 14px;
+}
+.provider-form fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.provider-form p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+.provider-authentication {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.provider-authentication select {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+.provider-form-actions {
+  display: flex;
+  gap: 8px;
+}

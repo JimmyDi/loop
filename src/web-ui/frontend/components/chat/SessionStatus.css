@@ -1,0 +1,13 @@
+.session-status {
+  width: min(calc(100% - 36px), 860px);
+  margin: 0 auto;
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.session-status > div {
+  margin: 5px 0;
+}
+.session-status .action-button {
+  margin-left: 8px;
+}

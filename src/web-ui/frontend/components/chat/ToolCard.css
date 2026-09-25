@@ -1,0 +1,35 @@
+.tool-card {
+  margin: 10px 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 12px;
+  overflow: hidden;
+}
+.tool-card summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  padding: 10px 14px;
+  background: #f4f6f8;
+}
+.tool-card summary span {
+  color: var(--ink-muted);
+}
+.tool-card[data-status="error"] {
+  border-color: #fecdd3;
+}
+.tool-card[data-status="running"] summary span {
+  color: #2563eb;
+}
+.tool-content {
+  padding: 12px 14px;
+}
+.tool-content pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 360px;
+  overflow: auto;
+  line-height: 1.6;
+}

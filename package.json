@@ -5,14 +5,18 @@
   "type": "module",
   "description": "A local-first agent harness powered by Pi AI.",
   "license": "MIT",
+  "workspaces": [
+    "src/web-ui"
+  ],
   "bin": {
     "loop": "./src/coding-agent/cli.ts"
   },
   "scripts": {
     "run": "bun ./src/coding-agent/cli.ts",
+    "run-dev": "bun run --cwd src/web-ui run-dev",
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
-    "check": "biome check . && bun run check:architecture",
+    "typecheck": "tsc --noEmit && bun run --cwd src/web-ui typecheck",
+    "check": "biome check . && bun run --cwd src/web-ui check && bun run check:architecture",
     "check:architecture": "bun test src/coding-agent/index.test.ts",
     "chat": "bun ./src/coding-agent/cli.ts",
     "format": "biome format --write .",

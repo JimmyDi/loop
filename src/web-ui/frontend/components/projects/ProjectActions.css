@@ -1,0 +1,10 @@
+.project-actions {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  padding: 0 8px;
+}
+.project-actions .action-button {
+  font-size: 11px;
+  color: var(--ink-muted);
+}

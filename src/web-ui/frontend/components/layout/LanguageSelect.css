@@ -1,0 +1,15 @@
+.language-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+.language-select select {
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  color: var(--ink);
+}

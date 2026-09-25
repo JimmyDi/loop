@@ -1,0 +1,6 @@
+.copy-button {
+  color: var(--ink-muted);
+  font-size: 12px;
+  padding: 3px 6px;
+  min-height: 26px;
+}

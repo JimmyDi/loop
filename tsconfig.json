@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "types": ["bun"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/agent/**/*.ts", "src/coding-agent/**/*.ts"]
 }

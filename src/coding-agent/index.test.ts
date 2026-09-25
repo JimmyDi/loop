@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { existsSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import ts from "typescript";
@@ -7,7 +8,7 @@ const root = resolve(import.meta.dir, "..");
 const configFile = resolve(root, "../tsconfig.json");
 const config = ts.readConfigFile(configFile, ts.sys.readFile);
 const { options } = ts.parseJsonConfigFileContent(config.config, ts.sys, dirname(configFile));
-const layers = ["agent", "coding-agent"];
+const layers = ["agent", "coding-agent", "web-ui"];
 
 function isTerminalModule(path: string): boolean {
   return (
@@ -21,6 +22,7 @@ function isTerminalModule(path: string): boolean {
 function violations(file: string, text: string): string[] {
   const from = relative(root, file);
   const layer = from.split("/")[0];
+  const browser = from.startsWith("web-ui/frontend/") || from.startsWith("web-ui/shared/");
   const failures: string[] = [];
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
   const check = (specifier: ts.Node | undefined, typeOnly = false) => {
@@ -32,9 +34,34 @@ function violations(file: string, text: string): string[] {
     const name = specifier.text;
     const reject = () => failures.push(from + " -> " + name);
 
+    if (browser && /^(node:|bun(?::|$))/.test(name)) {
+      reject();
+      return;
+    }
+
     if (name.startsWith("@earendil-works/pi-ai")) {
+      if (layer === "web-ui") reject();
+
       if (layer === "coding-agent" && !typeOnly && from !== "coding-agent/core/model-runtime.ts")
         reject();
+
+      return;
+    }
+
+    if (layer === "web-ui" && name.startsWith(".") && /\.(css|html)$/.test(name)) {
+      const asset = resolve(dirname(file), name);
+
+      if (!asset.startsWith(resolve(root, "web-ui") + "/") || !existsSync(asset)) reject();
+
+      return;
+    }
+
+    if (layer === "web-ui" && name.endsWith(".css") && !name.startsWith(".")) {
+      try {
+        Bun.resolveSync(name, dirname(file));
+      } catch {
+        reject();
+      }
 
       return;
     }
@@ -54,11 +81,13 @@ function violations(file: string, text: string): string[] {
 
     if (!layers.includes(to) || target.includes(".test.")) reject();
     else if (to !== layer) {
-      const lower = layer === "coding-agent" ? "agent" : undefined;
+      const lower =
+        layer === "web-ui" ? "coding-agent" : layer === "coding-agent" ? "agent" : undefined;
 
-      if (to !== lower || target !== lower + "/index.ts") reject();
+      if (to !== lower || target !== lower + "/index.ts" || (browser && !typeOnly)) reject();
     } else if (layer === "coding-agent" && !isTerminalModule(from) && isTerminalModule(target))
       reject();
+    else if (browser && target.startsWith("web-ui/backend/")) reject();
   };
 
   const visit = (node: ts.Node) => {
@@ -122,6 +151,8 @@ test("production dependencies use downward public boundaries", async () => {
   const failures: string[] = [];
 
   for await (const file of new Bun.Glob("**/*.{ts,tsx,js}").scan({ cwd: root, absolute: true })) {
+    if (/\/(?:node_modules|dist)\//.test(file)) continue;
+
     if (!file.includes(".test.")) failures.push(...violations(file, await Bun.file(file).text()));
   }
 
@@ -140,8 +171,25 @@ test.each([
   ["coding-agent/core/sdk.ts", 'import "../modes/print-mode";'],
   ["coding-agent/core/sdk.ts", 'import "../cli/args";'],
   ["coding-agent/sdk.sample.ts", 'import "./modes/save-recovery";'],
+  ["agent/agent.ts", 'import type { Frame } from "../web-ui/shared/protocol";'],
+  ["coding-agent/index.ts", 'import "../web-ui/main";'],
+  ["web-ui/backend/loop.ts", 'import { Agent } from "../../agent/index";'],
+  ["web-ui/backend/loop.ts", 'import "../../coding-agent/core/sdk";'],
+  ["web-ui/frontend/main.tsx", 'import "../backend/loop";'],
+  ["web-ui/frontend/main.tsx", 'import "../../coding-agent/index";'],
+  ["web-ui/shared/protocol.ts", 'import "node:fs";'],
+  ["web-ui/backend/loop.ts", 'import "@earendil-works/pi-ai";'],
 ])("rejects forbidden dependency from %s", (file, source) => {
   expect(violations(resolve(root, file), source).length).toBeGreaterThan(0);
+});
+
+test.each([
+  ["web-ui/backend/loop.ts", 'import { createAgentSession } from "../../coding-agent/index";'],
+  ["web-ui/shared/protocol.ts", 'import type { SessionEvent } from "../../coding-agent/index";'],
+  ["web-ui/frontend/App.tsx", 'import "./App.css";'],
+  ["web-ui/backend/server.ts", 'import page from "../frontend/index.html";'],
+])("allows public Web dependencies from %s", (file, source) => {
+  expect(violations(resolve(root, file), source)).toEqual([]);
 });
 
 test("SDK import has no terminal, stdout or file creation side effects", async () => {

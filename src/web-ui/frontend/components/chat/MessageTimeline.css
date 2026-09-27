@@ -27,7 +27,7 @@
   left: 50%;
   bottom: 10px;
   transform: translateX(-50%);
-  box-shadow: 0 4px 16px #0001;
+  box-shadow: 0 4px 16px var(--shadow-soft);
 }
 @media (max-width: 767px) {
   .message-timeline {

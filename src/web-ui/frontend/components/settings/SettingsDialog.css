@@ -1,0 +1,80 @@
+.modal.settings-dialog {
+  width: min(760px, calc(100vw - 32px));
+  height: min(720px, calc(100dvh - 48px));
+  max-height: calc(100dvh - 48px);
+  padding: 16px 20px 20px 12px;
+  border: 0;
+  border-radius: 28px;
+  overflow: hidden;
+}
+.settings-dialog .modal-header {
+  height: 32px;
+  margin: 0 0 12px 12px;
+}
+.settings-dialog .modal-header h2 {
+  font-size: 15px;
+  font-weight: 500;
+}
+.settings-dialog::backdrop {
+  background: var(--settings-backdrop);
+}
+.settings-dialog-body {
+  display: grid;
+  grid-template-columns: 156px minmax(0, 1fr);
+  gap: 28px;
+  height: calc(100% - 44px);
+  min-height: 0;
+}
+.settings-navigation {
+  min-width: 0;
+  overflow-y: auto;
+}
+.settings-navigation [role="tablist"] {
+  display: grid;
+  gap: 4px;
+}
+.settings-navigation-item.action-button {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 13px;
+}
+.settings-navigation-item.action-button[aria-selected="true"] {
+  background: var(--surface-selected);
+}
+.settings-navigation-item svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.settings-content {
+  container-type: inline-size;
+  min-width: 0;
+  overflow: auto;
+  padding: 0 4px 12px;
+}
+@media (max-width: 767px) {
+  .modal.settings-dialog {
+    width: calc(100vw - 24px);
+    height: min(720px, calc(100dvh - 24px));
+    max-height: calc(100dvh - 24px);
+    padding: 16px 12px;
+    border-radius: 22px;
+  }
+  .settings-dialog .modal-header {
+    margin-left: 8px;
+  }
+  .settings-dialog-body {
+    grid-template-columns: 124px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .settings-navigation-item.action-button {
+    padding: 8px;
+    gap: 6px;
+    font-size: 12px;
+  }
+}

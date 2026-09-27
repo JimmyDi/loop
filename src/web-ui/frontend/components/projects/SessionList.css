@@ -20,7 +20,7 @@
 }
 .session-list button:hover,
 .session-list button[aria-current] {
-  background: #e8edf4;
+  background: var(--surface-selected);
   color: var(--ink);
 }
 .session-empty {

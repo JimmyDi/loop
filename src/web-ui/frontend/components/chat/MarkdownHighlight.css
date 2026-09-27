@@ -1,0 +1,55 @@
+.markdown-text pre code {
+  color: var(--ink);
+}
+.markdown-text .hljs-comment,
+.markdown-text .hljs-quote,
+.markdown-text .hljs-code {
+  color: var(--ink-muted);
+}
+.markdown-text .hljs-keyword,
+.markdown-text .hljs-doctag,
+.markdown-text .hljs-type,
+.markdown-text .hljs-template-tag {
+  color: light-dark(#a92757, #f898bf);
+}
+.markdown-text .hljs-string,
+.markdown-text .hljs-regexp,
+.markdown-text .hljs-addition {
+  color: light-dark(#216b42, #97d6a6);
+}
+.markdown-text .hljs-title,
+.markdown-text .hljs-section {
+  color: light-dark(#6c3aad, #cfafff);
+}
+.markdown-text .hljs-number,
+.markdown-text .hljs-literal,
+.markdown-text .hljs-attr,
+.markdown-text .hljs-attribute,
+.markdown-text .hljs-variable,
+.markdown-text .hljs-template-variable,
+.markdown-text .hljs-selector-class,
+.markdown-text .hljs-selector-id {
+  color: light-dark(#195eaa, #91c6ff);
+}
+.markdown-text .hljs-built_in,
+.markdown-text .hljs-symbol,
+.markdown-text .hljs-bullet,
+.markdown-text .hljs-meta {
+  color: light-dark(#93521c, #eec084);
+}
+.markdown-text .hljs-name,
+.markdown-text .hljs-selector-tag,
+.markdown-text .hljs-selector-pseudo {
+  color: light-dark(#216b42, #97d6a6);
+}
+.markdown-text .hljs-deletion {
+  color: var(--error-ink);
+  background: var(--error-surface);
+}
+.markdown-text .hljs-emphasis {
+  font-style: italic;
+}
+.markdown-text .hljs-strong,
+.markdown-text .hljs-section {
+  font-weight: 600;
+}

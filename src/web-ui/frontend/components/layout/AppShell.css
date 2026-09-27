@@ -18,7 +18,7 @@
   touch-action: none;
 }
 .sidebar-resizer:hover {
-  background: #2563eb22;
+  background: var(--accent-soft);
 }
 .sidebar-scrim {
   display: none;
@@ -47,6 +47,6 @@
     z-index: 30;
     inset: 0;
     border: 0;
-    background: #0f172a55;
+    background: var(--backdrop);
   }
 }

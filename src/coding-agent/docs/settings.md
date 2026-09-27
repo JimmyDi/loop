@@ -26,7 +26,7 @@ Both fields must be strings; unknown fields reject. No file means built-in defau
 | `OPENAI_API_KEY` | Pi AI's native OpenAI credential source when no override is used. |
 | `LOOP_DATA_DIR` | Configuration and default session-storage root. |
 
-Other provider credential sources are resolved by Pi AI. The standalone Agent sample uses its own `AGENT_MAESTRO_API_KEY`; coding-agent samples use the `LOOP_*` variables above.
+Other provider credential sources are resolved by Pi AI. The standalone Agent sample uses its own `AGENT_EXAMPLE_API_KEY`; coding-agent samples use the `LOOP_*` variables above.
 
 Use exported variables in a terminal or local `.env` assignments. Bun loads `.env` automatically. The repository's [.env.example](../../../.env.example) contains placeholders only.
 

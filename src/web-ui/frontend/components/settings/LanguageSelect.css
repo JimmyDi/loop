@@ -8,9 +8,9 @@
   justify-content: space-between;
   gap: 12px;
   padding: 8px 14px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-raised);
 }
 .language-select-options {
   position: absolute;

@@ -65,7 +65,7 @@ export const Sidebar = () => {
           onClick={() => setSettingsOpen(true)}
         >
           <SettingsIcon />
-          Settings
+          {t("settings")}
         </ActionButton>
       </footer>
       {adding && <AddProjectDialog onClose={() => setAdding(false)} />}

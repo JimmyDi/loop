@@ -29,6 +29,10 @@
   min-width: 0;
   overflow-y: auto;
 }
+.settings-navigation [role="tablist"] {
+  display: grid;
+  gap: 4px;
+}
 .settings-navigation-item.action-button {
   width: 100%;
   justify-content: flex-start;
@@ -39,7 +43,7 @@
   border-radius: 12px;
   font-size: 13px;
 }
-.settings-navigation-item[aria-selected="true"] {
+.settings-navigation-item.action-button[aria-selected="true"] {
   background: var(--surface-selected);
 }
 .settings-navigation-item svg {
@@ -48,6 +52,7 @@
   flex-shrink: 0;
 }
 .settings-content {
+  container-type: inline-size;
   min-width: 0;
   overflow: auto;
   padding: 0 4px 12px;
@@ -64,10 +69,12 @@
     margin-left: 8px;
   }
   .settings-dialog-body {
-    grid-template-columns: 100px minmax(0, 1fr);
+    grid-template-columns: 124px minmax(0, 1fr);
     gap: 12px;
   }
   .settings-navigation-item.action-button {
     padding: 8px;
+    gap: 6px;
+    font-size: 12px;
   }
 }

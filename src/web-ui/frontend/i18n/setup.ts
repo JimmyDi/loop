@@ -12,14 +12,29 @@ void i18n.use(initReactI18next).init({
   fallbackLng: "en",
   interpolation: { escapeValue: false },
   initAsync: false,
+  react: { bindI18nStore: "added removed" },
 });
 
 if (typeof document !== "undefined") document.documentElement.lang = i18n.language;
 
-i18n.on("languageChanged", (language) => {
+const onLanguageChanged = (language: string): void => {
   writePreference("language", language);
 
   if (typeof document !== "undefined") document.documentElement.lang = language;
-});
+};
+
+i18n.on("languageChanged", onLanguageChanged);
+
+if (import.meta.hot) {
+  import.meta.hot.accept("./en", (updated: { en: typeof en } | undefined) => {
+    if (updated) i18n.addResourceBundle("en", "translation", updated.en, true, true);
+  });
+  import.meta.hot.accept("./zh", (updated: { zh: typeof zh } | undefined) => {
+    if (updated) i18n.addResourceBundle("zh", "translation", updated.zh, true, true);
+  });
+  import.meta.hot.dispose(() => {
+    i18n.off("languageChanged", onLanguageChanged);
+  });
+}
 
 export { i18n };

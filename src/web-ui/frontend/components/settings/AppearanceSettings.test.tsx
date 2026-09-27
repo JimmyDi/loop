@@ -24,7 +24,12 @@ test("Appearance applies and persists choices, retaining selection when reopened
     useTheme.setState({ theme: "system" });
     const view = render(<AppearanceSettings />);
 
-    expect(view.getByRole("group", { name: "Appearance" })).toBeTruthy();
+    expect(view.getByRole("group", { name: "Theme" })).toBeTruthy();
+    expect(view.getAllByRole("radio").map((radio) => (radio as HTMLInputElement).value)).toEqual([
+      "system",
+      "light",
+      "dark",
+    ]);
     expect((view.getByRole("radio", { name: "System" }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(view.getByRole("radio", { name: "Dark" }));
     expect(document.documentElement.dataset.theme).toBe("dark");
@@ -39,7 +44,7 @@ test("Appearance applies and persists choices, retaining selection when reopened
     expect(document.documentElement.dataset.theme).toBe("system");
     expect(window.localStorage.getItem("loop.web.theme")).toBe(JSON.stringify("system"));
     await act(() => i18n.changeLanguage("zh"));
-    expect(reopened.getByRole("group", { name: "外观" })).toBeTruthy();
+    expect(reopened.getByRole("group", { name: "主题" })).toBeTruthy();
     expect((reopened.getByRole("radio", { name: "跟随系统" }) as HTMLInputElement).checked).toBe(
       true,
     );

@@ -28,7 +28,7 @@ export function createModelRuntime(options: ModelRuntimeOptions = {}): ModelRunt
   const id = options.modelId ?? process.env.LOOP_MODEL ?? DEFAULT_MODEL;
   const registry = options.models ?? builtinModels();
 
-  // Built-in OpenAI uses Responses. Custom OpenAI gateways such as Maestro
+  // Built-in OpenAI uses Responses. Custom OpenAI-compatible gateways
   // expose Chat Completions, including for models already in the catalog.
   if (!options.models && baseUrl && (provider === "openai" || !registry.getModel(provider, id))) {
     const catalog = registry.getModel(provider, id) ?? registry.getModel("openai", id);

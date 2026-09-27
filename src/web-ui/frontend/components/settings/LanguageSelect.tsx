@@ -10,7 +10,13 @@ const languages = [
   { value: "en", label: "English" },
 ] as const;
 
-export const LanguageSelect = ({ labelId }: { labelId: string }) => {
+export const LanguageSelect = ({
+  labelId,
+  descriptionId,
+}: {
+  labelId: string;
+  descriptionId?: string;
+}) => {
   const { i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -92,6 +98,7 @@ export const LanguageSelect = ({ labelId }: { labelId: string }) => {
         aria-expanded={open}
         aria-controls={open ? id + "-options" : undefined}
         aria-labelledby={labelId + " " + id + "-value"}
+        aria-describedby={descriptionId}
         onClick={() => setOpen(!open)}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {

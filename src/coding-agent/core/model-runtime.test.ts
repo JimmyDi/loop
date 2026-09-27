@@ -107,12 +107,12 @@ test("default OpenAI model keeps Responses unless a custom gateway is configured
 
 test("custom named gateways reuse catalog capabilities for known OpenAI models", async () => {
   const runtime = createModelRuntime({
-    provider: "agent-maestro",
+    provider: "example-gateway",
     modelId: "gpt-5.5",
     baseUrl: "http://localhost:8080/api/openai/v1",
     apiKey: "test-only",
   });
-  const model = runtime.getModel("agent-maestro", "gpt-5.5")!;
+  const model = runtime.getModel("example-gateway", "gpt-5.5")!;
 
   expect(model).toMatchObject({
     api: "openai-completions",

@@ -6,7 +6,7 @@ Import from [index.ts](index.ts). This folder belongs to the root Bun project an
 
 ## Start
 
-See [Agent API](docs/agent.md) for a minimal call and [agent.sample.ts](agent.sample.ts) for a runnable custom-endpoint example. Both make real model requests when executed.
+See [Agent API](docs/agent.md) for a minimal call and [agent.sample.ts](agent.sample.ts) for a custom-endpoint example. Replace its example gateway URL, model ID, and capabilities, and set `AGENT_EXAMPLE_API_KEY` as needed before running it. Both examples make real model requests when configured and executed.
 
 ## Features
 

@@ -45,4 +45,4 @@ bun run typecheck
 bun run check
 ```
 
-This implementation references Pi's core organization, but supports Loop's own minimal API and JSONL format. It does not implement Pi's queues, steering, compaction, extensions, skills, MCP, or RPC. See [third-party notices](../../THIRD_PARTY_NOTICES.md).
+Coding-agent supports Loop's minimal API and JSONL format. It does not implement queues, steering, compaction, extensions, skills, MCP, or RPC.

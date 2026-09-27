@@ -94,4 +94,4 @@ bun run check
 
 Tests use local synthetic model endpoints without production credentials or paid requests. The CLI PTY test requires Python 3. Runnable samples use real configured models.
 
-See [Contributing](CONTRIBUTING.md), [Security](SECURITY.md), and [third-party notices](THIRD_PARTY_NOTICES.md).
+See [Contributing](CONTRIBUTING.md), [Security](SECURITY.md), and [License](LICENSE).

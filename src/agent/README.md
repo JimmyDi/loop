@@ -30,4 +30,4 @@ bun run typecheck
 bun run check
 ```
 
-The implementation is adapted from Pi; see [third-party notices](../../THIRD_PARTY_NOTICES.md). These documents describe Loop's current API, which differs from Pi's full Agent API.
+These documents describe Loop's current API, which differs from Pi's full Agent API.

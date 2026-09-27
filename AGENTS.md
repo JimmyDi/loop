@@ -119,7 +119,7 @@
 - Reuse Pi AI message, model and stream types; preserve the original AI event in message updates.
   Do not import application or UI implementations into agent. Add resource integrations
   under coding-agent/core only when requested; do not add unused scaffolding.
-- Retain upstream attribution in THIRD_PARTY_NOTICES.md for adapted Pi code.
+- Document Loop's own implementation. Do not add source-origin or adaptation claims without verified evidence.
 - Use one Bun workspace with a shared root `bun.lock`. Run dependency installation from the
   repository root. `src/web-ui/package.json` owns the Web frontend/backend dependencies and
   development scripts; do not split frontend and backend into separate packages. Keep agent

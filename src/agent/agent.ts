@@ -1,4 +1,3 @@
-// Adapted from Pi (MIT). See THIRD_PARTY_NOTICES.md.
 import type { AssistantMessage, Message } from "@earendil-works/pi-ai";
 
 import { runAgentLoop } from "./agent-loop";

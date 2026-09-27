@@ -442,7 +442,7 @@ Acceptance criteria:
 - Do not expose unsupported attachments, approval, tasks, Trace, artifacts, skills, or MCP controls.
 - Print the URL/open a browser only after readiness. Cover occupied/system-assigned ports, --no-open, SSH, and browser-opening failure. Shutdown cancels and finalizes; save failures must not be reported as successful exits.
 
-Implementation tests use local streams and tool substitutes without real models. Keep tests beside implementations, without shared mock/testing modules. Run Bun tests, type, Biome, and architecture checks appropriate to the change; visual acceptance covers desktop and mobile. If root checks omit TSX, provide Web checks. Explicitly report checks blocked by missing dependencies rather than claiming success. Preserve applicable source licenses and attribution within web-ui.
+Implementation tests use local streams and tool substitutes without real models. Keep tests beside implementations, without shared mock/testing modules. Run Bun tests, type, Biome, and architecture checks appropriate to the change; visual acceptance covers desktop and mobile. If root checks omit TSX, provide Web checks. Explicitly report checks blocked by missing dependencies rather than claiming success.
 
 Later release acceptance must test packaged output in an isolated temporary directory: installation must not require source checkout or frontend build tools; assets must resolve from any cwd; missing Bun must produce a clear runtime requirement; installed Bun must run and exit correctly; npm package identity and publishing rights must be confirmed. Packages must exclude user directories, credentials, registrations, sessions, and test data. This work does not publish to npm or perform Git operations.
 

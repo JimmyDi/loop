@@ -3,7 +3,7 @@
   min-height: 38px;
   overflow-x: auto;
   border-bottom: 1px solid var(--line);
-  background: #fafbfc;
+  background: var(--surface-tabs);
 }
 .session-tab {
   display: flex;
@@ -13,8 +13,8 @@
   border-bottom: 2px solid transparent;
 }
 .session-tab[data-active="true"] {
-  background: white;
-  border-bottom-color: #2563eb;
+  background: var(--surface-raised);
+  border-bottom-color: var(--accent);
 }
 .session-tab button {
   border: 0;

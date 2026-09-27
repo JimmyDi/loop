@@ -3,8 +3,8 @@
   gap: 4px;
   padding: 10px 14px;
   border-radius: 8px;
-  background: #fff1f2;
-  color: #9f1239;
+  background: var(--error-surface);
+  color: var(--error-ink);
   font-size: 13px;
   overflow-wrap: anywhere;
 }

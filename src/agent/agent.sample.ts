@@ -4,16 +4,16 @@ import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completio
 
 import { Agent } from "./index";
 
-// 1. Configure the model exposed by Maestro.
+// 1. Replace this example gateway URL, model ID, and capabilities with your configuration.
 const model: Model<"openai-completions"> = {
-  id: "gpt-6-astra",
-  name: "GPT-6 Astra via Maestro",
-  provider: "agent-maestro",
+  id: "example-model",
+  name: "Example Model",
+  provider: "example-gateway",
   api: "openai-completions",
-  baseUrl: "http://127.0.0.1:23333/api/openai/v1",
-  input: ["text", "image"],
-  reasoning: true,
-  contextWindow: 921793,
+  baseUrl: "https://gateway.example.com/v1",
+  input: ["text"],
+  reasoning: false,
+  contextWindow: 128000,
   maxTokens: 4096,
   // Local accounting placeholders, not actual pricing.
   cost: {
@@ -28,18 +28,18 @@ const models = createModels();
 
 models.setProvider(
   createProvider({
-    id: "agent-maestro",
-    name: "Agent Maestro",
+    id: "example-gateway",
+    name: "Example Gateway",
     models: [model],
     auth: {
-      apiKey: envApiKeyAuth("Maestro API key", ["AGENT_MAESTRO_API_KEY"]),
+      apiKey: envApiKeyAuth("Example gateway API key", ["AGENT_EXAMPLE_API_KEY"]),
     },
     api: openAICompletionsApi(),
   }),
 );
 
-// Set the matching key if Maestro authentication is enabled.
-const apiKey = process.env.AGENT_MAESTRO_API_KEY ?? "local-placeholder";
+// Set AGENT_EXAMPLE_API_KEY when the gateway requires authentication.
+const apiKey = process.env.AGENT_EXAMPLE_API_KEY ?? "your-api-key-here";
 
 // 2. Create an Agent using the package's public entry point.
 const agent = new Agent({

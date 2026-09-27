@@ -9,15 +9,15 @@ set -euo pipefail
 # Configure LOOP_AI_API_KEY (gateway) or OPENAI_API_KEY (direct OpenAI) in the environment.
 # LOOP_AI_BASE_URL also sets the gateway URL. Existing .env configuration is loaded by Bun.
 
-: <<'AGENT_MAESTRO_SAMPLE'
-Agent Maestro (copy the command below and run from the project root):
+: <<'EXAMPLE_GATEWAY_SAMPLE'
+Example gateway (replace the URL, model ID, and API key before running):
 
 bun run coding-agent \
   --provider openai \
-  --model gpt-5.5 \
-  --base-url http://127.0.0.1:23333/api/openai/v1 \
-  --api-key "local-placeholder"
-AGENT_MAESTRO_SAMPLE
+  --model example-model \
+  --base-url https://gateway.example.com/v1 \
+  --api-key "your-api-key-here"
+EXAMPLE_GATEWAY_SAMPLE
 
 sample_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 

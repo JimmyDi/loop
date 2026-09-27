@@ -14,7 +14,7 @@
   display: grid;
   place-items: center;
   font-size: 23px;
-  background: white;
+  background: var(--surface-raised);
 }
 .assistant-body {
   flex: 1;
@@ -22,5 +22,5 @@
   padding-top: 1px;
 }
 .assistant-message[aria-busy="true"] .assistant-avatar {
-  color: #2563eb;
+  color: var(--accent);
 }

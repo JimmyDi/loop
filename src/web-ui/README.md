@@ -67,7 +67,7 @@ Each side has a README index and a Markdown-only docs directory, following the A
 | Browser interaction, messages, model settings, streaming and preferences | [Frontend](frontend/README.md) |
 | Server startup, projects, sessions, SSE, providers and HTTP boundaries | [Backend](backend/README.md) |
 
-This directory's docs folder contains only the shared [design](docs/DESIGN.md) and [license notes](docs/ATTRIBUTION.md). Feature documentation lives under frontend and backend. Saving Provider settings and switching an existing session are separate operations; see [frontend model settings](frontend/docs/models.md) for the current behavior.
+This directory's docs folder contains the shared [design](docs/DESIGN.md). Feature documentation lives under frontend and backend. Saving Provider settings and switching an existing session are separate operations; see [frontend model settings](frontend/docs/models.md) for the current behavior.
 
 ## Validation
 

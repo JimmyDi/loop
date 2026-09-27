@@ -1,8 +1,10 @@
 import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
+import { initializeTheme } from "./state/theme-store";
 import "katex/dist/katex.min.css";
-import "highlight.js/styles/github.css";
+
+initializeTheme();
 
 const root = document.getElementById("root");
 

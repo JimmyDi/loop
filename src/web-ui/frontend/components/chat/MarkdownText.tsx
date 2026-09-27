@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useCopy } from "../../hooks/useCopy";
 import { renderMarkdown } from "../../lib/markdown";
 import "./MarkdownText.css";
+import "./MarkdownHighlight.css";
 
 export const MarkdownText = ({ text }: { text: string }) => {
   const { t } = useTranslation();

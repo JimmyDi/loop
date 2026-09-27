@@ -21,7 +21,7 @@ Configure a service in the sidebar's **Model settings**, then add a project and 
 | Markdown, thinking, tool results, and copying | [Message rendering](docs/messages.md) |
 | Custom providers and the current session's model | [Model settings](docs/models.md) |
 | SSE subscriptions, snapshots, and reconnection | [Streaming state](docs/events.md) |
-| Layout, language, and browser storage | [Interface preferences](docs/preferences.md) |
+| Layout, language, appearance, and browser storage | [Interface preferences](docs/preferences.md) |
 
 Each page covers one feature: usage, contracts, lifecycle, limits, and links to source and colocated tests. Components use arrow functions with matching CSS and test files. Hooks and utilities are split by responsibility.
 

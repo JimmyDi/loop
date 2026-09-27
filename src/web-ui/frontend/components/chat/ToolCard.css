@@ -2,7 +2,7 @@
   margin: 10px 0;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface-raised);
   font-size: 12px;
   overflow: hidden;
 }
@@ -12,16 +12,16 @@
   gap: 12px;
   cursor: pointer;
   padding: 10px 14px;
-  background: #f4f6f8;
+  background: var(--surface-subtle);
 }
 .tool-card summary span {
   color: var(--ink-muted);
 }
 .tool-card[data-status="error"] {
-  border-color: #fecdd3;
+  border-color: var(--error-line);
 }
 .tool-card[data-status="running"] summary span {
-  color: #2563eb;
+  color: var(--accent);
 }
 .tool-content {
   padding: 12px 14px;

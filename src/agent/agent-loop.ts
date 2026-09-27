@@ -1,4 +1,3 @@
-// Adapted from Pi (MIT). See THIRD_PARTY_NOTICES.md.
 import { validateToolArguments } from "@earendil-works/pi-ai";
 import type { AssistantMessage, Message, ToolCall, ToolResultMessage } from "@earendil-works/pi-ai";
 import { transformMessages } from "@earendil-works/pi-ai/api/transform-messages";

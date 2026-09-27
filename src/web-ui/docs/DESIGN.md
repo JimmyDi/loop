@@ -16,7 +16,7 @@ The goal is to use Loop coding-agent in the browser through a project-based chat
 | Startup target | Eventually use `npx loop web` to start a local service and open the browser; npm distribution requires later integration |
 | Project management | Add, rename, and remove projects in the frontend; the Projects tree groups sessions by project |
 | Directory selection | Prefer the system picker on local macOS; otherwise use browser directory navigation, with typed paths supported |
-| Language | English and Chinese, defaulting to English and retaining the user's choice |
+| Language | English and Chinese, initially matching browser preferences and retaining a manual choice |
 | Interface | Provide a project sidebar, session layout, composer, and streaming message rendering |
 | Feature scope | Expose only existing Loop capabilities; omit unsupported controls and placeholders |
 | Model configuration | Configure a custom provider, Base URL, model, and authentication in sidebar settings; persist through the backend without requiring environment edits |
@@ -193,7 +193,7 @@ Components, visuals, and interactions consume Loop sessions through the Web API.
 │                  │ User messages                          │
 │                  │ Assistant / thinking / tool cards      │
 │                  │                                        │
-│ Language         │              Floating composer         │
+│ Settings         │              Floating composer         │
 └──────────────────┴────────────────────────────────────────┘
 ```
 
@@ -225,7 +225,7 @@ Maintain theme variables, layout rules, responsive behavior, and component CSS w
 
 | Area | Baseline |
 | --- | --- |
-| Theme | Inter/system fonts, pale gray background, white composer surface, fine borders, and CSS variables |
+| Theme | Inter/system fonts, Light/Dark/System appearance (System by default), fine borders, and semantic CSS color variables |
 | Colors | `--surface: #f6f7f9`, `--ink: #18181b`, `--ink-muted: #71717a`, `--line: #dfe4ea` |
 | Desktop layout | Sidebar initial/minimum 260px, maximum 420px; header minimum 52px and tabs minimum 38px |
 | Messages | Content max 1040px; pale blue-gray user bubbles, unboxed assistant text; 15px text and 1.65 line height |
@@ -254,7 +254,9 @@ Actual React, state, query, internationalization, Markdown, and test dependencie
 
 ### 4.5 Internationalization
 
-Maintain `en` and `zh` resources in `frontend/i18n`. Default to English on first use rather than selecting Chinese from browser language. Persist and restore the chosen language; invalid or missing preferences fall back to English. Switching must update page lang and date/time presentation without reloading, stopping execution, or clearing drafts.
+Maintain `en` and `zh` resources in `frontend/i18n`. Restore a valid manually chosen language first; otherwise select the first supported browser language, including regional variants, and fall back to English if none match. Automatic initialization does not persist a preference; manual selection does. Switching must update page lang and date/time presentation without reloading, stopping execution, or clearing drafts.
+
+The sidebar's gear-icon **Settings** button opens a rounded, two-column modal. Its left navigation currently contains only **General**, whose language dropdown offers 中文 and English with a selected checkmark. Appearance offers Light, Dark, and System cards; System follows the browser's preferred color scheme live, and manual choices persist locally. Theme colors cover all interface surfaces and code highlighting. The Settings and General labels remain in English. The existing Model settings entry remains separate. The modal uses a portal outside the mobile drawer, restores focus on close, and supports keyboard operation. See [interface preferences](../frontend/docs/preferences.md) for the interaction contract.
 
 Navigation, buttons, empty states, hints, tool states, error headings, accessibility labels, and copy feedback use matching translation keys in both resources. The backend provides stable error codes; the frontend translates Web errors and preserves unknown lower-layer details under a localized heading. Model replies, thinking, tool arguments/output, user input, project names, paths, and model identities are not translated. Interface language does not change Agent's system prompt.
 
@@ -410,7 +412,7 @@ Browser disconnection does not stop Agent. After server restart, only saved hist
 | Message and streaming display projection | Frontend Zustand, reconstructed from backend snapshots/events |
 | Project/session lists and model queries | TanStack Query, without a second authoritative chat history |
 | Tabs, expanded projects, sidebar width, unsent drafts | Frontend UI state, persisted locally where needed |
-| Interface language | Local frontend preference, defaulting to English |
+| Interface language | Local frontend preference; browser language matching before a manual choice |
 
 Keep Loop's JSONL format and atomic saving, with one authoritative source of chat history.
 
@@ -431,7 +433,7 @@ Acceptance criteria:
 - Web implementation changes stay in src/web-ui within the unified Bun project; no unrelated directories change and existing core architecture checks still pass.
 - Projects can be added, renamed, and removed. Symlink paths deduplicate, sessions are grouped by project, removal keeps files, and re-adding exposes history. Busy or pending-save projects cannot be removed.
 - Cover native macOS selection, cancellation, request interruption, browser navigation, and typed paths. Missing or inaccessible directories report errors without registering incorrect projects.
-- Default to English; language switching and preference restoration work. Translation keys are complete, execution/drafts remain intact, and original conversation content is not translated.
+- Match browser language before a manual choice, with English fallback; language switching and preference restoration work. Settings opens General, the dropdown supports keyboard navigation, and closing restores focus. Translation keys are complete, execution/drafts remain intact, and original conversation content is not translated.
 - Verify sidebar, header, tabs, bubbles, Markdown, composer, and mobile layout against the style and interaction baseline in section 4.3.
 - Text submission, IME, and newlines work. Busy sessions reject duplicate submissions, network failures retain input, and switching tabs does not stop sessions.
 - Each tool result has one display. Without progress events, do not invent percentages or a live terminal.

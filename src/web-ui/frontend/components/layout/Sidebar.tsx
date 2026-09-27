@@ -7,8 +7,9 @@ import { AddProjectDialog } from "../projects/AddProjectDialog";
 import { ProjectItem } from "../projects/ProjectItem";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
-import { LanguageSelect } from "./LanguageSelect";
+import { SettingsIcon } from "../ui/SettingsIcon";
 import { ProviderSettingsDialog } from "../settings/ProviderSettingsDialog";
+import { SettingsDialog } from "../settings/SettingsDialog";
 import "./Sidebar.css";
 
 export const Sidebar = () => {
@@ -16,6 +17,7 @@ export const Sidebar = () => {
   const { projects } = useProjects();
   const [adding, setAdding] = useState(false);
   const [configuring, setConfiguring] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const toggle = useWorkspace((state) => state.toggleSidebar);
 
   return (
@@ -57,10 +59,18 @@ export const Sidebar = () => {
         <ActionButton className="ghost" onClick={() => setConfiguring(true)}>
           {t("providerSettings")}
         </ActionButton>
-        <LanguageSelect />
+        <ActionButton
+          className="sidebar-settings ghost"
+          aria-haspopup="dialog"
+          onClick={() => setSettingsOpen(true)}
+        >
+          <SettingsIcon />
+          Settings
+        </ActionButton>
       </footer>
       {adding && <AddProjectDialog onClose={() => setAdding(false)} />}
       {configuring && <ProviderSettingsDialog onClose={() => setConfiguring(false)} />}
+      {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
     </aside>
   );
 };

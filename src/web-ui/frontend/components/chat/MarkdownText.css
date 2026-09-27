@@ -16,7 +16,7 @@
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #f7f8fa;
+  background: var(--surface-code);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -25,7 +25,7 @@
 }
 .markdown-text :not(pre) > code {
   padding: 2px 5px;
-  background: #eef0f4;
+  background: var(--surface-inline-code);
   border-radius: 4px;
   font-size: 0.9em;
 }
@@ -35,7 +35,7 @@
   right: 10px;
   border: 1px solid var(--line);
   border-radius: 5px;
-  background: white;
+  background: var(--surface-raised);
   color: var(--ink-muted);
   padding: 4px 8px;
   cursor: pointer;
@@ -57,10 +57,10 @@
   text-align: left;
 }
 .markdown-text th {
-  background: #f0f2f5;
+  background: var(--surface-sidebar);
 }
 .markdown-text a {
-  color: #2563eb;
+  color: var(--accent);
 }
 .markdown-text blockquote {
   margin-left: 0;

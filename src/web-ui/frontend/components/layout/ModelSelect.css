@@ -7,7 +7,7 @@
   padding: 7px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: white;
+  background: var(--surface-raised);
   color: var(--ink);
   font: inherit;
   font-size: 12px;

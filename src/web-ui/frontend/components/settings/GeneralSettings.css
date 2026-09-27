@@ -1,0 +1,11 @@
+.general-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-height: 62px;
+  padding: 10px 0 18px;
+  border-bottom: 1px solid var(--line-subtle);
+  font-size: 13px;
+}

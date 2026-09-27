@@ -9,7 +9,7 @@
 .user-message > div {
   padding: 13px 18px;
   border-radius: 16px 16px 4px 16px;
-  background: #e9eef5;
+  background: var(--surface-user);
   color: var(--ink);
   white-space: pre-wrap;
   overflow-wrap: anywhere;

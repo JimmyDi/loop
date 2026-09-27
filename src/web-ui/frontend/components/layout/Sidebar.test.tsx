@@ -15,6 +15,8 @@ test("Sidebar exposes its accessible content and state", () => {
 
   expect(html).toContain("Projects");
   expect(html).toContain("Loop");
-  expect(html).toContain("Language");
+  expect(html).toContain("Settings");
+  expect(html).toContain("Model settings");
+  expect(html).not.toContain("Language");
   client.clear();
 });

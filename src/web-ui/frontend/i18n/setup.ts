@@ -1,15 +1,14 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
-import { readPreference, writePreference } from "../lib/preferences";
+import { writePreference } from "../lib/preferences";
 import { en } from "./en";
+import { getInitialLanguage } from "./language";
 import { zh } from "./zh";
-
-const saved = readPreference<string>("language", "en");
 
 void i18n.use(initReactI18next).init({
   resources: { en: { translation: en }, zh: { translation: zh } },
-  lng: saved === "zh" ? "zh" : "en",
+  lng: getInitialLanguage(),
   fallbackLng: "en",
   interpolation: { escapeValue: false },
   initAsync: false,

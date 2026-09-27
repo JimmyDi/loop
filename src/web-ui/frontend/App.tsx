@@ -4,6 +4,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { AppShell } from "./components/layout/AppShell";
 import { ErrorNotice } from "./components/ui/ErrorNotice";
 import "./i18n/setup";
+import "./theme.css";
 import "./App.css";
 
 const query = new QueryClient({ defaultOptions: { queries: { staleTime: 5000, retry: 1 } } });

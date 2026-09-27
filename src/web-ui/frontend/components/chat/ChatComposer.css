@@ -4,20 +4,20 @@
   margin: 0 auto max(18px, env(safe-area-inset-bottom));
 }
 .chat-composer {
-  background: white;
+  background: var(--surface-raised);
   border: 1px solid var(--line);
   border-radius: 16px;
-  box-shadow: 0 8px 26px #0f172a12;
+  box-shadow: 0 8px 26px var(--shadow-soft);
 }
 .chat-composer:focus-within {
-  border-color: #a8c7f0;
+  border-color: var(--focus-border);
   box-shadow:
-    0 0 0 3px #3b82f617,
-    0 8px 26px #0f172a0f;
+    0 0 0 3px var(--focus-ring),
+    0 8px 26px var(--shadow-soft);
 }
 .chat-composer[data-running="true"] {
-  background: #f8fbff;
-  border-color: #bfdbfe;
+  background: var(--surface-running);
+  border-color: var(--running-border);
 }
 .composer-toolbar {
   display: flex;
@@ -41,8 +41,8 @@
 }
 .composer-send.stop {
   font-size: 12px;
-  background: #475569;
-  color: white;
+  background: var(--surface-selected);
+  color: var(--ink);
 }
 .composer-uncertain {
   font-size: 12px;

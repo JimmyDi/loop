@@ -53,6 +53,17 @@
 - Use relative links and language-tagged code fences. Make commands copyable; use public imports in consumer examples and placeholders for credentials or machine-specific values.
 - Update the relevant feature page when its API or behavior changes. Check Markdown links and TypeScript examples without making real model calls.
 
+## Changelog maintenance
+
+- Maintain the root [CHANGELOG.md](CHANGELOG.md) as the release history for this workspace. Agent, coding-agent, and Web UI changes share this file; identify the affected surface in each entry.
+- As part of completing an implemented feature, fix, or compatibility change, update `## [Unreleased]` automatically in the same task. Do not wait for a release or a separate reminder, and do not ask permission for this local documentation edit. Before an authorized PR creation or update, reconcile the entries with the final implemented behavior.
+- Read the full Unreleased section first. Use only applicable subsections, in this order: `### Breaking Changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`. Reuse existing subsections and omit empty ones.
+- Describe the user-visible or public API outcome concisely in English. Combine related follow-up edits into the existing entry instead of appending a running conversation or commit log. Correct or remove pending entries if the implementation changes or is reverted. Preserve unrelated entries.
+- Record behavior changes, public API/configuration changes, compatibility requirements, and actionable fixes. Pure formatting, tests, internal refactors with no observable impact, and routine documentation edits do not need an entry; explain the omission briefly in the PR when applicable.
+- Breaking changes must explain the migration or link to it. Add issue/PR links only when their public URLs are verified and relevant. Do not include personal paths, credentials, private endpoints, user data, or validation logs.
+- Keep all new entries under Unreleased. Never invent historical releases or infer a release date from `package.json`. Existing released sections are immutable.
+- Only when release preparation is explicitly requested, move accumulated entries to `## [X.Y.Z] - YYYY-MM-DD` using the confirmed release version and date, and leave a fresh `## [Unreleased]` at the top. Changelog maintenance does not authorize version bumps, Git commands, commits, tags, pushes, PRs, or publishing.
+
 ## Validation
 
 - Run relevant tests after changes. For broad changes, run `bun test`, the Biome check, and the affected Bun build commands.

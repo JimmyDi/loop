@@ -40,6 +40,8 @@ Web frontend/backend dependencies live in the private `src/web-ui` workspace. In
 
 Each module's README indexes its feature pages. Documentation describes the current Loop implementation; Pi features not implemented here are not part of the API.
 
+See [Changelog](CHANGELOG.md) for pending changes and release history.
+
 ## Source boundaries
 
 ```text

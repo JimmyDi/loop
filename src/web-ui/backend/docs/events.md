@@ -29,9 +29,26 @@ SSE comment heartbeats are sent every 15 seconds without a business sequence num
 
 Aborting a request or cancelling its stream removes only that connection's listeners and timer, without cancelling AgentSession. Disposing an instance closes its connections. Server restart creates a new streamId. Replay is not a durable event log, does not recover unsaved execution, and does not re-execute commands.
 
+## List Change Notifications
+
+Connect once per page to `GET /api/workspaces/events` independently of the selected session. SSE data is a JSON ListFrame with streamId and seq, using the same id format and onmessage handling as session events.
+
+| Frame type | Client action |
+| --- | --- |
+| lists.reset | Refresh projects, cached session lists and archived chats |
+| sessions.changed | Refresh the session list for workspaceId and archived chats |
+| projects.changed | Refresh projects, the session list for workspaceId and archived chats |
+
+Incremental notifications contain only workspaceId and cursor metadata, without messages or snapshots. They are published after project registration/rename/removal and archive/restore/deletion operations, on accepted runs, first user messages, command-state changes, run settlement and asynchronous title updates. All loaded controllers are observed, even without a per-session browser connection. Token deltas and tool events do not trigger list refreshes. Operations that partially complete before failing also notify clients so completed changes remain visible.
+
+Each new connection always receives lists.reset at the current sequence, even if Last-Event-ID is supplied. The list stream retains no replay buffer; clients reload lists to recover missed changes. It shares the transport's 15-second comment heartbeat, backpressure and disconnect cleanup. Heartbeats do not read history or refresh lists. Controller disposal removes its watcher; registry shutdown closes all list connections.
+
+Notifications cover changes made through this Web process. They do not watch external CLI writes or filesystem edits; reload the page to pick up those changes. This stream synchronizes list queries, not another page's selected session or unsent drafts.
+
 ## Source and Tests
 
 - [SessionEvents](../session-events.ts) / [replay tests](../session-events.test.ts).
+- [ListEvents](../list-events.ts) / [notification tests](../list-events.test.ts).
 - [SSE response](../http/sse.ts) / [cursor and cancellation tests](../http/sse.test.ts).
 - [SessionController](../session-controller.ts) / [tests](../session-controller.test.ts).
 - [Shared protocol](../../shared/protocol.ts), [state projection](../../shared/session-projection.ts) / [tests](../../shared/session-projection.test.ts).

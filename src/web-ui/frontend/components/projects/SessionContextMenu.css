@@ -1,0 +1,57 @@
+.session-context-menu {
+  position: fixed;
+  z-index: 60;
+  width: 230px;
+  max-width: calc(100vw - 16px);
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--ink);
+  background: var(--surface-raised);
+  box-shadow: 0 8px 28px var(--shadow);
+}
+@supports (backdrop-filter: blur(20px)) {
+  .session-context-menu {
+    background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
+    backdrop-filter: blur(20px);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .session-context-menu {
+    background: var(--surface-raised);
+    backdrop-filter: none;
+  }
+}
+.session-context-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.session-context-menu svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.session-context-menu button:hover:not(:disabled),
+.session-context-menu button:focus-visible {
+  outline: none;
+  background: var(--surface-hover);
+}
+.session-context-menu button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

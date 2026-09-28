@@ -21,6 +21,7 @@ test("SessionList exposes its accessible content and state", () => {
             createdAt: "2026-01-01T00:00:00Z",
             updatedAt: "2026-01-01T00:00:00Z",
             messageCount: 0,
+            userMessageCount: 0,
           },
         ]}
       />
@@ -34,21 +35,26 @@ test("SessionList exposes its accessible content and state", () => {
 });
 
 test("SessionList displays persisted summary titles instead of dates", () => {
+  const client = new QueryClient();
   const html = renderToStaticMarkup(
-    <SessionList
-      sessions={[
-        {
-          id: "titled",
-          workspaceId: "p",
-          createdAt: "2026-01-01T00:00:00Z",
-          updatedAt: "2026-01-01T00:00:00Z",
-          messageCount: 2,
-          title: "Fix language settings",
-        },
-      ]}
-    />,
+    <QueryClientProvider client={client}>
+      <SessionList
+        sessions={[
+          {
+            id: "titled",
+            workspaceId: "p",
+            createdAt: "2026-01-01T00:00:00Z",
+            updatedAt: "2026-01-01T00:00:00Z",
+            messageCount: 2,
+            userMessageCount: 1,
+            title: "Fix language settings",
+          },
+        ]}
+      />
+    </QueryClientProvider>,
   );
   expect(html).toContain("Fix language settings");
+  client.clear();
   expect(html).not.toContain("2026");
 });
 
@@ -80,6 +86,7 @@ test("generation rings follow live prompt events and background summaries withou
       title: "First conversation",
       workspaceId: "project",
       messageCount: 0,
+      userMessageCount: 0,
       createdAt: "2026-01-01T00:00:00Z",
       updatedAt: "2026-01-01T00:00:00Z",
     },
@@ -88,6 +95,7 @@ test("generation rings follow live prompt events and background summaries withou
       title: "Background conversation",
       workspaceId: "project",
       messageCount: 0,
+      userMessageCount: 0,
       createdAt: "2026-01-01T00:00:00Z",
       updatedAt: "2026-01-01T00:00:00Z",
       isGenerating: true,
@@ -103,7 +111,11 @@ test("generation rings follow live prompt events and background summaries withou
       seq: 0,
       snapshot,
     });
-    const ui = render(<SessionList sessions={summaries} />);
+    const client = new QueryClient();
+    const wrapper = ({ children }: { children: import("react").ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const ui = render(<SessionList sessions={summaries} />, { wrapper });
     const first = ui.getByTitle("First conversation");
     const second = ui.getByTitle("Background conversation");
     expect(within(first).queryByRole("img")).toBeNull();
@@ -158,6 +170,7 @@ test("generation rings follow live prompt events and background summaries withou
       <SessionList sessions={summaries.map((session) => ({ ...session, isGenerating: false }))} />,
     );
     expect(ui.queryByRole("img")).toBeNull();
+    client.clear();
   } finally {
     cleanup();
     useSessions.setState(sessionsState, true);

@@ -6,8 +6,8 @@ Each sessionId has one writable AgentSession in the current Web process. Web man
 
 | Endpoint | Input and result |
 | --- | --- |
-| GET /api/sessions?workspaceId=… | Return project history summaries without session file paths |
-| POST /api/sessions | Accept workspaceId; return a new session snapshot with 201 |
+| GET /api/sessions?workspaceId=… | Return unarchived conversations containing user messages, including live first runs, without session file paths |
+| POST /api/sessions | Accept workspaceId; return a draft snapshot with 201, without writing a history file |
 | GET /api/sessions/:id | Open or retrieve a session and return its complete snapshot |
 | POST /api/sessions/:id/prompt | Accept requestId, text and optional images/files; return runId with 202 |
 | POST /api/sessions/:id/abort | Wait for cancellation and cleanup, then return a snapshot |
@@ -18,11 +18,13 @@ Each sessionId has one writable AgentSession in the current Web process. Web man
 
 A complete snapshot contains model identity, supported efforts, selected effort, SDK state, operation, tool projection, and optional runId/requestId. operation is idle, prompt, model, flush, or title; it does not indicate whether model text has started arriving.
 
-Session list summaries include isGenerating, derived from the current Web process's active prompt operation. Unloaded historical sessions return false. This transient field lets the sidebar display background generation without opening every session or changing saved history.
+Session list summaries include userMessageCount and isGenerating, derived from saved history and the current Web process's live session state. Drafts with no user messages are omitted from the default list. Unloaded historical sessions return isGenerating: false. The first completed user-message event publishes a sessions.changed notification on the [list stream](events.md#list-change-notifications), so the sidebar item appears while the response is still streaming, even on pages viewing another session. Archived listings continue to include older empty archived records for management.
 
 Web enables first-prompt title generation through coding-agent. List summaries include optional title text; snapshots expose title source and optional titleError in SDK state. Background title events publish session.state without changing the operation or opening a run. Explicit title commands share the command lock. Provider reconfiguration and project removal cancel and drain auxiliary work before changing its runtime or disposing sessions. See [session titles](../../../coding-agent/docs/session-titles.md).
 
 ## Creation and Restoration
+
+New Web sessions use SessionManager.draft: a stable in-process ID and target history path, with model/title changes kept in memory until a commit contains a user message. Attachment-only user messages qualify. Invalid submissions or model preflight failures leave the draft unlisted. The normal end-of-run commit persists the first history, including cancellation or model errors after the user message was added; failed saves remain recoverable through flush. Unsent draft handles can be reopened within the server process, but do not survive a server restart. The API does not automatically delete older empty history files.
 
 LoopBridge lists a project's sessions through the public SDK, then opens SessionManager from the matching record. Unknown session IDs or history outside registered projects are rejected. Browsers cannot supply arbitrary file paths. Concurrent loads of one sessionId share a Promise and instance.
 
@@ -45,7 +47,7 @@ abort is independent of ordinary command locking and can stop an accepted reques
 
 SDK save failures retain hasPendingSave. flush neither requests the model nor executes tools again, and another save failure leaves recoverable state intact. Preflight or unexpected errors also settle to idle with error details, preventing the UI from remaining permanently busy.
 
-Closing a tab does not dispose its session. Instances remain until project removal or server shutdown. There is no automatic idle eviction, session deletion, branching, or cross-process write coordination. See [coding-agent sessions](../../../coding-agent/docs/sessions.md) for complete history and save-failure semantics.
+Closing a tab does not dispose its session. Instances remain until project removal, confirmed session deletion or server shutdown. DELETE /api/workspaces/:id/sessions/:sessionId removes one archived or unarchived chat through the project's busy guard, without loading a model or archiving first. There is no automatic idle eviction, branching, or cross-process write coordination. See [project deletion routes](projects.md) and [coding-agent sessions](../../../coding-agent/docs/sessions.md) for history and save-failure semantics.
 
 ## Image Attachments
 

@@ -17,4 +17,8 @@ export type SessionHeader = {
 
 export type SessionData = { header: SessionHeader; messages: Message[] };
 
-export type SessionInfo = SessionHeader & { path: string; messageCount: number };
+export type SessionInfo = SessionHeader & {
+  path: string;
+  messageCount: number;
+  userMessageCount: number;
+};

@@ -5,6 +5,36 @@ import { join } from "node:path";
 
 import { SessionManager } from "./session-manager";
 
+test("drafts defer files across metadata changes and persist the first user history with retry", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".draft-storage-test-"));
+  try {
+    const manager = SessionManager.draft(root, join(root, "history"));
+    const id = manager.getSessionId();
+    await manager.setModel({ provider: "example", id: "model", effort: "high" });
+    await manager.setTitle({ text: "Draft", source: "user", messageIndices: [] });
+    await manager.commit([]);
+    expect(await Bun.file(manager.sessionFile!).exists()).toBe(false);
+    expect(await SessionManager.list(root, join(root, "history"))).toEqual([]);
+    await Bun.write(join(root, "history"), "Block directory creation");
+    await expect(
+      manager.commit([{ role: "user", content: "First request", timestamp: 1 }]),
+    ).rejects.toThrow();
+    expect(manager.hasPendingSave).toBe(true);
+    await rm(join(root, "history"));
+    await manager.flush();
+    const restored = await SessionManager.open(manager.sessionFile!);
+    expect(restored.getSessionId()).toBe(id);
+    expect(restored.getHeader()).toMatchObject({
+      title: { text: "Draft" },
+      model: { effort: "high" },
+    });
+    expect(restored.messages).toEqual([{ role: "user", content: "First request", timestamp: 1 }]);
+    expect((await SessionManager.list(root, join(root, "history")))[0]?.userMessageCount).toBe(1);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("empty sessions persist, recent sessions stay within cwd, and a new process restores messages", async () => {
   const dir = await mkdtemp(join(tmpdir(), "loop-store-"));
   const other = await mkdtemp(join(tmpdir(), "loop-other-"));

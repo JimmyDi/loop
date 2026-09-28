@@ -9,7 +9,14 @@ import { AppShell } from "../layout/AppShell";
 
 test("Settings opens General outside the mobile drawer and restores focus without closing the drawer", async () => {
   const window = new Window({ width: 390 });
-  const previous = { window: globalThis.window, document: globalThis.document };
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    EventSource: globalThis.EventSource,
+  };
+  class LocalSource {
+    close() {}
+  }
   const language = i18n.language;
   const state = useWorkspace.getState();
   const theme = useTheme.getState().theme;
@@ -19,7 +26,8 @@ test("Settings opens General outside the mobile drawer and restores focus withou
 
   client.setQueryData(["projects"], []);
   client.setQueryData(["provider-settings"], { providers: [], catalog: [] });
-  Object.assign(globalThis, { window, document: window.document });
+  client.setQueryData(["archived-chats"], []);
+  Object.assign(globalThis, { window, document: window.document, EventSource: LocalSource });
   const { render, fireEvent, act, cleanup } = await import("@testing-library/react/pure");
 
   try {
@@ -49,7 +57,15 @@ test("Settings opens General outside the mobile drawer and restores focus withou
       "General",
       "Models",
       "Appearance",
+      "Archived chats",
     ]);
+    expect(view.getByRole("tablist", { name: "Archived" })).toBeTruthy();
+    expect(view.queryByRole("button", { name: "Manage" })).toBeNull();
+    fireEvent.click(view.getByRole("tab", { name: "Archived chats" }));
+    expect(view.getByRole("tabpanel", { name: "Archived chats" })).toBeTruthy();
+    expect(view.getAllByRole("dialog")).toHaveLength(1);
+    expect(view.getByText("No archived chats")).toBeTruthy();
+    fireEvent.click(view.getByRole("tab", { name: "General" }));
     expect(view.getByRole("tabpanel", { name: "General" })).toBeTruthy();
     expect(view.queryByRole("group", { name: "Theme" })).toBeNull();
     const general = view.getByRole("tab", { name: "General" });
@@ -87,6 +103,8 @@ test("Settings opens General outside the mobile drawer and restores focus withou
     expect(view.getByRole("heading", { name: "通用", level: 4 })).toBeTruthy();
     expect(view.getByRole("tab", { name: "通用" }).getAttribute("aria-selected")).toBe("true");
     expect(view.getByRole("navigation", { name: "设置分类" })).toBeTruthy();
+    expect(view.getByRole("tablist", { name: "归档" })).toBeTruthy();
+    expect(view.getByRole("tab", { name: "已归档会话" })).toBeTruthy();
     expect(view.getByText("应用界面使用的语言")).toBeTruthy();
     expect(view.queryByText("languageDescription")).toBeNull();
     expect(view.getByRole("button", { name: "语言 中文" }).getAttribute("aria-expanded")).toBe(

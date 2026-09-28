@@ -48,6 +48,47 @@ test("development startup serves HTML, bundled assets and API before announcing 
 
     expect(response.status).toBe(200);
     expect(html).toContain("<title>Loop</title>");
+    const icons = [...html.matchAll(/<link[^>]*rel="icon"[^>]*href="([^"]+)"[^>]*>/g)];
+    expect(icons).toHaveLength(3);
+    for (const [, icon] of icons) {
+      const resource = await fetch(new URL(icon!, url));
+      expect(resource.status).toBe(200);
+      expect((await resource.arrayBuffer()).byteLength).toBeGreaterThan(0);
+    }
+    for (const [rel, name, type] of [
+      ["apple-touch-icon", "loop-apple-touch-icon.png", "image/png"],
+      ["mask-icon", "loop-mask-icon.svg", "image/svg+xml"],
+    ]) {
+      const link = html.match(new RegExp('<link[^>]*rel="' + rel + '"[^>]*href="([^"]+)"'));
+      expect(link).not.toBeNull();
+      const resource = await fetch(new URL(link![1]!, url));
+      expect(resource.status).toBe(200);
+      expect(resource.headers.get("content-type")).toContain(type!);
+      if (rel === "mask-icon") expect(resource.headers.get("cache-control")).toBe("no-cache");
+      expect(new Uint8Array(await resource.arrayBuffer())).toEqual(
+        new Uint8Array(
+          await Bun.file(join(import.meta.dir, "frontend/assets", name!)).arrayBuffer(),
+        ),
+      );
+    }
+    const touchFallback = await fetch(new URL("apple-touch-icon.png", url));
+    expect(touchFallback.status).toBe(200);
+    expect(touchFallback.headers.get("content-type")).toBe("image/png");
+    expect(touchFallback.headers.get("cache-control")).toBe("no-cache");
+    expect(new Uint8Array(await touchFallback.arrayBuffer())).toEqual(
+      new Uint8Array(
+        await Bun.file(
+          join(import.meta.dir, "frontend/assets/loop-apple-touch-icon.png"),
+        ).arrayBuffer(),
+      ),
+    );
+    const fallback = await fetch(new URL("favicon.ico", url));
+    expect(fallback.status).toBe(200);
+    expect(fallback.headers.get("content-type")).toBe("image/x-icon");
+    expect(fallback.headers.get("cache-control")).toBe("no-cache");
+    expect(new Uint8Array(await fallback.arrayBuffer()).slice(0, 6)).toEqual(
+      new Uint8Array([0, 0, 1, 0, 3, 0]),
+    );
     const assets = [...html.matchAll(/(?:src|href)="([^"]+\.(?:js|css))"/g)];
 
     expect(assets.length).toBeGreaterThan(0);

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { useSidebarWidth } from "../../hooks/useSidebarWidth";
 import { useMobileDrawer } from "../../hooks/useMobileDrawer";
+import { useListEvents } from "../../hooks/useListEvents";
 import { useWorkspace } from "../../state/workspace-store";
 import { ChatWorkspace } from "../chat/ChatWorkspace";
 import { Sidebar } from "./Sidebar";
@@ -17,6 +18,7 @@ export const AppShell = () => {
   const drawer = useRef<HTMLDivElement>(null);
 
   useMobileDrawer(drawer, sidebar, toggleSidebar);
+  useListEvents();
 
   return (
     <div

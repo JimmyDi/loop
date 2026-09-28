@@ -3,8 +3,13 @@ import { HttpError } from "./http/errors";
 import type { LoopBridge } from "./loop";
 import type { ProjectStore } from "./projects/project-store";
 import { SessionController } from "./session-controller";
+import * as lifecycle from "./session-lifecycle";
+import { updateArchive } from "./session-archive";
+import { sessionSummaries } from "./session-summaries";
+import { ListEvents } from "./list-events";
 
 export class SessionRegistry {
+  readonly events = new ListEvents();
   private instances = new Map<string, SessionController>();
   private loading = new Map<string, Promise<SessionController>>();
   private owners = new Map<string, string>();
@@ -26,17 +31,14 @@ export class SessionRegistry {
 
     for (const record of records) this.owners.set(record.id, workspaceId);
 
-    return records.map((record) => ({
-      ...record,
-      isGenerating: this.instances.get(record.id)?.snapshot.operation === "prompt",
-    }));
+    return sessionSummaries(records, this.instances.values(), workspaceId);
   }
 
   async create(workspaceId: string): Promise<SessionController> {
     return this.withProject(workspaceId, async (project) => {
       const session = await this.loop.load(project);
       const controller = new SessionController(session, workspaceId);
-
+      this.events.watch(controller);
       this.instances.set(session.sessionId, controller);
       this.owners.set(session.sessionId, workspaceId);
 
@@ -48,13 +50,11 @@ export class SessionRegistry {
     if (this.closing) throw new HttpError(503, "server_closing");
 
     let owner = this.owners.get(id);
-
     if (!owner) {
       for (const project of await this.projects.list()) {
         if (project.accessible) await this.list(project.id);
 
         owner = this.owners.get(id);
-
         if (owner) break;
       }
     }
@@ -65,26 +65,20 @@ export class SessionRegistry {
     await this.projects.get(owner);
     this.assertAvailable(owner);
 
-    const existing = this.instances.get(id);
-
+    const existing = this.instances.get(id) ?? this.loading.get(id);
     if (existing) return existing;
-
-    const loading = this.loading.get(id);
-
-    if (loading) return loading;
 
     const workspaceId = owner;
     const promise = this.withProject(workspaceId, async (project) => {
       const session = await this.loop.load(project, id);
       const controller = new SessionController(session, workspaceId);
-
+      this.events.watch(controller);
       this.instances.set(id, controller);
 
       return controller;
     }).finally(() => this.loading.delete(id));
 
     this.loading.set(id, promise);
-
     return promise;
   }
 
@@ -98,7 +92,30 @@ export class SessionRegistry {
     if (this.removing.has(workspaceId)) throw new HttpError(409, "project_busy");
   }
 
-  async remove(workspaceId: string): Promise<void> {
+  remove(workspaceId: string): Promise<void> {
+    return this.changeProject(workspaceId, () => this.projects.remove(workspaceId), true);
+  }
+
+  archive(
+    workspaceId: string,
+    ids: string[],
+    archived: boolean | "delete" | "delete-session",
+  ): Promise<void> {
+    const { loop, instances, owners } = this;
+    return this.changeProject(workspaceId, async () =>
+      updateArchive(await this.projects.get(workspaceId), ids, archived, {
+        loop,
+        instances,
+        owners,
+      }),
+    );
+  }
+
+  private async changeProject(
+    workspaceId: string,
+    action: () => Promise<void>,
+    remove = false,
+  ): Promise<void> {
     this.assertAvailable(workspaceId);
     this.removing.add(workspaceId);
 
@@ -107,22 +124,23 @@ export class SessionRegistry {
         (item) => item.workspaceId === workspaceId,
       );
 
-      if (this.pending.get(workspaceId) || sessions.some((item) => item.busy)) {
-        throw new HttpError(409, "project_busy");
-      }
+      lifecycle.assertProjectIdle(this.pending.get(workspaceId), sessions);
 
-      await this.projects.remove(workspaceId);
+      const work = action();
+      this.operations.add(work);
+      try {
+        await work;
+      } finally {
+        this.operations.delete(work);
+        this.events.publish({
+          type: remove ? "projects.changed" : "sessions.changed",
+          workspaceId,
+        });
+      }
+      if (!remove) return;
       this.removed.add(workspaceId);
-      await Promise.all(sessions.map((item) => item.session.cancelTitle()));
-
-      for (const item of sessions) {
-        item.dispose();
-        this.instances.delete(item.session.sessionId);
-      }
-
-      for (const [id, owner] of this.owners) {
-        if (owner === workspaceId) this.owners.delete(id);
-      }
+      await lifecycle.disposeSessions(sessions);
+      lifecycle.forgetProject(workspaceId, this.instances, this.owners);
     } finally {
       this.removing.delete(workspaceId);
     }
@@ -130,17 +148,12 @@ export class SessionRegistry {
 
   async close(): Promise<void> {
     this.closing = true;
-    await Promise.allSettled(this.operations);
-    const results = await Promise.allSettled(
-      [...this.instances.values()].map((item) => item.close()),
-    );
-    const failures = results.filter((item) => item.status === "rejected");
-
-    if (failures.length)
-      throw new AggregateError(
-        failures.map((item) => item.reason),
-        "Session save failed",
-      );
+    try {
+      await Promise.allSettled(this.operations);
+      await lifecycle.closeSessions(this.instances.values());
+    } finally {
+      this.events.close();
+    }
   }
 
   async configure(action: () => Promise<void>): Promise<void> {
@@ -155,12 +168,11 @@ export class SessionRegistry {
 
     this.configuring = true;
     const work = Promise.resolve().then(async () => {
-      await Promise.all([...this.instances.values()].map((item) => item.session.cancelTitle()));
+      await lifecycle.cancelTitles(this.instances.values());
       await action();
     });
 
     this.operations.add(work);
-
     try {
       await work;
     } finally {
@@ -182,7 +194,6 @@ export class SessionRegistry {
       });
 
     this.operations.add(work);
-
     return work;
   }
 }

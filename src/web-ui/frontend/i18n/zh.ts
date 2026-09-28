@@ -1,4 +1,7 @@
+import { projectsZh } from "./projects-zh";
+
 export const zh = {
+  ...projectsZh,
   projects: "项目",
   addProject: "添加项目",
   newSession: "新建会话",
@@ -84,6 +87,7 @@ export const zh = {
   resize: "调整侧栏宽度",
   language: "语言",
   settings: "设置",
+  personal: "个人",
   general: "通用",
   languageDescription: "应用界面使用的语言",
   appearance: "外观",
@@ -155,7 +159,7 @@ export const zh = {
     provider_config_invalid: "无法读取已保存的 Provider 配置。",
     provider_busy: "请先结束运行并保存内容，再修改模型设置。",
     delivery_unknown: "服务已重启。请检查历史记录，再决定是否重新发送此消息。",
-    project_busy: "请先结束运行并保存内容，再移除项目。",
+    project_busy: "请先结束运行并保存内容，再归档会话或移除项目。",
     session_busy: "此会话正在执行操作。",
     pending_save: "请先保存内容再继续。",
     native_unavailable: "系统选择器不可用，请使用浏览文件夹。",
@@ -165,6 +169,7 @@ export const zh = {
     directory_required: "请选择目录。",
     project_not_found: "项目已被移除。",
     session_not_found: "找不到会话。",
+    session_not_archived: "所选会话已不在归档中，请刷新列表后重试。",
     request_conflict: "该请求标识已用于其他消息。",
     server_closing: "服务正在关闭。",
     operation_failed: "操作失败。",

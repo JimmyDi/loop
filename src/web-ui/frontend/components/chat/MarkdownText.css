@@ -1,6 +1,24 @@
 .markdown-text {
   overflow-wrap: anywhere;
 }
+.markdown-text h1 {
+  font-size: 22px;
+}
+.markdown-text h2 {
+  font-size: 18px;
+}
+.markdown-text h3 {
+  font-size: 16px;
+}
+.markdown-text h4 {
+  font-size: 14px;
+}
+.markdown-text h5 {
+  font-size: 13px;
+}
+.markdown-text h6 {
+  font-size: 12px;
+}
 .markdown-text > :first-child {
   margin-top: 0;
 }

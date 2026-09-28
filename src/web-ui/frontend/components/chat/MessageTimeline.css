@@ -14,7 +14,7 @@
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.65;
 }
 .timeline-empty {

@@ -1,0 +1,46 @@
+.modal.project-confirmation {
+  width: min(480px, calc(100vw - 32px));
+  padding: 24px;
+  border: 0;
+  border-radius: 24px;
+}
+.project-confirmation .modal-header {
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.project-confirmation .modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.project-confirmation p {
+  margin: 0 0 16px;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.project-confirmation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 24px;
+}
+.project-confirmation-actions .action-button {
+  min-height: 38px;
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 13px;
+}
+.project-confirmation-actions .ghost {
+  color: var(--ink-muted);
+}
+.project-confirmation-submit.action-button {
+  background: light-dark(#fee8e7, #493131);
+  color: light-dark(#c52b29, #ff6262);
+}
+.project-confirmation-submit.action-button:hover:not(:disabled) {
+  background: light-dark(#fbd9d7, #5a3737);
+}

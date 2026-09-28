@@ -1,4 +1,7 @@
+import { projectsEn } from "./projects-en";
+
 export const en = {
+  ...projectsEn,
   projects: "Projects",
   addProject: "Add project",
   newSession: "New session",
@@ -32,7 +35,7 @@ export const en = {
   noProjects: "Add a project to get started",
   welcome: "What would you like to build?",
   welcomeDetail: "Choose a project and start a conversation with Loop.",
-  noSessions: "No conversations yet",
+  noSessions: "No chats",
   emptySession: "Ask a question or describe a change.",
   send: "Send message",
   stop: "Stop generating",
@@ -86,6 +89,7 @@ export const en = {
   resize: "Resize sidebar",
   language: "Language",
   settings: "Settings",
+  personal: "Personal",
   general: "General",
   languageDescription: "Language for the app UI",
   appearance: "Appearance",
@@ -165,7 +169,8 @@ export const en = {
     provider_busy: "Finish running operations and save changes before updating model settings.",
     delivery_unknown:
       "Server restarted. Inspect the conversation before sending this message again.",
-    project_busy: "Finish running operations and save changes before removing this project.",
+    project_busy:
+      "Finish running operations and save changes before archiving chats or removing this project.",
     session_busy: "This conversation is already busy.",
     pending_save: "Save changes before continuing.",
     native_unavailable: "System picker unavailable. Use Browse folders instead.",
@@ -175,6 +180,7 @@ export const en = {
     directory_required: "Select a directory.",
     project_not_found: "Project no longer registered.",
     session_not_found: "Conversation not found.",
+    session_not_archived: "A selected chat is no longer archived. Refresh the list and try again.",
     request_conflict: "This request ID has already been used for another message.",
     server_closing: "The server is shutting down.",
     operation_failed: "Operation failed.",

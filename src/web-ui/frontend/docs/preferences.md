@@ -6,11 +6,15 @@ The browser stores layout, language, theme, and unsent drafts. The backend store
 
 The desktop sidebar defaults to 260px and can be resized between 260px and 420px by dragging its divider or using the left/right arrow keys while the divider has focus. Narrow screens use a drawer. A closed drawer is not keyboard-accessible; an open drawer supports Escape to close and Tab focus cycling.
 
-Open **Settings** at the bottom of the sidebar, then use the language dropdown in **General**. The modal's left navigation contains **General**, **Models** and **Appearance**. Each opening starts on General; click a section or use Up/Down and Home/End while a navigation item has focus to switch panels. Use **Models** to manage providers and credentials. The sidebar entry, dialog title, navigation, page headings, and option descriptions all follow the selected interface language.
+The sidebar uses a translucent frosted-glass background with backdrop blur, a soft highlight and a subtle edge in Light and Dark themes. Text and controls stay sharp. Background content is blurred where the mobile drawer overlaps the conversation; the desktop tint is subtler over the plain app background. Browsers without backdrop-filter support, or with reduced transparency enabled, use an opaque background.
 
-Hovering over Settings highlights the full rounded button, using a darker background in Light mode and a lighter background in Dark mode. The brief color transition respects reduced-motion preferences.
+Open **Settings** at the bottom of the sidebar, then use the language dropdown in **General**. The modal's left navigation groups **General**, **Models** and **Appearance** under **Personal** (**个人** in Chinese), followed by a separate **Archived** (**归档**) section containing **Archived chats**. Regular-weight gray labels align with the item icons. Each opening starts on General; use Tab to move between navigation groups and Up/Down or Home/End within each group. Use **Models** to manage providers and credentials. The sidebar entry, dialog title, navigation, page headings, and option descriptions all follow the selected interface language.
+
+Hovering over Settings highlights a 40px-high row with 12px corners and narrow 8px side insets. A translucent tint darkens the background in Light mode and lightens it in Dark mode while retaining the sidebar's glass effect. The row sits 8px below the divider and above the bottom edge. The brief color transition respects reduced-motion preferences.
 
 The General panel starts with a General page heading and a General section heading. A rounded settings card contains Language, a short description, and its dropdown. In Chinese these headings read 通用, and the description reads 应用界面使用的语言.
+
+**Archived → Archived chats** displays directly inside Settings, replacing the General → Manage dialog. All Settings sections share the same dialog width: up to 760px on desktop, adapting to the viewport on narrow screens. Switching sections keeps the dialog size and position stable. Chats are grouped by project with timestamps, counts, filters, Unarchive and confirmed delete actions. No search input is displayed. Open a chat to view it and close Settings. See [project actions](projects.md) for archive and removal behavior.
 
 The dropdown supports **中文** and **English**, with a checkmark on the selected language. With no valid saved choice, initialization uses the first supported entry in the browser's language list, matching Chinese and English regional variants; if none match, it uses English. When the list is unavailable or empty, it uses the browser's single language value. Automatic matching does not save a preference. A manual selection is saved immediately and takes priority on later visits. Browser language changes are picked up on the next page load only when no manual choice exists.
 
@@ -21,6 +25,8 @@ During development, Bun hot updates of the English or Chinese resource file refr
 Open the dropdown with click, Enter, Space, or an arrow key. Use arrow keys or Home/End to navigate and Enter/Space to select. Escape closes the dropdown first; clicking outside or tabbing away also dismisses it. The modal closes with its top-right button or Escape and returns focus to Settings. On mobile, closing Settings leaves the project drawer open.
 
 ## Appearance
+
+Interface text uses a 13px base. Sidebar project names, session names and Settings use 13px, with 12px group labels and secondary text. Chat titles, messages and desktop input use 14px; settings and dialog headings use 18px. Markdown headings step from 22px to 12px. Mobile composer text remains 16px. Font families, weights, colors, icons and spacing are unchanged.
 
 The Appearance panel displays its page heading above the Theme section.
 

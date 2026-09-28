@@ -7,6 +7,7 @@ export type { CreateAgentSessionOptions } from "./core/sdk";
 export { createAgentSessionServices } from "./core/agent-session-services";
 export type { AgentSessionServices, ServiceOptions } from "./core/agent-session-services";
 export { SessionManager } from "./core/session-manager";
+export { SessionArchive } from "./core/session-archive";
 export { SettingsManager } from "./core/settings-manager";
 export {
   createModelRuntime,

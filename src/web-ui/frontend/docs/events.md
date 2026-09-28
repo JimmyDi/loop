@@ -21,7 +21,17 @@ Each view records a streamId/seq cursor. Duplicate frames are ignored. A sequenc
 
 After a network error, mark the view disconnected and reconnect with its cursor after about 1.5 seconds. Parse errors request a fresh snapshot. Existing content remains visible while disconnected, but normal sending and model switching are disabled. See [the SSE service](../../backend/docs/events.md) for replay limits.
 
-Switching sessions closes only the previous view's EventSource. Backend sessions continue, and reopening synchronizes their latest results. Session snapshots/state frames refresh history metadata and the active header title, including asynchronous title updates that preserve the current operation. Expanded project lists also poll for background-session title changes.
+Switching sessions closes only the previous view's EventSource. Backend sessions continue, and reopening synchronizes their latest results. Session snapshots/state frames update the open conversation and its header title, including asynchronous title updates that preserve the current operation.
+
+## List Synchronization
+
+AppShell mounts useListEvents once per page, connecting to `/api/workspaces/events`. This subscription stays open when switching sessions. The backend watches all loaded sessions, allowing background generation status and late titles to update every connected page without five-second polling. Project and archive changes use the same stream.
+
+sessions.changed invalidates the affected project's session query and archived chats. projects.changed also invalidates the project list. lists.reset invalidates all three list caches. Active queries refetch; collapsed or unmounted lists remain stale until used. A 50ms window coalesces bursts of notifications; token deltas do not produce list events. This is change-driven batching, not a periodic refresh.
+
+Before invalidating, the hook cancels older in-flight list requests using AbortSignal. Notifications arriving during a refresh are retained for another batch, preventing a stale response from swallowing a newer change. Native EventSource reconnects automatically, and every connection begins with lists.reset. Duplicate incremental frames are ignored; sequence gaps, changed stream identities or malformed JSON force a full list refresh. Unmount closes the connection and cancels pending batches.
+
+The list stream does not change the selected conversation or discard unsent drafts on other pages. It covers this Web process's changes; external CLI or filesystem edits require a reload.
 
 ## Boundaries
 
@@ -31,5 +41,6 @@ session-store is held only in memory; refreshing relies on the server for recove
 
 - [ChatWorkspace](../components/chat/ChatWorkspace.tsx) / [tests](../components/chat/ChatWorkspace.test.tsx).
 - [useSessionEvents](../hooks/useSessionEvents.ts) / [tests](../hooks/useSessionEvents.test.tsx).
+- [useListEvents](../hooks/useListEvents.ts) / [batching and reconnection tests](../hooks/useListEvents.test.tsx).
 - [session-store](../state/session-store.ts) / [tests](../state/session-store.test.ts).
 - [Shared protocol](../../shared/protocol.ts), [message projection](../../shared/session-projection.ts) / [tests](../../shared/session-projection.test.ts).

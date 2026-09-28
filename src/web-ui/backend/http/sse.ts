@@ -1,7 +1,11 @@
 import type { Cursor } from "../../shared/protocol";
-import type { SessionEvents } from "../session-events";
 
-export const eventResponse = (events: SessionEvents, request: Request): Response => {
+export const eventResponse = <T extends Cursor>(
+  events: {
+    connect(listener: (frame: T) => void, cursor?: Cursor, onClose?: () => void): () => void;
+  },
+  request: Request,
+): Response => {
   const url = new URL(request.url);
   const raw = request.headers.get("last-event-id") ?? url.searchParams.get("cursor");
   let cursor: Cursor | undefined;

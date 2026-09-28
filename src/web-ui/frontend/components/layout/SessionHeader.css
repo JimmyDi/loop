@@ -16,9 +16,9 @@
 }
 .session-name-placeholder {
   min-width: 0;
-  padding: 4px 0;
+  padding: 4px 8px;
   border: 1px solid transparent;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 26px;
   overflow: hidden;

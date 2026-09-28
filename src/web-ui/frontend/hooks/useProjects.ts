@@ -8,7 +8,7 @@ export const useProjects = () => {
   const refresh = () => client.invalidateQueries({ queryKey: ["projects"] });
   const projects = useQuery({
     queryKey: ["projects"],
-    queryFn: () => api<Project[]>("/workspaces"),
+    queryFn: ({ signal }) => api<Project[]>("/workspaces", { signal }),
   });
   const add = useMutation({
     mutationFn: (path: string) => command<Project>("/workspaces", { path }),

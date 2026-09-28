@@ -11,14 +11,17 @@ export const useArchivedChats = () => {
   const client = useQueryClient();
   const sessions = useQuery({
     queryKey: ["archived-chats"],
-    queryFn: async (): Promise<ArchivedChat[]> => {
-      const projects = await api<Project[]>("/workspaces");
+    queryFn: async ({ signal }): Promise<ArchivedChat[]> => {
+      const projects = await api<Project[]>("/workspaces", { signal });
       const groups = await Promise.all(
         projects
           .filter((project) => project.accessible !== false)
           .map(async (project) =>
             (
-              await api<SessionSummary[]>("/sessions?workspaceId=" + project.id + "&archived=true")
+              await api<SessionSummary[]>(
+                "/sessions?workspaceId=" + project.id + "&archived=true",
+                { signal },
+              )
             ).map((session) => ({ ...session, projectName: project.name })),
           ),
       );

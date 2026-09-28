@@ -2,6 +2,7 @@ import { browseDirectory } from "../directories/browse";
 import { createNativePicker, directoryCapabilities } from "../directories/native-picker";
 import { readBody, requiredString } from "../http/input";
 import { HttpError } from "../http/errors";
+import { eventResponse } from "../http/sse";
 import type { SessionRegistry } from "../session-registry";
 
 export const projectRoutes = (registry: SessionRegistry) => {
@@ -10,6 +11,8 @@ export const projectRoutes = (registry: SessionRegistry) => {
   return async (request: Request, url: URL): Promise<Response | undefined> => {
     const path = url.pathname;
     const method = request.method;
+    if (path === "/api/workspaces/events" && method === "GET")
+      return eventResponse(registry.events, request);
     const session = path.match(new RegExp("^/api/workspaces/([^/]+)/sessions/([^/]+)$"));
     if (session && method === "DELETE") {
       await registry.archive(session[1]!, [session[2]!], "delete-session");
@@ -23,7 +26,9 @@ export const projectRoutes = (registry: SessionRegistry) => {
         const body = await readBody(request);
         const name = body.name === undefined ? undefined : requiredString(body, "name");
 
-        return Response.json(await registry.projects.add(requiredString(body, "path"), name));
+        const project = await registry.projects.add(requiredString(body, "path"), name);
+        registry.events.publish({ type: "projects.changed", workspaceId: project.id });
+        return Response.json(project);
       }
     }
 
@@ -49,7 +54,9 @@ export const projectRoutes = (registry: SessionRegistry) => {
     if (project && method === "PATCH") {
       const body = await readBody(request);
 
-      return Response.json(await registry.projects.rename(project, requiredString(body, "name")));
+      const renamed = await registry.projects.rename(project, requiredString(body, "name"));
+      registry.events.publish({ type: "projects.changed", workspaceId: project });
+      return Response.json(renamed);
     }
 
     if (project && method === "DELETE") {

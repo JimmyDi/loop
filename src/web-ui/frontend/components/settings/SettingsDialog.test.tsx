@@ -9,7 +9,14 @@ import { AppShell } from "../layout/AppShell";
 
 test("Settings opens General outside the mobile drawer and restores focus without closing the drawer", async () => {
   const window = new Window({ width: 390 });
-  const previous = { window: globalThis.window, document: globalThis.document };
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    EventSource: globalThis.EventSource,
+  };
+  class LocalSource {
+    close() {}
+  }
   const language = i18n.language;
   const state = useWorkspace.getState();
   const theme = useTheme.getState().theme;
@@ -20,7 +27,7 @@ test("Settings opens General outside the mobile drawer and restores focus withou
   client.setQueryData(["projects"], []);
   client.setQueryData(["provider-settings"], { providers: [], catalog: [] });
   client.setQueryData(["archived-chats"], []);
-  Object.assign(globalThis, { window, document: window.document });
+  Object.assign(globalThis, { window, document: window.document, EventSource: LocalSource });
   const { render, fireEvent, act, cleanup } = await import("@testing-library/react/pure");
 
   try {

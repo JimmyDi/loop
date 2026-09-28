@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { ProjectStore } from "./projects/project-store";
 import { SessionRegistry } from "./session-registry";
 import { createRouter } from "./router";
+import type { ListFrame } from "../shared/protocol";
 
 test("project HTTP lifecycle stays local and never accepts a session file path", async () => {
   const root = await mkdtemp(join(import.meta.dir, ".router-test-"));
@@ -29,8 +30,16 @@ test("project HTTP lifecycle stays local and never accepts a session file path",
           body: body ? JSON.stringify(body) : undefined,
         }),
       );
+    const response = await call("/api/workspaces/events");
+    expect(response.headers.get("content-type")).toBe("text/event-stream");
+    const reader = response.body!.getReader();
+    const read = async () => new TextDecoder().decode((await reader.read()).value);
+    expect(await read()).toContain("lists.reset");
     const created = await call("/api/workspaces", "POST", { path: root });
     const project = await created.json();
+    expect(await read()).toContain(
+      JSON.stringify({ type: "projects.changed", workspaceId: project.id }).slice(0, -1),
+    );
 
     expect(created.status).toBe(200);
     expect((await (await call("/api/workspaces")).json()).length).toBe(1);
@@ -40,7 +49,9 @@ test("project HTTP lifecycle stays local and never accepts a session file path",
     expect((await call("/api/workspaces/" + project.id, "PATCH", { name: "Renamed" })).status).toBe(
       200,
     );
+    expect(await read()).toContain("projects.changed");
     expect((await call("/api/workspaces/" + project.id, "DELETE")).status).toBe(204);
+    expect(await read()).toContain("projects.changed");
     expect(
       (
         await route(
@@ -51,6 +62,7 @@ test("project HTTP lifecycle stays local and never accepts a session file path",
       ).status,
     ).toBe(403);
     await registry.close();
+    expect((await reader.read()).done).toBe(true);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -68,6 +80,8 @@ test("archiving preserves history, filters lists, restores and survives registra
     await session.commit([{ role: "user", content: "Example request", timestamp: 1 }]);
     const history = await Bun.file(session.sessionFile!).text();
     const registry = new SessionRegistry(projects, createLoopBridge(root));
+    const changes: ListFrame[] = [];
+    registry.events.connect((frame) => changes.push(frame));
     const route = createRouter(registry);
     const call = (path: string, method = "GET", body?: unknown) =>
       route(
@@ -84,6 +98,7 @@ test("archiving preserves history, filters lists, restores and survives registra
     ).toBe(404);
     expect((await (await call("/sessions?workspaceId=" + project.id)).json()).length).toBe(1);
     expect((await call(endpoint, "POST", { ids: [id], archived: true })).status).toBe(204);
+    expect(changes.at(-1)).toMatchObject({ type: "sessions.changed", workspaceId: project.id });
     expect(await (await call("/sessions?workspaceId=" + project.id)).json()).toEqual([]);
     expect(
       (await (await call("/sessions?workspaceId=" + project.id + "&archived=true")).json())[0].id,
@@ -91,12 +106,15 @@ test("archiving preserves history, filters lists, restores and survives registra
     expect(await Bun.file(session.sessionFile!).text()).toBe(history);
     await registry.close();
     const restarted = new SessionRegistry(projects, createLoopBridge(root));
+    const restored: ListFrame[] = [];
+    restarted.events.connect((frame) => restored.push(frame));
     expect((await restarted.list(project.id))[0]?.archived).toBe(true);
     await restarted.remove(project.id);
     const added = await projects.add(root, "Example");
     expect(added.id).not.toBe(project.id);
     expect((await restarted.list(added.id))[0]?.archived).toBe(true);
     await restarted.archive(added.id, [id], false);
+    expect(restored.at(-1)).toMatchObject({ type: "sessions.changed", workspaceId: added.id });
     expect((await restarted.list(added.id))[0]?.archived).toBe(false);
     expect(await Bun.file(session.sessionFile!).text()).toBe(history);
     await restarted.close();
@@ -154,6 +172,8 @@ test("session DELETE permanently removes only the selected project's chat withou
     );
     const id = session.getSessionId();
     const registry = new SessionRegistry(projects, createLoopBridge(root));
+    const deleted: ListFrame[] = [];
+    registry.events.connect((frame) => deleted.push(frame));
     const route = createRouter(registry);
     const remove = (id: string) =>
       route(
@@ -165,6 +185,7 @@ test("session DELETE permanently removes only the selected project's chat withou
     expect((await remove("unknown")).status).toBe(404);
     expect(await Bun.file(session.sessionFile!).exists()).toBe(true);
     expect((await remove(id)).status).toBe(204);
+    expect(deleted.at(-1)).toMatchObject({ type: "sessions.changed", workspaceId: project.id });
     expect(await Bun.file(session.sessionFile!).exists()).toBe(false);
     expect(await Bun.file(kept.sessionFile!).exists()).toBe(true);
     expect(await Bun.file(foreign.sessionFile!).exists()).toBe(true);

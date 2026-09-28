@@ -60,6 +60,12 @@ export type Frame = FrameBody & { sessionId: string; streamId: string; seq: numb
 
 export type Cursor = { streamId: string; seq: number };
 
+export type ListChange =
+  | { type: "lists.reset" }
+  | { type: "sessions.changed" | "projects.changed"; workspaceId: string };
+
+export type ListFrame = ListChange & Cursor;
+
 export type DirectoryListing = {
   path: string;
   parent: string;

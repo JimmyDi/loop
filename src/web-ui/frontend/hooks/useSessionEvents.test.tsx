@@ -87,7 +87,7 @@ test("SSE hook requests a fresh snapshot on a gap and closes only its connection
         }),
       }),
     );
-    expect(client.getQueryState(["sessions", "p"])?.isInvalidated).toBe(true);
+    expect(client.getQueryState(["sessions", "p"])?.isInvalidated).toBe(false);
     act(() =>
       connections[0]?.onmessage?.({
         data: JSON.stringify({
@@ -102,7 +102,7 @@ test("SSE hook requests a fresh snapshot on a gap and closes only its connection
     );
     expect(connections[0]?.closed).toBe(true);
     expect(useSessions.getState().views.s?.snapshot?.state.title?.text).toBe("Live title");
-    expect(client.getQueryState(["sessions", "p"])?.isInvalidated).toBe(true);
+    expect(client.getQueryState(["sessions", "p"])?.isInvalidated).toBe(false);
     expect(connections[1]?.url).not.toContain("cursor");
     expect(useSessions.getState().views.s?.connected).toBe(false);
     rerender({ id: "next" });

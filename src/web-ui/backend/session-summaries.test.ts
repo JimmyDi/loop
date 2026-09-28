@@ -9,6 +9,7 @@ import { ProjectStore } from "./projects/project-store";
 import { ProviderSettings } from "./providers/provider-settings";
 import { SessionRegistry } from "./session-registry";
 import { createRouter } from "./router";
+import type { ListFrame } from "../shared/protocol";
 
 test("new Web sessions remain drafts until the first user message, appear during streaming and survive restart", async () => {
   const root = await mkdtemp(join(import.meta.dir, ".draft-session-test-"));
@@ -62,10 +63,15 @@ test("new Web sessions remain drafts until the first user message, appear during
     );
   try {
     const project = await projects.add(root);
+    const changes: ListFrame[] = [];
+    const otherPage: ListFrame[] = [];
+    registry.events.connect((frame) => changes.push(frame));
+    registry.events.connect((frame) => otherPage.push(frame));
     const endpoint = "/sessions?workspaceId=" + project.id;
     const first = await (await call("/sessions", { workspaceId: project.id })).json();
     const second = await (await call("/sessions", { workspaceId: project.id })).json();
     expect(first.sessionId).not.toBe(second.sessionId);
+    expect(changes.map((frame) => frame.type)).toEqual(["lists.reset"]);
     expect(await (await call(endpoint)).json()).toEqual([]);
     expect(await SessionManager.list(root, getSessionDir(root, root))).toEqual([]);
     const controller = await registry.get(first.sessionId);
@@ -86,10 +92,15 @@ test("new Web sessions remain drafts until the first user message, appear during
     reject = false;
     const image = { type: "image" as const, data: "AAAA", mimeType: "image/png" };
     const body = { requestId: "first-user", text: "", images: [image] };
+    const beforePrompt = changes.length;
     const accepted = await call("/sessions/" + first.sessionId + "/prompt", body);
     expect(accepted.status).toBe(202);
     for (let i = 0; i < 100 && !calls; i++) await Bun.sleep(2);
     expect(calls).toBe(1);
+    // No per-chat SSE is connected; first-user visibility reaches both pages.
+    expect(changes.slice(beforePrompt).length).toBeGreaterThanOrEqual(2);
+    expect(changes.at(-1)).toMatchObject({ type: "sessions.changed", workspaceId: project.id });
+    expect(otherPage).toEqual(changes);
     const visible = await (await call(endpoint)).json();
     expect(visible).toHaveLength(1);
     expect(visible[0]).toMatchObject({
@@ -103,7 +114,11 @@ test("new Web sessions remain drafts until the first user message, appear during
     expect(
       await Bun.file(join(getSessionDir(root, root), first.sessionId + ".jsonl")).exists(),
     ).toBe(false);
+    const beforeAbort = changes.length;
     await controller.abort();
+    expect(changes.length).toBeGreaterThan(beforeAbort);
+    expect((await (await call(endpoint)).json())[0].isGenerating).toBe(false);
+    expect(otherPage).toEqual(changes);
     expect(
       await Bun.file(join(getSessionDir(root, root), first.sessionId + ".jsonl")).exists(),
     ).toBe(true);

@@ -1,0 +1,222 @@
+import { expect, test } from "bun:test";
+import { Window } from "happy-dom";
+import { QueryClient, QueryClientProvider, QueryObserver } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+
+import type { ListChange } from "../../shared/protocol";
+
+class LocalSource {
+  static connections: LocalSource[] = [];
+  onmessage?: (event: { data: string }) => void;
+  closed = false;
+  constructor(readonly url: string) {
+    LocalSource.connections.push(this);
+  }
+  send(change: ListChange, seq: number, streamId = "stream") {
+    this.onmessage?.({ data: JSON.stringify({ ...change, seq, streamId }) });
+  }
+  close() {
+    this.closed = true;
+  }
+}
+
+const setup = async () => {
+  const window = new Window();
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    EventSource: globalThis.EventSource,
+  };
+  Object.assign(globalThis, { window, document: window.document, EventSource: LocalSource });
+  LocalSource.connections = [];
+  const testing = await import("@testing-library/react/pure");
+  const { useListEvents } = await import("./useListEvents");
+  const clients: QueryClient[] = [];
+  const page = () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity, gcTime: Infinity } },
+    });
+    clients.push(client);
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    return { client, wrapper };
+  };
+  return {
+    ...testing,
+    useListEvents,
+    page,
+    finish: async () => {
+      testing.cleanup();
+      for (const client of clients) client.clear();
+      Object.assign(globalThis, previous);
+      await window.happyDOM.close();
+    },
+  };
+};
+
+test("list notifications batch across pages, target projects, and resync after reconnect or gaps", async () => {
+  const env = await setup();
+  const observers: { destroy(): void }[] = [];
+  try {
+    const pages = [env.page(), env.page()].map(({ client, wrapper }) => {
+      const counts = { p: 0, q: 0, projects: 0, archives: 0, unrelated: 0 };
+      const keys = {
+        p: ["sessions", "p"],
+        q: ["sessions", "q"],
+        projects: ["projects"],
+        archives: ["archived-chats"],
+        unrelated: ["models"],
+      };
+      for (const name of Object.keys(keys) as (keyof typeof keys)[]) {
+        client.setQueryData(keys[name], 0);
+        const observer = new QueryObserver(client, {
+          queryKey: keys[name],
+          queryFn: async () => ++counts[name],
+        });
+        observer.subscribe(() => {});
+        observers.push(observer);
+      }
+      const hook = env.renderHook(env.useListEvents, { wrapper });
+      return { counts, hook, source: LocalSource.connections.at(-1)! };
+    });
+    const broadcast = (change: ListChange, seq: number, streamId?: string) => {
+      for (const page of pages) page.source.send(change, seq, streamId);
+    };
+    await env.act(async () => {
+      broadcast({ type: "lists.reset" }, 0);
+      await Bun.sleep(90);
+    });
+    for (const { counts } of pages)
+      expect(counts).toEqual({ p: 1, q: 1, projects: 1, archives: 1, unrelated: 0 });
+    await env.act(async () => {
+      broadcast({ type: "sessions.changed", workspaceId: "p" }, 1);
+      broadcast({ type: "sessions.changed", workspaceId: "p" }, 2);
+      broadcast({ type: "sessions.changed", workspaceId: "p" }, 2);
+      await Bun.sleep(90);
+    });
+    for (const { counts } of pages)
+      expect(counts).toEqual({ p: 2, q: 1, projects: 1, archives: 2, unrelated: 0 });
+    await env.act(async () => {
+      broadcast({ type: "projects.changed", workspaceId: "q" }, 3);
+      await Bun.sleep(90);
+    });
+    for (const { counts } of pages)
+      expect(counts).toEqual({ p: 2, q: 2, projects: 2, archives: 3, unrelated: 0 });
+    // Native EventSource reconnect can reset at the same sequence. It must still refetch.
+    await env.act(async () => {
+      broadcast({ type: "lists.reset" }, 3);
+      await Bun.sleep(90);
+      broadcast({ type: "sessions.changed", workspaceId: "p" }, 5);
+      await Bun.sleep(90);
+      broadcast({ type: "sessions.changed", workspaceId: "p" }, 1, "restarted");
+      await Bun.sleep(90);
+    });
+    for (const { counts, hook, source } of pages) {
+      expect(counts).toEqual({ p: 5, q: 5, projects: 5, archives: 6, unrelated: 0 });
+      hook.rerender();
+      expect(source.closed).toBe(false);
+      source.send({ type: "sessions.changed", workspaceId: "p" }, 2, "restarted");
+      hook.unmount();
+      expect(source.closed).toBe(true);
+      source.send({ type: "lists.reset" }, 3, "restarted");
+    }
+    await Bun.sleep(90);
+    expect(LocalSource.connections).toHaveLength(2);
+    for (const { counts } of pages) expect(counts.p).toBe(5);
+  } finally {
+    for (const observer of observers) observer.destroy();
+    await env.finish();
+  }
+});
+
+test("an expanded project remains idle past the old poll interval and refreshes only on a change", async () => {
+  const env = await setup();
+  const previousFetch = globalThis.fetch;
+  try {
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls++;
+      return Response.json([]);
+    }) as unknown as typeof fetch;
+    const { useProjectSessions } = await import("./useProjectSessions");
+    const { wrapper } = env.page();
+    env.renderHook(
+      () => {
+        env.useListEvents();
+        return useProjectSessions("p", true);
+      },
+      { wrapper },
+    );
+    await env.waitFor(() => expect(calls).toBe(1));
+    const source = LocalSource.connections[0]!;
+    await env.act(async () => {
+      source.send({ type: "lists.reset" }, 0);
+      await Bun.sleep(90);
+    });
+    expect(calls).toBe(2);
+    await env.act(async () => {
+      await Bun.sleep(5100);
+    });
+    expect(calls).toBe(2);
+    await env.act(async () => {
+      source.send({ type: "sessions.changed", workspaceId: "p" }, 1);
+      await Bun.sleep(90);
+    });
+    expect(calls).toBe(3);
+  } finally {
+    globalThis.fetch = previousFetch;
+    await env.finish();
+  }
+}, 10000);
+
+test("events cancel stale initial fetches and retain notifications received during a refresh", async () => {
+  const env = await setup();
+  const { client, wrapper } = env.page();
+  let calls = 0;
+  const pending: { resolve: (value: string) => void; signal: AbortSignal }[] = [];
+  const observer = new QueryObserver(client, {
+    queryKey: ["sessions", "p"],
+    queryFn: ({ signal }) => {
+      calls++;
+      return new Promise<string>((resolve) => pending.push({ resolve, signal }));
+    },
+  });
+  observer.subscribe(() => {});
+  try {
+    const hook = env.renderHook(env.useListEvents, { wrapper });
+    const source = LocalSource.connections[0]!;
+    expect(calls).toBe(1);
+    await env.act(async () => {
+      source.send({ type: "lists.reset" }, 0);
+      await Bun.sleep(90);
+    });
+    expect(calls).toBe(2);
+    expect(pending[0]!.signal.aborted).toBe(true);
+    await env.act(async () => {
+      source.send({ type: "sessions.changed", workspaceId: "p" }, 1);
+      pending[0]!.resolve("stale");
+      pending[1]!.resolve("before notification");
+      await Bun.sleep(90);
+    });
+    expect(calls).toBe(3);
+    await env.act(async () => {
+      pending[2]!.resolve("latest");
+      await Bun.sleep(10);
+    });
+    expect(client.getQueryData<string>(["sessions", "p"])).toBe("latest");
+    await env.act(async () => {
+      source.send({ type: "sessions.changed", workspaceId: "p" }, 2);
+      await Bun.sleep(90);
+      source.send({ type: "sessions.changed", workspaceId: "p" }, 3);
+      hook.unmount();
+      pending[3]!.resolve("final");
+      await Bun.sleep(90);
+    });
+    expect(calls).toBe(4);
+    expect(source.closed).toBe(true);
+  } finally {
+    observer.destroy();
+    await env.finish();
+  }
+});

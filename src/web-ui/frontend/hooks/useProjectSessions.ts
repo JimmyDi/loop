@@ -7,8 +7,8 @@ export const useProjectSessions = (workspaceId: string, enabled: boolean) => {
   const sessions = useQuery({
     queryKey: ["sessions", workspaceId],
     enabled,
-    refetchInterval: 5000,
-    queryFn: () => api<SessionSummary[]>("/sessions?workspaceId=" + workspaceId),
+    queryFn: ({ signal }) =>
+      api<SessionSummary[]>("/sessions?workspaceId=" + workspaceId, { signal }),
   });
   const create = useMutation({
     mutationFn: () => command<SessionSnapshot>("/sessions", { workspaceId }),

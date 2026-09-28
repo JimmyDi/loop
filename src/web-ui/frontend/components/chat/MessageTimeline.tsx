@@ -6,11 +6,19 @@ import { ActionButton } from "../ui/ActionButton";
 import { AssistantMessage } from "./AssistantMessage";
 import { UserMessage } from "./UserMessage";
 import { ToolCard } from "./ToolCard";
+import { LoopingIndicator } from "./LoopingIndicator";
 import "./MessageTimeline.css";
 
-export const MessageTimeline = ({ snapshot }: { snapshot: SessionSnapshot }) => {
+export const MessageTimeline = ({
+  snapshot,
+  connected,
+}: {
+  snapshot: SessionSnapshot;
+  connected: boolean;
+}) => {
   const { t } = useTranslation();
   const scroll = useAutoScroll(snapshot);
+  const looping = connected && snapshot.operation === "prompt";
   const messages = [...snapshot.state.messages];
 
   if (snapshot.state.draft) messages[snapshot.draftIndex ?? messages.length] = snapshot.state.draft;
@@ -33,7 +41,7 @@ export const MessageTimeline = ({ snapshot }: { snapshot: SessionSnapshot }) => 
         aria-live="off"
       >
         <div className="timeline-content">
-          {!messages.length && <p className="timeline-empty">{t("emptySession")}</p>}
+          {!messages.length && !looping && <p className="timeline-empty">{t("emptySession")}</p>}
           {messages.map((message, index) => {
             if (message.role === "user") return <UserMessage key={index} message={message} />;
 
@@ -51,6 +59,7 @@ export const MessageTimeline = ({ snapshot }: { snapshot: SessionSnapshot }) => 
               <ToolCard key={index} tool={snapshot.tools[message.toolCallId]!} />
             ) : null;
           })}
+          {looping && <LoopingIndicator />}
         </div>
       </div>
       {!scroll.atBottom && (

@@ -3,7 +3,8 @@ import { eventResponse } from "../http/sse";
 import { HttpError } from "../http/errors";
 import type { SessionRegistry } from "../session-registry";
 import { isModelEffort } from "../../../coding-agent/index";
-import { MAX_PROMPT_BODY_BYTES, validImages } from "../../shared/prompt-images";
+import { validImages } from "../../shared/prompt-images";
+import { validTextFiles } from "../../shared/prompt-files";
 
 export const sessionRoutes =
   (registry: SessionRegistry) =>
@@ -40,7 +41,7 @@ export const sessionRoutes =
     const [, id, action] = match;
     const body =
       action === "prompt" || action === "model" || (action === "title" && method === "PUT")
-        ? await readBody(request, action === "prompt" ? MAX_PROMPT_BODY_BYTES : undefined)
+        ? await readBody(request, action === "prompt" ? Infinity : undefined)
         : {};
     const controller = await registry.get(id!);
 
@@ -56,10 +57,12 @@ export const sessionRoutes =
       if (requestId.length > 128) throw new HttpError(400, "invalid_requestId");
 
       const images = body.images ?? [];
+      const files = body.files ?? [];
       if (!validImages(images)) throw new HttpError(400, "invalid_images");
-      if (typeof body.text !== "string" || (!body.text.trim() && !images.length))
+      if (!validTextFiles(files)) throw new HttpError(400, "invalid_text_files");
+      if (typeof body.text !== "string" || (!body.text.trim() && !images.length && !files.length))
         throw new HttpError(400, "invalid_text");
-      const runId = controller.prompt(requestId, body.text, images);
+      const runId = controller.prompt(requestId, body.text, images, files);
 
       return Response.json({ runId }, { status: 202 });
     }

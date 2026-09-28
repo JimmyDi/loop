@@ -6,7 +6,7 @@ import "../../i18n/setup";
 import { ComposerInput } from "./ComposerInput";
 import { Window } from "happy-dom";
 
-test("pasted images become attachments without inserting clipboard HTML", async () => {
+test("mixed pasted files all become attachments without inserting clipboard HTML", async () => {
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, { window, document: window.document });
@@ -20,17 +20,23 @@ test("pasted images become attachments without inserting clipboard HTML", async 
         onSubmit={() => {}}
         disabled={false}
         placeholder="Message"
-        onImages={(value) => {
+        onFiles={(value) => {
           files = value;
         }}
       />,
     );
     const image = new File(["test"], "test.png", { type: "image/png" });
+    const source = new File(["example = 1"], "example.py", { type: "text/plain" });
+    const markdown = new File(["# Example"], "notes.md", { type: "text/markdown" });
     fireEvent.paste(view.getByRole("textbox"), {
-      clipboardData: { files: [image], getData: () => "<img>" },
+      clipboardData: { files: [image, source, markdown], getData: () => "<img>" },
     });
-    expect(files).toEqual([image]);
+    expect(files).toEqual([image, source, markdown]);
     expect(view.getByRole("textbox").textContent).toBe("Draft");
+    fireEvent.paste(view.getByRole("textbox"), {
+      clipboardData: { files: [source], getData: () => "" },
+    });
+    expect(files).toEqual([source]);
   } finally {
     cleanup();
     Object.assign(globalThis, previous);

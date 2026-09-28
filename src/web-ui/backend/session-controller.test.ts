@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test";
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
 import { createAssistantMessageEventStream, Type } from "@earendil-works/pi-ai";
 
 import { AgentSession, SessionManager } from "../../coding-agent/index";
@@ -7,6 +9,8 @@ import type { Frame } from "../shared/protocol";
 import { SessionController } from "./session-controller";
 import { sessionRoutes } from "./routes/sessions";
 import type { SessionRegistry } from "./session-registry";
+import { fileContent, readFileContent } from "../shared/prompt-files";
+import { MAX_IMAGE_BYTES } from "../shared/prompt-images";
 
 const model = {
   id: "test",
@@ -51,6 +55,158 @@ const waitFor = async (condition: () => boolean) => {
 
   expect(condition()).toBe(true);
 };
+
+test("large files bypass local context estimates and accepted requests still deduplicate", async () => {
+  let calls = 0;
+  const session = new AgentSession({
+    model,
+    systemPrompt: "Test",
+    tools: [],
+    sessionManager: SessionManager.inMemory(),
+    modelRuntime: runtime(() => {
+      calls++;
+      const stream = createAssistantMessageEventStream();
+      stream.push({ type: "done", reason: "stop", message: answer("Read") });
+      return stream;
+    }),
+  });
+  const controller = new SessionController(session, "project");
+  const files = [{ name: "large.ts", text: "const value = 1;\n".repeat(12000) }];
+  try {
+    const runId = controller.prompt("retry", "Review", [], files);
+    await waitFor(() => !controller.busy);
+    expect(calls).toBe(1);
+    expect(controller.prompt("retry", "Review", [], files)).toBe(runId);
+  } finally {
+    await controller.close();
+  }
+});
+
+test("text and image attachments larger than the former request cap arrive without truncation", async () => {
+  const files = [
+    { name: "one.txt", text: "\t".repeat(2 * 1024 * 1024) },
+    { name: "two.txt", text: "中".repeat(512 * 1024) },
+  ];
+  const images = [
+    {
+      type: "image" as const,
+      mimeType: "image/png",
+      data: Buffer.alloc(MAX_IMAGE_BYTES).toString("base64"),
+    },
+  ];
+  let received: unknown;
+  const session = new AgentSession({
+    model: { ...model, input: ["text", "image"], contextWindow: 1000000 },
+    systemPrompt: "Test",
+    tools: [],
+    sessionManager: SessionManager.inMemory(),
+    modelRuntime: runtime((_model, context) => {
+      received = context.messages[0]?.content;
+      const stream = createAssistantMessageEventStream();
+      stream.push({ type: "done", reason: "stop", message: answer("Read") });
+      return stream;
+    }),
+  });
+  const controller = new SessionController(session, "project");
+  const route = sessionRoutes({
+    get: async () => controller,
+    assertAvailable: () => {},
+  } as unknown as SessionRegistry);
+  const url = new URL("http://localhost/api/sessions/example/prompt");
+  const body = JSON.stringify({ requestId: "large", text: "", files, images });
+  try {
+    expect(Buffer.byteLength(body)).toBeGreaterThan(8 * 1024 * 1024);
+    const response = await route(
+      new Request(url, { method: "POST", headers: { "Content-Type": "application/json" }, body }),
+      url,
+    );
+    expect(response?.status).toBe(202);
+    await waitFor(() => !controller.busy);
+    expect(received).toEqual([
+      images[0],
+      ...files.map((file) => ({ type: "text", text: fileContent(file) })),
+    ]);
+    expect(session.state.outcome).toBe("success");
+  } finally {
+    await controller.close();
+  }
+});
+
+test("text files reach a text-only model, deduplicate by name and content, and survive disk reload", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".text-files-test-"));
+  const manager = await SessionManager.create(root, root);
+  let calls = 0;
+  let received: unknown;
+  const session = new AgentSession({
+    model,
+    sessionManager: manager,
+    systemPrompt: "Test",
+    tools: [],
+    modelRuntime: runtime((_model, context) => {
+      calls++;
+      received = context.messages[0]?.content;
+      const stream = createAssistantMessageEventStream();
+      stream.push({ type: "done", reason: "stop", message: answer("Read") });
+      return stream;
+    }),
+  });
+  const controller = new SessionController(session, "project");
+  const route = sessionRoutes({
+    get: async () => controller,
+    assertAvailable: () => {},
+  } as unknown as SessionRegistry);
+  const url = new URL("http://localhost/api/sessions/example/prompt");
+  const submit = (files: unknown, text = "") =>
+    route(
+      new Request(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: "files", text, files }),
+      }),
+      url,
+    );
+  const file = { name: "example.ts", text: "const message = '中文';\n".repeat(25000) };
+  try {
+    for (const files of [
+      [{ ...file, name: "example.pdf" }],
+      [{ ...file, text: "binary\0" }],
+      Array(5).fill(file),
+    ]) {
+      await expect(submit(files)).rejects.toMatchObject({
+        status: 400,
+        code: "invalid_text_files",
+      });
+    }
+    expect(calls).toBe(0);
+    expect(controller.snapshot.operation).toBe("idle");
+    const accepted = await submit([file]);
+    expect(accepted?.status).toBe(202);
+    expect(await (await submit([file]))?.json()).toEqual(await accepted?.json());
+    await expect(submit([{ ...file, name: "renamed.ts" }])).rejects.toMatchObject({
+      code: "request_conflict",
+    });
+    await expect(submit([{ ...file, text: "Changed" }])).rejects.toMatchObject({
+      code: "request_conflict",
+    });
+    await waitFor(() => !controller.busy);
+    expect(calls).toBe(1);
+    expect(session.state.outcome).toBe("success");
+    expect(received).toEqual(session.state.messages[0]?.content);
+    const record = (await SessionManager.list(root, root)).find(
+      (entry) => entry.id === session.sessionId,
+    )!;
+    const restored = await SessionManager.open(record.path);
+    const messages = restored.messages;
+    expect(messages).toEqual(session.state.messages);
+    const content = messages[0]?.content;
+    expect(Array.isArray(content)).toBe(true);
+    if (Array.isArray(content) && content[0]?.type === "text")
+      expect(readFileContent(content[0].text)).toEqual(file);
+  } finally {
+    await controller.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 test("accepted requests deduplicate and drafts do not duplicate history", async () => {
   const stream = createAssistantMessageEventStream();

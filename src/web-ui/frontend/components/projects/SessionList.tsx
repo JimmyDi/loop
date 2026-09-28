@@ -16,6 +16,10 @@ export const SessionList = ({ sessions }: { sessions: SessionSummary[] }) => {
       {!sessions.length && <li className="session-empty">{t("noSessions")}</li>}
       {sessions.map((session) => {
         const view = views[session.id];
+        const generating =
+          view?.connected && view.snapshot
+            ? view.snapshot.operation === "prompt"
+            : session.isGenerating === true;
         const title =
           (view?.connected ? view.snapshot?.state.title?.text : undefined) ??
           session.title ??
@@ -29,7 +33,15 @@ export const SessionList = ({ sessions }: { sessions: SessionSummary[] }) => {
               aria-current={active?.id === session.id ? "page" : undefined}
               onClick={() => open({ id: session.id, workspaceId: session.workspaceId })}
             >
-              {title}
+              <span className="session-list-title">{title}</span>
+              {generating && (
+                <span
+                  className="session-list-spinner"
+                  role="img"
+                  aria-label={t("looping", "Looping...")}
+                  title={t("looping", "Looping...")}
+                />
+              )}
             </button>
           </li>
         );

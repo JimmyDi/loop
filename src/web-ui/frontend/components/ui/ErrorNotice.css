@@ -1,4 +1,5 @@
 .error-notice {
+  position: relative;
   display: grid;
   gap: 4px;
   padding: 10px 14px;
@@ -7,4 +8,29 @@
   color: var(--error-ink);
   font-size: 13px;
   overflow-wrap: anywhere;
+}
+.error-notice[data-dismissible] {
+  padding-right: 48px;
+}
+.error-notice-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.error-notice-close:hover {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+.error-notice-close:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }

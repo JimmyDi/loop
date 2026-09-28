@@ -33,7 +33,9 @@ test.each([true, false])(
     const workspace = useWorkspace.getState();
     const requests = useRequests.getState();
     Object.assign(globalThis, { window, document: window.document });
-    const { render, fireEvent, waitFor, cleanup } = await import("@testing-library/react/pure");
+    const { render, fireEvent, act, waitFor, cleanup } = await import(
+      "@testing-library/react/pure"
+    );
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const prompts: string[] = [];
     Object.assign(window, {
@@ -49,7 +51,13 @@ test.each([true, false])(
           : Response.json({ code: "operation_failed" }, { status: 500 })
         : Response.json([])) as typeof fetch;
     try {
-      useWorkspace.setState({ active: undefined, drafts: {}, images: {}, draftProjects: {} });
+      useWorkspace.setState({
+        active: undefined,
+        drafts: {},
+        images: {},
+        files: {},
+        draftProjects: {},
+      });
       useRequests.setState({ pending: {} });
       const state = useWorkspace.getState();
       for (const session of [
@@ -58,8 +66,9 @@ test.each([true, false])(
         { id: "selected", workspaceId: "p" },
       ]) {
         state.open(session);
-        state.draft(session.id, "Draft");
-        state.attach(session.id, [{ type: "image", mimeType: "image/png", data: "AAAA" }]);
+        state.draft(session.id, "");
+        state.attach(session.id, []);
+        state.attachFiles(session.id, [{ name: "example.txt", text: "Example" }]);
         useRequests
           .getState()
           .put(session.id, { requestId: session.id, streamId: "stream", text: "Draft" });
@@ -69,24 +78,30 @@ test.each([true, false])(
           <ProjectActions project={{ id: "p", name: "Example", cwd: "/example" }} />
         </QueryClientProvider>,
       );
-      fireEvent.click(ui.getByRole("button", { name: "Remove" }));
+      await act(async () => {
+        fireEvent.click(ui.getByRole("button", { name: "Remove" }));
+      });
       expect(prompts).toHaveLength(1);
       expect(prompts[0]).toContain("draft");
       if (success) {
         await waitFor(() => expect(useWorkspace.getState().active).toBeUndefined());
         expect(Object.keys(useWorkspace.getState().drafts)).toEqual(["other"]);
         expect(Object.keys(useWorkspace.getState().images)).toEqual(["other"]);
+        expect(Object.keys(useWorkspace.getState().files)).toEqual(["other"]);
         expect(Object.keys(useRequests.getState().pending)).toEqual(["other"]);
       } else {
         await waitFor(() => expect(ui.getByRole("alert")).toBeTruthy());
         expect(useWorkspace.getState().active?.id).toBe("selected");
         expect(Object.keys(useWorkspace.getState().drafts)).toHaveLength(3);
         expect(Object.keys(useWorkspace.getState().images)).toHaveLength(3);
+        expect(Object.keys(useWorkspace.getState().files)).toHaveLength(3);
         expect(Object.keys(useRequests.getState().pending)).toHaveLength(3);
       }
     } finally {
-      cleanup();
-      client.clear();
+      await act(async () => {
+        cleanup();
+        client.clear();
+      });
       useWorkspace.setState(workspace, true);
       useRequests.setState(requests, true);
       Object.assign(globalThis, previous);

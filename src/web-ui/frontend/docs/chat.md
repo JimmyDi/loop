@@ -4,15 +4,19 @@ The composer submits a user message and the backend runs the model and tool loop
 
 ## Usage
 
-Press Enter to send and Shift+Enter for a newline. Enter does not submit during input-method composition. Pasted text is inserted as plain text; pasted images become attachments. During generation, the send button becomes **Stop generating**. The adjacent model pill configures the current model and its supported reasoning effort; see [model settings](models.md). The session header no longer contains a model selector.
+The empty input shows **Loop something...**. Press Enter to send and Shift+Enter for a newline; these shortcuts are not displayed beneath the input. Enter does not submit during input-method composition. Pasted text is inserted as plain text; pasted files become attachments. During generation, the send button becomes **Stop generating**. The adjacent model pill configures the current model and its supported reasoning effort; see [model settings](models.md). The session header no longer contains a model selector.
 
-Sending requires a connected, idle session with no pending save and text or at least one image. New messages are blocked during model changes, save operations, send confirmation, or disconnection. There is no input queue.
+The input text, caret and attachment previews share a left edge aligned with the visible **+** icon on desktop and mobile.
+
+Sending requires a connected, idle session with no pending save and text or at least one image or text file. New messages are blocked during attachment reads, model changes, save operations, send confirmation, or disconnection. There is no input queue.
+
+Composer errors have an **×** button at the top right. Closing a notice hides that occurrence without changing the draft, attachments or validation rules. A new error is displayed again, including a repeated failed upload.
 
 ## Requests and Drafts
 
 | State | Behavior |
 | --- | --- |
-| Before submission | usePrompt creates a requestId and records text, images and streamId |
+| Before submission | usePrompt creates a requestId and records text, images, text files and streamId |
 | HTTP acceptance | The backend returns 202; the final result arrives over SSE. A 202 is not a successful answer |
 | Generating | Once the matching user message arrives, the composer temporarily hides the submitted text |
 | Successful completion | Clear the draft if it still matches the submitted text, then clear the request record |
@@ -25,20 +29,37 @@ Sending requires a connected, idle session with no pending save and text or at l
 
 **Stop generating** calls the abort endpoint and waits for cleanup. Switching sessions or disconnecting the event stream does not cancel the model request.
 
-When a request has been accepted but has no assistant draft or running tool, the status area shows **Waiting for the model to respond**. This does not mean text is being generated. Connection errors appear in the status area and saved error messages. Provider configuration and the current session's model are separate choices; see [model settings](models.md) for troubleshooting.
+While a connected session is generating a response, **Looping...** appears after the latest content in the conversation with a highlight sweeping from left to right. It remains visible while waiting for the model, streaming text or thinking, and executing tools, then disappears when the prompt ends or the connection is lost. Reduced-motion and forced-color preferences use a static label. Routine session labels such as Ready, Running and Completed no longer appear above the input. Reconnection, errors and save recovery remain visible when needed. Provider configuration and the current session's model are separate choices; see [model settings](models.md) for troubleshooting.
 
 When hasPendingSave is true, the status area offers **Retry save**. flush saves existing results without requesting the model or executing tools again. Sending and model changes remain blocked until saving succeeds.
 
-Attach images with the paperclip button or paste them into the input. Preview and remove them before sending; image-only messages are supported. Each message accepts up to four PNG, JPEG, WebP or GIF images, totaling at most 3 MiB. Known text-only models reject images before sending; custom gateways forward them to the service without a capability checkbox. Submitted images appear in conversation history and persist with the session.
+## Attachments
 
-Unsent images stay in memory across session switches; refreshing discards them. Unconfirmed requests retain the exact images with their request identity for retry, subject to browser storage availability. Successful completion clears matching attachments; failures retain them. Message editing, regeneration, automatic retries and queued submissions are not supported.
+Use the **+** button at the lower left of the composer to open the **Add** menu, then choose **Files** (the paperclip item). The picker allows selecting images and UTF-8 text/code files together. The menu supports keyboard navigation, Escape and outside-click dismissal. Images and text/code files can also be pasted into the input together. Preview and remove attachments before sending; attachment-only messages are supported.
+
+The picker filters for supported image types and text/code extensions, excluding PDF, PowerPoint and other unsupported formats by default. Browsers may allow overriding this filter; attachment validation still rejects unsupported files. Extensionless files such as Makefile can be pasted when the system picker hides them.
+
+- Images: up to four PNG, JPEG, WebP or GIF images per message, totaling at most 3 MiB. Known text-only models reject images before sending; custom gateways forward them to the service without a capability checkbox.
+- Text files: up to four files, with no application-imposed per-file or combined text byte limit. Supported extensions include TXT, Markdown, JSON, CSV, YAML and common source/configuration formats; extensionless files such as Makefile are also supported. See [the extension list](../../shared/prompt-files.ts).
+
+Text files are decoded as UTF-8 without a parser; an optional UTF-8 BOM is removed, and whitespace is preserved. Invalid UTF-8, binary control characters and unsupported extensions reject with a visible error; contents are never silently truncated. PDF, Office documents, archives and non-UTF-8 encodings are not supported. Prompt JSON bodies have no application-imposed byte limit; image-specific limits still apply.
+
+Loop sends the full text to the model without a local estimated-context rejection. Actual model/provider context limits and browser/server memory still apply; provider failures use the existing error flow and retain drafts and attachments. Files are read and serialized in memory, not stored separately for on-demand reading. Automatic compaction and chunked file retrieval are not implemented.
+
+Click a text attachment's filename to expand its plain-text preview. Sent files appear as compact pills above the message, displaying a file icon, filename and extension; long names shorten while the extension stays visible. Pills wrap and align to the right, alongside right-aligned image previews. Filenames and contents are sent as native Pi text blocks and stored with the session; restored history renders the same expandable pills. No original file is written into the project.
+
+Unsent attachments stay in memory across session switches; refreshing discards them. Unconfirmed requests retain the exact images and text files with their request identity for retry, subject to browser storage availability. Successful completion clears matching attachments; failures retain them. Message editing, regeneration, automatic retries and queued submissions are not supported.
 
 ## Source and Tests
 
 - [ChatComposer](../components/chat/ChatComposer.tsx) / [tests](../components/chat/ChatComposer.test.tsx).
 - [useComposerInput](../hooks/useComposerInput.ts) / [tests](../hooks/useComposerInput.test.tsx).
 - [ComposerAttachments](../components/chat/ComposerAttachments.tsx) / [tests](../components/chat/ComposerAttachments.test.tsx).
-- [useComposerImages](../hooks/useComposerImages.ts) / [tests](../hooks/useComposerImages.test.tsx).
+- [ComposerAddMenu](../components/chat/ComposerAddMenu.tsx) / [tests](../components/chat/ComposerAddMenu.test.tsx).
+- [useComposerAttachments](../hooks/useComposerAttachments.ts) / [tests](../hooks/useComposerAttachments.test.tsx).
+- [Text file decoding](../lib/read-text-file.ts) / [tests](../lib/read-text-file.test.ts).
+- [Text file contract](../../shared/prompt-files.ts) / [tests](../../shared/prompt-files.test.ts).
 - [usePrompt](../hooks/usePrompt.ts) / [tests](../hooks/usePrompt.test.tsx).
 - [request-store](../state/request-store.ts) / [tests](../state/request-store.test.ts).
 - [SessionStatus](../components/chat/SessionStatus.tsx) / [tests](../components/chat/SessionStatus.test.tsx).
+- [LoopingIndicator](../components/chat/LoopingIndicator.tsx) / [translation fallback test](../components/chat/LoopingIndicator.test.tsx), displayed by [MessageTimeline](../components/chat/MessageTimeline.tsx) / [tests](../components/chat/MessageTimeline.test.tsx).

@@ -21,7 +21,7 @@ export const ProjectActions = ({ project }: { project: Project }) => {
     const drafts = Object.keys(state.draftProjects).some(
       (id) =>
         state.draftProjects[id] === project.id &&
-        (state.drafts[id]?.trim() || state.images[id]?.length),
+        (state.drafts[id]?.trim() || state.images[id]?.length || state.files[id]?.length),
     );
 
     if (!window.confirm(t(drafts ? "draftConfirm" : "removeConfirm"))) return;

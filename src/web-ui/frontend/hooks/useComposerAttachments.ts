@@ -2,10 +2,12 @@ import { useRef, useState } from "react";
 
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_IMAGES, validImages } from "../../shared/prompt-images";
 import type { PromptImage } from "../../shared/prompt-images";
+import { MAX_TEXT_FILES, validTextFiles } from "../../shared/prompt-files";
 import { ApiError } from "../lib/api";
+import { readTextFile } from "../lib/read-text-file";
 import { useWorkspace } from "../state/workspace-store";
 
-export const useComposerImages = (sessionId: string) => {
+export const useComposerAttachments = (sessionId: string) => {
   const [pending, setPending] = useState(false);
   const reading = useRef(false);
   const [error, setError] = useState<unknown>();
@@ -16,14 +18,19 @@ export const useComposerImages = (sessionId: string) => {
     setError(undefined);
     try {
       const current = useWorkspace.getState().images[sessionId] ?? [];
+      const currentFiles = useWorkspace.getState().files[sessionId] ?? [];
+      const imageFiles = files.filter((file) => IMAGE_TYPES.includes(file.type));
+      const textFiles = files.filter((file) => !IMAGE_TYPES.includes(file.type));
       if (
-        files.length + current.length > MAX_IMAGES ||
-        files.some((file) => !IMAGE_TYPES.includes(file.type)) ||
-        files.reduce((size, file) => size + file.size, 0) > MAX_IMAGE_BYTES
+        imageFiles.length + current.length > MAX_IMAGES ||
+        imageFiles.reduce((size, file) => size + file.size, 0) > MAX_IMAGE_BYTES
       )
         throw new ApiError("invalid_images", "invalid_images", 400);
+      if (textFiles.length + currentFiles.length > MAX_TEXT_FILES)
+        throw new ApiError("invalid_text_files", "invalid_text_files", 400);
+      const addedFiles = await Promise.all(textFiles.map(readTextFile));
       const added = await Promise.all(
-        files.map(
+        imageFiles.map(
           (file) =>
             new Promise<PromptImage>((resolve, reject) => {
               const reader = new FileReader();
@@ -39,9 +46,16 @@ export const useComposerImages = (sessionId: string) => {
             }),
         ),
       );
-      const next = [...current, ...added];
+      const state = useWorkspace.getState();
+      const next = [...(state.images[sessionId] ?? []), ...added];
+      const nextFiles = [...(state.files[sessionId] ?? []), ...addedFiles];
       if (!validImages(next)) throw new ApiError("invalid_images", "invalid_images", 400);
-      useWorkspace.getState().attach(sessionId, next);
+      if (!validTextFiles(nextFiles))
+        throw new ApiError("invalid_text_files", "invalid_text_files", 400);
+      useWorkspace.setState({
+        images: { ...state.images, [sessionId]: next },
+        files: { ...state.files, [sessionId]: nextFiles },
+      });
     } catch (error) {
       setError(error);
     } finally {
@@ -57,5 +71,13 @@ export const useComposerImages = (sessionId: string) => {
     );
     setError(undefined);
   };
-  return { add, remove, pending, error };
+  const removeFile = (index: number) => {
+    const current = useWorkspace.getState().files[sessionId] ?? [];
+    useWorkspace.getState().attachFiles(
+      sessionId,
+      current.filter((_, i) => i !== index),
+    );
+    setError(undefined);
+  };
+  return { add, remove, removeFile, pending, error };
 };

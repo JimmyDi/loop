@@ -42,11 +42,28 @@ test("SessionStatus renders the session state without unsupported controls", () 
   client.clear();
 });
 
-test("a pending model request explains the wait before the first streamed message", () => {
-  const html = renderToStaticMarkup(<SessionStatus snapshot={snapshot} connected />);
+test("routine session states leave no status row above the input", () => {
+  for (const outcome of ["idle", "success", "cancelled"] as const) {
+    const html = renderToStaticMarkup(
+      <SessionStatus
+        snapshot={{
+          ...snapshot,
+          operation: "idle",
+          state: { ...snapshot.state, isRunning: false, outcome },
+        }}
+        connected
+      />,
+    );
+    expect(html).toBe("");
+  }
+  expect(renderToStaticMarkup(<SessionStatus snapshot={snapshot} connected />)).toBe("");
+});
 
-  expect(html).toContain("Waiting for the model to respond");
-  expect(html).toContain("stop this request");
+test("connection loss still explains why the composer is unavailable", () => {
+  const html = renderToStaticMarkup(<SessionStatus snapshot={snapshot} connected={false} />);
+
+  expect(html).toContain("Reconnecting");
+  expect(html).not.toContain("Looping...");
 });
 
 test("a failed model connection leaves the running state and shows configuration guidance", () => {
@@ -68,5 +85,5 @@ test("a failed model connection leaves the running state and shows configuration
 
   expect(html).toContain("Connection error.");
   expect(html).toContain("Open Settings → Models");
-  expect(html).not.toContain("Waiting for the model");
+  expect(html).not.toContain("Looping...");
 });

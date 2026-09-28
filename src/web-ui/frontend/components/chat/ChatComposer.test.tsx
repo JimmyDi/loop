@@ -35,6 +35,52 @@ test("ChatComposer renders the session state without unsupported controls", () =
   client.clear();
 });
 
+test("attachment errors can be closed without losing drafts and reappear on the next failed upload", async () => {
+  const { Window } = await import("happy-dom");
+  const { useWorkspace } = await import("../../state/workspace-store");
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  const workspace = useWorkspace.getState();
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, fireEvent, act, cleanup } = await import("@testing-library/react/pure");
+  const current = { ...snapshot, operation: "idle" as const };
+  const client = new QueryClient({
+    defaultOptions: { queries: { staleTime: Infinity, retry: false } },
+  });
+  client.setQueryData(["models"], [current.model]);
+  const files = [{ name: "example.txt", text: "Keep attachment" }];
+  const invalid = new File([new Uint8Array([0])], "binary.txt");
+  try {
+    useWorkspace.setState({ drafts: { test: "Keep draft" }, images: {}, files: { test: files } });
+    const ui = render(
+      <QueryClientProvider client={client}>
+        <ChatComposer snapshot={current} connected />
+      </QueryClientProvider>,
+    );
+    const input = ui.container.querySelector('input[type="file"]')!;
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [invalid] } });
+    });
+    expect(ui.getByRole("alert").textContent).toContain("UTF-8");
+    fireEvent.click(ui.getByRole("button", { name: "Close" }));
+    expect(ui.queryByRole("alert")).toBeNull();
+    act(() => useWorkspace.getState().draft("test", "Updated draft"));
+    expect(ui.queryByRole("alert")).toBeNull();
+    expect(useWorkspace.getState().files.test).toEqual(files);
+    expect(useWorkspace.getState().drafts.test).toBe("Updated draft");
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [invalid] } });
+    });
+    expect(ui.getByRole("alert").textContent).toContain("UTF-8");
+  } finally {
+    cleanup();
+    client.clear();
+    useWorkspace.setState(workspace, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
 test("composer owns model controls, blocks send while switching and preserves drafts", async () => {
   const { Window } = await import("happy-dom");
   const { i18n } = await import("../../i18n/setup");
@@ -106,6 +152,14 @@ test("composer owns model controls, blocks send while switching and preserves dr
       false,
     );
     expect(view.getByRole("img", { name: "Image attachment 1" })).toBeTruthy();
+    act(() => {
+      useWorkspace.getState().attach("test", []);
+      useWorkspace.getState().attachFiles("test", [{ name: "example.txt", text: "Example" }]);
+    });
+    expect(view.getByTitle("example.txt").textContent).toBe("example.txt");
+    expect((view.getByRole("button", { name: "Send message" }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
   } finally {
     cleanup();
     client.clear();

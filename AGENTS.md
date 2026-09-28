@@ -24,6 +24,7 @@
 - Run Biome formatting and checks for code changes.
 - Keep one primary responsibility per file and avoid oversized modules.
 - Prefer explicit types and small, composable functions.
+- Prefer arrow function expressions in JavaScript and TypeScript files, including JSX/TSX, for standalone functions and callbacks; use `const` or `export const` for named functions. Keep regular functions or method syntax when required by semantics, such as generators, overloads, dynamic `this`, or declaration hoisting.
 - Keep tests colocated with the implementation they cover.
 
 ## Dependency and call direction

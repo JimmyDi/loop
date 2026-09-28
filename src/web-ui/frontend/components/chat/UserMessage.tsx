@@ -3,10 +3,23 @@ import { messageText } from "../../../shared/message-text";
 import { CopyButton } from "../ui/CopyButton";
 import { useTranslation } from "react-i18next";
 import { IMAGE_TYPES } from "../../../shared/prompt-images";
+import { readFileContent } from "../../../shared/prompt-files";
+import { TextFileAttachment } from "./TextFileAttachment";
 import "./UserMessage.css";
 
 export const UserMessage = ({ message }: { message: Extract<Message, { role: "user" }> }) => {
-  const text = messageText(message);
+  const parts = typeof message.content === "string" ? [] : message.content;
+  const files = parts.flatMap((part) => {
+    const file = part.type === "text" ? readFileContent(part.text) : undefined;
+    return file ? [file] : [];
+  });
+  const text = messageText({
+    ...message,
+    content:
+      typeof message.content === "string"
+        ? message.content
+        : parts.filter((part) => part.type !== "text" || !readFileContent(part.text)),
+  });
   const { t } = useTranslation();
   const images =
     typeof message.content === "string"
@@ -32,7 +45,14 @@ export const UserMessage = ({ message }: { message: Extract<Message, { role: "us
           )}
         </div>
       )}
-      {text && <div>{text}</div>}
+      {files.length > 0 && (
+        <div className="user-files">
+          {files.map((file, index) => (
+            <TextFileAttachment key={index} file={file} variant="pill" />
+          ))}
+        </div>
+      )}
+      {text && <div className="user-message-text">{text}</div>}
       {text && <CopyButton text={text} />}
     </article>
   );

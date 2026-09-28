@@ -26,6 +26,8 @@ The header contains only a folder icon and the session name above a single divid
 
 Active sessions receive title updates through SSE, including results arriving after the answer. Expanded project lists refresh every five seconds while the page is visible to pick up background-session changes. Reading untitled history derives a fallback without making a model request or rewriting the session file. See [title policy](../../../coding-agent/docs/session-titles.md).
 
+A small rotating ring at the far right of a session row indicates response generation, including model waiting, streaming and tool execution. Live session events update it immediately; background sessions use the existing five-second list refresh. The ring disappears when generation ends and does not appear for model changes, saves or title updates. Long titles truncate before the ring. Reduced-motion preferences keep the ring static.
+
 ## Lifecycle and Errors
 
 Switching sessions preserves unsent drafts and in-memory image attachments, keeps history, and does not stop backend generation. Returning retrieves current state through a snapshot. Reloading restores the selected session. An unavailable project directory shows **Directory unavailable** and disables new sessions for that project.

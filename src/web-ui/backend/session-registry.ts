@@ -26,7 +26,10 @@ export class SessionRegistry {
 
     for (const record of records) this.owners.set(record.id, workspaceId);
 
-    return records;
+    return records.map((record) => ({
+      ...record,
+      isGenerating: this.instances.get(record.id)?.snapshot.operation === "prompt",
+    }));
   }
 
   async create(workspaceId: string): Promise<SessionController> {

@@ -2,7 +2,7 @@ import { createAgentSession, getSessionDir, SessionManager } from "../../coding-
 import type { AgentSession, ModelRuntime } from "../../coding-agent/index";
 import { join } from "node:path";
 
-import type { ModelChoice, Project, SessionSummary } from "../shared/protocol";
+import type { ModelChoice, ModelSelection, Project, SessionSummary } from "../shared/protocol";
 import { ProviderSettings } from "./providers/provider-settings";
 
 export type SessionPort = Pick<
@@ -10,6 +10,7 @@ export type SessionPort = Pick<
   | "sessionId"
   | "state"
   | "model"
+  | "effort"
   | "subscribe"
   | "prompt"
   | "abort"
@@ -22,7 +23,7 @@ export type LoopBridge = {
   models(): Promise<ModelChoice[]>;
   list(project: Project): Promise<SessionSummary[]>;
   load(project: Project, id?: string): Promise<SessionPort>;
-  setModel(session: SessionPort, choice: Pick<ModelChoice, "id" | "provider">): Promise<void>;
+  setModel(session: SessionPort, choice: ModelSelection): Promise<void>;
 };
 
 export const createLoopBridge = (
@@ -37,8 +38,7 @@ export const createLoopBridge = (
     }));
 
   return {
-    models: async () =>
-      (await getRuntime()).getModels().map(({ id, provider, name }) => ({ id, provider, name })),
+    models: () => providers.models(),
     list: async (project) =>
       (await SessionManager.list(project.cwd, getSessionDir(project.cwd, agentDir))).map(
         ({ id, createdAt, updatedAt, messageCount }) => ({
@@ -65,16 +65,23 @@ export const createLoopBridge = (
         sessionManager,
         modelRuntime,
         model: sessionManager ? undefined : providers.defaultModel(),
+        allowUnavailableModel: true,
+        effort: sessionManager ? undefined : providers.defaultEffort(),
       });
 
       return session;
     },
     setModel: async (session, choice) => {
+      const configured = (await providers.models()).some(
+        (model) => model.provider === choice.provider && model.id === choice.id,
+      );
+      if (!configured) throw new Error("Model not found");
       const model = (await getRuntime()).getModel(choice.provider, choice.id);
 
       if (!model) throw new Error("Model not found");
 
-      await session.setModel(model);
+      await session.setModel(model, { effort: choice.effort });
+      await providers.selectModel({ ...choice, effort: session.effort });
     },
   };
 };

@@ -4,16 +4,9 @@ import type { SessionSnapshot } from "../../../shared/protocol";
 import { useProjects } from "../../hooks/useProjects";
 import { useWorkspace } from "../../state/workspace-store";
 import { ActionButton } from "../ui/ActionButton";
-import { ModelSelect } from "./ModelSelect";
 import "./SessionHeader.css";
 
-export const SessionHeader = ({
-  snapshot,
-  connected = false,
-}: {
-  snapshot?: SessionSnapshot;
-  connected?: boolean;
-}) => {
+export const SessionHeader = ({ snapshot }: { snapshot?: SessionSnapshot }) => {
   const { t } = useTranslation();
   const { projects } = useProjects();
   const toggle = useWorkspace((state) => state.toggleSidebar);
@@ -32,7 +25,6 @@ export const SessionHeader = ({
         <strong>{project?.name ?? "Loop"}</strong>
         <span title={project?.cwd}>{project?.cwd}</span>
       </div>
-      {snapshot && <ModelSelect snapshot={snapshot} connected={connected} />}
     </header>
   );
 };

@@ -18,6 +18,7 @@ test("Settings opens General outside the mobile drawer and restores focus withou
   });
 
   client.setQueryData(["projects"], []);
+  client.setQueryData(["provider-settings"], { providers: [], catalog: [] });
   Object.assign(globalThis, { window, document: window.document });
   const { render, fireEvent, act, cleanup } = await import("@testing-library/react/pure");
 
@@ -36,7 +37,7 @@ test("Settings opens General outside the mobile drawer and restores focus withou
     );
     const trigger = view.getByRole("button", { name: "Settings" });
 
-    expect(view.getByRole("button", { name: "Model settings" })).toBeTruthy();
+    expect(view.queryByRole("button", { name: "Model settings" })).toBeNull();
     expect(view.queryByRole("combobox", { name: "Language" })).toBeNull();
     trigger.focus();
     fireEvent.click(trigger);
@@ -47,12 +48,14 @@ test("Settings opens General outside the mobile drawer and restores focus withou
     expect(view.getByRole("tab", { name: "General" }).getAttribute("aria-selected")).toBe("true");
     expect(view.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
       "General",
+      "Models",
       "Appearance",
     ]);
     expect(view.getByRole("tabpanel", { name: "General" })).toBeTruthy();
     expect(view.queryByRole("group", { name: "Theme" })).toBeNull();
     const general = view.getByRole("tab", { name: "General" });
     const appearance = view.getByRole("tab", { name: "Appearance" });
+    const models = view.getByRole("tab", { name: "Models" });
 
     fireEvent.click(appearance);
     expect(view.getByRole("tabpanel", { name: "Appearance" })).toBeTruthy();
@@ -62,6 +65,8 @@ test("Settings opens General outside the mobile drawer and restores focus withou
     fireEvent.click(view.getByRole("radio", { name: "Dark" }));
     expect(document.documentElement.dataset.theme).toBe("dark");
     fireEvent.keyDown(appearance, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(models);
+    fireEvent.keyDown(models, { key: "ArrowUp" });
     expect(document.activeElement).toBe(general);
     expect(view.getByRole("tabpanel", { name: "General" })).toBeTruthy();
     fireEvent.keyDown(general, { key: "End" });
@@ -70,6 +75,8 @@ test("Settings opens General outside the mobile drawer and restores focus withou
     fireEvent.keyDown(appearance, { key: "ArrowDown" });
     expect(document.activeElement).toBe(general);
     fireEvent.keyDown(general, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(models);
+    fireEvent.keyDown(models, { key: "ArrowDown" });
     expect(document.activeElement).toBe(appearance);
     fireEvent.keyDown(appearance, { key: "Home" });
     expect(document.activeElement).toBe(general);

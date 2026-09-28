@@ -1,23 +1,15 @@
 import { useState } from "react";
 
-import type { ProviderInput, ProviderView } from "../../shared/provider";
+import type { ProviderConfig, ProviderRecord } from "../../shared/provider";
 import { useAsyncAction } from "./useAsyncAction";
 
 export const useProviderForm = (
-  initial: ProviderView | null,
-  save: (input: ProviderInput) => Promise<void>,
+  initial: ProviderRecord,
+  save: (input: ProviderConfig) => Promise<void>,
 ) => {
-  const [values, setValues] = useState<ProviderInput>({
-    name: initial?.name ?? "",
-    baseUrl: initial?.baseUrl ?? "",
-    modelId: initial?.modelId ?? "gpt-5.5",
-    authentication: initial?.authentication ?? "apiKey",
-    apiKey: "",
-  });
-  const [saved, setSaved] = useState(false);
+  const [values, setValues] = useState<ProviderConfig>({ ...initial, apiKey: "" });
   const action = useAsyncAction();
-  const set = <K extends keyof ProviderInput>(key: K, value: ProviderInput[K]) => {
-    setSaved(false);
+  const set = <K extends keyof ProviderConfig>(key: K, value: ProviderConfig[K]) => {
     setValues((previous) => ({
       ...previous,
       [key]: value,
@@ -26,13 +18,12 @@ export const useProviderForm = (
   };
   const submit = () =>
     action.run(async () => {
+      const { hasApiKey: _, ...input } = values as ProviderConfig & { hasApiKey?: boolean };
       await save({
-        ...values,
+        ...input,
         apiKey: values.authentication === "apiKey" ? values.apiKey?.trim() || undefined : undefined,
       });
       setValues((previous) => ({ ...previous, apiKey: "" }));
-      setSaved(true);
     });
-
-  return { values, set, submit, saved, pending: action.pending, error: action.error };
+  return { values, set, submit, pending: action.pending, error: action.error };
 };

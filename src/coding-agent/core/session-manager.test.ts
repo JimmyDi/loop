@@ -89,3 +89,23 @@ test("invalid versions, records and incomplete tool calls reject without touchin
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("effort metadata accepts legacy absence and rejects invalid values without changing storage", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "loop-effort-metadata-"));
+  try {
+    const manager = await SessionManager.create(dir, dir);
+    await manager.setModel({ provider: "example", id: "model", effort: "high" });
+    const file = manager.sessionFile!;
+    const original = await Bun.file(file).text();
+    expect((await SessionManager.open(file)).getHeader().model?.effort).toBe("high");
+    await manager.setModel({ provider: "example", id: "model", effort: "default" });
+    expect((await SessionManager.open(file)).getHeader().model).toEqual({
+      provider: "example",
+      id: "model",
+    });
+    await Bun.write(file, original.replace('"effort":"high"', '"effort":"unsupported"'));
+    await expect(SessionManager.open(file)).rejects.toThrow("Invalid session metadata");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

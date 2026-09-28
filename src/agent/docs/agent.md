@@ -48,11 +48,13 @@ For a custom URL and streamed output, use the runnable [Agent sample](../agent.s
 
 | Member | Result |
 | --- | --- |
-| `prompt(text): Promise<AssistantMessage>` | Runs all model/tool turns and returns the final successful assistant message. |
+| `prompt(content: PromptContent): Promise<AssistantMessage>` | Runs all model/tool turns and returns the final successful assistant message. |
 | `messages: Message[]` | Isolated snapshot of completed history, including tool calls and results. |
 | `isRunning: boolean` | Whether a prompt is currently running. |
 | `subscribe(listener): () => void` | Adds an [event listener](events.md); returns unsubscribe. |
 | `abort(): void` | Signals cancellation; await the prompt promise to observe completion. |
+
+PromptContent reuses Pi AI UserMessage content: a string or an array of text/image blocks. Images use base64 data and mimeType. Image-only prompts are supported; an empty input or image input with a text-only model rejects before history changes or model calls. Content is copied before processing.
 
 ## History and concurrency
 

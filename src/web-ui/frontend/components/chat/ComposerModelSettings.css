@@ -1,0 +1,92 @@
+.composer-model-settings {
+  position: relative;
+  margin-left: auto;
+  min-width: 0;
+}
+.composer-model-trigger.action-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 10px;
+  gap: 5px;
+  background: var(--surface-hover);
+  color: var(--ink-muted);
+  font-size: 13px;
+  max-width: 260px;
+}
+.composer-model-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.composer-model-effort {
+  color: var(--ink-muted);
+  opacity: 0.75;
+  white-space: nowrap;
+}
+.composer-model-trigger svg {
+  flex-shrink: 0;
+}
+.composer-model-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  z-index: 20;
+  width: min(340px, calc(100vw - 48px));
+  padding: 8px;
+  max-height: min(460px, calc(100dvh - 180px));
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  box-shadow: 0 8px 32px var(--shadow);
+  font-size: 14px;
+}
+.composer-model-popover button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  justify-content: space-between;
+}
+.composer-model-popover button:hover,
+.composer-model-popover button:focus-visible {
+  background: var(--surface-hover);
+}
+.composer-model-popover button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.composer-model-popover .model-menu-back {
+  justify-content: flex-start;
+  font-weight: 500;
+  padding: 8px 12px 12px;
+}
+.model-menu-value {
+  margin-left: auto;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+.composer-model-popover .error-notice {
+  margin: 8px;
+}
+@media (max-width: 767px) {
+  .composer-model-trigger.action-button {
+    max-width: 210px;
+    font-size: 12px;
+  }
+  .composer-model-popover {
+    right: -42px;
+  }
+}

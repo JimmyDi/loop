@@ -2,6 +2,8 @@ import { readBody, requiredString } from "../http/input";
 import { eventResponse } from "../http/sse";
 import { HttpError } from "../http/errors";
 import type { SessionRegistry } from "../session-registry";
+import { isModelEffort } from "../../../coding-agent/index";
+import { MAX_PROMPT_BODY_BYTES, validImages } from "../../shared/prompt-images";
 
 export const sessionRoutes =
   (registry: SessionRegistry) =>
@@ -36,7 +38,10 @@ export const sessionRoutes =
     if (!match) return;
 
     const [, id, action] = match;
-    const body = action === "prompt" || action === "model" ? await readBody(request) : {};
+    const body =
+      action === "prompt" || action === "model"
+        ? await readBody(request, action === "prompt" ? MAX_PROMPT_BODY_BYTES : undefined)
+        : {};
     const controller = await registry.get(id!);
 
     registry.assertAvailable(controller.workspaceId);
@@ -50,7 +55,11 @@ export const sessionRoutes =
 
       if (requestId.length > 128) throw new HttpError(400, "invalid_requestId");
 
-      const runId = controller.prompt(requestId, requiredString(body, "text"));
+      const images = body.images ?? [];
+      if (!validImages(images)) throw new HttpError(400, "invalid_images");
+      if (typeof body.text !== "string" || (!body.text.trim() && !images.length))
+        throw new HttpError(400, "invalid_text");
+      const runId = controller.prompt(requestId, body.text, images);
 
       return Response.json({ runId }, { status: 202 });
     }
@@ -59,9 +68,25 @@ export const sessionRoutes =
     else if (action === "flush" && method === "POST") {
       await controller.command("flush", () => controller.session.flush());
     } else if (action === "model" && method === "PUT") {
+      if (body.effort !== undefined && !isModelEffort(body.effort))
+        throw new HttpError(400, "invalid_model_effort");
       const choice = { provider: requiredString(body, "provider"), id: requiredString(body, "id") };
+      const model = (await registry.loop.models()).find(
+        (model) => model.provider === choice.provider && model.id === choice.id,
+      );
+      if (
+        isModelEffort(body.effort) &&
+        body.effort !== "default" &&
+        !model?.efforts?.includes(body.effort)
+      )
+        throw new HttpError(400, "invalid_model_effort");
 
-      await controller.command("model", () => registry.loop.setModel(controller.session, choice));
+      await controller.command("model", () =>
+        registry.loop.setModel(controller.session, {
+          ...choice,
+          ...(isModelEffort(body.effort) ? { effort: body.effort } : {}),
+        }),
+      );
     } else throw new HttpError(405, "method_not_allowed");
 
     return Response.json(controller.snapshot);

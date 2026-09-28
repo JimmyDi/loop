@@ -39,11 +39,11 @@ The eventual distribution command is `npx loop web`. npm package ownership, root
 
 ## Model connection
 
-Open **Model settings** at the bottom of the sidebar, then enter a provider name, API Base URL, model ID (default `gpt-5.5`) and API key. For a local gateway that disables authentication, choose **No authentication**. Use a base URL such as `http://localhost:8080/v1`, without `/chat/completions`.
+Open **Settings → Models**. Add a built-in provider with its API key, or a custom provider with an ID, base URL, protocol and model IDs. Custom gateways support Chat Completions, Responses and Anthropic Messages, optional model discovery, and no authentication for local services.
 
-Save, then create a conversation. New conversations use this provider automatically. Existing open conversations retain their selected model; select the configured `loop-custom` model in the model menu. Settings take effect without restarting the server. Finish active runs and pending saves before updating settings.
+Save, then create a conversation. The model pill beside Send opens model search and supported reasoning effort choices. It remembers both for new conversations; the old header selector is removed. Existing conversations keep their model and remain readable after provider removal; select another configured model to continue. Finish active runs and pending saves before changing providers.
 
-Configuration is stored in the server's local user data directory, outside the project. API keys are not returned to the frontend or persisted in browser storage. No `.env` is needed for this workflow. Built-in models can still use the coding-agent environment configuration as a fallback. See [provider configuration](backend/docs/providers.md) for storage, API and lifecycle details.
+Configuration is stored in the server's local user data directory, outside the project. API keys are not returned to the frontend or persisted in browser storage. No `.env` is needed for this workflow. Before any provider configuration has been saved, coding-agent environment configuration remains available. Once saved, only configured models can run. See [provider configuration](backend/docs/providers.md) for storage, API and lifecycle details.
 
 If a sent message stays in the waiting state, check the model endpoint and server network. A connection failure is shown in the current status and retained on its assistant message when history is reopened. Authentication checks during session creation do not prove model endpoint connectivity.
 

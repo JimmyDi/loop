@@ -14,13 +14,13 @@ Each sessionId has one writable AgentSession in the current Web process. Web man
 | POST /api/sessions/:id/flush | Retry saving existing results and return a snapshot |
 | PUT /api/sessions/:id/model | Accept provider and id; return a snapshot after switching |
 
-A complete snapshot contains model identity, SDK state, operation, tool projection, and optional runId/requestId. operation is idle, prompt, model, or flush; it does not indicate whether model text has started arriving.
+A complete snapshot contains model identity, supported efforts, selected effort, SDK state, operation, tool projection, and optional runId/requestId. operation is idle, prompt, model, or flush; it does not indicate whether model text has started arriving.
 
 ## Creation and Restoration
 
 LoopBridge lists a project's sessions through the public SDK, then opens SessionManager from the matching record. Unknown session IDs or history outside registered projects are rejected. Browsers cannot supply arbitrary file paths. Concurrent loads of one sessionId share a Promise and instance.
 
-New sessions use the configured custom model, or the SDK default if none is configured. Restored sessions retain saved provider/model identity; missing models or credentials fail explicitly. Changing Web defaults does not update existing sessions. See [provider configuration](providers.md).
+New sessions use the valid remembered Web model/effort or first configured model; with no provider file, legacy SDK defaults remain available. Restored sessions retain saved model identity and effort. Missing models do not block reading history, but prompts require a configured model. Changing Web defaults does not update existing sessions. See [provider configuration](providers.md).
 
 ## Submission and Mutual Exclusion
 
@@ -40,6 +40,16 @@ abort is independent of ordinary command locking and can stop an accepted reques
 SDK save failures retain hasPendingSave. flush neither requests the model nor executes tools again, and another save failure leaves recoverable state intact. Preflight or unexpected errors also settle to idle with error details, preventing the UI from remaining permanently busy.
 
 Closing a tab does not dispose its session. Instances remain until project removal or server shutdown. There is no automatic idle eviction, session deletion, branching, or cross-process write coordination. See [coding-agent sessions](../../../coding-agent/docs/sessions.md) for complete history and save-failure semantics.
+
+## Image Attachments
+
+POST /api/sessions/:id/prompt accepts text and optional images (native image blocks containing type, data and mimeType). Text may be empty when images are present. Up to four PNG/JPEG/WebP/GIF images totaling 3 MiB decoded are accepted; the prompt JSON body limit is 5 MiB, while other routes retain 1 MiB. Malformed/oversized image payloads reject before starting an operation. Known text-only models return model_images_unsupported.
+
+The request identity includes text and image content; retrying the same requestId with changed images returns request_conflict. Only a content digest is retained in the bounded deduplication map. Pi AI receives the native image blocks, and session history retains them for reload and later turns.
+
+## Model and Effort Updates
+
+PUT /api/sessions/:id/model accepts provider, id and optional effort. Values are default, off, minimal, low, medium, high, xhigh or max; non-default values must be supported by the selected model. Invalid levels return invalid_model_effort (400). Omitted effort preserves the existing level when supported, otherwise Default. Updates run through the existing model command lock and return/publish the complete snapshot; they never call generation. Session metadata and the new-session Web preference are saved before success is returned.
 
 ## Source and Tests
 

@@ -37,6 +37,8 @@ test("lost prompt response preserves draft and retries the same identity", async
 
     useRequests.setState({ pending: {} });
     useWorkspace.getState().draft("s", "hello");
+    const images = [{ type: "image" as const, mimeType: "image/png", data: "AAAA" }];
+    useWorkspace.getState().attach("s", images);
     globalThis.fetch = (async (_url, init) => {
       if (!init?.method) return Response.json(snapshot);
 
@@ -54,9 +56,11 @@ test("lost prompt response preserves draft and retries the same identity", async
     await act(() => result.current.submit());
     expect(result.current.uncertain).toBe(true);
     expect(result.current.text).toBe("hello");
+    expect(result.current.images).toEqual(images);
     await act(() => result.current.submit(true));
     expect(requests[0]).toBe(requests[1]);
     const request = JSON.parse(requests[0]!);
+    expect(request.images).toEqual(images);
 
     rerender({
       value: {
@@ -66,6 +70,7 @@ test("lost prompt response preserves draft and retries the same identity", async
       },
     });
     expect(result.current.text).toBe("");
+    expect(result.current.images).toEqual([]);
     cleanup();
   } finally {
     Object.assign(globalThis, previous);

@@ -1,7 +1,7 @@
 import type { AssistantMessage, Message } from "@earendil-works/pi-ai";
 
 import { runAgentLoop } from "./agent-loop";
-import type { AgentEventListener, AgentOptions } from "./types";
+import type { AgentEventListener, AgentOptions, PromptContent } from "./types";
 
 export class Agent {
   private readonly history: Message[];
@@ -41,14 +41,14 @@ export class Agent {
     this.controller?.abort(new Error("Run cancelled"));
   }
 
-  async prompt(text: string): Promise<AssistantMessage> {
+  async prompt(content: PromptContent): Promise<AssistantMessage> {
     if (this.isRunning) throw new Error("Agent is already running");
 
     this.controller = new AbortController();
 
     try {
       return await runAgentLoop(
-        text,
+        structuredClone(content),
         this.history,
         this.options,
         async (event) => {

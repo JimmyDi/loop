@@ -25,6 +25,7 @@ export type {
 export type { ModelRuntime, ModelRuntimeOptions } from "./core/model-runtime";
 export type { SessionState, SessionEvent, SessionEventListener } from "./core/types/session";
 export type { SessionHeader, SessionInfo } from "./core/types/storage";
+export type { SessionTitle, SessionTitleOptions } from "./core/titles/types";
 export { createReadTool, createBashTool, createEditTool, createWriteTool } from "./core/tools";
 export { messageText } from "./core/messages";
 export { DEFAULT_MODEL, DEFAULT_PROVIDER, getAgentDir, getSessionDir } from "./config";

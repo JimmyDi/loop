@@ -5,6 +5,7 @@ import type { AgentEvent, PromptContent } from "../../agent";
 import { getModelEfforts } from "./model-runtime";
 import type { ModelEffort } from "./models/model-effort";
 import { validateMessages } from "./messages";
+import { SessionTitleService } from "./titles/session-title";
 import type {
   SessionEvent,
   SessionEventListener,
@@ -25,12 +26,23 @@ export class AgentSession {
   private outcome: SessionState["outcome"] = "idle";
   private failure?: string;
   private listenerErrors: string[] = [];
+  private readonly titles: SessionTitleService;
+  private titleError?: string;
 
   constructor(private readonly options: SessionOptions) {
     this.selected = structuredClone(options.model);
     const effort = options.effort ?? options.sessionManager.getHeader().model?.effort;
     this.selectedEffort =
       effort && getModelEfforts(this.selected).includes(effort) ? effort : "default";
+    this.titles = new SessionTitleService(
+      options.sessionManager,
+      options.modelRuntime,
+      options.title,
+      (title, error) => {
+        this.titleError = error;
+        this.emit({ type: "session_title", title, error });
+      },
+    );
   }
 
   get sessionManager() {
@@ -66,6 +78,8 @@ export class AgentSession {
       outcome: this.outcome,
       error: this.failure,
       listenerErrors: [...this.listenerErrors],
+      title: this.titles.title,
+      titleError: this.titleError,
     };
   }
 
@@ -102,9 +116,37 @@ export class AgentSession {
   }
 
   async abort(): Promise<void> {
+    this.titles.cancel();
     this.controller?.abort(new Error("Run cancelled"));
     this.agent?.abort();
     await this.waitForIdle();
+    await this.titles.wait();
+  }
+
+  renameTitle(title: string): Promise<void> {
+    return this.changeTitle(() => this.titles.rename(title));
+  }
+
+  refreshTitle(): Promise<void> {
+    return this.changeTitle(() => this.titles.refresh(this.sessionManager.messages, this.selected));
+  }
+
+  waitForTitle(): Promise<void> {
+    return this.titles.wait();
+  }
+
+  async cancelTitle(): Promise<void> {
+    this.titles.cancel();
+    await this.titles.wait();
+  }
+
+  private changeTitle(action: () => Promise<void>): Promise<void> {
+    this.assertIdle();
+    this.busy = true;
+    this.active = action().finally(() => {
+      this.busy = false;
+    });
+    return this.active;
   }
 
   async waitForIdle(): Promise<void> {
@@ -139,6 +181,7 @@ export class AgentSession {
     }
 
     const selected = structuredClone(model);
+    this.titles.cancel();
     const effort =
       options.effort ??
       (getModelEfforts(selected).includes(this.selectedEffort) ? this.selectedEffort : "default");
@@ -175,6 +218,7 @@ export class AgentSession {
   /** Internal lifecycle reservation: holds ordinary calls during Runtime preparation. */
   reserve(): () => void {
     this.assertIdle();
+    this.titles.cancel();
     this.busy = true;
 
     let released = false;
@@ -192,6 +236,7 @@ export class AgentSession {
 
     this.assertIdle();
     this.disposed = true;
+    this.titles.dispose();
     this.listeners.clear();
   }
 
@@ -221,6 +266,13 @@ export class AgentSession {
   }
 
   private onAgentEvent(event: AgentEvent): void {
+    if (
+      event.type === "message_end" &&
+      event.message.role === "user" &&
+      this.agent &&
+      !this.controller?.signal.aborted
+    )
+      this.titles.onPrompt(this.agent.messages, this.selected);
     if (
       (event.type === "message_start" || event.type === "message_update") &&
       event.message.role === "assistant"

@@ -5,6 +5,7 @@
 - Work inside this Loop project only.
 - Keep changes scoped to this project; do not modify unrelated workspaces.
 - Keep the project single-agent; do not add multi-agent orchestration, delegation trees, or agent-to-agent messaging.
+- Evaluate maturity by single-agent reliability, safety, recoverability, and usability, not by multi-agent support.
 - Do not add personal data, credentials, private endpoints, private repository details, real task data, logs, caches, screenshots, or machine-specific absolute paths.
 
 ## Runtime and dependencies
@@ -45,6 +46,18 @@
 - `src/coding-agent/index.test.ts` checks these boundaries. Run `bun run check:architecture`
   after changing imports or module structure; this check also runs in `bun run check` and `bun test`.
 
+## Capability ownership
+
+- `agent` stays the minimal model and sequential tool loop, with in-memory history, events,
+  running state, and cancellation. Do not place application capabilities in this layer.
+- `coding-agent/core` owns permission policy and enforcement, context management, recovery,
+  and resource integrations. Keep these capabilities independent of terminal and Web code.
+- CLI and Web own human-facing approval interactions, review workflows, and status display.
+  They consume core APIs and events and submit user decisions through core contracts;
+  permission enforcement must not depend on a particular UI.
+- These are placement rules for requested capabilities, not claims that all are implemented.
+  Do not add placeholder APIs, unsupported controls, or integrations to satisfy this ownership map.
+
 ## Feature documentation
 
 - Keep Markdown-only `docs/` directories under both `src/agent` and `src/coding-agent`. Each page covers one implemented feature; do not add placeholder pages for unsupported Pi capabilities.
@@ -66,7 +79,10 @@
 
 ## Validation
 
-- Run relevant tests after changes. For broad changes, run `bun test`, the Biome check, and the affected Bun build commands.
+- Default to targeted tests covering the changed behavior: run `bun test <affected test files>`, including directly affected consumers and regression tests. Do not run the full repository suite by default or merely because a task is finishing or a PR is being prepared.
+- Expand testing only when the user explicitly requests it or a concrete dependency, failure, or cross-cutting change cannot be verified with a scoped selection. Explain the reason before running the broader set; a large diff alone is not sufficient.
+- Keep required Biome, type, architecture, and affected Bun build checks appropriate to the change. These checks do not require a full test run. For Markdown-only instruction/documentation changes, check the edited content and links; do not run application tests or builds unless executable examples or behavior are affected.
+- Once relevant checks pass, do not repeat or broaden them without new edits, failures, or unresolved evidence.
 - Keep each feature test beside its feature file, using `feature.test.ts` for `feature.ts`. Write any test-only Provider or fixture directly in that test file instead of adding shared mock or testing modules.
 - Remove temporary runtime data such as `.loop` fixtures created during validation.
 - Scan new content for personal paths, credentials, private URLs, and other sensitive data before completing the work.
@@ -85,6 +101,21 @@
 - Choose the type by the primary change: `feat` for new capabilities, `fix` for bug fixes, `refactor` for restructuring, and `chore` for maintenance.
 - Examples: `feat(coding-agent): add session recovery`, `refactor!: simplify Loop to CLI and SDK`, `chore: update development dependencies`.
 - Correct a nonconforming proposed title before creating the PR. This naming rule does not authorize Git or GitHub actions.
+
+## Pre-PR sensitive-data check
+
+- Before an authorized PR creation, perform one dedicated sensitive-data check on the final outgoing content, before any authorized push or upload. Repeat the check for newly changed content before updating the PR; unchanged content does not need another scan. This check does not authorize Git commands, history rewriting, pushes, PR creation, or external uploads.
+- Cover the full PR change set against its target branch, not just the most recent edit: file contents and names, new/untracked files intended for inclusion, documentation, examples, tests, fixtures, configuration, lockfiles, generated assets, and the proposed PR title/body and attachments. When Git inspection is authorized, inspect outgoing commits and their messages as well: secrets removed from the latest files may still exist in earlier commits or diff deletions.
+- Check for these categories:
+  - Credentials: passwords, API keys, access/refresh tokens, bearer headers, cookies, session IDs used for authentication, OAuth client secrets, private keys, signing keys, certificate bundles with private material, recovery codes, database connection strings, webhook secrets, and signed URLs.
+  - Personal information: real names tied to private activity, email addresses, phone numbers, postal addresses, precise locations, usernames/account IDs, government identifiers, financial/payment information, health information, and employee/customer records.
+  - Private paths and infrastructure: machine-specific absolute paths, home directories, local usernames/hostnames, internal domains/IPs/ports, private endpoints, private repository/registry URLs, organization/project identifiers, storage bucket names, and deployment or cloud-account identifiers.
+  - Private working data: real prompts, conversations, task/session history, source snippets from unrelated projects, tool output, debug logs, stack traces, telemetry, database exports, backups, environment files, local settings, caches, and runtime directories such as `.loop`.
+  - Hidden or embedded data: credentials in URL userinfo/query strings, encoded secrets, source maps containing local paths or source text, image/document metadata, screenshots, recordings, archives, and binary attachments. Text-only searches do not cover these formats; inspect intended attachments locally. If they cannot be inspected, stop publication and report the coverage gap.
+- Use local pattern searches and available local secret scanners, then review contextual matches. Do not install tools, contact private endpoints, validate credentials against live services, or upload repository content to an external scanner without explicit authorization. If no scanner is available, use local searches plus manual review and state the coverage limit instead of claiming a scanner passed.
+- Use synthetic fixtures and generic placeholders. Repository-relative source paths, public documentation URLs, and clearly synthetic examples are allowed; do not remove legitimate path-handling code or public API field names merely because a pattern matches. Do not whitelist realistic secrets solely because they appear in tests.
+- If sensitive information is found, immediately stop PR creation or updates and any related push or upload, and report the finding. Do not automatically edit, redact, delete, or exclude affected content, rewrite history, or rotate/revoke credentials. Wait for explicit user instructions before remediation. After authorized remediation, recheck the affected outgoing content before resuming publication.
+- Report only the category, a safe repository-relative location, and the blocked status, without exposing original values. If a filename or path itself contains sensitive information, redact that portion in the report. Never paste sensitive values into terminal output, PR text, comments, or reports. A passing scan is not proof that arbitrary binary or encoded content is safe; unresolved findings or uninspected outgoing material block publication.
 
 ## Formatting details
 

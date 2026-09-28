@@ -1,6 +1,6 @@
 # Loop
 
-Loop is a local-first agent harness. Its CLI and SDK share a persistent coding session, an in-memory agent loop, and Pi AI for model calls.
+Loop is a local-first, single-agent harness. Its CLI and SDK share a persistent coding session, an in-memory agent loop, and Pi AI for model calls.
 
 ## Start locally
 
@@ -73,8 +73,10 @@ One Bun workspace contains the core source folders and the Web application packa
 ```mermaid
 flowchart TD
   CLI[CLI] -->|instance API| Coding[coding-agent]
+  Web[Web backend] -->|public SDK| Coding
   SDK[SDK consumer] -->|instance API| Coding
   Coding -->|session events| CLI
+  Coding -->|session events| Web
   Coding -->|session events| SDK
   Coding -->|instance API| Agent[agent]
   Agent -->|AgentEvent| Coding
@@ -83,6 +85,20 @@ flowchart TD
 ```
 
 Pi AI owns providers, authentication integration, and response parsing. Agent owns the tool/model loop. Coding-agent owns persistence and application services. There is no separate workspace package installation.
+
+### Capability ownership
+
+New capabilities follow these placement rules; they must not all accumulate in Agent:
+
+| Layer | Responsibility |
+| --- | --- |
+| `agent` | Minimal model and sequential tool loop, in-memory history, events, running state, and cancellation. |
+| `coding-agent/core` | Permission policy and enforcement, context management, recovery, and resource integrations, independent of any UI. |
+| CLI / Web | Human-facing approval interactions, review workflows, and status display, using core APIs and events. |
+
+Approval decisions flow back through core contracts; the core enforces permissions rather than relying on UI checks. These rules describe where requested capabilities belong, not additional implemented APIs. Current tools have [no permission policy or approval UI](src/coding-agent/docs/tools.md#cancellation-and-access); context loading and recovery retain the limits documented in [context files](src/coding-agent/docs/context-files.md#lifecycle-and-limits) and [sessions](src/coding-agent/docs/sessions.md#limits).
+
+Loop remains single-agent: no multi-agent orchestration, delegation trees, or agent-to-agent messaging. Maturity is measured by reliability, safety, recoverability, and usability, not by multi-agent support.
 
 ## Validation
 

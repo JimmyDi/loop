@@ -83,6 +83,7 @@ export class AgentSessionRuntime {
     this.changing = true;
 
     try {
+      await previous.waitForTitle();
       const { session } = await prepare();
 
       release();

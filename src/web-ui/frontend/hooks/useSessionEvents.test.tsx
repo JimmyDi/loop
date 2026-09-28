@@ -31,11 +31,17 @@ test("SSE hook requests a fresh snapshot on a gap and closes only its connection
     const { renderHook, act, cleanup } = await import("@testing-library/react/pure");
     const { useSessionEvents } = await import("./useSessionEvents");
     const { useSessions } = await import("../state/session-store");
+    const { useWorkspace } = await import("../state/workspace-store");
     const client = new QueryClient();
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     );
-    const snapshot = { sessionId: "s", streamId: "stream" } as SessionSnapshot;
+    const snapshot = {
+      sessionId: "s",
+      streamId: "stream",
+      state: { title: { text: "Live title", source: "model", messageIndices: [0] } },
+    } as SessionSnapshot;
+    useWorkspace.setState({ tabs: [{ id: "s", workspaceId: "p", title: "New session" }] });
 
     useSessions.setState({ views: {} });
     const { unmount } = renderHook(() => useSessionEvents("s"), { wrapper });
@@ -64,12 +70,14 @@ test("SSE hook requests a fresh snapshot on a gap and closes only its connection
       }),
     );
     expect(connections[0]?.closed).toBe(true);
+    expect(useWorkspace.getState().tabs[0]?.title).toBe("Live title");
     expect(connections[1]?.url).not.toContain("cursor");
     expect(useSessions.getState().views.s?.connected).toBe(false);
     unmount();
     expect(connections[1]?.closed).toBe(true);
     client.clear();
     cleanup();
+    useWorkspace.setState({ tabs: [] });
   } finally {
     Object.assign(globalThis, previous);
     await window.happyDOM.close();

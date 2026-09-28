@@ -109,3 +109,70 @@ test("effort metadata accepts legacy absence and rejects invalid values without 
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("title writes serialize with commits and model changes without losing either snapshot", async () => {
+  const dir = await mkdtemp(join(import.meta.dir, ".title-storage-test-"));
+  try {
+    const manager = await SessionManager.create(dir, dir);
+    const title = { text: "Example title", source: "model" as const, messageIndices: [0] };
+    const messages = [{ role: "user" as const, content: "Example", timestamp: 0 }];
+    await Promise.all([manager.setTitle(title), manager.commit(messages)]);
+    expect((await SessionManager.open(manager.sessionFile!)).getHeader().title).toEqual(title);
+    await Promise.all([
+      manager.setModel({ provider: "example", id: "other" }),
+      manager.setTitle({ ...title, text: "Renamed" }),
+    ]);
+    const restored = await SessionManager.open(manager.sessionFile!);
+    expect(restored.messages).toEqual(messages);
+    expect(restored.getHeader().model?.id).toBe("other");
+    expect(restored.getHeader().title?.text).toBe("Renamed");
+    let checks = 0;
+    expect(await manager.setTitle(title, () => ++checks === 1)).toBe(false);
+    expect((await SessionManager.open(manager.sessionFile!)).getHeader().title?.text).toBe(
+      "Renamed",
+    );
+    const original = await Bun.file(manager.sessionFile!).text();
+    await Bun.write(
+      manager.sessionFile!,
+      original.replace('"source":"model"', '"source":"unknown"'),
+    );
+    await expect(SessionManager.open(manager.sessionFile!)).rejects.toThrow(
+      "Invalid session metadata",
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("untitled history derives its first user text without modifying storage or replacing explicit titles", async () => {
+  const dir = await mkdtemp(join(import.meta.dir, ".fallback-title-test-"));
+  try {
+    const manager = await SessionManager.create(dir, dir);
+    expect(manager.getHeader().title).toBeUndefined();
+    await manager.commit([
+      {
+        role: "user",
+        content: [{ type: "image", data: "AAAA", mimeType: "image/png" }],
+        timestamp: 0,
+      },
+      { role: "user", content: [{ type: "text", text: "First user request" }], timestamp: 1 },
+      { role: "user", content: "Later user request", timestamp: 2 },
+    ]);
+    const original = await Bun.file(manager.sessionFile!).text();
+    expect(JSON.parse(original.split("\n")[0]!).title).toBeUndefined();
+    const restored = await SessionManager.open(manager.sessionFile!);
+    expect(restored.getHeader().title).toEqual({
+      text: "First user request",
+      source: "fallback",
+      messageIndices: [1],
+    });
+    expect((await SessionManager.list(dir, dir))[0]?.title?.text).toBe("First user request");
+    expect(await Bun.file(manager.sessionFile!).text()).toBe(original);
+    await restored.setTitle({ text: "Manual name", source: "user", messageIndices: [] });
+    expect((await SessionManager.open(manager.sessionFile!)).getHeader().title?.text).toBe(
+      "Manual name",
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

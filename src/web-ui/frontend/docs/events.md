@@ -21,7 +21,7 @@ Each view records a streamId/seq cursor. Duplicate frames are ignored. A sequenc
 
 After a network error, mark the view disconnected and reconnect with its cursor after about 1.5 seconds. Parse errors request a fresh snapshot. Existing content remains visible while disconnected, but normal sending and model switching are disabled. See [the SSE service](../../backend/docs/events.md) for replay limits.
 
-Switching or closing tabs closes only that view's EventSource. Backend sessions continue, and reopening synchronizes their latest results. An idle session.state invalidates session-list queries to refresh history metadata.
+Switching or closing tabs closes only that view's EventSource. Backend sessions continue, and reopening synchronizes their latest results. Session snapshots/state frames refresh history metadata and saved tab titles, including asynchronous title updates that preserve the current operation. Expanded project lists also poll for background-session title changes.
 
 ## Boundaries
 

@@ -90,7 +90,10 @@ export class SessionController {
     await this.active;
   }
 
-  async command(operation: "model" | "flush", action: () => Promise<void>): Promise<void> {
+  async command(
+    operation: "model" | "flush" | "title",
+    action: () => Promise<void>,
+  ): Promise<void> {
     this.assertIdle(operation === "flush");
     this.snapshot = { ...this.snapshot, operation, commandError: undefined };
     this.events.publish({ type: "session.state", snapshot: this.snapshot });
@@ -154,6 +157,11 @@ export class SessionController {
   }
 
   private onEvent(event: SessionEvent): void {
+    if (event.type === "session_title") {
+      this.snapshot = applyEvent(this.snapshot, event);
+      this.events.publish({ type: "session.state", snapshot: this.snapshot });
+      return;
+    }
     const messageIndex =
       "message" in event
         ? (this.snapshot.draftIndex ?? this.snapshot.state.messages.length)

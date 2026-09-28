@@ -46,7 +46,14 @@ test("registry shares one writable instance and guards removal against load/run 
     const loop: LoopBridge = {
       models: async () => [],
       setModel: async () => {},
-      list: async () => [{ ...manager.getHeader(), workspaceId: project.id, messageCount: 0 }],
+      list: async () => [
+        {
+          ...manager.getHeader(),
+          title: manager.getHeader().title?.text,
+          workspaceId: project.id,
+          messageCount: 0,
+        },
+      ],
       load: async () => {
         loads++;
         await wait;

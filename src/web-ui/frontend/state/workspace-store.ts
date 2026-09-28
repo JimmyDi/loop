@@ -13,6 +13,7 @@ type WorkspaceState = {
   attach(id: string, images: PromptImage[]): void;
   sidebar: boolean;
   open(tab: Tab): void;
+  title(id: string, title: string): void;
   close(id: string): void;
   draft(id: string, text: string): void;
   removeProject(id: string): void;
@@ -56,6 +57,12 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
   expanded: readPreference<Record<string, boolean>>("expanded", {}),
   expand: (id, expanded) => set((state) => ({ expanded: { ...state.expanded, [id]: expanded } })),
   sidebar: false,
+  title: (id, title) =>
+    set((state) => ({
+      tabs: state.tabs.some((tab) => tab.id === id && tab.title !== title)
+        ? state.tabs.map((tab) => (tab.id === id ? { ...tab, title } : tab))
+        : state.tabs,
+    })),
   open: (tab) =>
     set((state) => ({
       active: tab.id,

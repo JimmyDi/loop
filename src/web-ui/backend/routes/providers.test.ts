@@ -60,14 +60,19 @@ test("provider API saves without returning credentials and rejects updates durin
     release();
     await operation;
     let finish!: () => void;
+    let started!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      started = resolve;
+    });
     const configuration = registry.configure(
       () =>
         new Promise<void>((resolve) => {
           finish = resolve;
+          started();
         }),
     );
 
-    await Promise.resolve();
+    await ready;
     await expect(registry.create(project.id)).rejects.toThrow("provider_busy");
     finish();
     await configuration;

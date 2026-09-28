@@ -1,10 +1,18 @@
-import type { SessionEvent, SessionState } from "../../coding-agent/index";
+import type { ModelEffort, SessionEvent, SessionState } from "../../coding-agent/index";
 
-export type { SessionEvent, SessionState };
+export type { ModelEffort, SessionEvent, SessionState };
 
 export type Message = SessionState["messages"][number];
 
-export type ModelChoice = { provider: string; id: string; name: string };
+export type ModelChoice = {
+  provider: string;
+  providerName?: string;
+  id: string;
+  name: string;
+  efforts?: ModelEffort[];
+  input?: ("text" | "image")[];
+};
+export type ModelSelection = Pick<ModelChoice, "provider" | "id"> & { effort?: ModelEffort };
 
 export type Project = { id: string; name: string; cwd: string; accessible?: boolean };
 
@@ -30,6 +38,7 @@ export type SessionSnapshot = {
   workspaceId: string;
   state: SessionState;
   model: ModelChoice;
+  effort?: ModelEffort;
   operation: "idle" | "prompt" | "model" | "flush";
   runId?: string;
   requestId?: string;

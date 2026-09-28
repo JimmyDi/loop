@@ -12,8 +12,8 @@ export const SettingsField = ({
 
   return (
     <label className="settings-field">
-      <span>{label}</span>
-      <input {...input} aria-describedby={hint ? id : undefined} />
+      <span id={id + "-label"}>{label}</span>
+      <input {...input} aria-labelledby={id + "-label"} aria-describedby={hint ? id : undefined} />
       {hint && <small id={id}>{hint}</small>}
     </label>
   );

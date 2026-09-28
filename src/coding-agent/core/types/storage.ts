@@ -1,6 +1,7 @@
 import type { Message } from "@earendil-works/pi-ai";
+import type { ModelEffort } from "../models/model-effort";
 
-export type ModelSelection = { provider: string; id: string };
+export type ModelSelection = { provider: string; id: string; effort?: ModelEffort };
 
 export type SessionHeader = {
   format: "loop-session";

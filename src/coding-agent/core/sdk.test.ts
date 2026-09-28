@@ -48,6 +48,28 @@ test("factory restores saved model, rejects unavailable models and never silentl
       createAgentSession({ ...options, sessionManager: restoredManager }),
     ).rejects.toThrow("Model unavailable");
     expect(restoredManager.getHeader().model?.id).toBe("missing");
+    const unavailableRuntime: ModelRuntime = {
+      ...modelRuntime,
+      checkModel: async (selected) => {
+        if (!modelRuntime.getModel(selected.provider, selected.id))
+          throw new Error("Model unavailable");
+      },
+      streamSimple: () => {
+        throw new Error("Must not stream an unavailable model");
+      },
+    };
+    const { session: readable } = await createAgentSession({
+      ...options,
+      modelRuntime: unavailableRuntime,
+      sessionManager: restoredManager,
+      allowUnavailableModel: true,
+    });
+    expect(readable.model.id).toBe("missing");
+    await expect(readable.prompt("test")).rejects.toThrow("Model unavailable");
+    expect(readable.state.messages).toEqual([]);
+    await readable.setModel(model);
+    expect(readable.model.id).toBe(model.id);
+    readable.dispose();
     await expect(createAgentSession({ ...options, model, tools: ["unsupported"] })).rejects.toThrow(
       "Unknown tool",
     );

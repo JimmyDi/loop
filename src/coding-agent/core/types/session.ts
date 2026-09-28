@@ -3,6 +3,7 @@ import type { Api, AssistantMessage, Message, Model } from "@earendil-works/pi-a
 import type { AgentEvent, AgentTool } from "../../../agent";
 import type { ModelRuntime } from "../model-runtime";
 import type { SessionManager } from "../session-manager";
+import type { ModelEffort } from "../models/model-effort";
 
 export type SessionEvent = AgentEvent | { type: "agent_settled" };
 
@@ -25,4 +26,5 @@ export type SessionOptions = {
   systemPrompt: string;
   tools: AgentTool[];
   maxTurns?: number;
+  effort?: ModelEffort;
 };

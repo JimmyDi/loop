@@ -18,8 +18,10 @@ export const ProjectActions = ({ project }: { project: Project }) => {
   };
   const removeProject = async () => {
     const state = useWorkspace.getState();
-    const drafts = Object.keys(state.drafts).some(
-      (id) => state.draftProjects[id] === project.id && state.drafts[id]?.trim(),
+    const drafts = Object.keys(state.draftProjects).some(
+      (id) =>
+        state.draftProjects[id] === project.id &&
+        (state.drafts[id]?.trim() || state.images[id]?.length),
     );
 
     if (!window.confirm(t(drafts ? "draftConfirm" : "removeConfirm"))) return;

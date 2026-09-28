@@ -10,12 +10,14 @@ export const Modal = ({
   onClose,
   className = "",
   closeLabel,
+  closeDisabled = false,
 }: {
   title: string;
   children: ReactNode;
   onClose(): void;
   className?: string;
   closeLabel?: string;
+  closeDisabled?: boolean;
 }) => {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -40,13 +42,19 @@ export const Modal = ({
       aria-label={title}
       onCancel={(event) => {
         event.preventDefault();
-        onClose();
+        event.stopPropagation();
+        if (!closeDisabled) onClose();
       }}
     >
       {closeLabel ? (
         <header className="modal-header">
           <h2>{title}</h2>
-          <ActionButton className="modal-close ghost" aria-label={closeLabel} onClick={onClose}>
+          <ActionButton
+            className="modal-close ghost"
+            aria-label={closeLabel}
+            onClick={onClose}
+            disabled={closeDisabled}
+          >
             <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
               <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeWidth="1.5" />
             </svg>

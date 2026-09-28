@@ -1,0 +1,29 @@
+.model-search {
+  width: calc(100% - 16px);
+  margin: 0 8px 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 9px 12px;
+  font: inherit;
+}
+.model-choice-list {
+  max-height: min(340px, calc(100dvh - 280px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.model-provider-label,
+.model-empty {
+  margin: 8px 12px;
+  font-size: 11px;
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+.model-choice-list button span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.model-choice-list small {
+  display: block;
+  color: var(--ink-muted);
+  font-size: 11px;
+}

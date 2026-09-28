@@ -46,7 +46,9 @@ That sample enables coding tools and runs once before exiting. Without an argume
 | `sessionManager` | Existing, restored, or in-memory history. Without one, create a persistent session. |
 | `systemPrompt` | Replace base instructions while retaining cwd and discovered context files. |
 | `noContextFiles` | Disable project instruction discovery. |
+| `effort` | Optional model reasoning effort; validated against supported levels. Saved in session model metadata. Missing values restore the saved effort or use default. |
 | `maxTurns` | Optional positive model-request limit per prompt, enforced by Agent. |
+| `allowUnavailableModel` | Opt-in restoration of saved history without requiring its model/authentication during creation. Defaults to false; prompt and model-switch preflight remain mandatory. |
 
 An explicit cwd must match the manager's canonical cwd. The factory resolves services, checks model availability/authentication, records model identity, and creates the session. Unknown options reject. `createAgentSessionServices` is also exported for hosts that only need resolved cwd, settings, model runtime, and system prompt.
 
@@ -54,15 +56,17 @@ An explicit cwd must match the manager's canonical cwd. The factory resolves ser
 
 | Method | Behavior |
 | --- | --- |
-| `prompt(text): Promise<void>` | Complete the Agent loop and attempt history persistence. Returns no assistant value. |
+| `prompt(content: PromptContent): Promise<void>` | Complete the Agent loop and attempt history persistence. Returns no assistant value. |
 | `subscribe(listener)` | Receive [session events](events.md); returns unsubscribe. |
 | `abort(): Promise<void>` | Signal the run and wait for execution/save finalization. |
 | `waitForIdle(): Promise<void>` | Wait without cancelling. Swallows activity failures; not a success check. |
-| `setModel(model, options?: { persist?: boolean }): Promise<void>` | Change model while idle and update this session's metadata; `persist: true` rejects. |
+| `setModel(model, options?: { persist?: boolean; effort?: ModelEffort }): Promise<void>` | Change model/effort while idle and update this session's metadata; `persist: true` rejects. |
 | `flush(): Promise<void>` | Retry a pending save without rerunning the prompt. |
 | `dispose(): void` | Remove listeners and forbid further use; rejects while busy or a save is pending. |
 
-Read `model`, `sessionId`, `sessionFile`, `sessionManager`, `isRunning`, and `state`. State contains completed `messages`, optional `draft`, `isRunning`, `hasPendingSave`, `outcome`, `error`, and `listenerErrors`. Message/model snapshots can be inspected without mutating the underlying session.
+Read `model`, `effort`, `sessionId`, `sessionFile`, `sessionManager`, `isRunning`, and `state`. State contains completed `messages`, optional `draft`, `isRunning`, `hasPendingSave`, `outcome`, `error`, and `listenerErrors`. Message/model snapshots can be inspected without mutating the underlying session.
+
+PromptContent is a string or Pi AI text/image blocks. Image-only messages are supported, with base64 image data and MIME type stored in session history. The selected model must allow image input. Existing string calls remain valid.
 
 Each accepted prompt creates a fresh lower-level Agent with committed history. Concurrent prompts and unsupported prompt options reject. Observe the prompt rejection and `state.outcome` to distinguish success, error, and cancellation; `abort()` resolving alone does not mean the prompt succeeded.
 

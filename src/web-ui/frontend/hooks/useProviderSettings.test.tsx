@@ -20,27 +20,30 @@ test("settings save invalidates the model catalog without caching the API key", 
     const input = {
       name: "Gateway",
       baseUrl: "http://localhost:8080/v1",
-      modelId: "gpt-5.5",
+      id: "gateway",
+      kind: "custom" as const,
+      api: "openai-completions",
+      models: [{ id: "gpt-5.5" }],
       authentication: "apiKey" as const,
       apiKey: "test-secret",
     };
 
-    client.setQueryData(["provider-settings"], null);
+    client.setQueryData(["provider-settings"], { providers: [], catalog: [] });
     client.setQueryData(["models"], []);
     globalThis.fetch = (async (_url, init) => {
       expect(init?.method).toBe("PUT");
       expect(JSON.parse(String(init?.body))).toEqual(input);
       const { apiKey: _key, ...publicFields } = input;
 
-      return Response.json({ ...publicFields, provider: "loop-custom", hasApiKey: true });
+      return Response.json({ providers: [{ ...publicFields, hasApiKey: true }], catalog: [] });
     }) as typeof fetch;
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     );
     const { result } = renderHook(useProviderSettings, { wrapper });
 
-    await act(() => result.current.save(input));
-    await waitFor(() => expect(result.current.query.data?.hasApiKey).toBe(true));
+    await act(() => result.current.save(input, true));
+    await waitFor(() => expect(result.current.query.data?.providers[0]?.hasApiKey).toBe(true));
     expect(JSON.stringify(client.getQueryData(["provider-settings"]))).not.toContain("test-secret");
     expect(client.getQueryState(["models"])?.isInvalidated).toBe(true);
     cleanup();

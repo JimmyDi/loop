@@ -30,7 +30,7 @@ export const ChatWorkspace = ({ id }: { id: string }) => {
 
   return (
     <main className="chat-workspace">
-      <SessionHeader snapshot={snapshot} connected={connected} />
+      <SessionHeader snapshot={snapshot} />
       <SessionTabs />
       {query.error && (
         <div className="workspace-error">

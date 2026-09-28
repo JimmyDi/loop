@@ -26,7 +26,7 @@ export const validateProvider = (input: Record<string, unknown>): ProviderInput 
     url.password ||
     url.search ||
     url.hash ||
-    /\/(chat\/completions|responses)\/?$/.test(url.pathname)
+    /\/(chat\/completions|responses|messages)\/?$/.test(url.pathname)
   )
     throw new HttpError(400, "invalid_provider_url");
 

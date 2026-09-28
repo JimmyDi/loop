@@ -1,8 +1,15 @@
 import { create } from "zustand";
 
 import { readPreference, writePreference } from "../lib/preferences";
+import { validImages } from "../../shared/prompt-images";
+import type { PromptImage } from "../../shared/prompt-images";
 
-export type PendingRequest = { requestId: string; text: string; streamId: string };
+export type PendingRequest = {
+  requestId: string;
+  text: string;
+  streamId: string;
+  images?: PromptImage[];
+};
 
 type Requests = {
   pending: Record<string, PendingRequest>;
@@ -16,7 +23,8 @@ const pending = Object.fromEntries(
       value &&
       typeof value.requestId === "string" &&
       typeof value.text === "string" &&
-      typeof value.streamId === "string",
+      typeof value.streamId === "string" &&
+      (value.images === undefined || validImages(value.images)),
   ),
 );
 

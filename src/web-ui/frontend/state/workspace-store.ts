@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import { readPreference, writePreference } from "../lib/preferences";
+import type { PromptImage } from "../../shared/prompt-images";
 
 export type Tab = { id: string; workspaceId: string; title: string };
 
@@ -8,6 +9,8 @@ type WorkspaceState = {
   tabs: Tab[];
   active?: string;
   drafts: Record<string, string>;
+  images: Record<string, PromptImage[]>;
+  attach(id: string, images: PromptImage[]): void;
   sidebar: boolean;
   open(tab: Tab): void;
   close(id: string): void;
@@ -40,6 +43,15 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
   tabs,
   active: tabs[0]?.id,
   drafts,
+  images: {},
+  attach: (id, images) =>
+    set((state) => ({
+      images: { ...state.images, [id]: images },
+      draftProjects: {
+        ...state.draftProjects,
+        [id]: state.tabs.find((tab) => tab.id === id)?.workspaceId ?? state.draftProjects[id] ?? "",
+      },
+    })),
   draftProjects: readPreference<Record<string, string>>("draftProjects", {}),
   expanded: readPreference<Record<string, boolean>>("expanded", {}),
   expand: (id, expanded) => set((state) => ({ expanded: { ...state.expanded, [id]: expanded } })),
@@ -77,6 +89,9 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
         active: removed.includes(state.active ?? "") ? tabs[0]?.id : state.active,
         drafts: Object.fromEntries(
           Object.entries(state.drafts).filter(([id]) => !removed.includes(id)),
+        ),
+        images: Object.fromEntries(
+          Object.entries(state.images).filter(([key]) => !removed.includes(key)),
         ),
         draftProjects: Object.fromEntries(
           Object.entries(state.draftProjects).filter(([id]) => !removed.includes(id)),

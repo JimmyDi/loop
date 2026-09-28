@@ -1,7 +1,10 @@
 import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 
 import { Agent } from "../../agent";
-import type { AgentEvent } from "../../agent";
+import type { AgentEvent, PromptContent } from "../../agent";
+import { getModelEfforts } from "./model-runtime";
+import type { ModelEffort } from "./models/model-effort";
+import { validateMessages } from "./messages";
 import type {
   SessionEvent,
   SessionEventListener,
@@ -18,12 +21,16 @@ export class AgentSession {
   private disposed = false;
   private draft?: AssistantMessage;
   private selected: Model<Api>;
+  private selectedEffort: ModelEffort;
   private outcome: SessionState["outcome"] = "idle";
   private failure?: string;
   private listenerErrors: string[] = [];
 
   constructor(private readonly options: SessionOptions) {
     this.selected = structuredClone(options.model);
+    const effort = options.effort ?? options.sessionManager.getHeader().model?.effort;
+    this.selectedEffort =
+      effort && getModelEfforts(this.selected).includes(effort) ? effort : "default";
   }
 
   get sessionManager() {
@@ -44,6 +51,10 @@ export class AgentSession {
 
   get isRunning(): boolean {
     return this.busy;
+  }
+
+  get effort(): ModelEffort {
+    return this.selectedEffort;
   }
 
   get state(): SessionState {
@@ -68,11 +79,13 @@ export class AgentSession {
     };
   }
 
-  prompt(text: string, options: Record<string, never> = {}): Promise<void> {
+  prompt(content: PromptContent, options: Record<string, never> = {}): Promise<void> {
     try {
       if (Object.keys(options).length) throw new Error("Prompt options are not supported");
 
-      if (!text.trim()) throw new Error("Prompt is required");
+      if (typeof content === "string" ? !content.trim() : !content.length)
+        throw new Error("Prompt is required");
+      validateMessages([{ role: "user", content, timestamp: 0 }]);
 
       this.assertIdle();
     } catch (error) {
@@ -83,7 +96,7 @@ export class AgentSession {
     this.failure = undefined;
     this.outcome = "idle";
     this.controller = new AbortController();
-    this.active = this.run(text, this.controller.signal);
+    this.active = this.run(structuredClone(content), this.controller.signal);
 
     return this.active;
   }
@@ -103,24 +116,44 @@ export class AgentSession {
     } while (this.active !== activity);
   }
 
-  setModel(model: Model<Api>, options: { persist?: boolean } = {}): Promise<void> {
+  setModel(
+    model: Model<Api>,
+    options: { persist?: boolean; effort?: ModelEffort } = {},
+  ): Promise<void> {
     try {
       this.assertIdle();
 
-      if (options.persist || Object.keys(options).some((key) => key !== "persist"))
+      if (
+        options.persist ||
+        Object.keys(options).some((key) => key !== "persist" && key !== "effort")
+      )
         throw new Error("Persisting model defaults is not supported; edit settings.json");
+      if (
+        options.effort !== undefined &&
+        options.effort !== "default" &&
+        !getModelEfforts(model).includes(options.effort)
+      )
+        throw new Error("Unsupported model effort");
     } catch (error) {
       return Promise.reject(error);
     }
 
     const selected = structuredClone(model);
+    const effort =
+      options.effort ??
+      (getModelEfforts(selected).includes(this.selectedEffort) ? this.selectedEffort : "default");
     this.busy = true;
 
     this.active = (async () => {
       try {
         await this.options.modelRuntime.checkModel(selected);
-        await this.sessionManager.setModel({ provider: selected.provider, id: selected.id });
+        await this.sessionManager.setModel({
+          provider: selected.provider,
+          id: selected.id,
+          effort,
+        });
         this.selected = selected;
+        this.selectedEffort = effort;
       } finally {
         this.busy = false;
       }
@@ -199,7 +232,7 @@ export class AgentSession {
     this.emit(event);
   }
 
-  private async run(text: string, signal: AbortSignal): Promise<void> {
+  private async run(content: PromptContent, signal: AbortSignal): Promise<void> {
     let unsubscribe = () => {};
     const failures: unknown[] = [];
 
@@ -213,10 +246,16 @@ export class AgentSession {
         systemPrompt: this.options.systemPrompt,
         tools: this.options.tools,
         streamFn: this.options.modelRuntime.streamSimple.bind(this.options.modelRuntime),
+        streamOptions: {
+          reasoning:
+            this.selectedEffort === "default" || this.selectedEffort === "off"
+              ? undefined
+              : this.selectedEffort,
+        },
         maxTurns: this.options.maxTurns,
       });
       unsubscribe = this.agent.subscribe((event) => this.onAgentEvent(event));
-      await this.agent.prompt(text);
+      await this.agent.prompt(content);
     } catch (error) {
       failures.push(error);
     } finally {

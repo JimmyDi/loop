@@ -2,17 +2,45 @@ import { validateToolArguments } from "@earendil-works/pi-ai";
 import type { AssistantMessage, Message, ToolCall, ToolResultMessage } from "@earendil-works/pi-ai";
 import { transformMessages } from "@earendil-works/pi-ai/api/transform-messages";
 
-import type { AgentEventListener, AgentLoopOptions, AgentTool } from "./types";
+import type { AgentEventListener, AgentLoopOptions, AgentTool, PromptContent } from "./types";
 
 /** Sole writer of history. Callers must not mutate it until this promise settles. */
 export async function runAgentLoop(
-  text: string,
+  content: PromptContent,
   history: Message[],
   options: AgentLoopOptions,
   onEvent: AgentEventListener = () => {},
   signal: AbortSignal = new AbortController().signal,
 ): Promise<AssistantMessage> {
-  if (!text.trim()) throw new Error("Prompt is required");
+  if (
+    Array.isArray(content) &&
+    content.some(
+      (part) =>
+        !part ||
+        (part.type === "text"
+          ? typeof part.text !== "string"
+          : part.type !== "image" ||
+            typeof part.data !== "string" ||
+            !part.data ||
+            typeof part.mimeType !== "string" ||
+            !part.mimeType),
+    )
+  )
+    throw new Error("Invalid prompt content");
+  if (
+    typeof content === "string"
+      ? !content.trim()
+      : !Array.isArray(content) ||
+        !content.length ||
+        !content.some((part) => part.type === "image" || (part.type === "text" && part.text.trim()))
+  )
+    throw new Error("Prompt is required");
+  if (
+    Array.isArray(content) &&
+    content.some((part) => part.type === "image") &&
+    !options.model.input.includes("image")
+  )
+    throw new Error("Model does not support image input");
 
   if (typeof options.streamFn !== "function") throw new Error("streamFn is required");
 
@@ -35,7 +63,7 @@ export async function runAgentLoop(
   };
 
   signal.throwIfAborted();
-  await append({ role: "user", content: text, timestamp: Date.now() });
+  await append({ role: "user", content: structuredClone(content), timestamp: Date.now() });
 
   for (let turn = 0; ; turn++) {
     signal.throwIfAborted();

@@ -90,3 +90,105 @@ test("saved settings drive real Pi requests and existing session runtimes pick u
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("saved custom models expose catalog efforts and restore an extended effort without new provider fields", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".provider-test-"));
+  const file = join(root, "provider.json");
+  try {
+    const settings = new ProviderSettings(file);
+    await settings.upsert(
+      {
+        id: "openai",
+        kind: "custom",
+        name: "Gateway",
+        baseUrl: "https://example.com/v1",
+        api: "openai-responses",
+        authentication: "none",
+        models: [{ id: "gpt-5.5" }, { id: "gpt-6-astra" }],
+      },
+      true,
+    );
+    const restored = new ProviderSettings(file);
+    const choices = await restored.models();
+    expect(choices.find((model) => model.id === "gpt-5.5")?.efforts).toEqual([
+      "default",
+      "off",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+    ]);
+    expect(choices.find((model) => model.id === "gpt-6-astra")?.efforts).toContain("max");
+    const runtime = await restored.runtime();
+    const manager = SessionManager.inMemory(root);
+    const options = {
+      modelRuntime: runtime,
+      sessionManager: manager,
+      systemPrompt: "Test",
+      tools: [],
+    };
+    const session = new AgentSession({ ...options, model: runtime.getModel("openai", "gpt-5.5")! });
+    await session.setModel(session.model, { effort: "xhigh" });
+    expect(session.effort).toBe("xhigh");
+    await expect(session.setModel(session.model, { effort: "max" })).rejects.toThrow(
+      "Unsupported model effort",
+    );
+    const model = runtime.getModel("openai", "gpt-6-astra")!;
+    await session.setModel(model, { effort: "max" });
+    session.dispose();
+    const reopened = new AgentSession({ ...options, model });
+    expect(reopened.effort).toBe("max");
+    reopened.dispose();
+    await restored.selectModel({ provider: "openai", id: model.id, effort: "max" });
+    const reloaded = new ProviderSettings(file);
+    await reloaded.models();
+    expect(reloaded.defaultEffort()).toBe("max");
+    expect(await Bun.file(file).text()).not.toContain("thinkingLevelMap");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("removing models persists metadata and an empty provider without restoring catalog defaults", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".provider-test-"));
+  const file = join(root, "provider.json");
+  const config = {
+    id: "loop-custom",
+    kind: "custom" as const,
+    name: "Gateway",
+    baseUrl: "https://example.com/v1",
+    api: "openai-completions",
+    authentication: "none" as const,
+    models: [
+      { id: "first", name: "First", contextWindow: 8192, maxTokens: 2048 },
+      { id: "removed" },
+    ],
+  };
+  try {
+    const settings = new ProviderSettings(file);
+    await settings.upsert(config, true);
+    await settings.selectModel({ provider: config.id, id: "removed" });
+    await settings.upsert({ ...config, models: [config.models[0]!] }, false);
+    const restored = new ProviderSettings(file);
+    const runtime = await restored.runtime();
+    expect((await restored.models()).map((model) => model.id)).toEqual(["first"]);
+    expect(runtime.getModel(config.id, "first")).toMatchObject({
+      name: "First",
+      contextWindow: 8192,
+      maxTokens: 2048,
+    });
+    expect(runtime.getModel(config.id, "removed")).toBeUndefined();
+    await restored.upsert({ ...config, models: [] }, false);
+    await restored.upsert({ ...config, id: "second", models: [{ id: "available" }] }, true);
+    expect(restored.defaultModel()?.id).toBe("available");
+    await restored.remove("second");
+    const empty = new ProviderSettings(file);
+    expect(await empty.models()).toEqual([]);
+    expect(empty.defaultModel()).toBeUndefined();
+    expect((await empty.view()).providers[0]?.models).toEqual([]);
+    expect(await empty.store.view()).toBeNull();
+    expect((await empty.runtime()).getModels()).toEqual([]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

@@ -1,6 +1,9 @@
 import { HttpError } from "./errors";
 
-export const readBody = async (request: Request): Promise<Record<string, unknown>> => {
+export const readBody = async (
+  request: Request,
+  limit = 1_048_576,
+): Promise<Record<string, unknown>> => {
   if (!request.headers.get("content-type")?.startsWith("application/json")) {
     throw new HttpError(415, "json_required");
   }
@@ -17,7 +20,7 @@ export const readBody = async (request: Request): Promise<Record<string, unknown
 
       size += value.byteLength;
 
-      if (size > 1_048_576) {
+      if (size > limit) {
         await reader.cancel();
         throw new HttpError(413, "body_too_large");
       }

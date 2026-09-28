@@ -6,6 +6,7 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 import { getSessionDir } from "../config";
 import { atomicWrite } from "../utils/atomic-write";
 import { validateMessages } from "./messages";
+import { isModelEffort } from "./models/model-effort";
 import type { ModelSelection, SessionData, SessionHeader, SessionInfo } from "./types/storage";
 
 export class SessionManager {
@@ -66,7 +67,8 @@ export class SessionManager {
       (header.model !== undefined &&
         (!header.model ||
           typeof header.model.provider !== "string" ||
-          typeof header.model.id !== "string"))
+          typeof header.model.id !== "string" ||
+          (header.model.effort !== undefined && !isModelEffort(header.model.effort))))
     )
       throw new Error("Invalid session metadata");
 
@@ -174,6 +176,8 @@ export class SessionManager {
   }
 
   async setModel(model: ModelSelection): Promise<void> {
+    if (model.effort !== undefined && !isModelEffort(model.effort))
+      throw new Error("Invalid model effort");
     if (this.pending || this.writing) throw new Error("Pending session save");
 
     this.writing = true;
@@ -183,7 +187,11 @@ export class SessionManager {
         ...this.data,
         header: {
           ...this.data.header,
-          model: { provider: model.provider, id: model.id },
+          model: {
+            provider: model.provider,
+            id: model.id,
+            ...(model.effort && model.effort !== "default" ? { effort: model.effort } : {}),
+          },
           updatedAt: new Date().toISOString(),
         },
       };

@@ -403,3 +403,76 @@ test("execution and storage failures are both reported without losing the snapsh
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("effort persists with the session, reaches every Pi call and rejects unsupported or busy changes", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "loop-effort-"));
+  const thinking = {
+    ...model,
+    reasoning: true,
+    thinkingLevelMap: { off: null, minimal: null, xhigh: "xhigh" },
+  };
+  const requested: (string | undefined)[] = [];
+  const manager = await SessionManager.create(dir, join(dir, "sessions"));
+  let release!: () => void;
+  let pause = false;
+  const models: ModelRuntime = {
+    getModel: (_provider, id) => (id === model.id ? thinking : undefined),
+    getModels: () => [thinking],
+    checkModel: async () => {
+      if (pause)
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+    },
+    streamSimple: (_model, _context, options) => {
+      requested.push(options?.reasoning);
+      return stream();
+    },
+  };
+  try {
+    const options = {
+      cwd: dir,
+      model: thinking,
+      modelRuntime: models,
+      sessionManager: manager,
+      noContextFiles: true,
+      settingsManager: SettingsManager.inMemory(),
+      tools: [],
+    };
+    const { session } = await createAgentSession(options);
+    expect(session.effort).toBe("default");
+    await expect(session.setModel(thinking, { effort: "off" })).rejects.toThrow(
+      "Unsupported model effort",
+    );
+    await session.setModel(thinking, { effort: "high" });
+    await session.prompt("test");
+    expect(requested).toEqual(["high"]);
+    session.dispose();
+    const restoredManager = await SessionManager.open(manager.sessionFile!);
+    expect(restoredManager.getHeader().model?.effort).toBe("high");
+    const { session: restored } = await createAgentSession({
+      ...options,
+      model: undefined,
+      sessionManager: restoredManager,
+    });
+    expect(restored.effort).toBe("high");
+    pause = true;
+    const changing = restored.setModel(thinking, { effort: "low" });
+    await expect(restored.prompt("blocked")).rejects.toThrow("already running");
+    release();
+    await changing;
+    pause = false;
+    await restored.prompt("next");
+    expect(requested).toEqual(["high", "low"]);
+    const messages = restored.state.messages;
+    await restored.setModel(model);
+    expect(restored.effort).toBe("default");
+    expect(restored.state.messages).toEqual(messages);
+    await expect(restored.setModel(model, { effort: "high" })).rejects.toThrow(
+      "Unsupported model effort",
+    );
+    restored.dispose();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

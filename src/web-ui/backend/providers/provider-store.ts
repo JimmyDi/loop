@@ -1,89 +1,98 @@
-import { mkdir, open, rename, unlink } from "node:fs/promises";
-import { dirname } from "node:path";
-
-import { CUSTOM_PROVIDER_ID } from "../../shared/provider";
-import type { ProviderInput, ProviderView } from "../../shared/provider";
+import type {
+  ProviderConfig,
+  ProviderInput,
+  ProviderRecord,
+  ProviderView,
+} from "../../shared/provider";
 import { HttpError } from "../http/errors";
-import { validateProvider } from "./validate-provider";
+import { readProviderFile, writeProviderFile } from "./provider-file";
+import { validateProviderConfig } from "./validate-provider-config";
 
 export class ProviderStore {
   private tail: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly file: string) {}
 
-  async read(): Promise<ProviderInput | undefined> {
+  async configured(): Promise<boolean> {
     await this.tail;
+    return Bun.file(this.file).exists();
+  }
 
-    return this.readFile();
+  async all(): Promise<ProviderConfig[]> {
+    await this.tail;
+    return readProviderFile(this.file);
+  }
+
+  async list(): Promise<ProviderRecord[]> {
+    return (await this.all()).map(({ apiKey, ...value }) => ({ ...value, hasApiKey: !!apiKey }));
+  }
+
+  async read(): Promise<ProviderInput | undefined> {
+    const value = (await this.all()).find((entry) => entry.id === "loop-custom");
+    if (!value?.models.length) return undefined;
+    return (
+      value && {
+        name: value.name,
+        baseUrl: value.baseUrl,
+        modelId: value.models[0]!.id,
+        authentication: value.authentication,
+        apiKey: value.apiKey,
+      }
+    );
   }
 
   async view(): Promise<ProviderView | null> {
     const value = await this.read();
-
     if (!value) return null;
-
     const { apiKey, ...fields } = value;
-
-    return { ...fields, provider: CUSTOM_PROVIDER_ID, hasApiKey: !!apiKey };
+    return { ...fields, provider: "loop-custom", hasApiKey: !!apiKey };
   }
 
-  save(input: ProviderInput): Promise<ProviderInput> {
-    const operation = this.tail.then(async () => {
-      const value = validateProvider(input);
-      const previous = await this.readFile();
+  async save(input: ProviderInput): Promise<ProviderInput> {
+    await this.upsert({
+      ...input,
+      id: "loop-custom",
+      kind: "custom",
+      api: "openai-completions",
+      models: [{ id: input.modelId }],
+    });
+    return (await this.read())!;
+  }
 
-      // Never carry an existing credential to a different endpoint implicitly.
+  upsert(input: ProviderConfig, create = false): Promise<void> {
+    return this.update(async (values) => {
+      const value = validateProviderConfig(input);
+      const index = values.findIndex((entry) => entry.id === value.id);
+      const previous = values[index];
+      if (create && previous) throw new HttpError(409, "provider_exists");
+      if (previous && previous.kind !== value.kind) throw new HttpError(400, "invalid_provider");
+      const sameTarget = previous?.baseUrl === value.baseUrl && previous.api === value.api;
       const apiKey =
         value.authentication === "none"
           ? undefined
-          : (value.apiKey ?? (previous?.baseUrl === value.baseUrl ? previous.apiKey : undefined));
-
+          : value.apiKey || (sameTarget ? previous?.apiKey : undefined);
       if (value.authentication === "apiKey" && !apiKey)
         throw new HttpError(400, "provider_key_required");
-
       const saved = { ...value, apiKey };
-      const temporary = this.file + "." + crypto.randomUUID() + ".tmp";
-
-      await mkdir(dirname(this.file), { recursive: true, mode: 0o700 });
-
-      try {
-        const handle = await open(temporary, "wx", 0o600);
-
-        try {
-          await handle.writeFile(JSON.stringify({ version: 1, ...saved }, null, 2) + "\n");
-          await handle.sync();
-        } finally {
-          await handle.close();
-        }
-
-        await rename(temporary, this.file);
-      } finally {
-        await unlink(temporary).catch(() => {});
-      }
-
-      return saved;
+      if (index < 0) values.push(saved);
+      else values[index] = saved;
+      return values;
     });
-
-    this.tail = operation.catch(() => {});
-
-    return operation;
   }
 
-  private async readFile(): Promise<ProviderInput | undefined> {
-    if (!(await Bun.file(this.file).exists())) return undefined;
+  remove(id: string): Promise<void> {
+    return this.update(async (values) => {
+      if (!values.some((value) => value.id === id)) throw new HttpError(404, "provider_not_found");
+      return values.filter((value) => value.id !== id);
+    });
+  }
 
-    try {
-      const data = await Bun.file(this.file).json();
-
-      if (data?.version !== 1) throw new Error();
-
-      const value = validateProvider(data);
-
-      if (value.authentication === "apiKey" && !value.apiKey) throw new Error();
-
-      return value;
-    } catch {
-      throw new HttpError(500, "provider_config_invalid");
-    }
+  private update(change: (values: ProviderConfig[]) => Promise<ProviderConfig[]>): Promise<void> {
+    const operation = this.tail.then(async () => {
+      const values = await change(await readProviderFile(this.file));
+      await writeProviderFile(this.file, values);
+    });
+    this.tail = operation.catch(() => {});
+    return operation;
   }
 }

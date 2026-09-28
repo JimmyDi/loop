@@ -132,7 +132,7 @@ The exact command `npx loop web` requires publishing rights to the npm package `
 | --- | --- | --- |
 | Create a session | `SessionManager.create()` + `createAgentSession()` | Bind an explicit `cwd` |
 | Browse history | `SessionManager.list()`, `SessionManager.open()` | Preserve Loop storage format |
-| Send text | `session.prompt(text)` | One operation per session; no attachments or extra prompt options |
+| Send text | `session.prompt(text)` | One operation per session; accepts text or native text/image content blocks |
 | Observe changes | `session.subscribe(listener)` | One backend subscription per session instance |
 | Stop | `session.abort()` | Await cancellation and saving, not immediate completion on click |
 | Read complete state | `session.state` | Completed messages, draft, running state, and save state |
@@ -151,7 +151,7 @@ The backend registry owns independent AgentSession instances. Do not repeatedly 
 - Model selection, stopping, history restoration on refresh, reconnection synchronization, and failed-save retry.
 - English/Chinese switching with persisted language preference.
 
-Loop currently has no attachment/image input, skills, MCP, approval mode, task scheduling, session branches, session renaming/deletion, message rollback/retry, steering, or queues. These are excluded from the initial UI. Web project renaming and unregistering do not change the session API. Tools have no progress events; bash displays activity and final output, without a terminal, interactive stdin, or live output panel.
+Loop currently has no skills, MCP, approval mode, task scheduling, session branches, session renaming/deletion, message rollback/retry, steering, or queues. These are excluded from the initial UI. Web project renaming and unregistering do not change the session API. Tools have no progress events; bash displays activity and final output, without a terminal, interactive stdin, or live output panel.
 
 File operations and bash run at the session `cwd` on the backend machine, not in the browser visitor's filesystem. The initial deployment is local and single-user, with same-origin pages/APIs served by Bun on loopback. Remote multi-user hosting is outside scope.
 
@@ -256,7 +256,7 @@ Actual React, state, query, internationalization, Markdown, and test dependencie
 
 Maintain `en` and `zh` resources in `frontend/i18n`. Restore a valid manually chosen language first; otherwise select the first supported browser language, including regional variants, and fall back to English if none match. Automatic initialization does not persist a preference; manual selection does. Switching must update page lang and date/time presentation without reloading, stopping execution, or clearing drafts.
 
-The sidebar's gear-icon **Settings** button opens a rounded, two-column modal. Its left navigation contains **General** and **Appearance**, defaulting to General on open. General's language dropdown offers 中文 and English with a selected checkmark. Appearance contains a Theme section with System, Light, and Dark preview cards; System follows the browser's preferred color scheme live, and manual choices persist locally. Theme colors cover all interface surfaces and code highlighting. All Settings text follows the selected interface language, including the sidebar entry, dialog title, navigation, headings, and descriptions. Translation resources update live during development. The existing Model settings entry remains separate. The modal uses a portal outside the mobile drawer, restores focus on close, and supports keyboard operation. See [interface preferences](../frontend/docs/preferences.md) for the interaction contract.
+The sidebar's gear-icon **Settings** button opens a rounded, two-column modal. Its left navigation contains **General**, **Models** and **Appearance**, defaulting to General on open. General's language dropdown offers 中文 and English with a selected checkmark. Appearance contains a Theme section with System, Light, and Dark preview cards; System follows the browser's preferred color scheme live, and manual choices persist locally. Theme colors cover all interface surfaces and code highlighting. All Settings text follows the selected interface language, including the sidebar entry, dialog title, navigation, headings, and descriptions. Translation resources update live during development. Models manages built-in and custom providers, protocol selection, model discovery and write-only credentials. The former standalone Model settings entry is removed. The modal uses a portal outside the mobile drawer, restores focus on close, and supports keyboard operation. See [interface preferences](../frontend/docs/preferences.md) for the interaction contract.
 
 Navigation, buttons, empty states, hints, tool states, error headings, accessibility labels, and copy feedback use matching translation keys in both resources. The backend provides stable error codes; the frontend translates Web errors and preserves unknown lower-layer details under a localized heading. Model replies, thinking, tool arguments/output, user input, project names, paths, and model identities are not translated. Interface language does not change Agent's system prompt.
 
@@ -285,13 +285,13 @@ Merge concurrent session loads so one file is not opened through multiple writab
 | `GET /api/directories/capabilities` | Return preferred picker and native availability; browser navigation remains available |
 | `POST /api/directories/pick` | Open the macOS picker; return `{ path }`, with null on cancellation |
 | `GET /api/directories?path=…` | List immediate subdirectories and navigation metadata; default to home |
-| `GET /api/models` | Return selectable ModelRuntime catalog entries without credentials |
+| `GET /api/models` | Return only saved providers' models with provider display names and no credentials; empty before configuration |
 | `GET /api/settings/provider` | Return custom configuration and hasApiKey, never the key; null if unconfigured |
 | `PUT /api/settings/provider` | Validate/save the custom provider; return 409 while busy or awaiting save |
 | `GET /api/sessions?workspaceId=…` | List sessions for the working directory |
 | `POST /api/sessions` | Accept `{ workspaceId }`, create/register a session, and return its sessionId in the snapshot |
 | `GET /api/sessions/:id` | Open or retrieve the session and return a snapshot |
-| `POST /api/sessions/:id/prompt` | Accept `{ requestId, text }`; return `202` and runId |
+| `POST /api/sessions/:id/prompt` | Accept `{ requestId, text, images? }`; return `202` and runId |
 | `POST /api/sessions/:id/abort` | Request cancellation and return state after cleanup |
 | `POST /api/sessions/:id/flush` | Retry saving and return state |
 | `PUT /api/sessions/:id/model` | Resolve provider/id and switch while idle |
@@ -299,7 +299,7 @@ Merge concurrent session loads so one file is not opened through multiple writab
 
 Clients use workspaceId/sessionId. The server maps project cwd and session files instead of accepting arbitrary file paths for session opening. Directory browsing and project creation may accept directory paths, and picker/project responses may return them, but these paths cannot bypass session ownership mapping. Removed projects must not remain accessible through session routes. Pages, API, and events share an origin served by `Bun.serve`; development uses HTML imports and release mode will use prebuilt pages.
 
-The prompt route validates input and state, synchronously reserves the Web operation and requestId, starts and tracks the `session.prompt(text)` Promise, and returns `202` without waiting for generation. This reservation belongs to Web and does not use AgentSession's internal reserve method. Busy or pending-save states return explicit conflicts instead of queueing. Asynchronous preflight failures must still reach the frontend through events and state.
+The prompt route validates input and state, synchronously reserves the Web operation and requestId, starts and tracks the `session.prompt(content)` Promise, and returns `202` without waiting for generation. This reservation belongs to Web and does not use AgentSession's internal reserve method. Busy or pending-save states return explicit conflicts instead of queueing. Asynchronous preflight failures must still reach the frontend through events and state.
 
 Repeated sessionId/requestId with identical content returns the original runId; changed content under the same ID is rejected. Deduplication covers only a bounded in-process cache, not exactly-once execution across restarts. After a lost HTTP response, synchronize state rather than blindly resending with a new requestId.
 

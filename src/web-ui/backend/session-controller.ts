@@ -1,9 +1,12 @@
 import type { SessionEvent, SessionSnapshot } from "../shared/protocol";
+import { getModelEfforts } from "../../coding-agent/index";
 import { applyEvent } from "../shared/session-projection";
 import { projectTools } from "../shared/tool-projection";
 import { HttpError, errorText } from "./http/errors";
 import type { SessionPort } from "./loop";
 import { SessionEvents } from "./session-events";
+import { promptContent } from "../shared/prompt-images";
+import type { PromptImage } from "../shared/prompt-images";
 
 export class SessionController {
   readonly events: SessionEvents;
@@ -23,6 +26,7 @@ export class SessionController {
       workspaceId,
       state: session.state,
       model: this.model(),
+      effort: session.effort,
       operation: "idle",
       tools: projectTools(session.state.messages),
     };
@@ -35,20 +39,24 @@ export class SessionController {
     return this.snapshot.operation !== "idle" || this.session.state.hasPendingSave;
   }
 
-  prompt(requestId: string, text: string): string {
+  prompt(requestId: string, text: string, images: PromptImage[] = []): string {
+    const content = structuredClone(promptContent(text, images));
+    const signature = new Bun.CryptoHasher("sha256").update(JSON.stringify(content)).digest("hex");
     const existing = this.requests.get(requestId);
 
     if (existing) {
-      if (existing.text !== text) throw new HttpError(409, "request_conflict");
+      if (existing.text !== signature) throw new HttpError(409, "request_conflict");
 
       return existing.runId;
     }
 
     this.assertIdle();
+    if (images.length && !this.session.model.input.includes("image"))
+      throw new HttpError(400, "model_images_unsupported");
 
     const runId = crypto.randomUUID();
 
-    this.requests.set(requestId, { text, runId });
+    this.requests.set(requestId, { text: signature, runId });
 
     if (this.requests.size > 256) this.requests.delete(this.requests.keys().next().value!);
 
@@ -63,7 +71,7 @@ export class SessionController {
     };
     this.events.publish({ type: "run.accepted", requestId, runId });
     this.active = Promise.resolve()
-      .then(() => this.session.prompt(text))
+      .then(() => this.session.prompt(content))
       .catch((error) => {
         if (this.snapshot.runId === runId && !this.settled)
           this.snapshot.commandError = errorText(error);
@@ -123,7 +131,13 @@ export class SessionController {
   private model() {
     const { provider, id, name } = this.session.model;
 
-    return { provider, id, name };
+    return {
+      provider,
+      id,
+      name,
+      efforts: getModelEfforts(this.session.model),
+      input: [...this.session.model.input],
+    };
   }
 
   private sync(): void {
@@ -131,6 +145,7 @@ export class SessionController {
       ...this.snapshot,
       state: this.session.state,
       model: this.model(),
+      effort: this.session.effort,
       operation: "idle",
       draftIndex: undefined,
       tools: projectTools(this.session.state.messages),

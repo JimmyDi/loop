@@ -4,8 +4,9 @@
 
 ## Calling the loop
 
-The exported signature is `runAgentLoop(text, history, options, onEvent?, signal?): Promise<AssistantMessage>`.
+The exported signature is `runAgentLoop(content, history, options, onEvent?, signal?): Promise<AssistantMessage>`.
 
+- `content` is Pi AI user content: a string or text/image blocks; image-only input is allowed.
 - `history` is a mutable Pi AI `Message[]`. The loop is its sole writer during the run.
 - `options` is `AgentLoopOptions`: model, explicit stream function, system prompt, tools, stream options, and optional turn limit.
 - `onEvent` defaults to a no-op and is awaited.

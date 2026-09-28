@@ -8,4 +8,5 @@ export type {
   AgentLoopOptions,
   AgentOptions,
   StreamFn,
+  PromptContent,
 } from "./types";

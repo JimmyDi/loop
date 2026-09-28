@@ -1,0 +1,37 @@
+.composer-attachments {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 16px 0;
+}
+.composer-attachments .composer-attach {
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  border-radius: 50%;
+}
+.composer-attachment {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+.composer-attachment img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.composer-attachment .action-button {
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  font-size: 14px;
+}

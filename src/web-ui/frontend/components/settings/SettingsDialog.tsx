@@ -7,9 +7,10 @@ import { Modal } from "../ui/Modal";
 import { SettingsIcon } from "../ui/SettingsIcon";
 import { GeneralSettings } from "./GeneralSettings";
 import { AppearanceSettings } from "./AppearanceSettings";
+import { ModelsSettings } from "./ModelsSettings";
 import "./SettingsDialog.css";
 
-const sections = ["general", "appearance"] as const;
+const sections = ["general", "models", "appearance"] as const;
 
 export const SettingsDialog = ({ onClose }: { onClose(): void }) => {
   const { t } = useTranslation();
@@ -72,6 +73,19 @@ export const SettingsDialog = ({ onClose }: { onClose(): void }) => {
               >
                 {item === "general" ? (
                   <SettingsIcon />
+                ) : item === "models" ? (
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    aria-hidden="true"
+                  >
+                    <ellipse cx="10" cy="5" rx="6" ry="3" />
+                    <path d="M4 5v6c0 1.7 2.7 3 6 3m6-9v5M4 11v6c0 1.7 2.7 3 6 3" />
+                    <circle cx="17" cy="17" r="3" />
+                    <path d="M17 12v2m0 6v2m-5-5h2m6 0h2m-8.5-3.5 1.4 1.4m4.2 4.2 1.4 1.4m-7 0 1.4-1.4m4.2-4.2 1.4-1.4" />
+                  </svg>
                 ) : (
                   <svg
                     viewBox="0 0 24 24"
@@ -100,7 +114,13 @@ export const SettingsDialog = ({ onClose }: { onClose(): void }) => {
             hidden={section !== item}
           >
             {section === item &&
-              (item === "general" ? <GeneralSettings /> : <AppearanceSettings />)}
+              (item === "general" ? (
+                <GeneralSettings />
+              ) : item === "models" ? (
+                <ModelsSettings />
+              ) : (
+                <AppearanceSettings />
+              ))}
           </section>
         ))}
       </div>

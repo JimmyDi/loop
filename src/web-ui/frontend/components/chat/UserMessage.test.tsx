@@ -15,5 +15,16 @@ test("UserMessage exposes its accessible content and state", () => {
 
   expect(html).toContain("&lt;script&gt;");
   expect(html).toContain("Copy");
+  const imageMessage = renderToStaticMarkup(
+    <UserMessage
+      message={{
+        role: "user",
+        timestamp: 0,
+        content: [{ type: "image", data: "AAAA", mimeType: "image/png" }],
+      }}
+    />,
+  );
+  expect(imageMessage).toContain("data:image/png;base64,AAAA");
+  expect(imageMessage).toContain("Image attachment 1");
   client.clear();
 });

@@ -10,7 +10,7 @@ From the project root:
 bun run-dev
 ```
 
-Configure a service in the sidebar's **Model settings**, then add a project and create a session. Existing sessions keep their selected model; change it in the session header's model menu. React and CSS support hot updates; backend source changes require a restart. See the [Web README](../README.md) for installation.
+Configure a service in **Settings → Models**, then add a project and create a session. Existing sessions keep their selected model; change it in the composer's model settings menu. React and CSS support hot updates; backend source changes require a restart. See the [Web README](../README.md) for installation.
 
 ## Features
 

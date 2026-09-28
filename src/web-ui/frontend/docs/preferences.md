@@ -6,7 +6,7 @@ The browser stores layout, language, theme, and unsent drafts. The backend store
 
 The desktop sidebar defaults to 260px and can be resized between 260px and 420px by dragging its divider or using the left/right arrow keys while the divider has focus. Narrow screens use a drawer. A closed drawer is not keyboard-accessible; an open drawer supports Escape to close and Tab focus cycling.
 
-Open **Settings** at the bottom of the sidebar, then use the language dropdown in **General**. The modal's left navigation contains **General** followed by **Appearance**. Each opening starts on General; click a section or use Up/Down and Home/End while a navigation item has focus to switch panels. The separate **Model settings** entry still configures providers. The sidebar entry, dialog title, navigation, page headings, and option descriptions all follow the selected interface language.
+Open **Settings** at the bottom of the sidebar, then use the language dropdown in **General**. The modal's left navigation contains **General**, **Models** and **Appearance**. Each opening starts on General; click a section or use Up/Down and Home/End while a navigation item has focus to switch panels. Use **Models** to manage providers and credentials. The sidebar entry, dialog title, navigation, page headings, and option descriptions all follow the selected interface language.
 
 Hovering over Settings highlights the full rounded button, using a darker background in Light mode and a lighter background in Dark mode. The brief color transition respects reduced-motion preferences.
 
@@ -41,7 +41,8 @@ All persistent keys use the `loop.web.` prefix and belong to the browser origin.
 | sidebarWidth | Restore a sidebar width within the allowed range |
 | tabs, expanded | Restore open tabs and project expansion |
 | drafts, draftProjects | Store unsent text and its project by session; retained when closing tabs |
-| requests | Store unconfirmed text, requestId, and streamId for manual retry |
+| requests | Store unconfirmed text, images, requestId and streamId for manual retry |
+| Unsent images | Memory only per session; retained across tab switches, discarded on refresh |
 | Session display snapshots | Memory only; reload from the backend after refresh |
 
 The active tab is not stored separately: refresh starts with the first saved tab. The drawer's open/closed state is also temporary. Unavailable browser storage or failed writes do not interrupt chat, but the affected state cannot persist.

@@ -53,7 +53,7 @@ export const AppShell = () => {
           }
         }}
       />
-      {active ? <ChatWorkspace key={active} id={active} /> : <Welcome />}
+      {active ? <ChatWorkspace key={active.id} id={active.id} /> : <Welcome />}
     </div>
   );
 };

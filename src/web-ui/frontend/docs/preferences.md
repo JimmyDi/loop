@@ -14,7 +14,7 @@ The General panel starts with a General page heading and a General section headi
 
 The dropdown supports **中文** and **English**, with a checkmark on the selected language. With no valid saved choice, initialization uses the first supported entry in the browser's language list, matching Chinese and English regional variants; if none match, it uses English. When the list is unavailable or empty, it uses the browser's single language value. Automatic matching does not save a preference. A manual selection is saved immediately and takes priority on later visits. Browser language changes are picked up on the next page load only when no manual choice exists.
 
-Switching updates interface text and the page lang attribute without refreshing or interrupting generation. Model messages, tool output, and user input remain unchanged. History dates use the current language; open tabs retain the title assigned when opened.
+Switching updates interface text and the page lang attribute without refreshing or interrupting generation. Model messages, tool output, and user input remain unchanged. History dates use the current language; saved conversation titles remain unchanged.
 
 During development, Bun hot updates of the English or Chinese resource file refresh i18next's resource store and the visible translations without changing the selected language or reloading the page.
 
@@ -39,13 +39,14 @@ All persistent keys use the `loop.web.` prefix and belong to the browser origin.
 | language | Restore a manually selected `en` or `zh`; missing, corrupt, or unsupported values use browser language matching |
 | theme | Restore `light`, `dark`, or `system`; default to `system` |
 | sidebarWidth | Restore a sidebar width within the allowed range |
-| tabs, expanded | Restore open tabs and project expansion |
-| drafts, draftProjects | Store unsent text and its project by session; retained when closing tabs |
+| activeSession | Restore the selected session ID and its project ID; no title or open-session list is stored |
+| expanded | Restore project expansion |
+| drafts, draftProjects | Store unsent text and its project by session; retained when switching sessions |
 | requests | Store unconfirmed text, images, requestId and streamId for manual retry |
-| Unsent images | Memory only per session; retained across tab switches, discarded on refresh |
+| Unsent images | Memory only per session; retained across session switches, discarded on refresh |
 | Session display snapshots | Memory only; reload from the backend after refresh |
 
-The active tab is not stored separately: refresh starts with the first saved tab. The drawer's open/closed state is also temporary. Unavailable browser storage or failed writes do not interrupt chat, but the affected state cannot persist.
+Existing drafts and unconfirmed requests are retained; select their session from the sidebar to continue. The drawer's open/closed state is temporary. Unavailable browser storage or failed writes do not interrupt chat, but the affected state cannot persist.
 
 ## Limits
 

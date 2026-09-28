@@ -1,24 +1,32 @@
 .session-header {
   min-height: 64px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 24px;
+  gap: 8px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--line);
   background: var(--surface-header);
 }
-.session-folder {
+.session-header .session-folder {
   flex-shrink: 0;
-  padding: 4px;
+  width: 32px;
+  height: 32px;
+  padding: 3px;
 }
 .session-name-placeholder {
-  padding: 4px 8px;
+  min-width: 0;
+  padding: 4px 0;
+  border: 1px solid transparent;
   font-size: 18px;
   font-weight: 600;
+  line-height: 26px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 @media (max-width: 767px) {
   .session-header {
     padding: 10px 12px;
-    gap: 8px;
   }
 }

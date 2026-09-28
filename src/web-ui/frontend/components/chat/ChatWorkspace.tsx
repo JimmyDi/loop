@@ -6,7 +6,6 @@ import { useSessionEvents } from "../../hooks/useSessionEvents";
 import { api } from "../../lib/api";
 import { useSessions } from "../../state/session-store";
 import { SessionHeader } from "../layout/SessionHeader";
-import { SessionTabs } from "../layout/SessionTabs";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { MessageTimeline } from "./MessageTimeline";
@@ -31,7 +30,6 @@ export const ChatWorkspace = ({ id }: { id: string }) => {
   return (
     <main className="chat-workspace">
       <SessionHeader snapshot={snapshot} />
-      <SessionTabs />
       {query.error && (
         <div className="workspace-error">
           <ErrorNotice error={query.error} />

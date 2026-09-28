@@ -15,5 +15,7 @@ test("Welcome exposes its accessible content and state", () => {
 
   expect(html).toContain("What would you like to build?");
   expect(html).toContain("Choose a project");
+  expect(html).toContain("session-header");
+  expect(html).not.toContain("<nav");
   client.clear();
 });

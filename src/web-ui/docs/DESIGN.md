@@ -67,7 +67,7 @@ Loop/
         │   ├── main.tsx
         │   ├── App.tsx
         │   ├── components/
-        │   │   ├── layout/        # AppShell, Sidebar, session header, and tabs
+        │   │   ├── layout/        # AppShell, Sidebar, and session header
         │   │   ├── chat/          # Composer, Timeline, messages, and tool cards
         │   │   ├── settings/      # Custom provider form and dialog
         │   │   └── ui/            # Required base components
@@ -141,11 +141,11 @@ The exact command `npx loop web` requires publishing rights to the npm package `
 
 AgentSession owns stable session identity. Each prompt creates a lower-level Agent with completed history. Web must not implement another Agent loop or call Pi AI directly.
 
-The backend registry owns independent AgentSession instances. Do not repeatedly switch one global AgentSessionRuntime as the selected page changes. Tab changes only select the frontend view; other sessions may keep running.
+The backend registry owns independent AgentSession instances. Do not repeatedly switch one global AgentSessionRuntime as the selected page changes. Session navigation only selects the frontend view; other sessions may keep running.
 
 ### 3.2 Initial Features
 
-- Projects tree; add, rename, and remove projects; choose directories; list project history; create/open sessions and switch tabs.
+- Projects tree; add, rename, and remove projects; choose directories; list project history; create/open sessions from the sidebar.
 - Text input, streaming replies, Markdown, code copying, and collapsible thinking returned by the model.
 - `read`, `bash`, `edit`, and `write` calls with final results.
 - Model selection, stopping, history restoration on refresh, reconnection synchronization, and failed-save retry.
@@ -162,7 +162,7 @@ Use a project → session hierarchy. Users add working directories through the f
 - Validate directory existence and access on the backend and canonicalize with realpath. The same path or a symlink to it returns the existing project. Default the name to the directory name; renaming changes only the display name.
 - Persist registration under `web-ui/projects.json` in the data directory returned by public SDK getAgentDir(), using serialized atomic writes. Do not commit runtime data. With no registrations, show an add-project empty state instead of implicitly registering the startup directory.
 - Bind sessions to the selected project's cwd and use SessionManager's directory grouping to list/open them. Backend ownership checks supplement frontend filtering; this is not a filesystem sandbox for tools.
-- Removal unregisters a project without deleting directories or session files. Reject it while operations or pending saves exist, and block new project operations during the check/removal. Success closes its tabs and releases idle instances. Do not silently discard drafts: confirm discarding them or cancel removal first.
+- Removal unregisters a project without deleting directories or session files. Reject it while operations or pending saves exist, and block new project operations during the check/removal. Success clears its selected view and releases idle instances. Do not silently discard drafts: confirm discarding them or cancel removal first.
 - Registering the same canonical directory again exposes saved history rather than creating empty replacement history. Retain unavailable registrations and show errors instead of creating replacement directories.
 
 ### 3.4 Directory Selection
@@ -186,10 +186,10 @@ Components, visuals, and interactions consume Loop sessions through the Web API.
 
 ```text
 ┌──────────────────┬────────────────────────────────────────┐
-│ Projects  +      │ Project, directory, model, and status  │
+│ Projects  +      │ Folder icon and session title          │
 │ ▾ Project A      ├────────────────────────────────────────┤
-│   Session / New  │ Session tabs                           │
-│ ▸ Project B      ├────────────────────────────────────────┤
+│   Session / New  │                                        │
+│ ▸ Project B      │                                        │
 │                  │ User messages                          │
 │                  │ Assistant / thinking / tool cards      │
 │                  │                                        │
@@ -197,9 +197,9 @@ Components, visuals, and interactions consume Loop sessions through the Web API.
 └──────────────────┴────────────────────────────────────────┘
 ```
 
-Use a resizable left sidebar, header, tabs, central message area, and floating bottom composer. Mobile uses a drawer and full-width main area, accounting for safe areas and the software keyboard.
+Use a resizable left sidebar, header, central message area, and floating bottom composer. Mobile uses a drawer and full-width main area, accounting for safe areas and the software keyboard.
 
-Organize navigation around project working directory → session relationships. The sidebar supports adding projects, expanding history, creating sessions, renaming, and removal. Project switching does not change existing session cwd. Display titles may use the first user message or creation time without changing Loop's session header format. Closing a tab leaves history and backend execution intact.
+Organize navigation around project working directory → session relationships. The sidebar supports adding projects, expanding history, creating sessions, renaming, and removal. Project switching does not change existing session cwd. Display titles use a generated or manual name, falling back to the first user message or New session. Switching sessions leaves history and backend execution intact.
 
 ### 4.2 Component Responsibilities
 
@@ -208,7 +208,7 @@ Components are maintained under `src/web-ui/frontend`, with one primary responsi
 | Component | Responsibility |
 | --- | --- |
 | `AppShell`, `Sidebar` | Grid layout, sidebar resizing, mobile drawer, and project/session navigation |
-| `ChatWorkspace`, `SessionHeader`, `SessionTabs` | Active session information, tabs, timeline, and composer layout |
+| `ChatWorkspace`, `SessionHeader` | Folder icon, active session title, timeline, and composer layout |
 | `ChatComposer` | Floating card, send/stop controls, sizing, and touch behavior |
 | `ComposerInput` | Text input, IME, plain-text paste, caret, and newlines |
 | `MessageTimeline` | Message ordering, scroll area, and automatic following |
@@ -227,7 +227,7 @@ Maintain theme variables, layout rules, responsive behavior, and component CSS w
 | --- | --- |
 | Theme | Inter/system fonts, Light/Dark/System appearance (System by default), fine borders, and semantic CSS color variables |
 | Colors | `--surface: #f6f7f9`, `--ink: #18181b`, `--ink-muted: #71717a`, `--line: #dfe4ea` |
-| Desktop layout | Sidebar initial/minimum 260px, maximum 420px; header minimum 52px and tabs minimum 38px |
+| Desktop layout | Sidebar initial/minimum 260px, maximum 420px; header minimum 64px with a folder icon and title, 16px horizontal padding and an 8px control gap |
 | Messages | Content max 1040px; pale blue-gray user bubbles, unboxed assistant text; 15px text and 1.65 line height |
 | Composer card | Max 860px, horizontal padding, 18px bottom gap, 16px radius; grows with content |
 | Input | Enter sends, Shift+Enter adds a newline, IME composition does not send, failure retains retryable text |
@@ -411,7 +411,7 @@ Browser disconnection does not stop Agent. After server restart, only saved hist
 | Project registration, display names, directories | Web backend storage in user data web-ui/projects.json, using existing cwd support |
 | Message and streaming display projection | Frontend Zustand, reconstructed from backend snapshots/events |
 | Project/session lists and model queries | TanStack Query, without a second authoritative chat history |
-| Tabs, expanded projects, sidebar width, unsent drafts | Frontend UI state, persisted locally where needed |
+| Selected session, expanded projects, sidebar width, unsent drafts | Frontend UI state, persisted locally where needed |
 | Interface language | Local frontend preference; browser language matching before a manual choice |
 
 Keep Loop's JSONL format and atomic saving, with one authoritative source of chat history.
@@ -434,8 +434,8 @@ Acceptance criteria:
 - Projects can be added, renamed, and removed. Symlink paths deduplicate, sessions are grouped by project, removal keeps files, and re-adding exposes history. Busy or pending-save projects cannot be removed.
 - Cover native macOS selection, cancellation, request interruption, browser navigation, and typed paths. Missing or inaccessible directories report errors without registering incorrect projects.
 - Match browser language before a manual choice, with English fallback; language switching and preference restoration work. Settings opens General, the dropdown supports keyboard navigation, and closing restores focus. Translation keys are complete, execution/drafts remain intact, and original conversation content is not translated.
-- Verify sidebar, header, tabs, bubbles, Markdown, composer, and mobile layout against the style and interaction baseline in section 4.3.
-- Text submission, IME, and newlines work. Busy sessions reject duplicate submissions, network failures retain input, and switching tabs does not stop sessions.
+- Verify sidebar, header, bubbles, Markdown, composer, and mobile layout against the style and interaction baseline in section 4.3.
+- Text submission, IME, and newlines work. Busy sessions reject duplicate submissions, network failures retain input, and switching views does not stop sessions.
 - Each tool result has one display. Without progress events, do not invent percentages or a live terminal.
 - Stream interruption and snapshot/replay neither duplicate text nor lose tool state. Preflight failure after 202 still ends the waiting state.
 - Cancellation, model errors, and save failures have explicit states. flush does not rerun tools; model/flush completion does not leave busy state behind.

@@ -14,6 +14,7 @@ test("ChatWorkspace exposes its accessible content and state", () => {
   );
 
   expect(html).toContain("Loading");
-  expect(html).toContain("session-tabs");
+  expect(html).toContain("session-header");
+  expect(html).not.toContain("<nav");
   client.clear();
 });

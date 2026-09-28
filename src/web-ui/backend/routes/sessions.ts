@@ -21,7 +21,13 @@ export const sessionRoutes =
 
         if (!id) throw new HttpError(400, "invalid_workspaceId");
 
-        return Response.json(await registry.list(id));
+        const archived = url.searchParams.get("archived") === "true";
+        return Response.json(
+          (await registry.list(id)).filter(
+            (session) =>
+              !!session.archived === archived && (archived || session.userMessageCount > 0),
+          ),
+        );
       }
 
       if (method === "POST") {

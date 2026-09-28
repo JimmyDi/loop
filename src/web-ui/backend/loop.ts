@@ -1,9 +1,15 @@
-import { createAgentSession, getSessionDir, SessionManager } from "../../coding-agent/index";
+import {
+  createAgentSession,
+  getSessionDir,
+  SessionArchive,
+  SessionManager,
+} from "../../coding-agent/index";
 import type { AgentSession, ModelRuntime } from "../../coding-agent/index";
 import { join } from "node:path";
 
 import type { ModelChoice, ModelSelection, Project, SessionSummary } from "../shared/protocol";
 import { ProviderSettings } from "./providers/provider-settings";
+import { HttpError } from "./http/errors";
 
 export type SessionPort = Pick<
   AgentSession,
@@ -25,6 +31,8 @@ export type SessionPort = Pick<
 export type LoopBridge = {
   models(): Promise<ModelChoice[]>;
   list(project: Project): Promise<SessionSummary[]>;
+  archive(project: Project, ids: string[], archived: boolean): Promise<void>;
+  deleteSessions(project: Project, ids: string[], archivedOnly: boolean): Promise<void>;
   load(project: Project, id?: string): Promise<SessionPort>;
   setModel(session: SessionPort, choice: ModelSelection): Promise<void>;
 };
@@ -34,6 +42,16 @@ export const createLoopBridge = (
   providers = new ProviderSettings(join(agentDir, "web-ui", "provider.json")),
 ): LoopBridge => {
   let runtime: Promise<ModelRuntime> | undefined;
+  const archives = new Map<string, SessionArchive>();
+  const archiveFor = (project: Project): SessionArchive => {
+    const directory = getSessionDir(project.cwd, agentDir);
+    let archive = archives.get(directory);
+    if (!archive) {
+      archive = new SessionArchive(directory);
+      archives.set(directory, archive);
+    }
+    return archive;
+  };
   const getRuntime = () =>
     (runtime ??= providers.runtime().catch((error) => {
       runtime = undefined;
@@ -42,17 +60,29 @@ export const createLoopBridge = (
 
   return {
     models: () => providers.models(),
-    list: async (project) =>
-      (await SessionManager.list(project.cwd, getSessionDir(project.cwd, agentDir))).map(
-        ({ id, createdAt, updatedAt, messageCount, title }) => ({
+    deleteSessions: (project, ids, archivedOnly) =>
+      archiveFor(project).delete(project.cwd, ids, { archivedOnly }),
+    archive: async (project, ids, archived) => {
+      const records = await SessionManager.list(project.cwd, getSessionDir(project.cwd, agentDir));
+      if (ids.some((id) => !records.some((record) => record.id === id)))
+        throw new HttpError(404, "session_not_found");
+      await archiveFor(project).set(ids, archived);
+    },
+    list: async (project) => {
+      const archived = await archiveFor(project).list();
+      return (await SessionManager.list(project.cwd, getSessionDir(project.cwd, agentDir))).map(
+        ({ id, createdAt, updatedAt, messageCount, userMessageCount, title }) => ({
           id,
           workspaceId: project.id,
           createdAt,
           updatedAt,
           messageCount,
+          userMessageCount,
           title: title?.text,
+          archived: archived.has(id),
         }),
-      ),
+      );
+    },
     load: async (project, id) => {
       const records = id
         ? await SessionManager.list(project.cwd, getSessionDir(project.cwd, agentDir))
@@ -61,16 +91,18 @@ export const createLoopBridge = (
 
       if (id && !record) throw new Error("Session not found in project");
 
-      const sessionManager = record ? await SessionManager.open(record.path) : undefined;
+      const sessionManager = record
+        ? await SessionManager.open(record.path)
+        : SessionManager.draft(project.cwd, getSessionDir(project.cwd, agentDir));
       const modelRuntime = await getRuntime();
       const { session } = await createAgentSession({
         cwd: project.cwd,
         agentDir,
         sessionManager,
         modelRuntime,
-        model: sessionManager ? undefined : providers.defaultModel(),
+        model: record ? undefined : providers.defaultModel(),
         allowUnavailableModel: true,
-        effort: sessionManager ? undefined : providers.defaultEffort(),
+        effort: record ? undefined : providers.defaultEffort(),
         title: { mode: "first-prompt" },
       });
 

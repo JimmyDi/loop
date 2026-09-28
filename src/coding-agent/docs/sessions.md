@@ -19,9 +19,12 @@ SDK consumers supply one of these managers to `createAgentSession({ sessionManag
 | --- | --- |
 | `SessionManager.inMemory(cwd?)` | Empty history with no file. |
 | `SessionManager.create(cwd, sessionDir?)` | Empty persistent session. |
+| `SessionManager.draft(cwd, sessionDir?)` | Draft with a stable ID and target path; no file until a commit contains a user message. |
 | `SessionManager.open(path)` | Restore and validate a Loop JSONL file. |
 | `SessionManager.continueRecent(cwd, sessionDir?)` | Resume most recent or create. |
 | `SessionManager.list(cwd, sessionDir?)` | List metadata for the canonical workspace, newest first. |
+
+List summaries include messageCount and userMessageCount so hosts can distinguish drafts from conversations. Draft metadata edits remain in memory; the first commit containing any user message, including attachments, creates the history file with the same ID and accumulated metadata. A failed first save retains pending history for flush. Web opts into drafts; the default CLI/SDK create method still persists empty sessions immediately. Uncommitted drafts do not survive process exit.
 
 Malformed session files reject rather than being silently repaired or skipped. A restored session requires its stored cwd to exist. See [session format](session-format.md) for the storage contract.
 

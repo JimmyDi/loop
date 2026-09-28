@@ -22,8 +22,10 @@ export type SessionSummary = {
   createdAt: string;
   updatedAt: string;
   messageCount: number;
+  userMessageCount: number;
   title?: string;
   isGenerating?: boolean;
+  archived?: boolean;
 };
 
 export type ToolView = {
@@ -57,6 +59,12 @@ export type FrameBody =
 export type Frame = FrameBody & { sessionId: string; streamId: string; seq: number };
 
 export type Cursor = { streamId: string; seq: number };
+
+export type ListChange =
+  | { type: "lists.reset" }
+  | { type: "sessions.changed" | "projects.changed"; workspaceId: string };
+
+export type ListFrame = ListChange & Cursor;
 
 export type DirectoryListing = {
   path: string;

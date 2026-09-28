@@ -5,17 +5,23 @@ import { command } from "../lib/api";
 import { useSessions } from "../state/session-store";
 import { useAsyncAction } from "./useAsyncAction";
 
-export const useSessionRename = (snapshot: SessionSnapshot) => {
+export const useSessionRename = (snapshot: SessionSnapshot | string) => {
   const query = useQueryClient();
   const action = useAsyncAction();
   const rename = async (text: string): Promise<boolean> => {
-    if (!text.trim() || snapshot.operation !== "idle" || snapshot.state.hasPendingSave)
+    if (
+      !text.trim() ||
+      (typeof snapshot !== "string" &&
+        (snapshot.operation !== "idle" || snapshot.state.hasPendingSave))
+    )
       return false;
 
     let saved = false;
     await action.run(async () => {
       const next = await command<SessionSnapshot>(
-        "/sessions/" + encodeURIComponent(snapshot.sessionId) + "/title",
+        "/sessions/" +
+          encodeURIComponent(typeof snapshot === "string" ? snapshot : snapshot.sessionId) +
+          "/title",
         { title: text.trim() },
         "PUT",
       );

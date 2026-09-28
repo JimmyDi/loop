@@ -1,12 +1,9 @@
 import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 
 import type { Frame } from "../../shared/protocol";
 import { useSessions } from "../state/session-store";
 
 export const useSessionEvents = (id?: string): void => {
-  const query = useQueryClient();
-
   useEffect(() => {
     if (!id) return;
 
@@ -33,10 +30,6 @@ export const useSessionEvents = (id?: string): void => {
 
             return;
           }
-
-          if (frame.type === "session.snapshot" || frame.type === "session.state") {
-            void query.invalidateQueries({ queryKey: ["sessions"] });
-          }
         } catch {
           source.close();
           useSessions.getState().connection(id, false);
@@ -60,5 +53,5 @@ export const useSessionEvents = (id?: string): void => {
       source.close();
       useSessions.getState().connection(id, false);
     };
-  }, [id, query]);
+  }, [id]);
 };

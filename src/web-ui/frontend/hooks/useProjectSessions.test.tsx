@@ -17,6 +17,7 @@ test("new sessions send only the selected project identity", async () => {
     const { renderHook, act, cleanup, waitFor } = await import("@testing-library/react/pure");
     const { useProjectSessions } = await import("./useProjectSessions");
     const client = new QueryClient();
+    client.setQueryData(["sessions", "project"], []);
     let body: unknown;
 
     globalThis.fetch = (async (_url, init) => {
@@ -31,6 +32,8 @@ test("new sessions send only the selected project identity", async () => {
     await act(() => result.current.create.mutateAsync());
     await waitFor(() => expect(result.current.create.isSuccess).toBe(true));
     expect(body).toEqual({ workspaceId: "project" });
+    expect(client.getQueryState(["sessions", "project"])?.isInvalidated).toBe(false);
+    expect(client.getQueryData<unknown[]>(["sessions", "project"])).toEqual([]);
     cleanup();
     client.clear();
   } finally {

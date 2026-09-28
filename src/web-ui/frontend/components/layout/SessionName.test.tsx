@@ -40,6 +40,7 @@ test("inline name selects text, confirms once, synchronizes header and sidebar a
       workspaceId: "project",
       title: "Original name",
       messageCount: 0,
+      userMessageCount: 0,
       createdAt: "2026-01-01T00:00:00Z",
       updatedAt: "2026-01-01T00:00:00Z",
     },

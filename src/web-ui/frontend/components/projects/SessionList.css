@@ -1,57 +1,13 @@
 .session-list {
   list-style: none;
-  padding: 4px 8px 8px 20px;
+  padding: 4px 0 8px;
   margin: 0;
 }
-.session-list button {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--ink-muted);
-  text-align: left;
-  overflow: hidden;
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-.session-list-title {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.session-list-spinner {
-  flex: 0 0 14px;
-  width: 14px;
-  height: 14px;
-  border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
-  border-top-color: currentColor;
-  border-radius: 50%;
-  animation: session-list-spin 0.8s linear infinite;
-}
-@keyframes session-list-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .session-list-spinner {
-    animation: none;
-  }
-}
-.session-list button:hover,
-.session-list button[aria-current] {
-  background: var(--surface-selected);
-  color: var(--ink);
+.session-list > .session-item + .session-item {
+  margin-top: 2px;
 }
 .session-empty {
-  padding: 8px;
-  color: var(--ink-muted);
-  font-size: 12px;
+  padding: 8px 10px 8px 40px;
+  color: color-mix(in srgb, var(--ink-muted) 45%, transparent);
+  font-size: 14px;
 }

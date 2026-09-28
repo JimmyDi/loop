@@ -116,3 +116,17 @@ test("session selection tolerates unavailable browser storage", () => {
   expect(result.stderr.toString()).toBe("");
   expect(result.exitCode).toBe(0);
 });
+
+test("deleting selected chats clears only their local data and selected view", () => {
+  useWorkspace.setState({
+    active: { id: "a", workspaceId: "p" },
+    drafts: { a: "A", b: "B" },
+    files: { a: [{ name: "a.txt", text: "A" }], b: [{ name: "b.txt", text: "B" }] },
+    draftProjects: { a: "p", b: "p" },
+  });
+  useWorkspace.getState().removeSessions(["a"]);
+  expect(useWorkspace.getState().active).toBeUndefined();
+  expect(useWorkspace.getState().drafts).toEqual({ b: "B" });
+  expect(Object.keys(useWorkspace.getState().files)).toEqual(["b"]);
+  expect(useWorkspace.getState().draftProjects).toEqual({ b: "p" });
+});

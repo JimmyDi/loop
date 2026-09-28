@@ -5,7 +5,8 @@ import { createAssistantMessageEventStream, Type } from "@earendil-works/pi-ai";
 
 import { AgentSession, SessionManager } from "../../coding-agent/index";
 import type { ModelRuntime } from "../../coding-agent/index";
-import type { Frame } from "../shared/protocol";
+import type { Frame, ListFrame } from "../shared/protocol";
+import { ListEvents } from "./list-events";
 import { SessionController } from "./session-controller";
 import { sessionRoutes } from "./routes/sessions";
 import type { SessionRegistry } from "./session-registry";
@@ -392,12 +393,19 @@ test("late title updates publish outside a run, replay on reconnect, and support
   const controller = new SessionController(session, "project");
   const frames: Frame[] = [];
   const disconnect = controller.events.connect((frame) => frames.push(frame));
+  const lists = new ListEvents();
+  const changes: ListFrame[] = [];
+  lists.watch(controller);
+  lists.connect((frame) => changes.push(frame));
   try {
     controller.prompt("title-request", "Example task");
     await waitFor(() => !controller.busy && generated);
     expect(controller.snapshot.state.messages).toHaveLength(2);
+    const beforeTitle = changes.length;
     titleStream.push({ type: "done", reason: "stop", message: answer("Generated title") });
     await session.waitForTitle();
+    expect(changes.length).toBeGreaterThan(beforeTitle);
+    expect(changes.at(-1)).toMatchObject({ type: "sessions.changed", workspaceId: "project" });
     expect(frames.at(-1)).toMatchObject({
       type: "session.state",
       snapshot: { operation: "idle", state: { title: { text: "Generated title" } } },
@@ -406,6 +414,8 @@ test("late title updates publish outside a run, replay on reconnect, and support
       get: async () => controller,
       assertAvailable: () => {},
     } as unknown as SessionRegistry);
+    disconnect();
+    const beforeRename = changes.length;
     const url = new URL("http://localhost/api/sessions/" + session.sessionId + "/title");
     const renamed = await route(
       new Request(url, {
@@ -416,6 +426,7 @@ test("late title updates publish outside a run, replay on reconnect, and support
       url,
     );
     expect(renamed?.status).toBe(200);
+    expect(changes.length).toBeGreaterThan(beforeRename);
     expect(controller.snapshot.state.title).toMatchObject({ source: "user", text: "Manual title" });
     const refreshed = await route(new Request(url, { method: "POST" }), url);
     expect(refreshed?.status).toBe(200);
@@ -431,6 +442,7 @@ test("late title updates publish outside a run, replay on reconnect, and support
     expect(session.state.messages).toHaveLength(2);
   } finally {
     disconnect();
+    lists.close();
     await controller.close();
   }
 });

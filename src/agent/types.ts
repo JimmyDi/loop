@@ -10,7 +10,10 @@ import type {
   Tool,
   ToolCall,
   ToolResultMessage,
+  UserMessage,
 } from "@earendil-works/pi-ai";
+
+export type PromptContent = UserMessage["content"];
 
 export type StreamFn = (
   model: Model<Api>,

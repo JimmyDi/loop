@@ -7,6 +7,7 @@ import { ProjectStore } from "./projects/project-store";
 import { createRouter } from "./router";
 import { SessionRegistry } from "./session-registry";
 import { ProviderSettings } from "./providers/provider-settings";
+import { MAX_PROMPT_BODY_BYTES } from "../shared/prompt-images";
 
 export const startServer = (port = 3080) => {
   const agentDir = getAgentDir();
@@ -18,6 +19,7 @@ export const startServer = (port = 3080) => {
     hostname: "127.0.0.1",
     port,
     idleTimeout: 0,
+    maxRequestBodySize: MAX_PROMPT_BODY_BYTES,
     routes: { "/": page, "/api/*": route },
     fetch: () => new Response("Not found", { status: 404 }),
     development: process.env.NODE_ENV !== "production" ? { hmr: true, console: true } : false,

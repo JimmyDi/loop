@@ -287,6 +287,26 @@ test.each(["before", "during"] as const)(
   },
 );
 
+test("image-only prompts retain native image content and reject text-only models before streaming", async () => {
+  const content = [{ type: "image" as const, data: "AAAA", mimeType: "image/png" }];
+  let calls = 0;
+  const streamFn = (_model: unknown, context: Context) => {
+    calls++;
+    expect(context.messages[0]).toMatchObject({ role: "user", content });
+    return stream();
+  };
+  const textOnly = new Agent({ model: { ...model, input: ["text"] }, streamFn });
+  await expect(textOnly.prompt(content)).rejects.toThrow("does not support image");
+  expect(textOnly.messages).toEqual([]);
+  expect(calls).toBe(0);
+  const agent = new Agent({ model: { ...model, input: ["text", "image"] }, streamFn });
+  await agent.prompt(content);
+  content[0]!.data = "changed";
+  expect(agent.messages[0]).toMatchObject({ content: [{ data: "AAAA" }] });
+  expect(calls).toBe(1);
+  await expect(agent.prompt([])).rejects.toThrow("Prompt is required");
+});
+
 test("unexpected failures and invalid input release the agent", async () => {
   let requests = 0;
   const agent = new Agent({

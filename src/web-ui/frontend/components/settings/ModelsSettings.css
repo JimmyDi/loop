@@ -1,0 +1,103 @@
+.models-settings h3 {
+  margin: 10px 0 12px;
+  font-size: 22px;
+  font-weight: 500;
+}
+.models-description {
+  margin: 0 0 24px;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.provider-list {
+  display: grid;
+  gap: 8px;
+}
+.provider-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  min-height: 50px;
+}
+.provider-row-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+.provider-status {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #dc2626;
+}
+.provider-status[data-ready="true"] {
+  background: #16a34a;
+}
+.provider-row-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.provider-row-actions .action-button {
+  border-radius: 999px;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+.provider-delete {
+  color: var(--danger, #dc2626);
+}
+.provider-add-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+.provider-add-actions .action-button {
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  min-height: 44px;
+  font-size: 13px;
+}
+.modal.provider-editor-dialog {
+  width: min(600px, calc(100vw - 24px));
+}
+.modal.provider-editor-dialog:has(.provider-form-custom) {
+  height: min(960px, calc(100dvh - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+}
+.provider-editor-dialog[open]:has(.provider-form-custom) {
+  display: flex;
+  flex-direction: column;
+}
+.provider-editor-dialog:has(.provider-form-custom) > .modal-header {
+  flex: none;
+  margin-bottom: 14px;
+}
+@media (max-height: 900px) {
+  .modal.provider-editor-dialog:has(.provider-form-custom) {
+    padding: 16px;
+  }
+  .provider-editor-dialog:has(.provider-form-custom) > .modal-header {
+    margin-bottom: 10px;
+  }
+}
+@container (max-width: 380px) {
+  .provider-add-actions {
+    grid-template-columns: 1fr;
+  }
+  .provider-row {
+    flex-wrap: wrap;
+  }
+  .provider-row-actions {
+    margin-left: auto;
+  }
+}

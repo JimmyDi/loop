@@ -54,6 +54,6 @@
     width: calc(100% - 24px);
   }
   .composer-toolbar > span {
-    font-size: 10px;
+    display: none;
   }
 }

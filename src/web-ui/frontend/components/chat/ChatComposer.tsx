@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SessionSnapshot } from "../../../shared/protocol";
@@ -10,7 +11,8 @@ import { ErrorNotice } from "../ui/ErrorNotice";
 import { ComposerInput } from "./ComposerInput";
 import { ComposerModelSettings } from "./ComposerModelSettings";
 import { ComposerAttachments } from "./ComposerAttachments";
-import { useComposerImages } from "../../hooks/useComposerImages";
+import { ComposerAddMenu } from "./ComposerAddMenu";
+import { useComposerAttachments } from "../../hooks/useComposerAttachments";
 import { useModels } from "../../hooks/useModels";
 import { ApiError } from "../../lib/api";
 import "./ChatComposer.css";
@@ -26,13 +28,17 @@ export const ChatComposer = ({
   const prompt = usePrompt(snapshot);
   const stopping = useAsyncAction();
   const model = useModelSelection(snapshot);
-  const attachments = useComposerImages(snapshot.sessionId);
+  const attachments = useComposerAttachments(snapshot.sessionId);
   const models = useModels();
   const current =
     models.data?.find(
       (model) => model.provider === snapshot.model.provider && model.id === snapshot.model.id,
     ) ?? snapshot.model;
   const unsupportedImages = prompt.images.length > 0 && current.input?.includes("image") === false;
+  const imageError = useMemo(
+    () => (unsupportedImages ? new ApiError("model_images_unsupported", "", 400) : undefined),
+    [unsupportedImages],
+  );
   const running = snapshot.operation === "prompt";
   const disabled =
     !connected ||
@@ -48,13 +54,8 @@ export const ChatComposer = ({
   return (
     <div className="composer-region">
       <ErrorNotice
-        error={
-          prompt.error ??
-          stopping.error ??
-          model.error ??
-          attachments.error ??
-          (unsupportedImages ? new ApiError("model_images_unsupported", "", 400) : undefined)
-        }
+        dismissible
+        error={prompt.error ?? stopping.error ?? model.error ?? attachments.error ?? imageError}
       />
       {prompt.uncertain && (
         <div className="composer-uncertain">
@@ -77,20 +78,26 @@ export const ChatComposer = ({
       >
         <ComposerAttachments
           images={prompt.images}
+          files={prompt.files}
           disabled={blocked}
-          add={(files) => void attachments.add(files)}
           remove={attachments.remove}
+          removeFile={attachments.removeFile}
         />
         <ComposerInput
           value={prompt.text}
           onChange={prompt.setText}
           onSubmit={submit}
           disabled={disabled || model.pending}
-          onImages={(files) => void attachments.add(files)}
+          onFiles={(files) => void attachments.add(files)}
           placeholder={t("placeholder")}
         />
         <div className="composer-toolbar">
-          <span>{t("composerHint")}</span>
+          <ComposerAddMenu
+            disabled={blocked}
+            imageCount={prompt.images.length}
+            fileCount={prompt.files.length}
+            add={(files) => void attachments.add(files)}
+          />
           <ComposerModelSettings
             snapshot={snapshot}
             disabled={disabled}
@@ -115,7 +122,9 @@ export const ChatComposer = ({
               type="submit"
               aria-label={t("send")}
               disabled={
-                blocked || unsupportedImages || (!prompt.text.trim() && !prompt.images.length)
+                blocked ||
+                unsupportedImages ||
+                (!prompt.text.trim() && !prompt.images.length && !prompt.files.length)
               }
             >
               ↑

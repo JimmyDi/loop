@@ -37,11 +37,13 @@ export const en = {
   send: "Send message",
   stop: "Stop generating",
   stopping: "Stopping…",
-  placeholder: "Ask Loop about your project…",
-  composerHint: "Enter to send · Shift+Enter for a new line",
+  placeholder: "Loop something...",
   modelConfiguration: "Model settings",
   effort: "Effort",
-  attachImages: "Attach images",
+  addAttachments: "Add attachments",
+  addSection: "Add",
+  attachFiles: "Files",
+  removeFile: "Remove file {{name}}",
   imageAttachment: "Image attachment {{index}}",
   removeImage: "Remove image {{index}}",
   backToModelSettings: "Back to model settings",
@@ -66,7 +68,7 @@ export const en = {
   result: "Result",
   waiting: "Waiting",
   running: "Running",
-  waitingForModel: "Waiting for the model to respond… You can stop this request.",
+  looping: "Looping...",
   modelConnectionHint:
     "Cannot reach the model service. Open Settings → Models to check the URL and authentication, then select the configured model.",
   success: "Completed",
@@ -136,6 +138,11 @@ export const en = {
   maxOutputTokens: "Maximum output tokens",
   addModel: "Add model",
   errors: {
+    invalid_text_files:
+      "Attach up to 4 UTF-8 text or code files. Documents, archives and binary files are not supported.",
+    invalid_text_encoding:
+      "This file is not UTF-8 plain text. Convert its encoding or choose a text file.",
+    file_read_failed: "Could not read this file. Try adding it again.",
     invalid_images: "Attach up to 4 PNG, JPEG, WebP or GIF images, 3 MiB total.",
     image_read_failed: "Could not read this image. Try adding it again.",
     model_images_unsupported:

@@ -16,26 +16,14 @@ export const SessionStatus = ({
 }) => {
   const { t } = useTranslation();
   const action = useAsyncAction();
-  const waitingForModel =
-    snapshot.operation === "prompt" &&
-    !snapshot.state.draft &&
-    !Object.values(snapshot.tools).some((tool) => tool.status === "running");
+  const error = snapshot.commandError ?? snapshot.state.error ?? action.error;
+
+  if (connected && !error && !snapshot.state.hasPendingSave) return null;
 
   return (
     <div className="session-status" role="status">
       {!connected && <span>{t("reconnecting")}</span>}
-      {connected && (
-        <span>
-          {t(
-            waitingForModel
-              ? "waitingForModel"
-              : snapshot.operation !== "idle"
-                ? "running"
-                : snapshot.state.outcome,
-          )}
-        </span>
-      )}
-      <ErrorNotice error={snapshot.commandError ?? snapshot.state.error ?? action.error} />
+      <ErrorNotice error={error} />
       {snapshot.state.hasPendingSave && (
         <div>
           {t("pendingSave")}

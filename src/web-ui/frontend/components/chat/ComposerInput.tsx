@@ -7,14 +7,14 @@ export const ComposerInput = ({
   onSubmit,
   disabled,
   placeholder,
-  onImages,
+  onFiles,
 }: {
   value: string;
   onChange(text: string): void;
   onSubmit(): void;
   disabled: boolean;
   placeholder: string;
-  onImages?(files: File[]): void;
+  onFiles?(files: File[]): void;
 }) => {
   const editor = useComposerInput(value, onChange, onSubmit);
 
@@ -23,12 +23,10 @@ export const ComposerInput = ({
       {...editor}
       onPaste={(event) => {
         if (disabled) return;
-        const images = [...event.clipboardData.files].filter((file) =>
-          file.type.startsWith("image/"),
-        );
-        if (images.length && onImages) {
+        const files = [...event.clipboardData.files];
+        if (files.length && onFiles) {
           event.preventDefault();
-          onImages(images);
+          onFiles(files);
         } else editor.onPaste(event);
       }}
       className="composer-input"

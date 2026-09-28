@@ -39,7 +39,7 @@ export const ChatWorkspace = ({ id }: { id: string }) => {
       {!snapshot && !query.error && <p className="workspace-loading">{t("loading")}</p>}
       {snapshot && (
         <>
-          <MessageTimeline snapshot={snapshot} />
+          <MessageTimeline snapshot={snapshot} connected={connected} />
           <SessionStatus snapshot={snapshot} connected={connected} />
           <ChatComposer snapshot={snapshot} connected={connected} />
         </>

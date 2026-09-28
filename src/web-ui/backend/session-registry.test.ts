@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 
 import { AgentSession, SessionManager } from "../../coding-agent/index";
 import type { ModelRuntime } from "../../coding-agent/index";
@@ -27,16 +28,13 @@ test("registry shares one writable instance and guards removal against load/run 
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     };
     const manager = SessionManager.inMemory(root);
+    const stream = createAssistantMessageEventStream();
     const id = manager.getSessionId();
     const runtime: ModelRuntime = {
       getModels: () => [model],
       getModel: () => model,
-      checkModel: async () => {
-        throw new Error("No model requests in this test");
-      },
-      streamSimple: () => {
-        throw new Error("Unexpected model request");
-      },
+      checkModel: async () => {},
+      streamSimple: () => stream,
     };
     let release!: () => void;
     let loads = 0;
@@ -69,7 +67,8 @@ test("registry shares one writable instance and guards removal against load/run 
     };
     const registry = new SessionRegistry(projects, loop);
 
-    await registry.list(project.id);
+    expect((await registry.list(project.id))[0]?.isGenerating).toBe(false);
+    expect(loads).toBe(0);
     const a = registry.get(id);
     const b = registry.get(id);
 
@@ -82,8 +81,15 @@ test("registry shares one writable instance and guards removal against load/run 
     const controller = await a;
 
     controller.prompt("first", "hello");
+    expect((await registry.list(project.id))[0]?.isGenerating).toBe(true);
     await expect(registry.remove(project.id)).rejects.toThrow("project_busy");
     await controller.abort();
+    expect((await registry.list(project.id))[0]?.isGenerating).toBe(false);
+    for (const operation of ["model", "flush", "title"] as const) {
+      await controller.command(operation, async () => {
+        expect((await registry.list(project.id))[0]?.isGenerating).toBe(false);
+      });
+    }
     await registry.remove(project.id);
     expect(() => registry.assertAvailable(project.id)).toThrow("project_not_found");
     await expect(registry.get(id)).rejects.toThrow("session_not_found");

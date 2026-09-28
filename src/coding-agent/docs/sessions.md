@@ -59,6 +59,8 @@ Subscriptions do not migrate by themselves. Remove the previous subscription and
 
 ## Limits
 
+Prompts are passed to Pi AI without a Loop-specific estimated-context rejection. Full text and history consume memory and model context; the provider can reject excessive requests through the normal prompt error flow. Loop does not truncate user content automatically.
+
 There is no branching, fork/import API, compaction, background checkpointing, crash replay, or cross-process write coordination. A forced exit can lose the current run. Atomic rename does not promise power-loss durability or exactly-once tool effects. Keep conversation files private; tool results may contain source text, local paths, or sensitive output.
 
 ## Source

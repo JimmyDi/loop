@@ -1,0 +1,65 @@
+.text-file-attachment {
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-size: 13px;
+}
+.text-file-attachment summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.text-file-attachment summary::-webkit-details-marker {
+  display: none;
+}
+.text-file-attachment summary svg {
+  flex: 0 0 auto;
+  color: var(--ink-muted);
+}
+.text-file-name {
+  display: flex;
+  min-width: 0;
+}
+.text-file-stem {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.text-file-extension {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.text-file-attachment-pill {
+  flex: 0 1 auto;
+  width: fit-content;
+  border-radius: 20px;
+  background: var(--surface-hover);
+}
+.text-file-attachment-pill summary {
+  max-width: 320px;
+  padding: 8px 14px;
+}
+.text-file-attachment-pill[open] {
+  border-radius: 16px;
+}
+.text-file-attachment-pill summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+.text-file-attachment pre {
+  margin: 0;
+  padding: 12px;
+  border-top: 1px solid var(--line);
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}

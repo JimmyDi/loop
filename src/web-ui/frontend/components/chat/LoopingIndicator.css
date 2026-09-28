@@ -1,0 +1,41 @@
+.looping-indicator {
+  flex: 0 0 auto;
+  margin: 16px 0;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.65;
+}
+.looping-indicator-text {
+  display: inline-block;
+}
+@supports (background-clip: text) {
+  .looping-indicator-text {
+    background-image: linear-gradient(
+      90deg,
+      var(--accent) 40%,
+      color-mix(in srgb, var(--accent) 20%, var(--surface-raised)) 50%,
+      var(--accent) 60%
+    );
+    background-size: 250% 100%;
+    background-position: 100% 0;
+    background-clip: text;
+    color: transparent;
+    animation: looping-sweep 1.8s linear infinite;
+  }
+}
+@keyframes looping-sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce), (forced-colors: active) {
+  .looping-indicator-text {
+    animation: none;
+    background: none;
+    color: var(--accent);
+  }
+}

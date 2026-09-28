@@ -6,6 +6,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
+- coding-agent and Web UI: generate durable conversation titles asynchronously from user prompts, with first-user-message fallback names for new and untitled historical sessions, manual renaming, explicit regeneration, and live sidebar/tab updates. Empty sessions show New session. Web uses the first prompt; SDK hosts can choose first-prompt or all-prompts generation and a separate model. Failed or stale title requests do not replace accepted titles or affect the main conversation.
 - Web UI: add a Settings dialog with General, Models and Appearance tabs, keyboard navigation, and focus restoration.
 - Web UI: initialize the interface language from the browser's supported languages and remember manual Chinese or English selections without reloading or interrupting conversations.
 - Web UI: add System, Light, and Dark theme previews and persist the selected theme across visits. System follows browser color-scheme changes. Theme styling requires Chrome/Edge 123+, Firefox 120+, or Safari 17.5+.
@@ -16,6 +17,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Changed
 
+- Web UI: simplify the conversation header to a folder icon and session name. Highlight the name on hover and edit it inline with Enter to save and Escape or blur to cancel, synchronizing the header, sidebar and tabs. Remove the project path and separate rename/regenerate buttons.
 - Web UI: remove the model selector from the session header and place it in the input box.
 - Web UI: replace the sidebar language selector with a Settings button, add hover feedback, and reduce its bottom spacing.
 - Agent and coding-agent: use generic gateway, model, and credential placeholders in usage samples.

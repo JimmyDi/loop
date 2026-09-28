@@ -5,6 +5,8 @@ import { AgentSession, SessionManager } from "../../coding-agent/index";
 import type { ModelRuntime } from "../../coding-agent/index";
 import type { Frame } from "../shared/protocol";
 import { SessionController } from "./session-controller";
+import { sessionRoutes } from "./routes/sessions";
+import type { SessionRegistry } from "./session-registry";
 
 const model = {
   id: "test",
@@ -84,7 +86,9 @@ test("accepted requests deduplicate and drafts do not duplicate history", async 
   await waitFor(() => controller.snapshot.operation === "idle");
   expect(session.state.messages).toHaveLength(2);
   expect(controller.snapshot.state.messages).toEqual(session.state.messages);
-  expect(frames.filter((frame) => frame.type === "session.state")).toHaveLength(1);
+  expect(
+    frames.filter((frame) => frame.type === "session.state" && frame.snapshot.operation === "idle"),
+  ).toHaveLength(1);
   expect(controller.snapshot.state.draft).toBeUndefined();
   expect(calls).toBe(1);
   await controller.close();
@@ -204,4 +208,73 @@ test("failed flush preserves pending history and model failure releases operatio
   expect(controller.snapshot.state.hasPendingSave).toBe(false);
   expect(controller.snapshot.state.messages).toHaveLength(1);
   await controller.close();
+});
+
+test("late title updates publish outside a run, replay on reconnect, and support rename/refresh routes", async () => {
+  const titleStream = createAssistantMessageEventStream();
+  let generated = false;
+  const session = new AgentSession({
+    model,
+    sessionManager: SessionManager.inMemory(),
+    systemPrompt: "Main",
+    tools: [],
+    title: { mode: "first-prompt" },
+    modelRuntime: runtime((_model, context) => {
+      if (context.systemPrompt !== "Main" && !generated) {
+        generated = true;
+        return titleStream;
+      }
+      const stream = createAssistantMessageEventStream();
+      stream.push({
+        type: "done",
+        reason: "stop",
+        message: answer(context.systemPrompt === "Main" ? "Main answer" : "Generated title"),
+      });
+      return stream;
+    }),
+  });
+  const controller = new SessionController(session, "project");
+  const frames: Frame[] = [];
+  const disconnect = controller.events.connect((frame) => frames.push(frame));
+  try {
+    controller.prompt("title-request", "Example task");
+    await waitFor(() => !controller.busy && generated);
+    expect(controller.snapshot.state.messages).toHaveLength(2);
+    titleStream.push({ type: "done", reason: "stop", message: answer("Generated title") });
+    await session.waitForTitle();
+    expect(frames.at(-1)).toMatchObject({
+      type: "session.state",
+      snapshot: { operation: "idle", state: { title: { text: "Generated title" } } },
+    });
+    const route = sessionRoutes({
+      get: async () => controller,
+      assertAvailable: () => {},
+    } as unknown as SessionRegistry);
+    const url = new URL("http://localhost/api/sessions/" + session.sessionId + "/title");
+    const renamed = await route(
+      new Request(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Manual title" }),
+      }),
+      url,
+    );
+    expect(renamed?.status).toBe(200);
+    expect(controller.snapshot.state.title).toMatchObject({ source: "user", text: "Manual title" });
+    const refreshed = await route(new Request(url, { method: "POST" }), url);
+    expect(refreshed?.status).toBe(200);
+    expect(controller.snapshot.state.title?.source).toBe("model");
+    disconnect();
+    const reconnect: Frame[] = [];
+    const close = controller.events.connect((frame) => reconnect.push(frame));
+    expect(reconnect[0]).toMatchObject({
+      type: "session.snapshot",
+      snapshot: { state: { title: { text: "Generated title" } } },
+    });
+    close();
+    expect(session.state.messages).toHaveLength(2);
+  } finally {
+    disconnect();
+    await controller.close();
+  }
 });

@@ -12,7 +12,10 @@ export const applyEvent = (
     tools: updateTools(snapshot.tools, event),
   };
 
-  if (event.type === "message_end" && messageIndex !== undefined) {
+  if (event.type === "session_title") {
+    next.state.title = event.title;
+    next.state.titleError = event.error;
+  } else if (event.type === "message_end" && messageIndex !== undefined) {
     const messages = [...next.state.messages];
 
     messages[messageIndex] = event.message;

@@ -24,6 +24,26 @@ test("SessionList exposes its accessible content and state", () => {
   );
 
   expect(html).toContain("<button");
-  expect(html).toContain("2026");
+  expect(html).toContain("New session");
+  expect(html).not.toContain("2026");
   client.clear();
+});
+
+test("SessionList displays persisted summary titles instead of dates", () => {
+  const html = renderToStaticMarkup(
+    <SessionList
+      sessions={[
+        {
+          id: "titled",
+          workspaceId: "p",
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-01T00:00:00Z",
+          messageCount: 2,
+          title: "Fix language settings",
+        },
+      ]}
+    />,
+  );
+  expect(html).toContain("Fix language settings");
+  expect(html).not.toContain("2026");
 });

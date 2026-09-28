@@ -11,6 +11,7 @@ import { unavailableModel } from "./models/unavailable-model";
 import { isModelEffort } from "./models/model-effort";
 import type { ModelEffort } from "./models/model-effort";
 import { getModelEfforts } from "./model-runtime";
+import type { SessionTitleOptions } from "./titles/types";
 
 export type CreateAgentSessionOptions = ServiceOptions & {
   model?: Model<Api>;
@@ -19,6 +20,7 @@ export type CreateAgentSessionOptions = ServiceOptions & {
   maxTurns?: number;
   allowUnavailableModel?: boolean;
   effort?: ModelEffort;
+  title?: SessionTitleOptions;
 };
 
 export async function createAgentSession(
@@ -37,6 +39,7 @@ export async function createAgentSession(
     "maxTurns",
     "allowUnavailableModel",
     "effort",
+    "title",
   ]);
 
   for (const key of Object.keys(options)) {
@@ -104,6 +107,7 @@ export async function createAgentSession(
     systemPrompt: services.systemPrompt,
     maxTurns: options.maxTurns,
     effort,
+    title: options.title,
   });
 
   return { session };

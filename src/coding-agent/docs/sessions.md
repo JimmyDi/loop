@@ -31,6 +31,8 @@ Read `session.state.messages` after finalization for user, assistant, and matchi
 
 The manager commits one full snapshot at the end of each prompt, including model errors and cancellation. It writes a temporary sibling and renames it over the session file. A `message_end` event does not mean that snapshot has been persisted.
 
+[Session titles](session-titles.md) are independent header metadata and may finish after a prompt. History/model/title writes serialize within one manager. Call `waitForTitle()` before disposal to retain generated titles, or `abort()` to cancel and drain both the main run and title work. Runtime replacement cancels and drains old title work before opening another writable session.
+
 ## Save failure
 
 If storage fails, the old file remains intact and the attempted snapshot stays in memory. `state.hasPendingSave` becomes true; new prompts, model changes, session replacement, and disposal reject until saving succeeds.

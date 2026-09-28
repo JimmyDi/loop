@@ -22,6 +22,7 @@ export type SessionSummary = {
   createdAt: string;
   updatedAt: string;
   messageCount: number;
+  title?: string;
 };
 
 export type ToolView = {
@@ -39,7 +40,7 @@ export type SessionSnapshot = {
   state: SessionState;
   model: ModelChoice;
   effort?: ModelEffort;
-  operation: "idle" | "prompt" | "model" | "flush";
+  operation: "idle" | "prompt" | "model" | "flush" | "title";
   runId?: string;
   requestId?: string;
   draftIndex?: number;

@@ -22,8 +22,11 @@ The exported `SessionHeader` contains:
 | `cwd` | Absolute canonical working directory. It must still exist when loading. |
 | `createdAt`, `updatedAt` | ISO timestamp strings. |
 | `model` | Optional `{ provider: string, id: string, effort?: ModelEffort }`. |
+| `title` | Optional `SessionTitle`: text, source, source message indices, and optional model identity. See [session titles](session-titles.md). |
 
 Older files without effort remain valid and use Default. Unknown effort values reject; supported levels depend on model metadata. The header stores no API key or endpoint. Reconfigure those through [model runtime](models.md) when restoring a session.
+
+Older files without titles remain valid. The header accessor and session list derive a fallback from the first eligible user message when stored title metadata is absent; reading does not rewrite the file or call a model. Stored titles live only in the header; auxiliary prompts and responses are not conversation records. Title-only writes preserve activity timestamps and serialize with history/model writes. Malformed title metadata rejects on load.
 
 ## Messages
 

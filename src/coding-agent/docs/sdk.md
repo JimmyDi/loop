@@ -48,6 +48,7 @@ That sample enables coding tools and runs once before exiting. Without an argume
 | `noContextFiles` | Disable project instruction discovery. |
 | `effort` | Optional model reasoning effort; validated against supported levels. Saved in session model metadata. Missing values restore the saved effort or use default. |
 | `maxTurns` | Optional positive model-request limit per prompt, enforced by Agent. |
+| `title` | Optional [title policy](session-titles.md): mode, model override, input/output limits and timeout. SDK defaults to deterministic fallback only. |
 | `allowUnavailableModel` | Opt-in restoration of saved history without requiring its model/authentication during creation. Defaults to false; prompt and model-switch preflight remain mandatory. |
 
 An explicit cwd must match the manager's canonical cwd. The factory resolves services, checks model availability/authentication, records model identity, and creates the session. Unknown options reject. `createAgentSessionServices` is also exported for hosts that only need resolved cwd, settings, model runtime, and system prompt.
@@ -60,6 +61,10 @@ An explicit cwd must match the manager's canonical cwd. The factory resolves ser
 | `subscribe(listener)` | Receive [session events](events.md); returns unsubscribe. |
 | `abort(): Promise<void>` | Signal the run and wait for execution/save finalization. |
 | `waitForIdle(): Promise<void>` | Wait without cancelling. Swallows activity failures; not a success check. |
+| `renameTitle(text): Promise<void>` | Save a manual title and pin it against automatic updates. Requires idle state. |
+| `refreshTitle(): Promise<void>` | Explicitly regenerate from saved user messages; success removes a manual pin. Requires idle state. |
+| `waitForTitle(): Promise<void>` | Drain current background title work and storage writes without cancelling. |
+| `cancelTitle(): Promise<void>` | Cancel and drain title work without stopping the main prompt. |
 | `setModel(model, options?: { persist?: boolean; effort?: ModelEffort }): Promise<void>` | Change model/effort while idle and update this session's metadata; `persist: true` rejects. |
 | `flush(): Promise<void>` | Retry a pending save without rerunning the prompt. |
 | `dispose(): void` | Remove listeners and forbid further use; rejects while busy or a save is pending. |

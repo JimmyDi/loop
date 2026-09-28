@@ -7,11 +7,14 @@ import { getSessionDir } from "../config";
 import { atomicWrite } from "../utils/atomic-write";
 import { validateMessages } from "./messages";
 import { isModelEffort } from "./models/model-effort";
+import { fallbackTitle, titleInputs, validTitle } from "./titles/title-text";
+import type { SessionTitle } from "./titles/types";
 import type { ModelSelection, SessionData, SessionHeader, SessionInfo } from "./types/storage";
 
 export class SessionManager {
   private pending?: SessionData;
   private writing = false;
+  private writes: Promise<void> = Promise.resolve();
 
   private constructor(
     private data: SessionData,
@@ -64,6 +67,7 @@ export class SessionManager {
       typeof header.updatedAt !== "string" ||
       !Number.isFinite(Date.parse(header.createdAt)) ||
       !Number.isFinite(Date.parse(header.updatedAt)) ||
+      (header.title !== undefined && !validTitle(header.title)) ||
       (header.model !== undefined &&
         (!header.model ||
           typeof header.model.provider !== "string" ||
@@ -129,7 +133,15 @@ export class SessionManager {
   }
 
   getHeader(): SessionHeader {
-    return structuredClone(this.data.header);
+    const header = structuredClone(this.data.header);
+
+    if (!header.title) {
+      const first = titleInputs(this.data.messages)[0];
+
+      if (first) header.title = fallbackTitle(first);
+    }
+
+    return header;
   }
 
   getCwd(): string {
@@ -166,10 +178,12 @@ export class SessionManager {
     this.writing = true;
 
     try {
-      validateMessages(this.pending.messages);
-      await this.write(this.pending);
-      this.data = this.pending;
-      this.pending = undefined;
+      await this.serialize(async () => {
+        validateMessages(this.pending!.messages);
+        await this.write(this.pending!);
+        this.data = this.pending!;
+        this.pending = undefined;
+      });
     } finally {
       this.writing = false;
     }
@@ -183,24 +197,57 @@ export class SessionManager {
     this.writing = true;
 
     try {
-      const next = {
-        ...this.data,
-        header: {
-          ...this.data.header,
-          model: {
-            provider: model.provider,
-            id: model.id,
-            ...(model.effort && model.effort !== "default" ? { effort: model.effort } : {}),
+      await this.serialize(async () => {
+        const next = {
+          ...this.data,
+          header: {
+            ...this.data.header,
+            model: {
+              provider: model.provider,
+              id: model.id,
+              ...(model.effort && model.effort !== "default" ? { effort: model.effort } : {}),
+            },
+            updatedAt: new Date().toISOString(),
           },
-          updatedAt: new Date().toISOString(),
-        },
-      };
+        };
 
-      await this.write(next);
-      this.data = next;
+        await this.write(next);
+        this.data = next;
+      });
     } finally {
       this.writing = false;
     }
+  }
+
+  async setTitle(title: SessionTitle, accept: () => boolean = () => true): Promise<boolean> {
+    if (!validTitle(title)) throw new Error("Invalid session title");
+    const value = structuredClone(title);
+    return this.serialize(async () => {
+      if (!accept()) return false;
+      const previous = this.data;
+      const next = { ...previous, header: { ...previous.header, title: value } };
+      await this.write(next);
+      if (!accept()) {
+        await this.write(previous);
+        return false;
+      }
+      this.data = next;
+      if (this.pending) this.pending.header.title = structuredClone(value);
+      return true;
+    });
+  }
+
+  async waitForWrites(): Promise<void> {
+    await this.writes;
+  }
+
+  private serialize<T>(action: () => Promise<T>): Promise<T> {
+    const work = this.writes.then(action);
+    this.writes = work.then(
+      () => {},
+      () => {},
+    );
+    return work;
   }
 
   private async write(data: SessionData): Promise<void> {

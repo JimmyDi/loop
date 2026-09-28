@@ -1,0 +1,56 @@
+.session-name {
+  min-width: 0;
+  max-width: 100%;
+}
+.session-name-button,
+.session-name-input {
+  display: block;
+  max-width: 100%;
+  min-height: 36px;
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 26px;
+}
+.session-name-button {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+  cursor: pointer;
+}
+.session-name-button:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+.session-name-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  background: var(--surface-hover);
+}
+.session-name-button:disabled {
+  cursor: default;
+}
+.session-name-input {
+  box-sizing: border-box;
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  background: var(--surface-raised);
+}
+.session-name-input[aria-busy="true"] {
+  opacity: 0.65;
+}
+.session-name-hint {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

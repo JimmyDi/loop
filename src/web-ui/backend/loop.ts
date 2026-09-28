@@ -17,6 +17,9 @@ export type SessionPort = Pick<
   | "flush"
   | "setModel"
   | "dispose"
+  | "renameTitle"
+  | "refreshTitle"
+  | "cancelTitle"
 >;
 
 export type LoopBridge = {
@@ -41,12 +44,13 @@ export const createLoopBridge = (
     models: () => providers.models(),
     list: async (project) =>
       (await SessionManager.list(project.cwd, getSessionDir(project.cwd, agentDir))).map(
-        ({ id, createdAt, updatedAt, messageCount }) => ({
+        ({ id, createdAt, updatedAt, messageCount, title }) => ({
           id,
           workspaceId: project.id,
           createdAt,
           updatedAt,
           messageCount,
+          title: title?.text,
         }),
       ),
     load: async (project, id) => {
@@ -67,6 +71,7 @@ export const createLoopBridge = (
         model: sessionManager ? undefined : providers.defaultModel(),
         allowUnavailableModel: true,
         effort: sessionManager ? undefined : providers.defaultEffort(),
+        title: { mode: "first-prompt" },
       });
 
       return session;

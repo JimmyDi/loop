@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import type { Frame } from "../../shared/protocol";
 import { useSessions } from "../state/session-store";
+import { useWorkspace } from "../state/workspace-store";
 
 export const useSessionEvents = (id?: string): void => {
   const query = useQueryClient();
@@ -34,7 +35,9 @@ export const useSessionEvents = (id?: string): void => {
             return;
           }
 
-          if (frame.type === "session.state" && frame.snapshot.operation === "idle") {
+          if (frame.type === "session.snapshot" || frame.type === "session.state") {
+            const title = useSessions.getState().views[id]?.snapshot?.state.title?.text;
+            if (title) useWorkspace.getState().title(id, title);
             void query.invalidateQueries({ queryKey: ["sessions"] });
           }
         } catch {

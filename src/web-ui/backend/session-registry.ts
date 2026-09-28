@@ -110,6 +110,7 @@ export class SessionRegistry {
 
       await this.projects.remove(workspaceId);
       this.removed.add(workspaceId);
+      await Promise.all(sessions.map((item) => item.session.cancelTitle()));
 
       for (const item of sessions) {
         item.dispose();
@@ -150,7 +151,10 @@ export class SessionRegistry {
       throw new HttpError(409, "provider_busy");
 
     this.configuring = true;
-    const work = Promise.resolve().then(action);
+    const work = Promise.resolve().then(async () => {
+      await Promise.all([...this.instances.values()].map((item) => item.session.cancelTitle()));
+      await action();
+    });
 
     this.operations.add(work);
 

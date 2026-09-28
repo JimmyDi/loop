@@ -13,8 +13,12 @@ Each sessionId has one writable AgentSession in the current Web process. Web man
 | POST /api/sessions/:id/abort | Wait for cancellation and cleanup, then return a snapshot |
 | POST /api/sessions/:id/flush | Retry saving existing results and return a snapshot |
 | PUT /api/sessions/:id/model | Accept provider and id; return a snapshot after switching |
+| PUT /api/sessions/:id/title | Accept nonempty title; normalize, save and pin it against automatic generation |
+| POST /api/sessions/:id/title | Regenerate from saved user text; return the snapshot on completion |
 
-A complete snapshot contains model identity, supported efforts, selected effort, SDK state, operation, tool projection, and optional runId/requestId. operation is idle, prompt, model, or flush; it does not indicate whether model text has started arriving.
+A complete snapshot contains model identity, supported efforts, selected effort, SDK state, operation, tool projection, and optional runId/requestId. operation is idle, prompt, model, flush, or title; it does not indicate whether model text has started arriving.
+
+Web enables first-prompt title generation through coding-agent. List summaries include optional title text; snapshots expose title source and optional titleError in SDK state. Background title events publish session.state without changing the operation or opening a run. Explicit title commands share the command lock. Provider reconfiguration and project removal cancel and drain auxiliary work before changing its runtime or disposing sessions. See [session titles](../../../coding-agent/docs/session-titles.md).
 
 ## Creation and Restoration
 

@@ -32,14 +32,14 @@ export const sessionRoutes =
     }
 
     const match = url.pathname.match(
-      /^\/api\/sessions\/([^/]+)(?:\/(prompt|abort|flush|model|events))?$/,
+      /^\/api\/sessions\/([^/]+)(?:\/(prompt|abort|flush|model|events|title))?$/,
     );
 
     if (!match) return;
 
     const [, id, action] = match;
     const body =
-      action === "prompt" || action === "model"
+      action === "prompt" || action === "model" || (action === "title" && method === "PUT")
         ? await readBody(request, action === "prompt" ? MAX_PROMPT_BODY_BYTES : undefined)
         : {};
     const controller = await registry.get(id!);
@@ -64,7 +64,12 @@ export const sessionRoutes =
       return Response.json({ runId }, { status: 202 });
     }
 
-    if (action === "abort" && method === "POST") await controller.abort();
+    if (action === "title" && method === "PUT") {
+      const title = requiredString(body, "title");
+      await controller.command("title", () => controller.session.renameTitle(title));
+    } else if (action === "title" && method === "POST") {
+      await controller.command("title", () => controller.session.refreshTitle());
+    } else if (action === "abort" && method === "POST") await controller.abort();
     else if (action === "flush" && method === "POST") {
       await controller.command("flush", () => controller.session.flush());
     } else if (action === "model" && method === "PUT") {

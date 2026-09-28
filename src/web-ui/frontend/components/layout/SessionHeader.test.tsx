@@ -13,7 +13,11 @@ test("SessionHeader exposes its accessible content and state", () => {
     </QueryClientProvider>,
   );
 
-  expect(html).toContain("Loop");
+  expect(html).toContain("New session");
+  expect(html).toContain("<svg");
   expect(html).toContain("Open projects");
+  expect(html).not.toContain("Rename conversation");
+  expect(html).not.toContain("Regenerate title");
+  expect(html).not.toContain("session-heading");
   client.clear();
 });

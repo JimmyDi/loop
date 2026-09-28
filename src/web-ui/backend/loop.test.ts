@@ -16,6 +16,10 @@ test("SDK bridge lists canonical project history without exposing file paths", a
     expect(sessions[0]?.id).toBe(manager.getSessionId());
     expect(sessions[0]?.workspaceId).toBe("project");
     expect(sessions[0]).not.toHaveProperty("path");
+    await manager.commit([{ role: "user", content: "First historical request", timestamp: 0 }]);
+    expect((await bridge.list({ id: "project", name: "Example", cwd: root }))[0]?.title).toBe(
+      "First historical request",
+    );
     await expect(
       bridge.load({ id: "project", name: "Example", cwd: root }, "unknown"),
     ).rejects.toThrow("Session not found");
@@ -61,6 +65,10 @@ test("provider deletion keeps saved conversations readable and requires explicit
     const restarted = createLoopBridge(root, afterRestart);
     expect(await restarted.models()).toEqual([]);
     const restored = await restarted.load(project, sessionId);
+    expect(restored.state.title).toMatchObject({
+      text: "Saved example message",
+      source: "fallback",
+    });
     expect(restored.model).toMatchObject({ provider: config.id, id: "second" });
     await expect(restored.prompt("must not call a service")).rejects.toThrow("Model not found");
     expect(restored.state.messages).toEqual([

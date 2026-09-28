@@ -4,8 +4,12 @@ import type { AgentEvent, AgentTool } from "../../../agent";
 import type { ModelRuntime } from "../model-runtime";
 import type { SessionManager } from "../session-manager";
 import type { ModelEffort } from "../models/model-effort";
+import type { SessionTitle, SessionTitleOptions } from "../titles/types";
 
-export type SessionEvent = AgentEvent | { type: "agent_settled" };
+export type SessionEvent =
+  | AgentEvent
+  | { type: "agent_settled" }
+  | { type: "session_title"; title: SessionTitle; error?: string };
 
 export type SessionEventListener = (event: SessionEvent) => void | Promise<void>;
 
@@ -17,6 +21,8 @@ export type SessionState = {
   outcome: "idle" | "success" | "error" | "cancelled";
   error?: string;
   listenerErrors: string[];
+  title?: SessionTitle;
+  titleError?: string;
 };
 
 export type SessionOptions = {
@@ -27,4 +33,5 @@ export type SessionOptions = {
   tools: AgentTool[];
   maxTurns?: number;
   effort?: ModelEffort;
+  title?: SessionTitleOptions;
 };

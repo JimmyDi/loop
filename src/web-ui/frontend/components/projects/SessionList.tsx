@@ -2,23 +2,30 @@ import { useTranslation } from "react-i18next";
 
 import type { SessionSummary } from "../../../shared/protocol";
 import { useWorkspace } from "../../state/workspace-store";
+import { useSessions } from "../../state/session-store";
 import "./SessionList.css";
 
 export const SessionList = ({ sessions }: { sessions: SessionSummary[] }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const active = useWorkspace((state) => state.active);
   const open = useWorkspace((state) => state.open);
+  const views = useSessions((state) => state.views);
 
   return (
     <ul className="session-list">
       {!sessions.length && <li className="session-empty">{t("noSessions")}</li>}
       {sessions.map((session) => {
-        const title = new Date(session.createdAt).toLocaleString(i18n.language);
+        const view = views[session.id];
+        const title =
+          (view?.connected ? view.snapshot?.state.title?.text : undefined) ??
+          session.title ??
+          t("newSession");
 
         return (
           <li key={session.id}>
             <button
               type="button"
+              title={title}
               aria-current={active === session.id ? "page" : undefined}
               onClick={() => open({ id: session.id, workspaceId: session.workspaceId, title })}
             >

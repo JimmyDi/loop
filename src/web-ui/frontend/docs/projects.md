@@ -20,7 +20,11 @@ A local macOS service can open the system folder picker. Browser-based directory
 | Create a session | Submit workspaceId and open a tab with the returned sessionId |
 | Open an existing session | workspace-store deduplicates tabs by sessionId; the view loads a snapshot and subscribes to events |
 
-History entries use creation time as their display title; newly created tabs show **New session**. Session title editing and automatic summary titles are not supported. Renaming a project changes its display name, not its directory on disk.
+Sessions without user text show **New session** in the header, history and tabs. When no generated or manual title exists, the first eligible user message supplies the fallback title, including for restored historical sessions. New conversations also make an independent model request to generate a short title in the prompt's language. Saved titles appear in sidebar rows and tabs. Failed generation keeps the existing title. Renaming a project still changes only its display name.
+
+The header contains a folder icon and the session name, without the project path or separate title actions. Hovering or keyboard-focusing the name highlights it. Click to edit with the current text selected; Enter confirms, while Escape or clicking outside cancels. Enter during IME composition does not submit. Blank names cannot be saved; failed saves retain the draft and show an error. Successful saves pin the manual title and update the header, sidebar and tabs immediately. Editing is unavailable during another session operation or pending history save. Title regeneration remains available through the SDK/API, with no header button.
+
+Active sessions receive title updates through SSE, including results arriving after the answer. Expanded project lists refresh every five seconds while the page is visible to pick up background-session changes; saved tab titles also update. Reading untitled history derives a fallback without making a model request or rewriting the session file. See [title policy](../../../coding-agent/docs/session-titles.md).
 
 ## Lifecycle and Errors
 
@@ -38,3 +42,5 @@ There is no file-tree editor, session deletion, history search, or session trans
 - [useProjectSessions](../hooks/useProjectSessions.ts) / [tests](../hooks/useProjectSessions.test.tsx).
 - [useDirectoryPicker](../hooks/useDirectoryPicker.ts) / [tests](../hooks/useDirectoryPicker.test.tsx).
 - [workspace-store](../state/workspace-store.ts) / [tests](../state/workspace-store.test.ts).
+- [SessionName](../components/layout/SessionName.tsx) / [tests](../components/layout/SessionName.test.tsx).
+- [useSessionRename](../hooks/useSessionRename.ts) / [tests](../hooks/useSessionRename.test.tsx).

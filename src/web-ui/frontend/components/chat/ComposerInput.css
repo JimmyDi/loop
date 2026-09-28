@@ -2,11 +2,11 @@
   min-height: 76px;
   max-height: 220px;
   overflow-y: auto;
-  padding: 16px var(--composer-content-inset, 28px) 8px;
+  padding: 16px var(--composer-content-inset, 12px) 8px;
   outline: none;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.6;
 }
 .composer-input[data-empty="true"]::before {

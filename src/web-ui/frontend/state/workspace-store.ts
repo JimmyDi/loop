@@ -17,6 +17,7 @@ type WorkspaceState = {
   open(session: SessionSelection): void;
   draft(id: string, text: string): void;
   removeProject(id: string): void;
+  removeSessions(ids: string[]): void;
   draftProjects: Record<string, string>;
   expanded: Record<string, boolean>;
   expand(id: string, expanded: boolean): void;
@@ -89,6 +90,16 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
         ),
       };
     }),
+  removeSessions: (ids) =>
+    set((state) => ({
+      active: state.active && ids.includes(state.active.id) ? undefined : state.active,
+      drafts: Object.fromEntries(Object.entries(state.drafts).filter(([id]) => !ids.includes(id))),
+      images: Object.fromEntries(Object.entries(state.images).filter(([id]) => !ids.includes(id))),
+      files: Object.fromEntries(Object.entries(state.files).filter(([id]) => !ids.includes(id))),
+      draftProjects: Object.fromEntries(
+        Object.entries(state.draftProjects).filter(([id]) => !ids.includes(id)),
+      ),
+    })),
   toggleSidebar: (sidebar) => set({ sidebar }),
 }));
 

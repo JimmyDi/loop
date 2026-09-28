@@ -14,13 +14,23 @@ export const startServer = (port = 3080) => {
   const providers = new ProviderSettings(join(agentDir, "web-ui", "provider.json"));
   const registry = new SessionRegistry(projects, createLoopBridge(agentDir, providers));
   const route = createRouter(registry, providers);
+  const icon = (name: string, type: string) => () =>
+    new Response(Bun.file(join(import.meta.dir, "../frontend/assets", name)), {
+      headers: { "Content-Type": type, "Cache-Control": "no-cache" },
+    });
   const server = Bun.serve({
     hostname: "127.0.0.1",
     port,
     idleTimeout: 0,
     // Prompt bodies have no application size cap; other routes bound their JSON reads.
     maxRequestBodySize: Infinity,
-    routes: { "/": page, "/api/*": route },
+    routes: {
+      "/": page,
+      "/api/*": route,
+      "/favicon.ico": icon("loop-icon.ico", "image/x-icon"),
+      "/assets/loop-mask-icon.svg": icon("loop-mask-icon.svg", "image/svg+xml"),
+      "/apple-touch-icon.png": icon("loop-apple-touch-icon.png", "image/png"),
+    },
     fetch: () => new Response("Not found", { status: 404 }),
     development: process.env.NODE_ENV !== "production" ? { hmr: true, console: true } : false,
   });

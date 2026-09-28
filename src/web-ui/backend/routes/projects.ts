@@ -1,6 +1,7 @@
 import { browseDirectory } from "../directories/browse";
 import { createNativePicker, directoryCapabilities } from "../directories/native-picker";
 import { readBody, requiredString } from "../http/input";
+import { HttpError } from "../http/errors";
 import type { SessionRegistry } from "../session-registry";
 
 export const projectRoutes = (registry: SessionRegistry) => {
@@ -9,6 +10,11 @@ export const projectRoutes = (registry: SessionRegistry) => {
   return async (request: Request, url: URL): Promise<Response | undefined> => {
     const path = url.pathname;
     const method = request.method;
+    const session = path.match(new RegExp("^/api/workspaces/([^/]+)/sessions/([^/]+)$"));
+    if (session && method === "DELETE") {
+      await registry.archive(session[1]!, [session[2]!], "delete-session");
+      return new Response(null, { status: 204 });
+    }
 
     if (path === "/api/workspaces") {
       if (method === "GET") return Response.json(await registry.projects.list());
@@ -19,6 +25,23 @@ export const projectRoutes = (registry: SessionRegistry) => {
 
         return Response.json(await registry.projects.add(requiredString(body, "path"), name));
       }
+    }
+
+    const archive = path.match(/^\/api\/workspaces\/([^/]+)\/archive$/)?.[1];
+    if (archive && (method === "POST" || method === "DELETE")) {
+      const body = await readBody(request);
+      if (
+        !Array.isArray(body.ids) ||
+        body.ids.some((id) => typeof id !== "string") ||
+        (method === "POST" && typeof body.archived !== "boolean")
+      )
+        throw new HttpError(400, "invalid_archive");
+      await registry.archive(
+        archive,
+        body.ids,
+        method === "DELETE" ? "delete" : (body.archived as boolean),
+      );
+      return new Response(null, { status: 204 });
     }
 
     const project = path.match(/^\/api\/workspaces\/([^/]+)$/)?.[1];

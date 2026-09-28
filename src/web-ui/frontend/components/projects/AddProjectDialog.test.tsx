@@ -9,7 +9,7 @@ test("AddProjectDialog exposes its accessible content and state", () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const html = renderToStaticMarkup(
     <QueryClientProvider client={client}>
-      <AddProjectDialog onClose={() => {}} />
+      <AddProjectDialog onAdded={() => {}} onClose={() => {}} />
     </QueryClientProvider>,
   );
 

@@ -35,11 +35,22 @@ test("SSE hook requests a fresh snapshot on a gap and closes only its connection
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     );
-    const snapshot = {
+    const snapshot: SessionSnapshot = {
       sessionId: "s",
       streamId: "stream",
-      state: { title: { text: "Live title", source: "model", messageIndices: [0] } },
-    } as SessionSnapshot;
+      workspaceId: "p",
+      model: { id: "example", provider: "example", name: "Example" },
+      operation: "idle",
+      tools: {},
+      state: {
+        messages: [],
+        isRunning: false,
+        hasPendingSave: false,
+        outcome: "idle",
+        listenerErrors: [],
+        title: { text: "Live title", source: "model", messageIndices: [0] },
+      },
+    };
     client.setQueryData(["sessions", "p"], []);
 
     useSessions.setState({ views: {} });
@@ -59,13 +70,31 @@ test("SSE hook requests a fresh snapshot on a gap and closes only its connection
         }),
       }),
     );
+    client.setQueryData(["sessions", "p"], []);
+    act(() =>
+      connections[0]?.onmessage?.({
+        data: JSON.stringify({
+          type: "loop.event",
+          sessionId: "s",
+          streamId: "stream",
+          seq: 1,
+          runId: "run",
+          messageIndex: 0,
+          event: {
+            type: "message_end",
+            message: { role: "user", content: "First prompt", timestamp: 1 },
+          },
+        }),
+      }),
+    );
+    expect(client.getQueryState(["sessions", "p"])?.isInvalidated).toBe(true);
     act(() =>
       connections[0]?.onmessage?.({
         data: JSON.stringify({
           type: "run.accepted",
           sessionId: "s",
           streamId: "stream",
-          seq: 2,
+          seq: 3,
           runId: "run",
           requestId: "r",
         }),

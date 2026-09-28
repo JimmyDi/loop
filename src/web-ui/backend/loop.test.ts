@@ -53,13 +53,15 @@ test("provider deletion keeps saved conversations readable and requires explicit
     await restoredSettings.runtime();
     expect(restoredSettings.defaultModel()?.id).toBe("second");
     const sessionId = session.sessionId;
+    expect(await SessionManager.list(root, getSessionDir(root, root))).toEqual([]);
+    const manager = (session as import("../../coding-agent/index").AgentSession).sessionManager;
+    await manager.commit([{ role: "user", content: "Saved example message", timestamp: 1 }]);
     session.dispose();
     next.dispose();
     const record = (await SessionManager.list(root, getSessionDir(root, root))).find(
       (entry) => entry.id === sessionId,
     )!;
-    const manager = await SessionManager.open(record.path);
-    await manager.commit([{ role: "user", content: "Saved example message", timestamp: 1 }]);
+    expect((await SessionManager.open(record.path)).messages).toHaveLength(1);
     await settings.remove(config.id);
     const afterRestart = new ProviderSettings(join(root, "provider.json"));
     const restarted = createLoopBridge(root, afterRestart);

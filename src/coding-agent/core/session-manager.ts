@@ -19,6 +19,7 @@ export class SessionManager {
   private constructor(
     private data: SessionData,
     readonly sessionFile?: string,
+    private draft = false,
   ) {}
 
   static inMemory(cwd = process.cwd()): SessionManager {
@@ -49,6 +50,15 @@ export class SessionManager {
     await manager.write(manager.data);
 
     return manager;
+  }
+
+  static draft(cwd: string, sessionDir = getSessionDir(cwd)): SessionManager {
+    const memory = SessionManager.inMemory(cwd);
+    return new SessionManager(
+      memory.data,
+      join(resolve(sessionDir), memory.data.header.id + ".jsonl"),
+      true,
+    );
   }
 
   static async open(path: string): Promise<SessionManager> {
@@ -107,6 +117,7 @@ export class SessionManager {
           ...header,
           path: manager.sessionFile!,
           messageCount: manager.messages.length,
+          userMessageCount: manager.messages.filter((message) => message.role === "user").length,
         });
     }
 
@@ -251,10 +262,12 @@ export class SessionManager {
   }
 
   private async write(data: SessionData): Promise<void> {
+    if (this.draft && !data.messages.some((message) => message.role === "user")) return;
     if (this.sessionFile)
       await atomicWrite(
         this.sessionFile,
         [data.header, ...data.messages].map((entry) => JSON.stringify(entry)).join("\n") + "\n",
       );
+    this.draft = false;
   }
 }

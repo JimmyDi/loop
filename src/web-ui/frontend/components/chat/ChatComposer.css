@@ -4,7 +4,7 @@
   margin: 0 auto max(18px, env(safe-area-inset-bottom));
 }
 .chat-composer {
-  --composer-content-inset: 28px;
+  --composer-content-inset: 12px;
 
   background: var(--surface-raised);
   border: 1px solid var(--line);
@@ -27,7 +27,7 @@
   justify-content: space-between;
   gap: 12px;
   /* Align the visible plus glyph with the input, accounting for its button inset. */
-  padding: 4px 12px 10px calc(var(--composer-content-inset) - 10px);
+  padding: 4px var(--composer-content-inset) 10px calc(var(--composer-content-inset) - 10px);
   min-height: 48px;
 }
 .composer-send {

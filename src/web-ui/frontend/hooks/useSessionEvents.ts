@@ -34,7 +34,13 @@ export const useSessionEvents = (id?: string): void => {
             return;
           }
 
-          if (frame.type === "session.snapshot" || frame.type === "session.state") {
+          if (
+            frame.type === "session.snapshot" ||
+            frame.type === "session.state" ||
+            (frame.type === "loop.event" &&
+              frame.event.type === "message_end" &&
+              frame.event.message.role === "user")
+          ) {
             void query.invalidateQueries({ queryKey: ["sessions"] });
           }
         } catch {

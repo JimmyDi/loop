@@ -10,6 +10,7 @@ import type { PromptImage } from "../shared/prompt-images";
 import type { PromptFile } from "../shared/prompt-files";
 
 export class SessionController {
+  readonly createdAt = new Date().toISOString();
   readonly events: SessionEvents;
   snapshot: SessionSnapshot;
   private unsubscribe: () => void;

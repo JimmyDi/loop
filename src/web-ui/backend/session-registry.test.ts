@@ -38,11 +38,20 @@ test("registry shares one writable instance and guards removal against load/run 
     };
     let release!: () => void;
     let loads = 0;
+    let releaseArchive!: () => void;
+    let archiving = false;
     const wait = new Promise<void>((resolve) => {
       release = resolve;
     });
     const loop: LoopBridge = {
       models: async () => [],
+      deleteSessions: async () => {},
+      archive: async () => {
+        archiving = true;
+        await new Promise<void>((resolve) => {
+          releaseArchive = resolve;
+        });
+      },
       setModel: async () => {},
       list: async () => [
         {
@@ -50,6 +59,7 @@ test("registry shares one writable instance and guards removal against load/run 
           title: manager.getHeader().title?.text,
           workspaceId: project.id,
           messageCount: 0,
+          userMessageCount: 0,
         },
       ],
       load: async () => {
@@ -76,13 +86,22 @@ test("registry shares one writable instance and guards removal against load/run 
 
     expect(loads).toBe(1);
     await expect(registry.remove(project.id)).rejects.toThrow("project_busy");
+    await expect(registry.archive(project.id, [id], true)).rejects.toThrow("project_busy");
+    await expect(registry.archive(project.id, [id], "delete")).rejects.toThrow("project_busy");
+    await expect(registry.archive(project.id, [id], "delete-session")).rejects.toThrow(
+      "project_busy",
+    );
     release();
     expect(await a).toBe(await b);
     const controller = await a;
 
     controller.prompt("first", "hello");
+    await expect(registry.archive(project.id, [id], "delete-session")).rejects.toThrow(
+      "project_busy",
+    );
     expect((await registry.list(project.id))[0]?.isGenerating).toBe(true);
     await expect(registry.remove(project.id)).rejects.toThrow("project_busy");
+    await expect(registry.archive(project.id, [id], true)).rejects.toThrow("project_busy");
     await controller.abort();
     expect((await registry.list(project.id))[0]?.isGenerating).toBe(false);
     for (const operation of ["model", "flush", "title"] as const) {
@@ -90,6 +109,13 @@ test("registry shares one writable instance and guards removal against load/run 
         expect((await registry.list(project.id))[0]?.isGenerating).toBe(false);
       });
     }
+    const archive = registry.archive(project.id, [id], true);
+    for (let i = 0; i < 100 && !archiving; i++) await Bun.sleep(2);
+    expect(archiving).toBe(true);
+    await expect(registry.create(project.id)).rejects.toThrow("project_busy");
+    await expect(registry.remove(project.id)).rejects.toThrow("project_busy");
+    releaseArchive();
+    await archive;
     await registry.remove(project.id);
     expect(() => registry.assertAvailable(project.id)).toThrow("project_not_found");
     await expect(registry.get(id)).rejects.toThrow("session_not_found");

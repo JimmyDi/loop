@@ -22,8 +22,10 @@ export type SessionSummary = {
   createdAt: string;
   updatedAt: string;
   messageCount: number;
+  userMessageCount: number;
   title?: string;
   isGenerating?: boolean;
+  archived?: boolean;
 };
 
 export type ToolView = {

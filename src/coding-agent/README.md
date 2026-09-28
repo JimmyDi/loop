@@ -25,6 +25,7 @@ The CLI is interactive by default. The SDK sample performs one request workflow 
 | Model selection, credentials, custom URLs | [Models](docs/models.md) |
 | Configuration files and environment | [Settings](docs/settings.md) |
 | Create, restore, replace, and save sessions | [Sessions](docs/sessions.md) |
+| Preserve and restore archive membership | [Session archive](docs/session-archive.md) |
 | Automatic titles, renaming and regeneration | [Session titles](docs/session-titles.md) |
 | On-disk JSONL schema | [Session format](docs/session-format.md) |
 | Stream output and observe run completion | [Events](docs/events.md) |

@@ -3,7 +3,7 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 8px var(--composer-content-inset, 28px) 0;
+  padding: 8px var(--composer-content-inset, 12px) 0;
 }
 .composer-attachment {
   position: relative;

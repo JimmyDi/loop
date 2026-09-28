@@ -12,7 +12,15 @@ export const useProjects = () => {
   });
   const add = useMutation({
     mutationFn: (path: string) => command<Project>("/workspaces", { path }),
-    onSuccess: refresh,
+    onSuccess: async (project) => {
+      await client.cancelQueries({ queryKey: ["projects"] });
+      client.setQueryData<Project[]>(["projects"], (current = []) =>
+        current.some((item) => item.id === project.id)
+          ? current.map((item) => (item.id === project.id ? project : item))
+          : [...current, project],
+      );
+      void refresh();
+    },
   });
   const rename = useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) =>

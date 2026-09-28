@@ -3,7 +3,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { SessionSnapshot, SessionSummary } from "../../shared/protocol";
 import { command } from "../lib/api";
 import { useSessions } from "../state/session-store";
-import { useWorkspace } from "../state/workspace-store";
 import { useAsyncAction } from "./useAsyncAction";
 
 export const useSessionRename = (snapshot: SessionSnapshot) => {
@@ -50,7 +49,6 @@ export const useSessionRename = (snapshot: SessionSnapshot) => {
           session.id === next.sessionId ? { ...session, title: title.text } : session,
         ),
       );
-      useWorkspace.getState().title(next.sessionId, title.text);
       void query.invalidateQueries({ queryKey: ["sessions", next.workspaceId] });
       saved = true;
     });

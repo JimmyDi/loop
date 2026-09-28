@@ -3,8 +3,7 @@
   --surface: light-dark(#f6f7f9, #18191c);
   --surface-raised: light-dark(#fff, #222428);
   --surface-sidebar: light-dark(#f0f2f5, #1e2024);
-  --surface-tabs: light-dark(#fafbfc, #1b1d21);
-  --surface-header: light-dark(#ffffffbb, #222428bb);
+  --surface-header: var(--surface);
   --surface-subtle: light-dark(#f5f6f7, #2b2d32);
   --surface-hover: light-dark(#eef2f7, #34373d);
   --surface-selected: light-dark(#eceef1, #383b42);

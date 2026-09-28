@@ -27,7 +27,6 @@ test("Settings opens General outside the mobile drawer and restores focus withou
     useWorkspace.setState({
       sidebar: true,
       active: undefined,
-      tabs: [],
       drafts: { example: "Unsent draft" },
     });
     const view = render(

@@ -22,7 +22,7 @@ export const ProjectItem = ({ project }: { project: Project }) => {
     try {
       const snapshot = await create.mutateAsync();
 
-      open({ id: snapshot.sessionId, workspaceId: project.id, title: t("newSession") });
+      open({ id: snapshot.sessionId, workspaceId: project.id });
     } catch {
       /* Mutation exposes the error below. */
     }

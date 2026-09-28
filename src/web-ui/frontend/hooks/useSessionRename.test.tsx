@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 
 import type { SessionSnapshot } from "../../shared/protocol";
 import { useSessions } from "../state/session-store";
-import { useWorkspace } from "../state/workspace-store";
 import { useSessionRename } from "./useSessionRename";
 
 test("rename acknowledgement only merges title fields into newer live state and retains SSE cursor", async () => {
@@ -97,7 +96,6 @@ test("rename acknowledgement only merges title fields into newer live state and 
     cleanup();
     client.clear();
     useSessions.setState({ views: {} });
-    useWorkspace.setState({ tabs: [] });
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

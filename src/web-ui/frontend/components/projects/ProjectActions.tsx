@@ -29,9 +29,7 @@ export const ProjectActions = ({ project }: { project: Project }) => {
     try {
       await remove.mutateAsync(project.id);
 
-      for (const tab of state.tabs) {
-        if (tab.workspaceId === project.id) useRequests.getState().put(tab.id);
-      }
+      if (state.active?.workspaceId === project.id) useRequests.getState().put(state.active.id);
 
       for (const [id, workspaceId] of Object.entries(state.draftProjects)) {
         if (workspaceId === project.id) useRequests.getState().put(id);

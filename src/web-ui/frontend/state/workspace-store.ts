@@ -3,18 +3,15 @@ import { create } from "zustand";
 import { readPreference, writePreference } from "../lib/preferences";
 import type { PromptImage } from "../../shared/prompt-images";
 
-export type Tab = { id: string; workspaceId: string; title: string };
+type SessionSelection = { id: string; workspaceId: string };
 
 type WorkspaceState = {
-  tabs: Tab[];
-  active?: string;
+  active?: SessionSelection;
   drafts: Record<string, string>;
   images: Record<string, PromptImage[]>;
   attach(id: string, images: PromptImage[]): void;
   sidebar: boolean;
-  open(tab: Tab): void;
-  title(id: string, title: string): void;
-  close(id: string): void;
+  open(session: SessionSelection): void;
   draft(id: string, text: string): void;
   removeProject(id: string): void;
   draftProjects: Record<string, string>;
@@ -23,16 +20,18 @@ type WorkspaceState = {
   toggleSidebar(open: boolean): void;
 };
 
-const savedTabs = readPreference<unknown>("tabs", []);
-const tabs = Array.isArray(savedTabs)
-  ? savedTabs.filter(
-      (tab): tab is Tab =>
-        tab &&
-        typeof tab.id === "string" &&
-        typeof tab.workspaceId === "string" &&
-        typeof tab.title === "string",
-    )
-  : [];
+const savedActive = readPreference<unknown>("activeSession", undefined);
+const active: SessionSelection | undefined =
+  savedActive &&
+  typeof savedActive === "object" &&
+  "id" in savedActive &&
+  typeof savedActive.id === "string" &&
+  savedActive.id &&
+  "workspaceId" in savedActive &&
+  typeof savedActive.workspaceId === "string" &&
+  savedActive.workspaceId
+    ? { id: savedActive.id, workspaceId: savedActive.workspaceId }
+    : undefined;
 const savedDrafts = readPreference<Record<string, unknown>>("drafts", {});
 const drafts = Object.fromEntries(
   Object.entries(savedDrafts ?? {}).filter(
@@ -41,59 +40,36 @@ const drafts = Object.fromEntries(
 );
 
 export const useWorkspace = create<WorkspaceState>((set) => ({
-  tabs,
-  active: tabs[0]?.id,
+  active,
   drafts,
   images: {},
   attach: (id, images) =>
     set((state) => ({
       images: { ...state.images, [id]: images },
-      draftProjects: {
-        ...state.draftProjects,
-        [id]: state.tabs.find((tab) => tab.id === id)?.workspaceId ?? state.draftProjects[id] ?? "",
-      },
     })),
   draftProjects: readPreference<Record<string, string>>("draftProjects", {}),
   expanded: readPreference<Record<string, boolean>>("expanded", {}),
   expand: (id, expanded) => set((state) => ({ expanded: { ...state.expanded, [id]: expanded } })),
   sidebar: false,
-  title: (id, title) =>
+  open: (session) =>
     set((state) => ({
-      tabs: state.tabs.some((tab) => tab.id === id && tab.title !== title)
-        ? state.tabs.map((tab) => (tab.id === id ? { ...tab, title } : tab))
-        : state.tabs,
-    })),
-  open: (tab) =>
-    set((state) => ({
-      active: tab.id,
+      active: { id: session.id, workspaceId: session.workspaceId },
       sidebar: false,
-      tabs: state.tabs.some((item) => item.id === tab.id) ? state.tabs : [...state.tabs, tab],
+      draftProjects: { ...state.draftProjects, [session.id]: session.workspaceId },
     })),
-  close: (id) =>
-    set((state) => {
-      const tabs = state.tabs.filter((tab) => tab.id !== id);
-
-      return { tabs, active: state.active === id ? tabs.at(-1)?.id : state.active };
-    }),
   draft: (id, text) =>
     set((state) => ({
       drafts: { ...state.drafts, [id]: text },
-      draftProjects: {
-        ...state.draftProjects,
-        [id]: state.tabs.find((tab) => tab.id === id)?.workspaceId ?? state.draftProjects[id] ?? "",
-      },
     })),
   removeProject: (id) =>
     set((state) => {
-      const removed = [
-        ...state.tabs.filter((tab) => tab.workspaceId === id).map((tab) => tab.id),
-        ...Object.keys(state.draftProjects).filter((key) => state.draftProjects[key] === id),
-      ];
-      const tabs = state.tabs.filter((tab) => tab.workspaceId !== id);
+      const removed = Object.keys(state.draftProjects).filter(
+        (key) => state.draftProjects[key] === id,
+      );
+      if (state.active?.workspaceId === id) removed.push(state.active.id);
 
       return {
-        tabs,
-        active: removed.includes(state.active ?? "") ? tabs[0]?.id : state.active,
+        active: state.active?.workspaceId === id ? undefined : state.active,
         drafts: Object.fromEntries(
           Object.entries(state.drafts).filter(([id]) => !removed.includes(id)),
         ),
@@ -109,7 +85,7 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
 }));
 
 useWorkspace.subscribe((state, previous) => {
-  if (state.tabs !== previous.tabs) writePreference("tabs", state.tabs);
+  if (state.active !== previous.active) writePreference("activeSession", state.active ?? null);
 
   if (state.drafts !== previous.drafts) writePreference("drafts", state.drafts);
 

@@ -23,7 +23,7 @@ Sending requires a connected, idle session with no pending save and text or at l
 
 ## Cancellation, Waiting, and Save Failures
 
-**Stop generating** calls the abort endpoint and waits for cleanup. Closing a tab or disconnecting its event stream does not cancel the model request.
+**Stop generating** calls the abort endpoint and waits for cleanup. Switching sessions or disconnecting the event stream does not cancel the model request.
 
 When a request has been accepted but has no assistant draft or running tool, the status area shows **Waiting for the model to respond**. This does not mean text is being generated. Connection errors appear in the status area and saved error messages. Provider configuration and the current session's model are separate choices; see [model settings](models.md) for troubleshooting.
 
@@ -31,7 +31,7 @@ When hasPendingSave is true, the status area offers **Retry save**. flush saves 
 
 Attach images with the paperclip button or paste them into the input. Preview and remove them before sending; image-only messages are supported. Each message accepts up to four PNG, JPEG, WebP or GIF images, totaling at most 3 MiB. Known text-only models reject images before sending; custom gateways forward them to the service without a capability checkbox. Submitted images appear in conversation history and persist with the session.
 
-Unsent images stay in memory across tab switches; refreshing discards them. Unconfirmed requests retain the exact images with their request identity for retry, subject to browser storage availability. Successful completion clears matching attachments; failures retain them. Message editing, regeneration, automatic retries and queued submissions are not supported.
+Unsent images stay in memory across session switches; refreshing discards them. Unconfirmed requests retain the exact images with their request identity for retry, subject to browser storage availability. Successful completion clears matching attachments; failures retain them. Message editing, regeneration, automatic retries and queued submissions are not supported.
 
 ## Source and Tests
 

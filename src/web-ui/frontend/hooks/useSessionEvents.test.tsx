@@ -31,7 +31,6 @@ test("SSE hook requests a fresh snapshot on a gap and closes only its connection
     const { renderHook, act, cleanup } = await import("@testing-library/react/pure");
     const { useSessionEvents } = await import("./useSessionEvents");
     const { useSessions } = await import("../state/session-store");
-    const { useWorkspace } = await import("../state/workspace-store");
     const client = new QueryClient();
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -41,10 +40,13 @@ test("SSE hook requests a fresh snapshot on a gap and closes only its connection
       streamId: "stream",
       state: { title: { text: "Live title", source: "model", messageIndices: [0] } },
     } as SessionSnapshot;
-    useWorkspace.setState({ tabs: [{ id: "s", workspaceId: "p", title: "New session" }] });
+    client.setQueryData(["sessions", "p"], []);
 
     useSessions.setState({ views: {} });
-    const { unmount } = renderHook(() => useSessionEvents("s"), { wrapper });
+    const { unmount, rerender } = renderHook(({ id }) => useSessionEvents(id), {
+      wrapper,
+      initialProps: { id: "s" },
+    });
 
     act(() =>
       connections[0]?.onmessage?.({
@@ -70,14 +72,19 @@ test("SSE hook requests a fresh snapshot on a gap and closes only its connection
       }),
     );
     expect(connections[0]?.closed).toBe(true);
-    expect(useWorkspace.getState().tabs[0]?.title).toBe("Live title");
+    expect(useSessions.getState().views.s?.snapshot?.state.title?.text).toBe("Live title");
+    expect(client.getQueryState(["sessions", "p"])?.isInvalidated).toBe(true);
     expect(connections[1]?.url).not.toContain("cursor");
     expect(useSessions.getState().views.s?.connected).toBe(false);
-    unmount();
+    rerender({ id: "next" });
     expect(connections[1]?.closed).toBe(true);
+    expect(connections[2]?.url).toBe("/api/sessions/next/events");
+    expect(connections[2]?.closed).toBe(false);
+    unmount();
+    expect(connections[2]?.closed).toBe(true);
     client.clear();
     cleanup();
-    useWorkspace.setState({ tabs: [] });
+    useSessions.setState({ views: {} });
   } finally {
     Object.assign(globalThis, previous);
     await window.happyDOM.close();

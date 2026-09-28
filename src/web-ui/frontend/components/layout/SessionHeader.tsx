@@ -29,7 +29,6 @@ export const SessionHeader = ({ snapshot }: { snapshot?: SessionSnapshot }) => {
           aria-hidden="true"
         >
           <path d="M3 7V6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
-          <path d="M3 10h18" />
         </svg>
       </ActionButton>
       {snapshot ? (

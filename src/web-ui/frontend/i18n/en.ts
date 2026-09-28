@@ -79,7 +79,6 @@ export const en = {
   loading: "Loading…",
   failed: "Something went wrong",
   retry: "Retry",
-  closeTab: "Close tab",
   openSidebar: "Open projects",
   closeSidebar: "Close projects",
   resize: "Resize sidebar",

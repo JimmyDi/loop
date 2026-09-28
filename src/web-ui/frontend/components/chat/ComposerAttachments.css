@@ -3,13 +3,7 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 8px 16px 0;
-}
-.composer-attachments .composer-attach {
-  width: 32px;
-  height: 32px;
-  padding: 6px;
-  border-radius: 50%;
+  padding: 8px var(--composer-content-inset, 28px) 0;
 }
 .composer-attachment {
   position: relative;
@@ -23,7 +17,16 @@
   border: 1px solid var(--line);
   border-radius: 8px;
 }
-.composer-attachment .action-button {
+.composer-file-attachment {
+  position: relative;
+  max-width: 100%;
+  min-width: 0;
+}
+.composer-file-attachment summary {
+  padding-right: 24px;
+}
+.composer-attachment .action-button,
+.composer-file-attachment > .action-button {
   position: absolute;
   right: -4px;
   top: -4px;

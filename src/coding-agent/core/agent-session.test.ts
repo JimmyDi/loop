@@ -86,6 +86,28 @@ async function setup(
   });
 }
 
+test("large prompts reach the model without local context rejection and provider failures are retained", async () => {
+  let calls = 0;
+  const content = "large".repeat(10000);
+  const { session } = await setup(
+    runtime((_model, context) => {
+      calls++;
+      expect(context.messages[0]?.content).toBe(content);
+      return stream({ ...answer(undefined, "error"), errorMessage: "Provider context limit" });
+    }),
+  );
+  try {
+    await expect(session.prompt(content)).rejects.toThrow("Provider context limit");
+    expect(calls).toBe(1);
+    expect(session.state.messages).toHaveLength(2);
+    expect(session.state.messages[0]?.content).toBe(content);
+    expect(session.state.outcome).toBe("error");
+    expect(session.state.isRunning).toBe(false);
+  } finally {
+    session.dispose();
+  }
+});
+
 test("two prompts create fresh Agents, preserve complete tool history and commit once per activity", async () => {
   const dir = await mkdtemp(join(tmpdir(), "loop-session-"));
   const contexts: Context[] = [];

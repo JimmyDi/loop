@@ -1,11 +1,12 @@
 import type { PromptContent } from "../../coding-agent/index";
+import { fileContent } from "./prompt-files";
+import type { PromptFile } from "./prompt-files";
 
 export type PromptImage = Extract<Exclude<PromptContent, string>[number], { type: "image" }>;
 
 export const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 export const MAX_IMAGES = 4;
 export const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
-export const MAX_PROMPT_BODY_BYTES = 5 * 1024 * 1024;
 
 export const validImages = (value: unknown): value is PromptImage[] =>
   Array.isArray(value) &&
@@ -28,5 +29,15 @@ export const validImages = (value: unknown): value is PromptImage[] =>
     0,
   ) <= MAX_IMAGE_BYTES;
 
-export const promptContent = (text: string, images: PromptImage[] = []): PromptContent =>
-  images.length ? [...(text ? [{ type: "text" as const, text }] : []), ...images] : text;
+export const promptContent = (
+  text: string,
+  images: PromptImage[] = [],
+  files: PromptFile[] = [],
+): PromptContent =>
+  images.length || files.length
+    ? [
+        ...(text ? [{ type: "text" as const, text }] : []),
+        ...images,
+        ...files.map((file) => ({ type: "text" as const, text: fileContent(file) })),
+      ]
+    : text;

@@ -4,7 +4,7 @@ import { Window } from "happy-dom";
 import { i18n } from "../../i18n/setup";
 import { ComposerAttachments } from "./ComposerAttachments";
 
-test("image picker previews attachments, removes them and disables interaction while sending", async () => {
+test("attachments preview images, allow removal and disable interaction while sending", async () => {
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, { window, document: window.document });
@@ -12,16 +12,18 @@ test("image picker previews attachments, removes them and disables interaction w
   const language = i18n.language;
   const images = [{ type: "image" as const, mimeType: "image/png", data: "AAAA" }];
   let removed = -1;
-  let files: File[] = [];
+  let removedFile = -1;
+  const files = [{ name: "example.ts", text: "<script>example</script>" }];
   try {
     await i18n.changeLanguage("en");
     const view = render(
       <ComposerAttachments
         images={images}
-        disabled={false}
-        add={(value) => {
-          files = value;
+        files={files}
+        removeFile={(index) => {
+          removedFile = index;
         }}
+        disabled={false}
         remove={(index) => {
           removed = index;
         }}
@@ -32,18 +34,36 @@ test("image picker previews attachments, removes them and disables interaction w
     );
     fireEvent.click(view.getByRole("button", { name: "Remove image 1" }));
     expect(removed).toBe(0);
-    const file = new File(["test"], "test.png", { type: "image/png" });
-    fireEvent.change(view.container.querySelector("input")!, { target: { files: [file] } });
-    expect(files).toEqual([file]);
+    expect(view.getByTitle("example.ts").textContent).toBe("example.ts");
+    expect(view.container.querySelector("pre")?.textContent).toBe(files[0]!.text);
+    expect(view.container.querySelector("script")).toBeNull();
+    fireEvent.click(view.getByRole("button", { name: "Remove file example.ts" }));
+    expect(removedFile).toBe(0);
     view.rerender(
-      <ComposerAttachments images={images} disabled add={() => {}} remove={() => {}} />,
+      <ComposerAttachments
+        images={images}
+        files={files}
+        removeFile={() => {}}
+        disabled
+        remove={() => {}}
+      />,
     );
-    expect(
-      (view.getByRole("button", { name: "Attach images" }) as HTMLButtonElement).disabled,
-    ).toBe(true);
     expect(
       (view.getByRole("button", { name: "Remove image 1" }) as HTMLButtonElement).disabled,
     ).toBe(true);
+    expect(
+      (view.getByRole("button", { name: "Remove file example.ts" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    view.rerender(
+      <ComposerAttachments
+        images={[]}
+        files={[]}
+        removeFile={() => {}}
+        disabled={false}
+        remove={() => {}}
+      />,
+    );
+    expect(view.container.firstChild).toBeNull();
   } finally {
     cleanup();
     await i18n.changeLanguage(language);

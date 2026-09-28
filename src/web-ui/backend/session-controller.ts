@@ -7,6 +7,7 @@ import type { SessionPort } from "./loop";
 import { SessionEvents } from "./session-events";
 import { promptContent } from "../shared/prompt-images";
 import type { PromptImage } from "../shared/prompt-images";
+import type { PromptFile } from "../shared/prompt-files";
 
 export class SessionController {
   readonly events: SessionEvents;
@@ -39,8 +40,13 @@ export class SessionController {
     return this.snapshot.operation !== "idle" || this.session.state.hasPendingSave;
   }
 
-  prompt(requestId: string, text: string, images: PromptImage[] = []): string {
-    const content = structuredClone(promptContent(text, images));
+  prompt(
+    requestId: string,
+    text: string,
+    images: PromptImage[] = [],
+    files: PromptFile[] = [],
+  ): string {
+    const content = structuredClone(promptContent(text, images, files));
     const signature = new Bun.CryptoHasher("sha256").update(JSON.stringify(content)).digest("hex");
     const existing = this.requests.get(requestId);
 

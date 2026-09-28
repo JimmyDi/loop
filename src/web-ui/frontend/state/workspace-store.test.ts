@@ -7,7 +7,13 @@ const initial = useWorkspace.getState();
 afterEach(() => useWorkspace.setState(initial, true));
 
 test("selecting sessions retains their drafts and image ownership without an open-session list", () => {
-  useWorkspace.setState({ active: undefined, drafts: {}, images: {}, draftProjects: {} });
+  useWorkspace.setState({
+    active: undefined,
+    drafts: {},
+    images: {},
+    files: {},
+    draftProjects: {},
+  });
   const state = useWorkspace.getState();
   const first = { id: "a", workspaceId: "p" };
   const second = { id: "b", workspaceId: "q" };
@@ -19,6 +25,7 @@ test("selecting sessions retains their drafts and image ownership without an ope
   state.open(second);
   // An image read started in the previous session can finish after switching.
   state.attach("a", images);
+  state.attachFiles("a", [{ name: "example.ts", text: "const x = 1;" }]);
   state.draft("b", "Other draft");
   expect(useWorkspace.getState().active).toEqual(second);
   expect(useWorkspace.getState().sidebar).toBe(false);
@@ -26,11 +33,13 @@ test("selecting sessions retains their drafts and image ownership without an ope
   state.open(first);
   expect(useWorkspace.getState().drafts.a).toBe("Keep");
   expect(useWorkspace.getState().images.a).toEqual(images);
+  expect(useWorkspace.getState().files.a?.[0]?.name).toBe("example.ts");
   state.open(second);
   state.removeProject("p");
   expect(useWorkspace.getState().active).toEqual(second);
   expect(useWorkspace.getState().drafts).toEqual({ b: "Other draft" });
   expect(useWorkspace.getState().images).toEqual({});
+  expect(useWorkspace.getState().files).toEqual({});
   expect(useWorkspace.getState().draftProjects).toEqual({ b: "q" });
   state.removeProject("q");
   expect(useWorkspace.getState().active).toBeUndefined();

@@ -23,6 +23,7 @@ export type SessionSummary = {
   updatedAt: string;
   messageCount: number;
   title?: string;
+  isGenerating?: boolean;
 };
 
 export type ToolView = {

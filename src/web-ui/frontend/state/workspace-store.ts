@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 import { readPreference, writePreference } from "../lib/preferences";
 import type { PromptImage } from "../../shared/prompt-images";
+import type { PromptFile } from "../../shared/prompt-files";
 
 type SessionSelection = { id: string; workspaceId: string };
 
@@ -9,6 +10,8 @@ type WorkspaceState = {
   active?: SessionSelection;
   drafts: Record<string, string>;
   images: Record<string, PromptImage[]>;
+  files: Record<string, PromptFile[]>;
+  attachFiles(id: string, files: PromptFile[]): void;
   attach(id: string, images: PromptImage[]): void;
   sidebar: boolean;
   open(session: SessionSelection): void;
@@ -43,6 +46,8 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
   active,
   drafts,
   images: {},
+  files: {},
+  attachFiles: (id, files) => set((state) => ({ files: { ...state.files, [id]: files } })),
   attach: (id, images) =>
     set((state) => ({
       images: { ...state.images, [id]: images },
@@ -75,6 +80,9 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
         ),
         images: Object.fromEntries(
           Object.entries(state.images).filter(([key]) => !removed.includes(key)),
+        ),
+        files: Object.fromEntries(
+          Object.entries(state.files).filter(([key]) => !removed.includes(key)),
         ),
         draftProjects: Object.fromEntries(
           Object.entries(state.draftProjects).filter(([id]) => !removed.includes(id)),

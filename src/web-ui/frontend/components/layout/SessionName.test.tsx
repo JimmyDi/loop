@@ -5,12 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { SessionSnapshot, SessionSummary } from "../../../shared/protocol";
 import "../../i18n/setup";
 import { useSessions } from "../../state/session-store";
-import { useWorkspace } from "../../state/workspace-store";
 import { SessionHeader } from "./SessionHeader";
-import { SessionTabs } from "./SessionTabs";
 import { SessionList } from "../projects/SessionList";
 
-test("inline name selects text, confirms once, synchronizes all names and preserves failed edits", async () => {
+test("inline name selects text, confirms once, synchronizes header and sidebar and preserves failed edits", async () => {
   const window = new Window();
   const previous = {
     window: globalThis.window,
@@ -57,13 +55,9 @@ test("inline name selects text, confirms once, synchronizes all names and preser
   useSessions.setState({
     views: { [original.sessionId]: { snapshot: original, connected: true } },
   });
-  useWorkspace.setState({
-    tabs: [{ id: original.sessionId, workspaceId: "project", title: "Original name" }],
-  });
   const view = (snapshot = original) => (
     <QueryClientProvider client={client}>
       <SessionHeader snapshot={snapshot} />
-      <SessionTabs />
       <SessionList sessions={summaries} />
     </QueryClientProvider>
   );
@@ -94,7 +88,7 @@ test("inline name selects text, confirms once, synchronizes all names and preser
       ),
     );
     await waitFor(() => expect(name().textContent).toBe("New name"));
-    expect(ui.getAllByRole("button", { name: "New name" })).toHaveLength(3);
+    expect(ui.getAllByRole("button", { name: "New name" })).toHaveLength(2);
     expect(document.activeElement).toBe(name());
 
     fireEvent.click(name());
@@ -116,7 +110,7 @@ test("inline name selects text, confirms once, synchronizes all names and preser
     await act(async () => finish(Response.json({ code: "operation_failed" }, { status: 500 })));
     await waitFor(() => expect(ui.getByRole("alert").textContent).toContain("Operation failed"));
     expect(edit().value).toBe("Retry name");
-    expect(useWorkspace.getState().tabs[0]?.title).toBe("New name");
+    expect(ui.getByRole("button", { name: "New name" }).textContent).toBe("New name");
     fireEvent.keyDown(edit(), { key: "Escape" });
     ui.rerender(view({ ...original, operation: "prompt" }));
     expect(name().disabled).toBe(true);
@@ -124,7 +118,6 @@ test("inline name selects text, confirms once, synchronizes all names and preser
     cleanup();
     client.clear();
     useSessions.setState({ views: {} });
-    useWorkspace.setState({ tabs: [] });
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

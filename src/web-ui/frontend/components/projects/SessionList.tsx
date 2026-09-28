@@ -26,8 +26,8 @@ export const SessionList = ({ sessions }: { sessions: SessionSummary[] }) => {
             <button
               type="button"
               title={title}
-              aria-current={active === session.id ? "page" : undefined}
-              onClick={() => open({ id: session.id, workspaceId: session.workspaceId, title })}
+              aria-current={active?.id === session.id ? "page" : undefined}
+              onClick={() => open({ id: session.id, workspaceId: session.workspaceId })}
             >
               {title}
             </button>

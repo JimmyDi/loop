@@ -53,7 +53,7 @@ If a sent message stays in the waiting state, check the model endpoint and serve
 - macOS directory picker, browser directory navigation and typed paths.
 - Independent SDK sessions, HTTP commands, SSE snapshots/replay, abort and pending-save recovery.
 - React chat components, editable drafts, actual thinking blocks, tool results, Markdown and code copy.
-- English/Chinese interface, responsive sidebar, conversation tabs and model selection.
+- English/Chinese interface, responsive sidebar, session navigation and model selection.
 - Frontend configuration of an OpenAI-compatible custom provider, including local gateways.
 
 Components use arrow functions and have matching CSS/test files. Hooks and utilities are separated by responsibility. `architecture.test.ts` checks public imports, component companions and a 200-line implementation limit.

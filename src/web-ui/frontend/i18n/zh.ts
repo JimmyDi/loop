@@ -77,7 +77,6 @@ export const zh = {
   loading: "加载中…",
   failed: "出现错误",
   retry: "重试",
-  closeTab: "关闭标签",
   openSidebar: "打开项目列表",
   closeSidebar: "关闭项目列表",
   resize: "调整侧栏宽度",

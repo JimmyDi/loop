@@ -75,6 +75,8 @@ PromptContent is a string or Pi AI text/image blocks. Image-only messages are su
 
 Each accepted prompt creates a fresh lower-level Agent with committed history. Concurrent prompts and unsupported prompt options reject. Observe the prompt rejection and `state.outcome` to distinguish success, error, and cancellation; `abort()` resolving alone does not mean the prompt succeeded.
 
+The public messageText helper concatenates text blocks in order, excludes thinking and tool calls, and returns an empty string for an absent message. It preserves text literally, including any prefixes in older history; it performs no display-marker filtering.
+
 ## Persistent hosts
 
 Use [sessions](sessions.md) for storage and replacement through `AgentSessionRuntime`. On a failed save, retain the live session, repair storage, and call `flush()` before disposing it. The in-memory example above has no disk-save recovery requirement.

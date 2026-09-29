@@ -26,6 +26,8 @@ Every edit matches against the original file. An absent or repeated `oldText`, o
 
 Text returned to the model is limited to 2,000 lines and about 50 KiB before annotations. Read keeps the beginning and directs the model to use offset/limit for more. Bash keeps the tail; truncated output includes a temporary full-output file path. The host can inspect and remove retained output files.
 
+Bash has no per-call description parameter. The Web UI displays the actual command as **Bash · bun test**, updating as command arguments stream in. Batch headings are composed separately by the frontend from tool names and require no model output. The static tool description still documents its capability for the model.
+
 Bash uses `bash -c` in the session cwd with no interactive stdin. It inherits the process environment. A nonzero exit or timeout becomes a tool error, which Agent passes back to the model. Without `timeout`, no duration limit is added by this tool.
 
 ## Cancellation and access

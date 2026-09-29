@@ -1,6 +1,6 @@
 # Session Events
 
-Coding sessions forward the five [Agent events](../../agent/docs/events.md) and add `agent_settled` and `session_title`. Consumers send commands through instance methods and receive results through subscriptions.
+Coding sessions forward the five [Agent events](../../agent/docs/events.md) and add `run_timing`, `agent_settled` and `session_title`. Consumers send commands through instance methods and receive results through subscriptions.
 
 ## Subscribe
 
@@ -35,12 +35,15 @@ See the full [SDK sample](../sdk.sample.ts) for construction and cleanup. It onl
 | `message_end` | Display a completed message; this is not a disk-save acknowledgement. |
 | `tool_execution_start` | Show the tool name/call ID and pending execution. |
 | `tool_execution_end` | Show the matching result and `isError`. |
+| `run_timing` | Upsert `timing: SessionRunTiming` by `userMessageIndex`. The start has `startedAt`; the finish also has `finishedAt`. |
 | `agent_settled` | An accepted prompt's execution and save attempt have finished. Inspect outcome and pending-save state. |
 | `session_title` | Title display changed or generation failed; carries title and optional error. May arrive after a run settles. |
 
 The initial fallback title is published immediately and again after saving; a title event alone is not a history-save acknowledgement. Title errors are exposed separately in `state.titleError` and never change the main run outcome. See [session titles](session-titles.md).
 
 `agent_settled` fires for accepted prompts even when model preflight fails. Validation failures before acceptance, such as a concurrent prompt, do not start a run or emit it. Model switching and flushing do not emit prompt lifecycle events.
+
+The starting `run_timing` is emitted immediately before the user `message_start`, using the prompt acceptance time. The finished timing is emitted after execution ends and before the history save attempt, including errors and cancellation. A preflight failure before a user message emits no timing event. These events are not save acknowledgements; use `agent_settled` and `hasPendingSave` for persistence state. Snapshots expose the same metadata in `state.runTimings`. See [execution timing](sessions.md#execution-timing).
 
 ## Completed messages and drafts
 

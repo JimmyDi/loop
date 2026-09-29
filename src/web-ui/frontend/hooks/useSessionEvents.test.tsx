@@ -3,7 +3,9 @@ import { Window } from "happy-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
-import type { SessionSnapshot } from "../../shared/protocol";
+import type { Frame, Message, SessionEvent, SessionSnapshot } from "../../shared/protocol";
+import { MessageTimeline } from "../components/chat/MessageTimeline";
+import "../i18n/setup";
 
 test("SSE hook requests a fresh snapshot on a gap and closes only its connection", async () => {
   const window = new Window();
@@ -115,6 +117,157 @@ test("SSE hook requests a fresh snapshot on a gap and closes only its connection
     cleanup();
     useSessions.setState({ views: {} });
   } finally {
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("an SSE burst preserves each tool's running indication while results and errors arrive immediately", async () => {
+  const window = new Window();
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    EventSource: globalThis.EventSource,
+  };
+  let source: LocalSource;
+  class LocalSource {
+    onmessage?: (event: { data: string }) => void;
+    constructor() {
+      source = this;
+    }
+    send(frame: Frame) {
+      this.onmessage?.({ data: JSON.stringify(frame) });
+    }
+    close() {}
+  }
+  Object.assign(globalThis, { window, document: window.document, EventSource: LocalSource });
+  const { render, act, cleanup, waitFor } = await import("@testing-library/react/pure");
+  const { useSessionEvents } = await import("./useSessionEvents");
+  const { useSessions } = await import("../state/session-store");
+  const calls = ["first", "second", "failed"].map((id) => ({
+    type: "toolCall" as const,
+    id,
+    name: "read",
+    arguments: { path: `${id}.md` },
+  }));
+  const assistant: Extract<Message, { role: "assistant" }> = {
+    role: "assistant",
+    content: calls,
+    api: "openai-completions",
+    provider: "example",
+    model: "example",
+    stopReason: "toolUse",
+    timestamp: 0,
+    usage: {
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+      totalTokens: 0,
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+    },
+  };
+  const snapshot: SessionSnapshot = {
+    sessionId: "s",
+    streamId: "stream",
+    workspaceId: "p",
+    model: { id: "example", provider: "example", name: "Example" },
+    operation: "prompt",
+    tools: {},
+    state: {
+      messages: [{ role: "user", content: "Read the files", timestamp: 0 }, assistant],
+      isRunning: true,
+      hasPendingSave: false,
+      outcome: "idle",
+      listenerErrors: [],
+    },
+  };
+  const View = () => {
+    useSessionEvents("s");
+    const view = useSessions((state) => state.views.s);
+    return view?.snapshot ? (
+      <MessageTimeline snapshot={view.snapshot} connected={view.connected} />
+    ) : null;
+  };
+  let seq = 0;
+  const sendEvent = (event: SessionEvent) =>
+    source.send({
+      type: "loop.event",
+      sessionId: "s",
+      streamId: "stream",
+      seq: ++seq,
+      runId: "run",
+      event,
+    });
+  try {
+    useSessions.setState({ views: {} });
+    const ui = render(<View />);
+    act(() =>
+      source.send({ type: "session.snapshot", sessionId: "s", streamId: "stream", seq, snapshot }),
+    );
+    const cards = ui.container.querySelectorAll<HTMLDetailsElement>(".tool-card");
+    expect(cards).toHaveLength(3);
+    cards[0]!.open = true;
+
+    // Start/end events share one browser task: React must not skip every running state.
+    act(() => {
+      for (const call of calls) {
+        sendEvent({
+          type: "tool_execution_start",
+          toolCallId: call.id,
+          toolName: call.name,
+          args: call.arguments,
+        });
+        sendEvent({
+          type: "tool_execution_end",
+          toolCallId: call.id,
+          toolName: call.name,
+          isError: call.id === "failed",
+          result: {
+            role: "toolResult",
+            toolCallId: call.id,
+            toolName: call.name,
+            content: [{ type: "text", text: `Output ${call.id}` }],
+            isError: call.id === "failed",
+            timestamp: 0,
+          },
+        });
+      }
+    });
+    const icon = (index: number) => cards[index]!.querySelector(".activity-status-icon");
+    for (const index of [0, 1]) {
+      expect(cards[index]!.dataset.status).toBe("success");
+      expect(icon(index)?.getAttribute("data-status")).toBe("running");
+      expect(icon(index)?.getAttribute("aria-label")).toBe("Completed");
+      expect(cards[index]!.textContent).toContain(`Output ${calls[index]!.id}`);
+    }
+    expect(icon(2)?.getAttribute("data-status")).toBe("error");
+    expect(cards[0]!.open).toBe(true);
+    expect(ui.container.querySelector(".tool-card")).toBe(cards[0]!);
+    await waitFor(() => {
+      expect(icon(0)?.getAttribute("data-status")).toBe("success");
+      expect(icon(1)?.getAttribute("data-status")).toBe("success");
+    });
+
+    const restored = useSessions.getState().views.s!.snapshot!;
+    ui.unmount();
+    const history = render(<View />);
+    act(() =>
+      source.send({
+        type: "session.snapshot",
+        sessionId: "s",
+        streamId: "stream",
+        seq,
+        snapshot: restored,
+      }),
+    );
+    expect(
+      history.container.querySelector('.tool-card .activity-status-icon[data-status="running"]'),
+    ).toBeNull();
+    expect(history.container.querySelectorAll('.tool-card[data-status="success"]')).toHaveLength(2);
+  } finally {
+    cleanup();
+    useSessions.setState({ views: {} });
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

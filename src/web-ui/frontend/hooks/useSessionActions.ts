@@ -45,5 +45,5 @@ export const useSessionActions = (session: SessionSummary) => {
     });
     return saved;
   };
-  return { change, pending: action.pending, error: action.error };
+  return { change, pending: action.pending, error: action.error, clearError: action.clearError };
 };

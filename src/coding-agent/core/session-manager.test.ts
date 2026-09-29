@@ -5,6 +5,46 @@ import { join } from "node:path";
 
 import { SessionManager } from "./session-manager";
 
+test("timing is saved with history, survives failed saves and accepts legacy files", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".timing-storage-test-"));
+  try {
+    const manager = SessionManager.draft(root, join(root, "history"));
+    const messages = [{ role: "user" as const, content: "Request", timestamp: 1000 }];
+    const timings = [{ userMessageIndex: 0, startedAt: 1000, finishedAt: 2000 }];
+    await Bun.write(join(root, "history"), "Block storage");
+    await expect(manager.commit(messages, timings)).rejects.toThrow();
+    expect(manager.getRunTimings()).toEqual(timings);
+    timings[0]!.finishedAt = 9999;
+    expect(manager.getRunTimings()[0]?.finishedAt).toBe(2000);
+    await rm(join(root, "history"));
+    await manager.flush();
+    const restored = await SessionManager.open(manager.sessionFile!);
+    expect(restored.getRunTimings()[0]?.finishedAt).toBe(2000);
+    await restored.setTitle({ text: "Renamed", source: "user", messageIndices: [] });
+    await restored.setModel({ provider: "example", id: "example" });
+    expect((await SessionManager.open(manager.sessionFile!)).getRunTimings()).toEqual(
+      restored.getRunTimings(),
+    );
+    const header = restored.getHeader();
+    delete header.runTimings;
+    await Bun.write(
+      manager.sessionFile!,
+      [header, ...messages].map((value) => JSON.stringify(value)).join("\n"),
+    );
+    expect((await SessionManager.open(manager.sessionFile!)).getRunTimings()).toEqual([]);
+    header.runTimings = [{ userMessageIndex: 2, startedAt: 1000, finishedAt: 2000 }];
+    await Bun.write(
+      manager.sessionFile!,
+      [header, ...messages].map((value) => JSON.stringify(value)).join("\n"),
+    );
+    await expect(SessionManager.open(manager.sessionFile!)).rejects.toThrow(
+      "Invalid session run timings",
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("drafts defer files across metadata changes and persist the first user history with retry", async () => {
   const root = await mkdtemp(join(import.meta.dir, ".draft-storage-test-"));
   try {

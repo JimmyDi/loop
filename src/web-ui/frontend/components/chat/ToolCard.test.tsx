@@ -13,6 +13,7 @@ test("ToolCard exposes its accessible content and state", () => {
         tool={{
           id: "call",
           name: "read",
+          args: { path: "src/app.ts" },
           status: "error",
           result: {
             role: "toolResult",
@@ -28,6 +29,7 @@ test("ToolCard exposes its accessible content and state", () => {
   );
 
   expect(html).toContain('data-status="error"');
+  expect(html).toContain('title="Read src/app.ts"');
   expect(html).toContain("Missing file");
   expect(html).toContain("Result");
   client.clear();

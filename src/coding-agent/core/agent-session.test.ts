@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 import type { Api, AssistantMessage, Context, Model } from "@earendil-works/pi-ai";
 import { mkdtemp, rename, rm } from "node:fs/promises";
@@ -7,6 +7,7 @@ import { join } from "node:path";
 
 import { createAgentSession } from "./sdk";
 import type { ModelRuntime } from "./model-runtime";
+import type { SessionRunTiming } from "./run-timing";
 import { SessionManager } from "./session-manager";
 import { SettingsManager } from "./settings-manager";
 
@@ -85,6 +86,100 @@ async function setup(
     noContextFiles: true,
   });
 }
+
+test("prompt timing measures execution, persists across restore and excludes later metadata work", async () => {
+  const dir = await mkdtemp(join(import.meta.dir, ".timing-test-"));
+  const manager = await SessionManager.create(dir, dir);
+  let now = 1000;
+  const clock = spyOn(Date, "now").mockImplementation(() => now);
+  const { session } = await setup(
+    runtime(() => {
+      now += 28000;
+      return stream();
+    }),
+    dir,
+    manager,
+  );
+  const timings: SessionRunTiming[] = [];
+  session.subscribe((event) => {
+    if (event.type === "run_timing") timings.push(event.timing);
+  });
+  try {
+    await session.prompt("First request");
+    expect(timings).toEqual([
+      { userMessageIndex: 0, startedAt: 1000 },
+      { userMessageIndex: 0, startedAt: 1000, finishedAt: 29000 },
+    ]);
+    now = 90000;
+    await session.renameTitle("Renamed");
+    await session.flush();
+    expect(manager.getRunTimings()).toEqual([timings[1]]);
+    await session.prompt("Second request");
+    const restored = await SessionManager.open(manager.sessionFile!);
+    expect(restored.getRunTimings()).toEqual([
+      { userMessageIndex: 0, startedAt: 1000, finishedAt: 29000 },
+      { userMessageIndex: 2, startedAt: 90000, finishedAt: 118000 },
+    ]);
+    expect(session.state.runTimings).toEqual(restored.getRunTimings());
+    expect(JSON.stringify(restored.messages)).not.toContain("finishedAt");
+  } finally {
+    clock.mockRestore();
+    session.dispose();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("failed and cancelled prompts stop timing and rejected preflight creates no historical timing", async () => {
+  let now = 1000;
+  const clock = spyOn(Date, "now").mockImplementation(() => now);
+  let rejectPreflight = false;
+  let started = () => {};
+  const startedPromise = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  let failModel = true;
+  const { session } = await setup(
+    runtime(
+      () => {
+        if (failModel) {
+          now = 6000;
+          throw new Error("Model failed");
+        }
+        started();
+        return createAssistantMessageEventStream();
+      },
+      async () => {
+        if (rejectPreflight) throw new Error("Preflight failed");
+      },
+    ),
+  );
+  try {
+    rejectPreflight = true;
+    await expect(session.prompt("Preflight")).rejects.toThrow("Preflight failed");
+    expect(session.state.runTimings).toEqual([]);
+    rejectPreflight = false;
+    await expect(session.prompt("Failure")).rejects.toThrow("Model failed");
+    expect(session.state.runTimings).toEqual([
+      { userMessageIndex: 0, startedAt: 1000, finishedAt: 6000 },
+    ]);
+    failModel = false;
+    now = 9000;
+    const pending = session.prompt("Cancel").catch(() => {});
+    await startedPromise;
+    now = 12000;
+    await session.abort();
+    await pending;
+    expect(session.state.runTimings?.at(-1)).toEqual({
+      userMessageIndex: 1,
+      startedAt: 9000,
+      finishedAt: 12000,
+    });
+    expect(session.state.outcome).toBe("cancelled");
+  } finally {
+    clock.mockRestore();
+    session.dispose();
+  }
+});
 
 test("large prompts reach the model without local context rejection and provider failures are retained", async () => {
   let calls = 0;

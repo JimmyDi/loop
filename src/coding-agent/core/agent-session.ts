@@ -5,6 +5,7 @@ import type { AgentEvent, PromptContent } from "../../agent";
 import { getModelEfforts } from "./model-runtime";
 import type { ModelEffort } from "./models/model-effort";
 import { validateMessages } from "./messages";
+import type { SessionRunTiming } from "./run-timing";
 import { SessionTitleService } from "./titles/session-title";
 import type {
   SessionEvent,
@@ -28,6 +29,7 @@ export class AgentSession {
   private listenerErrors: string[] = [];
   private readonly titles: SessionTitleService;
   private titleError?: string;
+  private runTiming?: SessionRunTiming;
 
   constructor(private readonly options: SessionOptions) {
     this.selected = structuredClone(options.model);
@@ -70,6 +72,8 @@ export class AgentSession {
   }
 
   get state(): SessionState {
+    const runTiming = this.runTiming;
+
     return {
       messages: this.agent?.messages ?? this.sessionManager.messages,
       draft: this.draft ? structuredClone(this.draft) : undefined,
@@ -80,6 +84,14 @@ export class AgentSession {
       listenerErrors: [...this.listenerErrors],
       title: this.titles.title,
       titleError: this.titleError,
+      runTimings: runTiming
+        ? [
+            ...this.sessionManager
+              .getRunTimings()
+              .filter((timing) => timing.userMessageIndex !== runTiming.userMessageIndex),
+            structuredClone(runTiming),
+          ]
+        : this.sessionManager.getRunTimings(),
     };
   }
 
@@ -110,6 +122,10 @@ export class AgentSession {
     this.failure = undefined;
     this.outcome = "idle";
     this.controller = new AbortController();
+    this.runTiming = {
+      userMessageIndex: this.sessionManager.messages.length,
+      startedAt: Date.now(),
+    };
     this.active = this.run(structuredClone(content), this.controller.signal);
 
     return this.active;
@@ -266,6 +282,8 @@ export class AgentSession {
   }
 
   private onAgentEvent(event: AgentEvent): void {
+    if (event.type === "message_start" && event.message.role === "user" && this.runTiming)
+      this.emit({ type: "run_timing", timing: this.runTiming });
     if (
       event.type === "message_end" &&
       event.message.role === "user" &&
@@ -312,7 +330,20 @@ export class AgentSession {
       failures.push(error);
     } finally {
       try {
-        if (this.agent) await this.sessionManager.commit(this.agent.messages);
+        if (this.agent) {
+          const messages = this.agent.messages;
+          const timings = this.sessionManager.getRunTimings();
+
+          if (this.runTiming && messages[this.runTiming.userMessageIndex]?.role === "user") {
+            this.runTiming = {
+              ...this.runTiming,
+              finishedAt: Math.max(this.runTiming.startedAt, Date.now()),
+            };
+            timings.push(this.runTiming);
+            this.emit({ type: "run_timing", timing: this.runTiming });
+          }
+          await this.sessionManager.commit(messages, timings);
+        }
       } catch (error) {
         failures.push(error);
       } finally {
@@ -320,6 +351,7 @@ export class AgentSession {
         this.agent = undefined;
         this.draft = undefined;
         this.controller = undefined;
+        this.runTiming = undefined;
         this.busy = false;
         this.outcome = failures.length ? (signal.aborted ? "cancelled" : "error") : "success";
         this.failure = failures.length

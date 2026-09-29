@@ -84,6 +84,7 @@ test("a failed model connection leaves the running state and shows configuration
   );
 
   expect(html).toContain("Connection error.");
+  expect(html).toContain('aria-label="Close"');
   expect(html).toContain("Open Settings → Models");
   expect(html).not.toContain("Looping...");
 });

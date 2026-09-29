@@ -55,9 +55,11 @@ export const updateTools = (tools: Record<string, ToolView>, event: SessionEvent
     const additions = projectTools([event.message]);
 
     for (const [id, value] of Object.entries(additions)) {
-      additions[id] = { ...tools[id], ...value };
-
-      if (value.status === "waiting" && tools[id]) additions[id] = tools[id];
+      additions[id] = {
+        ...tools[id],
+        ...value,
+        status: value.status === "waiting" && tools[id] ? tools[id].status : value.status,
+      };
     }
 
     return { ...tools, ...additions };

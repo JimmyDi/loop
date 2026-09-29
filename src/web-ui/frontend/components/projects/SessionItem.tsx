@@ -38,6 +38,7 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
   }, [editing, menu.trigger]);
   const choose = (next: "rename" | "archive" | "delete") => {
     menu.close();
+    action.clearError();
     if (next === "rename") setEditing(true);
     else if (next === "delete") setDeleting(true);
     else void action.change("archive");
@@ -118,7 +119,10 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
         <SessionDeleteDialog
           pending={action.pending}
           error={action.error}
-          onClose={() => setDeleting(false)}
+          onClose={() => {
+            action.clearError();
+            setDeleting(false);
+          }}
           onConfirm={() => {
             void action.change("delete").then((saved) => {
               if (saved) setDeleting(false);

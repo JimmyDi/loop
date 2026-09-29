@@ -35,8 +35,9 @@ export class InteractiveOutput {
         if (part.type !== "text") continue;
 
         const previous = this.streamed.get(index) ?? "";
+        const text = part.text;
 
-        if (part.text.startsWith(previous)) this.writeText(part.text.slice(previous.length));
+        if (text.startsWith(previous)) this.writeText(text.slice(previous.length));
       }
 
       this.endLine();

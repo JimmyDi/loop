@@ -85,3 +85,68 @@ test("row archives immediately; context menu preserves selection and only delete
     await window.happyDOM.close();
   }
 });
+
+test("delete failures stay in the confirmation and are cleared when it closes or reopens", async () => {
+  const window = new Window();
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    fetch: globalThis.fetch,
+  };
+  Object.assign(globalThis, { window, document: window.document });
+  window.HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute("open", "");
+  };
+  window.HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute("open");
+  };
+  const { render, fireEvent, waitFor, cleanup } = await import("@testing-library/react/pure");
+  const client = new QueryClient();
+  const calls: string[] = [];
+  globalThis.fetch = (async (_url, init) => {
+    calls.push(String(init?.method));
+    return Response.json({ code: "project_busy" }, { status: 409 });
+  }) as typeof fetch;
+  const session = {
+    id: "s",
+    workspaceId: "p",
+    title: "Example",
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+    messageCount: 1,
+    userMessageCount: 1,
+  };
+  try {
+    const ui = render(
+      <QueryClientProvider client={client}>
+        <ul>
+          <SessionItem session={session} />
+        </ul>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(ui.getByRole("button", { name: "Archive Example" }));
+    await waitFor(() => expect(ui.getByRole("alert")).toBeTruthy());
+    expect(calls).toEqual(["POST"]);
+    for (const close of ["Cancel", "Close"]) {
+      fireEvent.contextMenu(ui.getByTitle("Example"));
+      fireEvent.click(ui.getByRole("menuitem", { name: "Permanently delete" }));
+      expect(ui.queryByRole("alert")).toBeNull();
+      fireEvent.click(ui.getByRole("button", { name: "Delete" }));
+      await waitFor(() => expect(ui.getByRole("alert")).toBeTruthy());
+      const dialog = ui.getByRole("dialog", { name: "Delete chat?" });
+      expect(dialog.contains(ui.getByRole("alert"))).toBe(true);
+      expect(ui.getByRole("alert").textContent).toContain("deleting chats");
+      expect(ui.container.querySelector(".session-item .error-notice")).toBeNull();
+      fireEvent.click(ui.getByRole("button", { name: close }));
+      expect(ui.queryByRole("dialog")).toBeNull();
+      expect(ui.queryByRole("alert")).toBeNull();
+      expect(ui.getByTitle("Example")).toBeTruthy();
+    }
+    expect(calls).toEqual(["POST", "DELETE", "DELETE"]);
+  } finally {
+    cleanup();
+    client.clear();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});

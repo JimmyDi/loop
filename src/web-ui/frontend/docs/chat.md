@@ -4,13 +4,13 @@ The composer submits a user message and the backend runs the model and tool loop
 
 ## Usage
 
-The empty input shows **Loop something...**. Press Enter to send and Shift+Enter for a newline; these shortcuts are not displayed beneath the input. Enter does not submit during input-method composition. Pasted text is inserted as plain text; pasted files become attachments. During generation, the send button becomes **Stop generating**. The adjacent model pill configures the current model and its supported reasoning effort; see [model settings](models.md). The session header no longer contains a model selector.
+The empty input shows **Loop anything...**. Press Enter to send and Shift+Enter for a newline; these shortcuts are not displayed beneath the input. Enter does not submit during input-method composition. Pasted text is inserted as plain text; pasted files become attachments. During generation, the send button becomes **Stop generating**. The adjacent model pill configures the current model and its supported reasoning effort; see [model settings](models.md). The session header no longer contains a model selector.
 
 The input text, caret and attachment previews share a left edge aligned with the visible **+** icon on desktop and mobile. The text's left inset and the Send/Stop button's right inset both use 12px, keeping the content evenly spaced from the composer border.
 
 Sending requires a connected, idle session with no pending save and text or at least one image or text file. New messages are blocked during attachment reads, model changes, save operations, send confirmation, or disconnection. There is no input queue.
 
-Composer errors have an **×** button at the top right. Closing a notice hides that occurrence without changing the draft, attachments or validation rules. A new error is displayed again, including a repeated failed upload.
+Composer and session error notices, including run cancellation, have an **×** button at the top right. Closing a notice hides that occurrence without changing the draft, attachments, validation rules or recorded session outcome. Reconnection and pending-save recovery remain available. A new error is displayed again, including a repeated failed upload; dismissal does not carry over to another session.
 
 ## Requests and Drafts
 

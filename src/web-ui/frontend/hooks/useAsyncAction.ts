@@ -21,5 +21,7 @@ export const useAsyncAction = () => {
     }
   };
 
-  return { pending, error, run };
+  const clearError = () => setError(undefined);
+
+  return { pending, error, run, clearError };
 };

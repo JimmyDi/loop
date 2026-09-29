@@ -1,0 +1,33 @@
+.tool-group {
+  margin: 6px 0;
+  min-width: 0;
+}
+
+.tool-group-preamble {
+  margin: 0 0 6px;
+  line-height: 1.6;
+}
+
+.tool-group-calls {
+  position: relative;
+  margin-left: 8px;
+  padding-left: 20px;
+  min-width: 0;
+}
+
+.tool-group-calls::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 0;
+  width: 1px;
+  background: var(--line);
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  .tool-group-calls {
+    padding-left: 14px;
+  }
+}

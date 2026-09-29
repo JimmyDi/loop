@@ -64,6 +64,8 @@ export const en = {
   },
   model: "Model",
   copy: "Copy",
+  copyMessage: "Copy message",
+  copyResponse: "Copy response",
   copied: "Copied",
   copyFailed: "Could not copy",
   thinking: "Thinking",

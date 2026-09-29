@@ -1,7 +1,7 @@
 import type { Message, ToolView } from "../../../shared/protocol";
 import { messageText } from "../../../shared/message-text";
-import { CopyButton } from "../ui/CopyButton";
 import { AssistantContent } from "./AssistantContent";
+import { MessageFooter } from "./MessageFooter";
 import "./AssistantMessage.css";
 
 export const AssistantMessage = ({
@@ -21,7 +21,13 @@ export const AssistantMessage = ({
     )}
     <div className="assistant-body">
       <AssistantContent message={message} tools={tools} streaming={streaming} />
-      {!streaming && messageText(message) && <CopyButton text={messageText(message)} />}
+      {!streaming && (
+        <MessageFooter
+          timestamp={message.timestamp}
+          text={messageText(message)}
+          messageRole="assistant"
+        />
+      )}
     </div>
   </article>
 );

@@ -1,9 +1,10 @@
+import { useTranslation } from "react-i18next";
+
 import type { Message } from "../../../shared/protocol";
 import { messageText } from "../../../shared/message-text";
-import { CopyButton } from "../ui/CopyButton";
-import { useTranslation } from "react-i18next";
-import { IMAGE_TYPES } from "../../../shared/prompt-images";
 import { readFileContent } from "../../../shared/prompt-files";
+import { IMAGE_TYPES } from "../../../shared/prompt-images";
+import { MessageFooter } from "./MessageFooter";
 import { TextFileAttachment } from "./TextFileAttachment";
 import "./UserMessage.css";
 
@@ -53,7 +54,7 @@ export const UserMessage = ({ message }: { message: Extract<Message, { role: "us
         </div>
       )}
       {text && <div className="user-message-text">{text}</div>}
-      {text && <CopyButton text={text} />}
+      <MessageFooter timestamp={message.timestamp} text={text} messageRole="user" />
     </article>
   );
 };

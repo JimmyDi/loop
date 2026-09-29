@@ -1,0 +1,30 @@
+.message-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  margin-top: 4px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.message-footer time {
+  white-space: nowrap;
+}
+
+.user-message:hover .message-footer,
+.user-message:focus-within .message-footer,
+.assistant-message:hover .message-footer,
+.assistant-message:focus-within .message-footer {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .message-footer {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

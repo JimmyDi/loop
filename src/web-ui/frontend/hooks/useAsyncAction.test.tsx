@@ -33,6 +33,9 @@ test("async action blocks duplicate calls and releases after failure", async () 
     expect(calls).toBe(1);
     expect(result.current.pending).toBe(false);
     expect(String(result.current.error)).toContain("failed");
+    act(() => result.current.clearError());
+    expect(result.current.error).toBeUndefined();
+    expect(result.current.pending).toBe(false);
     cleanup();
   } finally {
     Object.assign(globalThis, previous);

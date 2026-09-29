@@ -31,6 +31,37 @@ test("cumulative drafts replace rather than append and full snapshots replace hi
   expect(started.state.draft).toEqual(message);
   expect(repeated.state.messages).toHaveLength(1);
   expect(repeated.state.draft).toBeUndefined();
+  const timing = { userMessageIndex: 0, startedAt: 1000 };
+  const timed = applyEvent(initial, { type: "run_timing", timing });
+  const stopped = applyEvent(timed, {
+    type: "run_timing",
+    timing: { ...timing, finishedAt: 4000 },
+  });
+  expect(timed.state.runTimings).toEqual([timing]);
+  expect(stopped.state.runTimings).toEqual([{ ...timing, finishedAt: 4000 }]);
+  expect(initial.state.runTimings).toBeUndefined();
+  const thinking = applyEvent(
+    started,
+    {
+      type: "message_update",
+      message,
+      assistantMessageEvent: { type: "thinking_start", contentIndex: 0, partial: message },
+    },
+    0,
+  );
+  expect(thinking.draftPhase).toBe("thinking");
+  expect(applyEvent(thinking, { type: "message_start", message }, 1).draftPhase).toBeUndefined();
+  expect(applyEvent(thinking, { type: "message_end", message }, 0).draftPhase).toBeUndefined();
+  expect(
+    applyFrame(thinking, {
+      type: "run.accepted",
+      streamId: "stream",
+      sessionId: "session",
+      seq: 1,
+      requestId: "request",
+      runId: "run",
+    })?.draftPhase,
+  ).toBeUndefined();
   expect(
     applyFrame(repeated, {
       type: "session.snapshot",

@@ -142,3 +142,26 @@ test("shows tool activity and resets output after cancellation", () => {
       "[Waiting for model… (/abort to cancel)]\nPartial\n",
   );
 });
+
+test("streams marked text without leaking split markers or duplicating final content", () => {
+  const chunks: string[] = [];
+  const output = new InteractiveOutput((text) => chunks.push(text));
+  for (const marker of ["<!-- loop:commentary -->", "<!-- loop:final -->"]) {
+    let text = "";
+    output.handle({ type: "message_start", message: answer([]) });
+    for (const delta of [...marker, "Hello", " world"]) {
+      text += delta;
+      const message = answer([{ type: "text", text }]);
+      output.handle({
+        type: "message_update",
+        message,
+        assistantMessageEvent: { type: "text_delta", contentIndex: 0, delta, partial: message },
+      });
+      expect(chunks.join("")).not.toContain("<!--");
+    }
+    expect(chunks.at(-1)).toBe(" world");
+    output.handle({ type: "message_end", message: answer([{ type: "text", text: text + "!" }]) });
+  }
+  expect(chunks.join("").match(/Hello world!/g)).toHaveLength(2);
+  expect(chunks.join("")).not.toContain("loop:");
+});

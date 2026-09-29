@@ -12,6 +12,7 @@ import { sessionRoutes } from "./routes/sessions";
 import type { SessionRegistry } from "./session-registry";
 import { fileContent, readFileContent } from "../shared/prompt-files";
 import { MAX_IMAGE_BYTES } from "../shared/prompt-images";
+import { eventResponse } from "./http/sse";
 
 const model = {
   id: "test",
@@ -235,6 +236,33 @@ test("accepted requests deduplicate and drafts do not duplicate history", async 
   expect(frames[1]?.type).toBe("run.accepted");
   await waitFor(() => calls === 1);
   const partial = answer("hel");
+  const thought = {
+    ...partial,
+    content: [{ type: "thinking" as const, thinking: "Check the result" }],
+  };
+
+  stream.push({ type: "start", partial: thought });
+  stream.push({
+    type: "thinking_delta",
+    contentIndex: 0,
+    delta: "Check the result",
+    partial: thought,
+  });
+  await waitFor(() => controller.snapshot.draftPhase === "thinking");
+  stream.push({
+    type: "thinking_end",
+    contentIndex: 0,
+    content: "Check the result",
+    partial: thought,
+  });
+  await waitFor(() => controller.snapshot.draftPhase === "thinking-complete");
+  const thinkingFrames: Frame[] = [];
+  const stopThinkingFrames = controller.events.connect((frame) => thinkingFrames.push(frame));
+  expect(thinkingFrames[0]).toMatchObject({
+    type: "session.snapshot",
+    snapshot: { operation: "prompt", draftPhase: "thinking-complete" },
+  });
+  stopThinkingFrames();
 
   stream.push({ type: "start", partial });
   stream.push({ type: "text_delta", contentIndex: 0, delta: "hel", partial });
@@ -247,7 +275,22 @@ test("accepted requests deduplicate and drafts do not duplicate history", async 
     frames.filter((frame) => frame.type === "session.state" && frame.snapshot.operation === "idle"),
   ).toHaveLength(1);
   expect(controller.snapshot.state.draft).toBeUndefined();
+  expect(controller.snapshot.draftPhase).toBeUndefined();
   expect(calls).toBe(1);
+  expect(controller.snapshot.state.runTimings).toHaveLength(1);
+  const timing = controller.snapshot.state.runTimings![0]!;
+  expect(timing.userMessageIndex).toBe(0);
+  expect(timing.finishedAt).toBeGreaterThanOrEqual(timing.startedAt);
+  expect(
+    frames.filter((frame) => frame.type === "loop.event" && frame.event.type === "run_timing"),
+  ).toHaveLength(2);
+  const reconnected: Frame[] = [];
+  const disconnect = controller.events.connect((frame) => reconnected.push(frame));
+  expect(reconnected[0]).toMatchObject({
+    type: "session.snapshot",
+    snapshot: { state: { runTimings: [timing] } },
+  });
+  disconnect();
   await controller.close();
 });
 
@@ -332,6 +375,116 @@ test("sequential tool results keep canonical indexes across multiple model turns
   expect(controller.snapshot.tools.one?.status).toBe("success");
   expect(controller.snapshot.tools.two?.status).toBe("error");
   await controller.close();
+});
+
+test("SSE delivers commentary and running tool state while execution is still pending", async () => {
+  const stream = createAssistantMessageEventStream();
+  let calls = 0;
+  let executing = false;
+  let release = () => {};
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const session = new AgentSession({
+    model,
+    systemPrompt: "Test",
+    sessionManager: SessionManager.inMemory(),
+    modelRuntime: runtime(() => {
+      if (++calls === 1) return stream;
+      const final = createAssistantMessageEventStream();
+      final.push({ type: "done", reason: "stop", message: answer("<!-- loop:final -->Done") });
+      return final;
+    }),
+    tools: [
+      {
+        name: "bash",
+        description: "Synthetic gated tool",
+        parameters: Type.Object({}),
+        execute: async () => {
+          executing = true;
+          await pending;
+          return [{ type: "text", text: "Example output" }];
+        },
+      },
+    ],
+  });
+  const controller = new SessionController(session, "project");
+  const response = eventResponse(controller.events, new Request("http://localhost/events"));
+  const reader = response.body!.getReader();
+  const received: Frame[] = [];
+  const until = async (matches: (frame: Frame) => boolean) => {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) throw new Error("SSE closed before expected event");
+      for (const line of new TextDecoder().decode(chunk.value).split("\n")) {
+        if (!line.startsWith("data: ")) continue;
+        const frame = JSON.parse(line.slice(6)) as Frame;
+        received.push(frame);
+        if (matches(frame)) return frame;
+      }
+    }
+  };
+  try {
+    controller.prompt("stream-request", "Inspect files");
+    await waitFor(() => calls === 1);
+    stream.push({ type: "start", partial: answer("") });
+    const partial = answer("<!-- loop:commentary -->Inspect");
+    stream.push({ type: "text_delta", contentIndex: 0, delta: partial.content[0]!.text, partial });
+    const frame = await until(
+      (frame) => frame.type === "loop.event" && frame.event.type === "message_update",
+    );
+    expect(frame).toMatchObject({
+      type: "loop.event",
+      event: { assistantMessageEvent: { type: "text_delta" } },
+    });
+    expect(executing).toBe(false);
+    const update = answer("<!-- loop:commentary -->Inspect the configuration.");
+    stream.push({
+      type: "text_delta",
+      contentIndex: 0,
+      delta: " the configuration.",
+      partial: update,
+    });
+    const tool = {
+      ...update,
+      stopReason: "toolUse" as const,
+      content: [
+        ...update.content,
+        { type: "toolCall" as const, id: "live", name: "bash", arguments: {} },
+      ],
+    };
+    stream.push({ type: "toolcall_start", contentIndex: 1, partial: tool });
+    stream.push({ type: "done", reason: "toolUse", message: tool });
+    await until(
+      (frame) => frame.type === "loop.event" && frame.event.type === "tool_execution_start",
+    );
+    await waitFor(() => executing);
+    expect(controller.snapshot.tools.live?.status).toBe("running");
+    expect(controller.snapshot.tools.live?.result).toBeUndefined();
+    expect(
+      received.some(
+        (frame) => frame.type === "loop.event" && frame.event.type === "tool_execution_end",
+      ),
+    ).toBe(false);
+    const restored: Frame[] = [];
+    const disconnect = controller.events.connect((frame) => restored.push(frame));
+    expect(restored[0]).toMatchObject({
+      type: "session.snapshot",
+      snapshot: { tools: { live: { status: "running" } } },
+    });
+    disconnect();
+    release();
+    await until(
+      (frame) => frame.type === "loop.event" && frame.event.type === "tool_execution_end",
+    );
+    expect(controller.snapshot.tools.live?.status).toBe("success");
+    await until((frame) => frame.type === "session.state" && frame.snapshot.operation === "idle");
+    expect(controller.snapshot.state.outcome).toBe("success");
+  } finally {
+    release();
+    await reader.cancel();
+    await controller.close();
+  }
 });
 
 test("failed flush preserves pending history and model failure releases operation", async () => {

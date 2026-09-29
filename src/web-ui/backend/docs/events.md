@@ -15,7 +15,7 @@ Connect to `GET /api/sessions/:id/events`. SSE data is a JSON Frame and its id i
 
 Every frame includes sessionId, streamId, and seq. streamId belongs to one SessionEvents instance. seq increments on publish; a connection snapshot uses the current sequence without incrementing it.
 
-Native SDK events are message_start, message_update, message_end, tool_execution_start, tool_execution_end, and agent_settled. Web wraps them in loop.event without renaming them. message_update still carries the original AI event. See [coding-agent events](../../../coding-agent/docs/events.md) for the full contract.
+SDK events include message_start, message_update, message_end, tool_execution_start, tool_execution_end, run_timing, agent_settled and session_title. Web wraps them in loop.event without renaming them. message_update still carries the original AI event. run_timing supplies prompt start and finish timestamps; snapshots include state.runTimings for reconnecting clients and restored sessions. See [coding-agent events](../../../coding-agent/docs/events.md) for the full contract.
 
 ## Replay and Snapshots
 

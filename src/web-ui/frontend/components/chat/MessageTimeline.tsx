@@ -3,9 +3,9 @@ import { useTranslation } from "react-i18next";
 import type { SessionSnapshot } from "../../../shared/protocol";
 import { useAutoScroll } from "../../hooks/useAutoScroll";
 import { ActionButton } from "../ui/ActionButton";
-import { AssistantMessage } from "./AssistantMessage";
+import { AssistantTurn } from "./AssistantTurn";
+import { groupTimelineTurns } from "./timeline-turns";
 import { UserMessage } from "./UserMessage";
-import { ToolCard } from "./ToolCard";
 import { LoopingIndicator } from "./LoopingIndicator";
 import "./MessageTimeline.css";
 
@@ -20,16 +20,11 @@ export const MessageTimeline = ({
   const scroll = useAutoScroll(snapshot);
   const looping = connected && snapshot.operation === "prompt";
   const messages = [...snapshot.state.messages];
+  const draftIndex = snapshot.state.draft ? (snapshot.draftIndex ?? messages.length) : undefined;
 
-  if (snapshot.state.draft) messages[snapshot.draftIndex ?? messages.length] = snapshot.state.draft;
+  if (snapshot.state.draft && draftIndex !== undefined) messages[draftIndex] = snapshot.state.draft;
 
-  const calls = new Set(
-    messages.flatMap((message) =>
-      message.role === "assistant"
-        ? message.content.filter((part) => part.type === "toolCall").map((part) => part.id)
-        : [],
-    ),
-  );
+  const turns = groupTimelineTurns(messages);
 
   return (
     <div className="timeline-region">
@@ -42,22 +37,26 @@ export const MessageTimeline = ({
       >
         <div className="timeline-content">
           {!messages.length && !looping && <p className="timeline-empty">{t("emptySession")}</p>}
-          {messages.map((message, index) => {
-            if (message.role === "user") return <UserMessage key={index} message={message} />;
+          {turns.map((turn) => {
+            const key = `${snapshot.sessionId}:${turn.index}`;
 
-            if (message.role === "assistant")
-              return (
-                <AssistantMessage
-                  key={index}
-                  message={message}
-                  tools={snapshot.tools}
-                  streaming={snapshot.draftIndex === index}
-                />
-              );
+            if (turn.type === "user") return <UserMessage key={key} message={turn.message} />;
 
-            return !calls.has(message.toolCallId) && snapshot.tools[message.toolCallId] ? (
-              <ToolCard key={index} tool={snapshot.tools[message.toolCallId]!} />
-            ) : null;
+            return (
+              <AssistantTurn
+                key={key}
+                messages={turn.messages}
+                tools={snapshot.tools}
+                draftIndex={draftIndex}
+                draftPhase={turn === turns.at(-1) ? snapshot.draftPhase : undefined}
+                running={snapshot.operation === "prompt" && turn === turns.at(-1)}
+                outcome={turn === turns.at(-1) ? snapshot.state.outcome : undefined}
+                title={turn.title}
+                timing={snapshot.state.runTimings?.find(
+                  (timing) => timing.userMessageIndex === turn.userMessageIndex,
+                )}
+              />
+            );
           })}
           {looping && <LoopingIndicator />}
         </div>

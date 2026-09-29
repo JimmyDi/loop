@@ -168,6 +168,64 @@ test("executes a batch sequentially and sends matching results on the next model
   ]);
 });
 
+test("streams visible preambles before sequential tool execution without extra model calls", async () => {
+  const order: string[] = [];
+  const history: Message[] = [];
+  let requests = 0;
+  const final = await runAgentLoop(
+    "Check the files",
+    history,
+    {
+      model,
+      tools: [
+        tool((args) => {
+          order.push(`execute:${args.text}`);
+          return [{ type: "text", text: "Checked" }];
+        }),
+      ],
+      streamFn: () => {
+        requests++;
+        if (requests === 3) return stream(answer());
+
+        const text = requests === 1 ? "Read the configuration." : "Check its references.";
+        const response = createAssistantMessageEventStream();
+        const partial = answer();
+        partial.content = [];
+        response.push({ type: "start", partial: structuredClone(partial) });
+        partial.content = [{ type: "text", text }];
+        response.push({
+          type: "text_delta",
+          contentIndex: 0,
+          delta: text,
+          partial: structuredClone(partial),
+        });
+        const calls = requests === 1 ? [call("a"), call("b")] : [call("c")];
+        partial.content.push(...calls);
+        partial.stopReason = "toolUse";
+        response.push({ type: "done", reason: "toolUse", message: partial });
+        response.end();
+        return response;
+      },
+    },
+    (event) => {
+      if (event.type === "message_update" && event.assistantMessageEvent.type === "text_delta") {
+        order.push(event.assistantMessageEvent.delta);
+      }
+    },
+  );
+
+  expect(order).toEqual([
+    "Read the configuration.",
+    "execute:a",
+    "execute:b",
+    "Check its references.",
+    "execute:c",
+  ]);
+  expect(requests).toBe(3);
+  expect(final.content).toEqual([{ type: "text", text: "answer" }]);
+  expect(history.filter((message) => message.role === "assistant")).toHaveLength(3);
+});
+
 test("missing tools, invalid arguments and thrown tool errors become model-visible error results", async () => {
   let executions = 0;
   let requests = 0;

@@ -21,6 +21,7 @@
   min-width: 0;
   padding-top: 1px;
 }
-.assistant-message[aria-busy="true"] .assistant-avatar {
-  color: var(--accent);
+.assistant-message[aria-busy="true"] {
+  /* Reserve the avatar column until the draft is confirmed as an answer. */
+  padding-inline-start: 42px;
 }

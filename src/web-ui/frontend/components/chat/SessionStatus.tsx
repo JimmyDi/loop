@@ -23,7 +23,7 @@ export const SessionStatus = ({
   return (
     <div className="session-status" role="status">
       {!connected && <span>{t("reconnecting")}</span>}
-      <ErrorNotice error={error} />
+      <ErrorNotice key={snapshot.sessionId} error={error} dismissible />
       {snapshot.state.hasPendingSave && (
         <div>
           {t("pendingSave")}

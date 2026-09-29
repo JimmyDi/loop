@@ -23,10 +23,13 @@ The exported `SessionHeader` contains:
 | `createdAt`, `updatedAt` | ISO timestamp strings. |
 | `model` | Optional `{ provider: string, id: string, effort?: ModelEffort }`. |
 | `title` | Optional `SessionTitle`: text, source, source message indices, and optional model identity. See [session titles](session-titles.md). |
+| `runTimings` | Optional `SessionRunTiming[]`: zero-based `userMessageIndex` plus `startedAt` and `finishedAt` in Unix milliseconds for each recorded prompt. |
 
 Older files without effort remain valid and use Default. Unknown effort values reject; supported levels depend on model metadata. The header stores no API key or endpoint. Reconfigure those through [model runtime](models.md) when restoring a session.
 
 Older files without titles remain valid. The header accessor and session list derive a fallback from the first eligible user message when stored title metadata is absent; reading does not rewrite the file or call a model. Stored titles live only in the header; auxiliary prompts and responses are not conversation records. Title-only writes preserve activity timestamps and serialize with history/model writes. Malformed title metadata rejects on load.
+
+Older files without run timings remain valid; missing durations are not inferred from message timestamps. Stored timings must reference distinct user-message positions and contain nonnegative safe integer timestamps with `finishedAt >= startedAt`. Invalid metadata rejects on load. Timings are header metadata, never model context. Only finished timings are saved; see [execution timing](sessions.md#execution-timing) for the lifecycle.
 
 ## Messages
 
@@ -40,7 +43,7 @@ There are no stored streaming deltas, drafts, system prompt, tool functions, or 
 
 ## Read and write
 
-Use `SessionManager.open(path)` and its snapshot accessors rather than editing live files. `commit(messages)` expects complete history. On failure, `flush()` retries the same pending snapshot; see [sessions and recovery](sessions.md).
+Use `SessionManager.open(path)` and its snapshot accessors rather than editing live files. `commit(messages, runTimings?)` expects complete history and preserves existing timings when the second argument is omitted. `getRunTimings()` returns a cloned snapshot, including pending timings after a save failure. On failure, `flush()` retries the same pending snapshot; see [sessions and recovery](sessions.md).
 
 No migration, automatic repair, or interoperability with Pi's JSONL format is provided. Share only synthetic fixtures: real session cwd and conversation/tool content can disclose local information.
 

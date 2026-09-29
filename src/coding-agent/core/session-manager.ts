@@ -6,6 +6,8 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 import { getSessionDir } from "../config";
 import { atomicWrite } from "../utils/atomic-write";
 import { validateMessages } from "./messages";
+import { validateRunTimings } from "./run-timing";
+import type { SessionRunTiming } from "./run-timing";
 import { isModelEffort } from "./models/model-effort";
 import { fallbackTitle, titleInputs, validTitle } from "./titles/title-text";
 import type { SessionTitle } from "./titles/types";
@@ -91,6 +93,7 @@ export class SessionManager {
     const messages: unknown = lines.map((line) => JSON.parse(line));
 
     validateMessages(messages);
+    validateRunTimings(header.runTimings, messages);
 
     return new SessionManager({ header, messages }, resolve(path));
   }
@@ -143,6 +146,10 @@ export class SessionManager {
     return this.pending !== undefined;
   }
 
+  getRunTimings(): SessionRunTiming[] {
+    return structuredClone((this.pending ?? this.data).header.runTimings ?? []);
+  }
+
   getHeader(): SessionHeader {
     const header = structuredClone(this.data.header);
 
@@ -171,11 +178,19 @@ export class SessionManager {
     return this.sessionFile ? dirname(this.sessionFile) : undefined;
   }
 
-  async commit(messages: readonly Message[]): Promise<void> {
+  async commit(
+    messages: readonly Message[],
+    runTimings: readonly SessionRunTiming[] = this.getRunTimings(),
+  ): Promise<void> {
     if (this.pending || this.writing) throw new Error("Pending session save; call flush first");
+    validateRunTimings(runTimings, messages);
 
     this.pending = {
-      header: { ...this.data.header, updatedAt: new Date().toISOString() },
+      header: {
+        ...this.data.header,
+        updatedAt: new Date().toISOString(),
+        runTimings: runTimings.length ? structuredClone([...runTimings]) : undefined,
+      },
       messages: structuredClone([...messages]),
     };
     await this.flush();

@@ -13,7 +13,10 @@ export function createBashTool(cwd: string): AgentTool {
     description: "Run a bash command in the working directory. Optional timeout is in seconds.",
     parameters: {
       type: "object",
-      properties: { command: { type: "string" }, timeout: { type: "number", minimum: 0.01 } },
+      properties: {
+        command: { type: "string" },
+        timeout: { type: "number", minimum: 0.01 },
+      },
       required: ["command"],
     },
     async execute(args, signal) {

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { flushSync } from "react-dom";
 
 import type { Frame } from "../../shared/protocol";
 import { useSessions } from "../state/session-store";
@@ -22,8 +23,19 @@ export const useSessionEvents = (id?: string): void => {
       source.onmessage = (event) => {
         try {
           const frame = JSON.parse(event.data) as Frame;
+          let accepted = false;
+          const apply = () => {
+            accepted = frame.sessionId === id && useSessions.getState().frame(frame);
+          };
 
-          if (frame.sessionId !== id || !useSessions.getState().frame(frame)) {
+          // Commit starts so a burst of results cannot skip the running icon's effect.
+          if (frame.type === "loop.event" && frame.event.type === "tool_execution_start") {
+            flushSync(apply);
+          } else {
+            apply();
+          }
+
+          if (!accepted) {
             source.close();
             useSessions.getState().connection(id, false);
             connect(true);

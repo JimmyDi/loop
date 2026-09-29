@@ -1,6 +1,11 @@
-import type { ModelEffort, SessionEvent, SessionState } from "../../coding-agent/index";
+import type {
+  ModelEffort,
+  SessionEvent,
+  SessionRunTiming,
+  SessionState,
+} from "../../coding-agent/index";
 
-export type { ModelEffort, SessionEvent, SessionState };
+export type { ModelEffort, SessionEvent, SessionRunTiming, SessionState };
 
 export type Message = SessionState["messages"][number];
 
@@ -36,6 +41,8 @@ export type ToolView = {
   result?: Extract<Message, { role: "toolResult" }>;
 };
 
+export type DraftPhase = "thinking" | "thinking-complete" | "text" | "tool";
+
 export type SessionSnapshot = {
   streamId: string;
   sessionId: string;
@@ -47,6 +54,7 @@ export type SessionSnapshot = {
   runId?: string;
   requestId?: string;
   draftIndex?: number;
+  draftPhase?: DraftPhase;
   tools: Record<string, ToolView>;
   commandError?: string;
 };

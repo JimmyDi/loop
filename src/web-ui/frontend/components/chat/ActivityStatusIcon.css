@@ -1,0 +1,31 @@
+.activity-status-icon {
+  flex: 0 0 17px;
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: var(--ink-muted);
+}
+.activity-status-icon[data-status="success"] {
+  color: light-dark(#09865b, #4ccea0);
+}
+.activity-status-icon[data-status="error"] {
+  color: var(--error-ink);
+}
+.activity-status-icon[data-status="running"] {
+  color: var(--accent);
+  animation: activity-spin 1s linear infinite;
+}
+@keyframes activity-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .activity-status-icon[data-status="running"] {
+    animation: none;
+  }
+}

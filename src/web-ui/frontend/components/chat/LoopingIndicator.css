@@ -1,6 +1,8 @@
 .looping-indicator {
   flex: 0 0 auto;
   margin: 16px 0;
+  /* Match the answer's 28px avatar plus 14px gap. */
+  padding-inline-start: 42px;
   color: var(--accent);
   font-size: 12px;
   font-weight: 500;

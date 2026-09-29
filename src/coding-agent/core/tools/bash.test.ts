@@ -11,6 +11,7 @@ test("bash uses cwd, reports failure, truncates output and cancels child process
   const signal = new AbortController().signal;
 
   try {
+    expect(tool.parameters).not.toHaveProperty("properties.description");
     expect(JSON.stringify(await tool.execute({ command: "printf hello" }, signal))).toContain(
       "hello",
     );

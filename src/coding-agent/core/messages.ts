@@ -1,7 +1,5 @@
 import type { Message } from "@earendil-works/pi-ai";
 
-import { readAssistantText } from "./assistant-text";
-
 export function validateMessages(input: unknown): asserts input is Message[] {
   if (!Array.isArray(input)) throw new Error("Invalid session messages");
 
@@ -94,6 +92,6 @@ export function messageText(message?: Message): string {
     ? message.content
     : message.content
         .filter((part) => part.type === "text")
-        .map((part) => (message.role === "assistant" ? readAssistantText(part).text : part.text))
+        .map((part) => part.text)
         .join("");
 }

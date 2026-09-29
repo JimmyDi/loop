@@ -7,6 +7,7 @@ import { ActivityStatusIcon } from "./ActivityStatusIcon";
 import type { ActivityStatus } from "./activity-status";
 import type { TurnMessage } from "./timeline-turns";
 import { ToolCard } from "./ToolCard";
+import { useReasoningScroll } from "../../hooks/useReasoningScroll";
 import "./ExecutionGroup.css";
 
 export const ExecutionGroup = ({
@@ -15,15 +16,18 @@ export const ExecutionGroup = ({
   draftIndex,
   status,
   title,
+  following = false,
 }: {
   entries: TurnMessage[];
   tools: Record<string, ToolView>;
   draftIndex?: number;
   status: ActivityStatus;
   title: string;
+  following?: boolean;
 }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(true);
+  const scroll = useReasoningScroll(entries, following);
 
   return (
     <div className="execution-group" data-status={status}>
@@ -35,7 +39,14 @@ export const ExecutionGroup = ({
             ›
           </span>
         </summary>
-        <div className="execution-group-body">
+        <div
+          className="execution-group-body"
+          ref={scroll.ref}
+          onScroll={scroll.onScroll}
+          role="region"
+          aria-label={t("reasoning")}
+          tabIndex={0}
+        >
           {entries.map(({ index, message }) => (
             <div className="activity-step" key={index}>
               {message.role === "assistant" ? (

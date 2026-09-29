@@ -27,7 +27,7 @@ export const RunActivityCard = ({
   timing?: SessionRunTiming;
 }) => {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(() => status === "running");
+  const [open, setOpen] = useState(status === "running");
   const failures = activityFailures(entries, tools);
 
   return (
@@ -53,6 +53,7 @@ export const RunActivityCard = ({
             draftIndex={draftIndex}
             status={executionStatus}
             title={title}
+            following={status === "running"}
           />
         </div>
       </details>

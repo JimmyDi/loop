@@ -87,93 +87,90 @@ test("one activity per user turn preserves intermediate messages and excludes pa
   expect(messages).toEqual(before);
 });
 
-test("first-message text waits for a tool call or completion before choosing its section", () => {
+test("unclassified live text streams outside reasoning until a tool call identifies an update", () => {
   const text = { type: "text" as const, text: "Inspect the file" };
   const pending = [{ index: 1, message: assistant([text]) }];
-  expect(projectAssistantTurn(pending, 1)).toEqual({ activity: [], answer: undefined });
-  expect(projectAssistantTurn(structuredClone(pending), 1)).toEqual({
-    activity: [],
-    answer: undefined,
-  });
+  expect(projectAssistantTurn(pending, 1)).toEqual({ activity: [], answer: pending[0] });
+  expect(projectAssistantTurn(pending)).toEqual({ activity: [], answer: pending[0] });
   const withCall = [
     {
       index: 1,
       message: assistant([text, { type: "toolCall", id: "call", name: "read", arguments: {} }]),
     },
   ];
-  expect(projectAssistantTurn(withCall, 1).answer).toBeUndefined();
-  expect(projectAssistantTurn(withCall, 1).activity).toHaveLength(1);
+  expect(projectAssistantTurn(withCall, 1)).toEqual({ activity: withCall, answer: undefined });
   expect(projectAssistantTurn(withCall).answer).toBeUndefined();
   expect(
     projectAssistantTurn([{ index: 1, message: assistant([text], "toolUse") }]).answer,
   ).toBeUndefined();
-  expect(projectAssistantTurn(pending)).toEqual({ activity: [], answer: pending[0] });
-  expect(
-    projectAssistantTurn([{ index: 1, message: assistant([text], "toolUse") }], 1).answer,
-  ).toBeUndefined();
-  expect(projectAssistantTurn([{ index: 1, message: assistant([]) }], 1)).toEqual({
-    activity: [],
-    answer: undefined,
-  });
-  expect(
-    projectAssistantTurn([{ index: 1, message: assistant([{ type: "text", text: "  " }]) }], 1),
-  ).toEqual({ activity: [], answer: undefined });
-  const thinking = [{ index: 2, message: assistant([{ type: "thinking", thinking: "Thinking" }]) }];
-  expect(projectAssistantTurn(thinking).answer).toBeUndefined();
-  expect(projectAssistantTurn(thinking).activity).toHaveLength(1);
-  const response = {
-    type: "text" as const,
-    text: "## Findings\n\n- Improve rendering.\n- Reduce duplicate work.",
-  };
-  const mixed = [
-    { index: 2, message: assistant([{ type: "thinking", thinking: "Thinking" }, response]) },
-  ];
-  const projected = projectAssistantTurn(mixed, 2);
-  expect(projected.activity[0]?.message.content).toEqual([
-    { type: "thinking", thinking: "Thinking" },
-  ]);
-  expect(projected.answer).toBeUndefined();
-  expect(projectAssistantTurn(mixed).answer?.message.content).toEqual([response]);
+  for (const content of [[], [{ type: "text" as const, text: "  " }]]) {
+    expect(projectAssistantTurn([{ index: 1, message: assistant(content) }], 1)).toEqual({
+      activity: [],
+      answer: undefined,
+    });
+  }
 });
 
-test("explicit commentary and final phases stream into separate areas without mutating history", () => {
-  const commentary = { type: "text" as const, text: "<!-- loop:commentary -->Inspect files" };
-  const final = { type: "text" as const, text: "<!-- loop:final -->## Findings" };
-  const messages = [{ index: 1, message: assistant([commentary]) }];
+test("native phases route live text while tool calls retain their associated updates", () => {
+  const commentary = {
+    type: "text" as const,
+    text: "Inspect files",
+    textSignature: JSON.stringify({ v: 1, id: "update", phase: "commentary" }),
+  };
+  const final = {
+    type: "text" as const,
+    text: "## Findings",
+    textSignature: JSON.stringify({ v: 1, id: "reply", phase: "final_answer" }),
+  };
+  const messages = [{ index: 1, message: assistant([commentary, final]) }];
   const before = structuredClone(messages);
-  expect(projectAssistantTurn(messages, 1).activity[0]?.message.content).toEqual([
-    { type: "text", text: "Inspect files" },
-  ]);
-  expect(projectAssistantTurn(messages, 1).answer).toBeUndefined();
-  expect(projectAssistantTurn(messages).answer).toBeUndefined();
-  expect(messages).toEqual(before);
-
-  const mixed = [{ index: 1, message: assistant([commentary, final]) }];
-  for (const draftIndex of [1, undefined]) {
-    const projected = projectAssistantTurn(mixed, draftIndex);
-    expect(projected.activity[0]?.message.content).toEqual([
-      { type: "text", text: "Inspect files" },
-    ]);
-    expect(projected.answer?.message.content).toEqual([{ type: "text", text: "## Findings" }]);
-  }
-  const direct = projectAssistantTurn([{ index: 1, message: assistant([final]) }], 1);
-  expect(direct.activity).toEqual([]);
-  expect(direct.answer?.message.content).toEqual([{ type: "text", text: "## Findings" }]);
+  const live = projectAssistantTurn(messages, 1);
+  expect(live.answer?.message.content).toEqual([final]);
+  expect(live.activity[0]?.message.content).toEqual([commentary]);
+  const done = projectAssistantTurn(messages);
+  expect(done.activity[0]?.message.content).toEqual([commentary]);
+  expect(done.answer?.message.content).toEqual([final]);
   const native = {
     type: "text" as const,
-    text: "Update",
-    textSignature: JSON.stringify({ v: 1, id: "text", phase: "commentary" }),
+    text: "Answer",
+    textSignature: JSON.stringify({ v: 1, id: "text", phase: "final_answer" }),
   };
   expect(
-    projectAssistantTurn([{ index: 1, message: assistant([native]) }], 1).activity[0]?.message
-      .content,
+    projectAssistantTurn([{ index: 1, message: assistant([native]) }], 1).answer?.message.content,
   ).toEqual([native]);
+  const update = {
+    ...native,
+    text: "Inspect files",
+    textSignature: JSON.stringify({ v: 1, id: "text", phase: "commentary" }),
+  };
+  expect(projectAssistantTurn([{ index: 1, message: assistant([update]) }], 1)).toEqual({
+    activity: [{ index: 1, message: assistant([update]) }],
+    answer: undefined,
+  });
+  const withTool = [
+    {
+      index: 1,
+      message: assistant(
+        [native, { type: "toolCall", id: "tool", name: "read", arguments: {} }],
+        "toolUse",
+      ),
+    },
+  ];
+  expect(projectAssistantTurn(withTool).answer).toBeUndefined();
+  expect(messages).toEqual(before);
 });
 
-test("text after tools waits for its destination while thinking keeps streaming", () => {
+test("text prefixes do not route, trim or buffer a live reply", () => {
+  for (const text of ["<", "<!-- loop:comm", "<!-- loop:commentary -->Inspect files", "  Answer"]) {
+    const entry = { index: 1, message: assistant([{ type: "text", text }]) };
+    expect(projectAssistantTurn([entry], 1)).toEqual({ activity: [], answer: entry });
+  }
+});
+
+test("multiple batches, thinking and final reply keep order across reconnect and settlement", () => {
   const call = { type: "toolCall" as const, id: "first", name: "read", arguments: {} };
   const history = [
-    { index: 1, message: assistant([call], "toolUse") },
+    { index: 1, message: assistant([{ type: "text", text: "Inspect files" }, call], "toolUse") },
     {
       index: 2,
       message: {
@@ -187,50 +184,41 @@ test("text after tools waits for its destination while thinking keeps streaming"
     },
   ];
   const thought = { type: "thinking" as const, thinking: "Consider the result" };
-
-  // Wording and Markdown cannot classify a progress update or a final answer.
   for (const text of ["Read another file next.", "## Findings\n\n- Configuration checked."]) {
-    const content = [thought, { type: "text" as const, text }];
-    const draft = { index: 3, message: assistant(content) };
+    const draft = { index: 3, message: assistant([thought, { type: "text" as const, text }]) };
     const messages = [...history, draft];
     const before = structuredClone(messages);
-    const pending = projectAssistantTurn(messages, 3);
-    expect(pending.answer).toBeUndefined();
-    expect(pending.activity.map((entry) => entry.index)).toEqual([1, 3]);
-    expect(pending.activity[1]?.message.content).toEqual([thought]);
-    expect(projectAssistantTurn(structuredClone(messages), 3)).toEqual(pending);
-    expect(messages).toEqual(before);
-
+    const live = projectAssistantTurn(messages, 3);
+    expect(live.activity.map((entry) => entry.index)).toEqual([1, 3]);
+    expect(live.activity[1]?.message.content).toEqual([thought]);
+    expect(live.answer?.message.content).toEqual([{ type: "text", text }]);
+    expect(projectAssistantTurn(structuredClone(messages), 3)).toEqual(live);
     const withCall = {
       ...draft,
-      message: assistant([...content, { ...call, id: "next" }]),
+      message: assistant([...draft.message.content, { ...call, id: "next" }]),
     };
-    const confirmed = projectAssistantTurn([...history, withCall], 3);
-    expect(confirmed.answer).toBeUndefined();
-    expect(confirmed.activity).toEqual([history[0]!, withCall]);
-
-    const completed = projectAssistantTurn(messages);
-    expect(completed.activity).toEqual(pending.activity);
-    expect(completed.answer?.message.content).toEqual([{ type: "text", text }]);
-    for (const stopReason of ["error", "aborted"] as const) {
+    expect(projectAssistantTurn([...history, withCall], 3)).toEqual({
+      activity: [history[0], withCall],
+      answer: undefined,
+    });
+    const done = projectAssistantTurn(messages);
+    expect(done.activity.map((entry) => entry.index)).toEqual([1, 3]);
+    expect(done.activity[1]?.message.content).toEqual([thought]);
+    expect(done.answer?.message.content).toEqual([{ type: "text", text }]);
+    expect(messages).toEqual(before);
+    for (const stopReason of ["error", "aborted", "length"] as const) {
       const stopped = {
         ...draft,
         message: { ...draft.message, stopReason, errorMessage: "Stopped" },
       };
       const result = projectAssistantTurn([...history, stopped]);
       expect(result.answer?.message.content).toEqual([{ type: "text", text }]);
+      expect(result.answer?.message.stopReason).toBe(stopReason);
       expect(result.answer?.message.errorMessage).toBe("Stopped");
     }
   }
-
-  const orphan = [{ ...history[1]!, index: 0 }];
-  const draft = { index: 1, message: assistant([{ type: "text", text: "Follow up" }]) };
-  expect(projectAssistantTurn([...orphan, draft], 1)).toEqual({
-    activity: orphan,
-    answer: undefined,
-  });
-  expect(projectAssistantTurn([draft], 1)).toEqual({ activity: [], answer: undefined });
-  expect(projectAssistantTurn([draft])).toEqual({ activity: [], answer: draft });
+  const thoughtOnly = [{ index: 1, message: assistant([thought]) }];
+  expect(projectAssistantTurn(thoughtOnly)).toEqual({ activity: thoughtOnly, answer: undefined });
 });
 
 test("orphan results and failure messages remain visible without inventing a final answer", () => {

@@ -6,7 +6,7 @@ import { applyEvent, applyFrame } from "../../../shared/session-projection";
 import "../../i18n/setup";
 import { MessageTimeline } from "./MessageTimeline";
 
-test("marked updates stream in place and tool icons follow live execution before results", async () => {
+test("native commentary stays in reasoning and the answer streams outside it before settlement", async () => {
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, { window, document: window.document });
@@ -49,9 +49,18 @@ test("marked updates stream in place and tool icons follow live execution before
     let message = draft;
     let section: Element | null = null;
     let textNode: Element | null = null;
-    for (const delta of ["<!-- loop:comm", "entary -->Inspect", " the configuration."]) {
+    for (const delta of ["Inspect", " the configuration."]) {
       raw += delta;
-      message = { ...draft, content: [{ type: "text", text: raw }] };
+      message = {
+        ...draft,
+        content: [
+          {
+            type: "text",
+            text: raw,
+            textSignature: JSON.stringify({ v: 1, id: "update", phase: "commentary" }),
+          },
+        ],
+      };
       snapshot = applyEvent(
         snapshot,
         {
@@ -64,17 +73,12 @@ test("marked updates stream in place and tool icons follow live execution before
       ui.rerender(<MessageTimeline snapshot={snapshot} connected />);
       expect(ui.container.querySelector(".assistant-message")).toBeNull();
       expect(ui.container.textContent).not.toContain("loop:");
-      if (raw.includes("-->")) {
+      if (raw) {
         section ??= ui.container.querySelector(".run-activity-card");
         textNode ??= section!.querySelector(".activity-step .markdown-text");
         expect(ui.container.querySelector(".run-activity-card")).toBe(section);
         expect(section!.querySelector(".markdown-text")).toBe(textNode);
-        expect(textNode?.textContent).toContain(raw.split("-->")[1]!);
-        expect(
-          section!
-            .querySelector(".execution-group > details > summary > svg")
-            ?.getAttribute("data-status"),
-        ).toBe("running");
+        expect(textNode?.textContent).toContain(raw);
       }
     }
     message = {
@@ -110,9 +114,11 @@ test("marked updates stream in place and tool icons follow live execution before
     });
     ui.rerender(<MessageTimeline snapshot={running} connected />);
     expect(card.dataset.status).toBe("running");
-    expect(card.querySelector("svg")?.getAttribute("aria-label")).toBe("Running");
-    expect(card.querySelector("svg path")?.getAttribute("d")).toBe("M12 3a9 9 0 1 1-9 9");
-    expect(card.querySelector("svg circle")).toBeNull();
+    expect(card.querySelector(".activity-status-icon")?.getAttribute("aria-label")).toBe("Running");
+    expect(card.querySelector(".activity-status-icon path")?.getAttribute("d")).toBe(
+      "M12 3a9 9 0 1 1-9 9",
+    );
+    expect(card.querySelector(".activity-status-icon circle")).toBeNull();
     expect(card.textContent).not.toContain("Result");
     card.open = true;
     const reconnected = applyFrame(running, {
@@ -147,15 +153,15 @@ test("marked updates stream in place and tool icons follow live execution before
       expect(ui.container.querySelector(".tool-card")).toBe(card);
       expect(card.dataset.status).toBe(isError ? "error" : "success");
       await waitFor(() =>
-        expect(card.querySelector("svg path")?.getAttribute("d")).toBe(
+        expect(card.querySelector(".activity-status-icon path")?.getAttribute("d")).toBe(
           isError ? "m9 9 6 6m0-6-6 6" : "m8 12 3 3 5-6",
         ),
       );
       expect(card.open).toBe(true);
     }
-    const final = {
+    let final = {
       ...draft,
-      content: [{ type: "text" as const, text: "<!-- loop:final -->Configuration checked." }],
+      content: [{ type: "text" as const, text: "Configuration checked." }],
     };
     snapshot = applyEvent(
       snapshot,
@@ -172,16 +178,67 @@ test("marked updates stream in place and tool icons follow live execution before
       3,
     );
     ui.rerender(<MessageTimeline snapshot={snapshot} connected />);
-    expect(ui.container.querySelector(".assistant-message")?.textContent).toContain(
-      "Configuration checked.",
-    );
+    const answer = ui.container.querySelector(".assistant-message")!;
+    expect(answer.textContent).toContain("Configuration checked.");
+    expect(answer.closest(".run-activity-card")).toBeNull();
+    expect(answer.getAttribute("aria-busy")).toBe("true");
     expect(section?.textContent).not.toContain("Configuration checked.");
     expect(ui.container.querySelector(".assistant-avatar")).toBeNull();
+    const markdown = answer.querySelector(".markdown-text");
+    for (const delta of [
+      "\n\n## Responsibilities\n\n",
+      ...Array.from({ length: 8 }, (_, index) => `- Component ${index + 1} is documented.\n`),
+    ]) {
+      final = { ...final, content: [{ type: "text", text: final.content[0]!.text + delta }] };
+      snapshot = applyEvent(
+        snapshot,
+        {
+          type: "message_update",
+          message: final,
+          assistantMessageEvent: { type: "text_delta", contentIndex: 0, delta, partial: final },
+        },
+        3,
+      );
+      ui.rerender(<MessageTimeline snapshot={snapshot} connected />);
+      expect(ui.container.querySelector(".assistant-message")).toBe(answer);
+      expect(answer.querySelector(".markdown-text")).toBe(markdown);
+      expect(answer.closest(".execution-group-body")).toBeNull();
+      expect(section?.textContent).not.toContain("Responsibilities");
+      expect(ui.container.querySelector(".tool-card")).toBe(card);
+    }
+    expect(answer.querySelectorAll("li")).toHaveLength(8);
+    snapshot = applyFrame(snapshot, {
+      type: "session.snapshot",
+      sessionId: "example",
+      streamId: "reply-reconnect",
+      seq: 0,
+      snapshot: structuredClone(snapshot),
+    })!;
+    ui.rerender(<MessageTimeline snapshot={snapshot} connected />);
+    expect(ui.container.querySelector(".assistant-message")).toBe(answer);
     expect(
       section!
         .querySelector(".execution-group > details > summary > svg")
         ?.getAttribute("data-status"),
     ).toBe("success");
+    snapshot = applyEvent(snapshot, { type: "message_end", message: final }, 3);
+    ui.rerender(<MessageTimeline snapshot={snapshot} connected />);
+    expect(ui.container.querySelector(".assistant-message")).toBe(answer);
+    snapshot = {
+      ...snapshot,
+      operation: "idle",
+      state: { ...snapshot.state, isRunning: false, outcome: "success" },
+    };
+    ui.rerender(<MessageTimeline snapshot={snapshot} connected />);
+    expect(ui.container.querySelector(".assistant-message")).toBe(answer);
+    expect(answer.getAttribute("aria-busy")).toBe("false");
+    expect(ui.container.querySelector(".assistant-message")?.textContent).toContain(
+      "Configuration checked.",
+    );
+    expect(section?.textContent).not.toContain("Configuration checked.");
+    expect(ui.container.querySelector(".tool-card")).toBe(card);
+    expect(card.open).toBe(true);
+    expect(section?.querySelector<HTMLDetailsElement>(".run-activity-disclosure")?.open).toBe(true);
   } finally {
     cleanup();
     Object.assign(globalThis, previous);
@@ -189,7 +246,7 @@ test("marked updates stream in place and tool icons follow live execution before
   }
 });
 
-test("the first tool preamble first appears inside reasoning, including after reconnect", async () => {
+test("unclassified text stays visible outside reasoning until a call arrives, including reconnect", async () => {
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, { window, document: window.document });
@@ -243,9 +300,9 @@ test("the first tool preamble first appears inside reasoning, including after re
         1,
       );
       ui.rerender(<MessageTimeline snapshot={next} connected />);
-      expect(ui.container.querySelector(".assistant-message")).toBeNull();
+      expect(ui.container.querySelector(".assistant-message")?.textContent).toContain(text);
       expect(ui.container.querySelector(".run-activity-card")).toBeNull();
-      expect(ui.container.textContent).not.toContain(text);
+      expect(ui.container.textContent).toContain(text);
       expect(ui.container.querySelector(".looping-indicator")).not.toBeNull();
     }
     next = applyFrame(next, {
@@ -257,8 +314,8 @@ test("the first tool preamble first appears inside reasoning, including after re
     })!;
     ui.unmount();
     const restored = render(<MessageTimeline snapshot={next} connected />);
-    expect(restored.container.querySelector(".assistant-message")).toBeNull();
-    expect(restored.container.textContent).not.toContain(text);
+    expect(restored.container.querySelector(".assistant-message")?.textContent).toContain(text);
+    expect(restored.container.textContent).toContain(text);
     const pending = next;
     const tool: typeof draft = {
       ...draft,
@@ -295,14 +352,24 @@ test("the first tool preamble first appears inside reasoning, including after re
       restored.container.textContent?.match(/Inspect the configuration first\./g),
     ).toHaveLength(1);
 
-    // The same unclassified text can finish without tools; never put that answer in reasoning.
+    // Direct answers and partial failures stay outside reasoning after settlement.
     for (const stopReason of ["stop", "error", "aborted"] as const) {
       const message = {
         ...pending.state.draft!,
         stopReason,
         errorMessage: stopReason === "stop" ? undefined : "Stopped",
       };
-      const finished = applyEvent(pending, { type: "message_end", message }, 1);
+      const settled = applyEvent(pending, { type: "message_end", message }, 1);
+      const finished: SessionSnapshot = {
+        ...settled,
+        operation: "idle",
+        state: {
+          ...settled.state,
+          isRunning: false,
+          outcome:
+            stopReason === "stop" ? "success" : stopReason === "aborted" ? "cancelled" : "error",
+        },
+      };
       restored.rerender(<MessageTimeline snapshot={finished} connected />);
       expect(restored.container.querySelector(".run-activity-card")).toBeNull();
       expect(restored.container.querySelector(".assistant-message")?.textContent).toContain(text);
@@ -436,7 +503,9 @@ test("reasoning shows completion before body output while the overall run stays 
         .querySelector(".execution-group .activity-status-icon")
         ?.getAttribute("data-status"),
     ).toBe("success");
-    expect(restored.container.querySelector(".assistant-message")).toBeNull();
+    expect(restored.container.querySelector(".assistant-message")?.textContent).toContain(
+      "Partial answer",
+    );
     expect(restored.container.querySelector(".run-activity-card")?.textContent).not.toContain(
       "Partial answer",
     );

@@ -96,8 +96,11 @@ test("Looping follows the latest content throughout model and tool generation", 
           html.indexOf("run-activity-card"),
         );
       }
-      expect(html).not.toContain("assistant-message");
-      expect(html).not.toContain("Partial response");
+      if (state.state.draft?.content.some((part) => part.type === "text")) {
+        expect(html).toContain("assistant-message");
+        expect(html).not.toContain("run-activity-card");
+        expect(html).toContain("Partial response");
+      } else expect(html).not.toContain("assistant-message");
       expect(html).not.toContain("assistant-avatar");
     }
   } finally {
@@ -245,9 +248,10 @@ test("tool rows retain order and identity across results, reconnect and historic
       );
       ui.rerender(<MessageTimeline snapshot={next} connected />);
       expect(ui.container.querySelector(".assistant-avatar")).toBeNull();
-      expect(ui.container.querySelector(".assistant-message")).toBeNull();
+      expect(ui.container.querySelector(".assistant-message")?.textContent).toContain(text);
       expect(ui.container.querySelector(".run-activity-card")).toBe(section);
-      expect(ui.container.textContent).not.toContain("The command succeeded.");
+      expect(section?.textContent).not.toContain(text);
+      expect(ui.container.textContent).toContain("The command succeeded.");
       expect(ui.container.querySelector(".looping-indicator")).not.toBeNull();
     }
 
@@ -261,10 +265,12 @@ test("tool rows retain order and identity across results, reconnect and historic
     ui.rerender(<MessageTimeline snapshot={next} connected />);
     expect(ui.container.querySelector(".assistant-avatar")).toBeNull();
     expect(ui.container.querySelector(".run-activity-card")).toBe(section);
-    expect(ui.container.textContent).not.toContain("The command succeeded.");
+    expect(ui.container.textContent).toContain("The command succeeded.");
     const pendingReconnect = render(<MessageTimeline snapshot={next} connected />);
-    expect(pendingReconnect.container.querySelector(".assistant-message")).toBeNull();
-    expect(pendingReconnect.container.textContent).not.toContain("The command succeeded.");
+    expect(pendingReconnect.container.querySelector(".assistant-message")?.textContent).toContain(
+      "The command succeeded.",
+    );
+    expect(pendingReconnect.container.textContent).toContain("The command succeeded.");
     pendingReconnect.unmount();
 
     next = applyEvent(
@@ -312,8 +318,10 @@ test("tool rows retain order and identity across results, reconnect and historic
     ui.rerender(<MessageTimeline snapshot={next} connected />);
     expect(ui.container.querySelector(".assistant-avatar")).toBeNull();
     expect(section?.textContent).not.toContain("Project checked.");
-    expect(ui.container.querySelector(".assistant-message")).toBeNull();
-    expect(ui.container.textContent).not.toContain("Project checked.");
+    const streamingAnswer = ui.container.querySelector(".assistant-message")!;
+    expect(streamingAnswer.getAttribute("aria-busy")).toBe("true");
+    expect(streamingAnswer.closest(".execution-group-body")).toBeNull();
+    expect(ui.container.textContent).toContain("Project checked.");
 
     next = applyFrame(next, {
       type: "session.snapshot",
@@ -323,14 +331,22 @@ test("tool rows retain order and identity across results, reconnect and historic
       snapshot: structuredClone(next),
     })!;
     ui.rerender(<MessageTimeline snapshot={next} connected />);
-    expect(ui.container.querySelector(".assistant-message")).toBeNull();
+    expect(ui.container.querySelector(".assistant-message")).toBe(streamingAnswer);
     expect(section?.textContent).not.toContain("Recommendations");
     expect(ui.container.querySelectorAll(".assistant-avatar")).toHaveLength(0);
 
     next = applyEvent(next, { type: "message_end", message: final }, 5);
     ui.rerender(<MessageTimeline snapshot={next} connected />);
+    expect(ui.container.querySelector(".assistant-message")).toBe(streamingAnswer);
+    next = {
+      ...next,
+      operation: "idle",
+      state: { ...next.state, isRunning: false, outcome: "success" },
+    };
+    ui.rerender(<MessageTimeline snapshot={next} connected />);
     expect(ui.container.querySelectorAll(".assistant-avatar")).toHaveLength(1);
     const liveAnswer = ui.container.querySelector(".assistant-message")!;
+    expect(liveAnswer).toBe(streamingAnswer);
     expect(liveAnswer.getAttribute("aria-busy")).toBe("false");
     expect(liveAnswer.querySelector("h2")?.textContent).toBe("Recommendations");
     expect(liveAnswer.querySelectorAll("li")).toHaveLength(2);

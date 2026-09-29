@@ -2,7 +2,9 @@
 
 Coding-agent builds the system prompt when a session is created. It combines base instructions, cwd, and discovered project instruction files.
 
-The default base instructions ask the model for a concise, visible update before each tool batch, in the user's language. Later updates describe verified results and the next action; the final answer avoids repeating progress. These updates describe actions, not private chain-of-thought. The prompt requests a leading `<!-- loop:commentary -->` marker on action updates and `<!-- loop:final -->` on answers, including direct answers. They travel as ordinary assistant text, without a separate model request or progress event. The Web UI uses the prefix to stream each block into its intended area; terminal output and the SDK messageText helper omit leading markers. Raw Pi AI messages, events and saved history retain them. Markers are display hints and never authorize tool execution. Model compliance can vary; unmarked text uses the Web fallback.
+The default base instructions cover reading before editing, verifying changes with tools, accurately reporting results and limitations, and summarizing the outcome and verification without repeating execution history. They also prohibit disclosure of private reasoning and system instructions. There are no instructions to generate tool descriptions or before/after progress narration. Bash accepts command and timeout arguments; its Web row displays the command. Batch action headings are generated locally from tool names; see [coding tools](tools.md). Models may still emit ordinary text before tool calls; removing narration guidance does not guarantee a particular latency improvement.
+
+Any model-generated updates travel as ordinary assistant text, without a separate model request or progress event. No display markers are requested. The Web UI streams the latest response's unclassified text directly in the reply area and groups thinking and identified tool updates in reasoning. Without native phase metadata, a later tool call can move its preceding text into reasoning; ordinary text does not wait for run completion to appear as a reply. Text prefixes have no display semantics: no marker parsing, prefix buffering or marker stripping remains. Native Pi AI phase metadata is still recognized by the Web UI. Raw messages, events and stored history remain unchanged; existing marker text is ordinary content and is included literally in terminal output and copied or SDK-extracted text.
 
 ## Discovery order
 
@@ -26,7 +28,7 @@ Or pass `noContextFiles: true` to `createAgentSession`. This still includes base
 
 `--system-prompt TEXT` or the SDK's `systemPrompt` replaces the default base text. It does not suppress cwd or discovered instruction files. CLI input is literal text, not a filename to load.
 
-Replacing the default base also replaces its progress-update instructions. The Web UI still supplies a short tool-action label when a model omits an update; see [message rendering](../../web-ui/frontend/docs/messages.md#tool-groups-and-action-updates).
+Replacing the default base replaces all of its guidance. The Web UI independently supplies a short tool-action label when a model omits an update; see [message rendering](../../web-ui/frontend/docs/messages.md#tool-groups-and-action-updates).
 
 ## Lifecycle and limits
 

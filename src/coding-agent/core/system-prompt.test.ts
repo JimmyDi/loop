@@ -2,24 +2,28 @@ import { expect, test } from "bun:test";
 
 import { buildSystemPrompt } from "./system-prompt";
 
-test("default instructions request concise visible updates before tools and after results", () => {
+test("default instructions keep coding guidance without tool narration or display protocols", () => {
   const prompt = buildSystemPrompt(".", undefined, []);
 
-  expect(prompt).toContain("Before each batch of tool calls");
-  expect(prompt).toContain("in the user's language");
-  expect(prompt).toContain("one or two sentences");
-  expect(prompt).toContain("After tool results");
+  expect(prompt).toContain("Read relevant files before editing");
+  expect(prompt).toContain("Use tools to verify changes");
+  expect(prompt).not.toContain("description");
+  expect(prompt).not.toContain("narration");
+  expect(prompt).not.toContain("progress update");
+  expect(prompt).toContain("summarize the outcome and relevant verification");
+  expect(prompt).not.toContain("Before each batch of tool calls");
+  expect(prompt).not.toContain("After tool results");
   expect(prompt).toContain("Do not reveal private chain-of-thought");
-  expect(prompt).toContain("<!-- loop:commentary -->");
-  expect(prompt).toContain("<!-- loop:final -->");
+  expect(prompt).not.toContain("<!-- loop:");
+  expect(prompt).not.toContain("display marker");
 });
 
-test("custom base instructions replace progress rules while retaining cwd and context", () => {
+test("custom base instructions replace defaults while retaining cwd and context", () => {
   expect(
     buildSystemPrompt(".", "Custom instructions", [{ path: "AGENTS.md", content: "Context" }]),
   ).toBe(
     "Custom instructions\n\nWorking directory: .\n\nProject instructions (AGENTS.md):\nContext",
   );
-  expect(buildSystemPrompt(".", "", [])).not.toContain("Before each batch");
+  expect(buildSystemPrompt(".", "", [])).toBe("\n\nWorking directory: .");
   expect(buildSystemPrompt(".", "Custom instructions", [])).not.toContain("<!-- loop:");
 });

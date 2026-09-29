@@ -392,7 +392,7 @@ test("SSE delivers commentary and running tool state while execution is still pe
     modelRuntime: runtime(() => {
       if (++calls === 1) return stream;
       const final = createAssistantMessageEventStream();
-      final.push({ type: "done", reason: "stop", message: answer("<!-- loop:final -->Done") });
+      final.push({ type: "done", reason: "stop", message: answer("Done") });
       return final;
     }),
     tools: [
@@ -428,7 +428,7 @@ test("SSE delivers commentary and running tool state while execution is still pe
     controller.prompt("stream-request", "Inspect files");
     await waitFor(() => calls === 1);
     stream.push({ type: "start", partial: answer("") });
-    const partial = answer("<!-- loop:commentary -->Inspect");
+    const partial = answer("Inspect");
     stream.push({ type: "text_delta", contentIndex: 0, delta: partial.content[0]!.text, partial });
     const frame = await until(
       (frame) => frame.type === "loop.event" && frame.event.type === "message_update",
@@ -438,7 +438,7 @@ test("SSE delivers commentary and running tool state while execution is still pe
       event: { assistantMessageEvent: { type: "text_delta" } },
     });
     expect(executing).toBe(false);
-    const update = answer("<!-- loop:commentary -->Inspect the configuration.");
+    const update = answer("Inspect the configuration.");
     stream.push({
       type: "text_delta",
       contentIndex: 0,

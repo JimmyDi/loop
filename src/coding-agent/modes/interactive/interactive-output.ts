@@ -1,5 +1,4 @@
 import type { SessionEvent } from "../../core/types/session";
-import { readAssistantText } from "../../core/assistant-text";
 
 export class InteractiveOutput {
   private status?: string;
@@ -24,9 +23,7 @@ export class InteractiveOutput {
         const previous = this.streamed.get(update.contentIndex) ?? "";
 
         this.streamed.set(update.contentIndex, previous + update.delta);
-        const before = readAssistantText({ type: "text", text: previous }, true).text;
-        const after = readAssistantText({ type: "text", text: previous + update.delta }, true).text;
-        if (after.startsWith(before)) this.writeText(after.slice(before.length));
+        this.writeText(update.delta);
       } else if (update.type === "thinking_start" || update.type === "thinking_delta") {
         this.showStatus("Thinking… (/abort to cancel)");
       } else if (update.type === "toolcall_start") {
@@ -37,11 +34,8 @@ export class InteractiveOutput {
       for (const [index, part] of event.message.content.entries()) {
         if (part.type !== "text") continue;
 
-        const previous = readAssistantText(
-          { type: "text", text: this.streamed.get(index) ?? "" },
-          true,
-        ).text;
-        const text = readAssistantText(part).text;
+        const previous = this.streamed.get(index) ?? "";
+        const text = part.text;
 
         if (text.startsWith(previous)) this.writeText(text.slice(previous.length));
       }

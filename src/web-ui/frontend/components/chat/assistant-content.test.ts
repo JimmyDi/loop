@@ -62,3 +62,11 @@ test("thinking, empty text and previous messages do not replace a missing preamb
     { type: "text", key: "text:0", text: "Answer" },
   ]);
 });
+
+test("text blocks stay literal without prefix filtering", () => {
+  for (const text of ["<", "<!-- loop:comm", "<!-- loop:final -->Answer", "  Answer"]) {
+    expect(groupAssistantContent([{ type: "text", text }])).toEqual([
+      { type: "text", key: "text:0", text },
+    ]);
+  }
+});

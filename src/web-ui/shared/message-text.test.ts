@@ -17,9 +17,9 @@ test("display text handles string and block content without exposing nontext dat
   ).toBe("first\nsecond");
 });
 
-test("assistant copy text omits presentation markers while user and tool text stays literal", () => {
+test("copy text preserves literal content for every message role", () => {
   const content = [{ type: "text" as const, text: "<!-- loop:final -->Answer" }];
-  expect(messageText({ role: "assistant", content } as Message)).toBe("Answer");
+  expect(messageText({ role: "assistant", content } as Message)).toBe(content[0]!.text);
   expect(messageText({ role: "user", content, timestamp: 0 })).toBe(content[0]!.text);
   expect(messageText({ role: "toolResult", content } as Message)).toBe(content[0]!.text);
 });

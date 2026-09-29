@@ -143,7 +143,7 @@ test("shows tool activity and resets output after cancellation", () => {
   );
 });
 
-test("streams marked text without leaking split markers or duplicating final content", () => {
+test("streams literal text immediately without prefix buffering or duplicate final content", () => {
   const chunks: string[] = [];
   const output = new InteractiveOutput((text) => chunks.push(text));
   for (const marker of ["<!-- loop:commentary -->", "<!-- loop:final -->"]) {
@@ -157,11 +157,12 @@ test("streams marked text without leaking split markers or duplicating final con
         message,
         assistantMessageEvent: { type: "text_delta", contentIndex: 0, delta, partial: message },
       });
-      expect(chunks.join("")).not.toContain("<!--");
+      expect(chunks.at(-1)).toBe(delta);
     }
     expect(chunks.at(-1)).toBe(" world");
     output.handle({ type: "message_end", message: answer([{ type: "text", text: text + "!" }]) });
   }
   expect(chunks.join("").match(/Hello world!/g)).toHaveLength(2);
-  expect(chunks.join("")).not.toContain("loop:");
+  expect(chunks.join("")).toContain("<!-- loop:commentary -->Hello world!");
+  expect(chunks.join("")).toContain("<!-- loop:final -->Hello world!");
 });

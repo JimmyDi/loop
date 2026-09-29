@@ -1,6 +1,6 @@
 import type { DraftPhase, SessionState, ToolView } from "../../../shared/protocol";
 import type { TurnMessage } from "./timeline-turns";
-import { readAssistantText } from "../../../shared/assistant-text";
+import { assistantTextPhase } from "../../../shared/assistant-text-phase";
 
 export type ActivityStatus = "running" | "success" | "error" | "cancelled" | "idle";
 
@@ -49,7 +49,7 @@ export const executionStatus = (
   if (
     draftPhase === "text" &&
     latestText?.type === "text" &&
-    readAssistantText(latestText, true).phase === "commentary"
+    assistantTextPhase(latestText.textSignature) === "commentary"
   )
     return "running";
   if (draftPhase === "thinking-complete" || draftPhase === "text") return "success";

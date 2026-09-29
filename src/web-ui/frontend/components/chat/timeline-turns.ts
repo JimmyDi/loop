@@ -1,6 +1,6 @@
 import type { Message } from "../../../shared/protocol";
 import { readFileContent } from "../../../shared/prompt-files";
-import { readAssistantText } from "../../../shared/assistant-text";
+import { assistantTextPhase } from "../../../shared/assistant-text-phase";
 
 export type TurnMessage = { index: number; message: Exclude<Message, { role: "user" }> };
 
@@ -76,8 +76,9 @@ export const projectAssistantTurn = (messages: readonly TurnMessage[], draftInde
     const hasCalls = message.content.some((part) => part.type === "toolCall");
 
     const streaming = index === draftIndex;
-    const intermediate =
-      entry !== last || (!streaming && message.stopReason === "toolUse") || hasCalls;
+    // Unclassified live text belongs in the reply area, outside the capped
+    // reasoning region. A later call can still identify it as a tool preamble.
+    const intermediate = entry !== last || message.stopReason === "toolUse" || hasCalls;
     const steps: typeof message.content = [];
     const content: typeof message.content = [];
 
@@ -86,14 +87,11 @@ export const projectAssistantTurn = (messages: readonly TurnMessage[], draftInde
         steps.push(part);
         continue;
       }
-      const { text, phase } = readAssistantText(part, streaming);
-      const visible = { ...part, text };
-      if (phase === "commentary" || (phase !== "final_answer" && intermediate)) {
-        steps.push(visible);
-      } else if (phase === "final_answer" || !streaming) {
-        content.push(visible);
+      if (intermediate || assistantTextPhase(part.textSignature) === "commentary") {
+        steps.push(part);
+      } else {
+        content.push(part);
       }
-      // Unmarked drafts stay buffered instead of guessing a destination from their wording.
     }
 
     const hasAnswer = content.some((part) => part.type === "text" && part.text.trim());

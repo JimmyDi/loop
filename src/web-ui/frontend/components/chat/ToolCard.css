@@ -17,14 +17,15 @@
 .tool-card > summary::-webkit-details-marker {
   display: none;
 }
-.tool-card > summary > code {
+.tool-card-label {
+  flex: 0 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
 }
-.tool-card > summary > span {
-  flex-shrink: 0;
+.tool-card-target {
+  color: var(--ink-muted);
 }
 .tool-card > summary:focus-visible {
   outline: 2px solid var(--focus-border);

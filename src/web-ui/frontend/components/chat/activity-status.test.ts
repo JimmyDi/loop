@@ -61,7 +61,13 @@ test("execution status finishes at thinking end and resumes for more reasoning o
       index: 1,
       message: {
         ...final,
-        content: [{ type: "text" as const, text: "<!-- loop:commentary -->Read files" }],
+        content: [
+          {
+            type: "text" as const,
+            text: "Read files",
+            textSignature: JSON.stringify({ v: 1, id: "update", phase: "commentary" }),
+          },
+        ],
       },
     },
   ];
@@ -69,8 +75,18 @@ test("execution status finishes at thinking end and resumes for more reasoning o
   const answer = [
     {
       index: 1,
-      message: { ...final, content: [{ type: "text" as const, text: "<!-- loop:final -->Done" }] },
+      message: { ...final, content: [{ type: "text" as const, text: "Done" }] },
     },
   ];
   expect(executionStatus(answer, {}, true, "idle", "text")).toBe("success");
+  const literal = [
+    {
+      index: 1,
+      message: {
+        ...final,
+        content: [{ type: "text" as const, text: "<!-- loop:commentary -->Read files" }],
+      },
+    },
+  ];
+  expect(executionStatus(literal, {}, true, "idle", "text")).toBe("success");
 });

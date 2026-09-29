@@ -30,13 +30,22 @@
 .execution-group-body {
   margin: 9px 0 0 8px;
   padding: 2px 0 5px 19px;
+  max-height: min(420px, 50dvh);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
   border-left: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 13px;
 }
 .activity-step {
+  flex-shrink: 0;
   min-width: 0;
+}
+.execution-group-body:focus-visible {
+  outline: 2px solid var(--focus-border);
+  outline-offset: 2px;
 }
 .activity-step > :first-child {
   margin-top: 0;

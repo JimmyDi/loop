@@ -49,7 +49,7 @@ export const AssistantTurn = ({
           key={answer.index}
           message={answer.message}
           tools={tools}
-          streaming={answer.index === draftIndex}
+          streaming={running || answer.index === draftIndex}
         />
       )}
     </>

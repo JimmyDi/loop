@@ -63,6 +63,8 @@ export const zh = {
   },
   model: "模型",
   copy: "复制",
+  copyMessage: "复制消息",
+  copyResponse: "复制回复",
   copied: "已复制",
   copyFailed: "复制失败",
   thinking: "思考",

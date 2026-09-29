@@ -13,6 +13,7 @@ test("copy hook reports clipboard failure without throwing into the UI", async (
   Object.defineProperty(globalThis, "navigator", {
     configurable: true,
     value: {
+      userAgent: window.navigator.userAgent,
       clipboard: {
         writeText: async () => {
           throw new Error("Denied");

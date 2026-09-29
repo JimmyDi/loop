@@ -6,7 +6,7 @@ The timeline displays completed history and the current streaming draft. Drafts 
 
 | Content | Behavior |
 | --- | --- |
-| User messages | Text and a copy button |
+| User messages | Text and attachments, with a timestamp and copy icon revealed below on hover |
 | Assistant text | Markdown, syntax highlighting, tables, and KaTeX math |
 | Thinking | Expandable blocks containing only thinking returned by the model |
 | Tool calls | Direct tool rows with individual status icons; expand a row to inspect parameters and results |
@@ -40,7 +40,9 @@ Tool batches use the first call ID for stable identity and each tool row uses it
 
 marked and KaTeX convert Markdown, then DOMPurify sanitizes it. Interactive elements such as form controls are removed from model content. Links retain only HTTP(S) targets and use noopener/noreferrer when opening a new window. highlight.js highlights code blocks with recognized languages.
 
-Code-block buttons copy the original code text. The complete assistant message's copy button includes text only, excluding thinking and tool arguments. Copy failures display feedback. The UI is not a full image, audio, or attachment viewer and does not render Mermaid diagrams.
+User messages and completed assistant replies reveal a bottom row with the message time and an icon-only copy button on hover or keyboard focus. The row stays visible on touch devices and reserves its space to avoid shifting the conversation when revealed. Times use the interface language and local time zone; hovering over a time shows the full date and time. Attachment-only messages show the time without an empty copy action.
+
+Code-block buttons copy the original code text. The complete assistant message's copy button includes text only, excluding thinking and tool arguments. Message copy buttons use localized **Copy message** and **Copy response** tooltips and accessible labels for user messages and assistant replies, respectively. They show a check on success or an error icon on failure, with localized tooltips and screen-reader feedback. The UI is not a full image, audio, or attachment viewer and does not render Mermaid diagrams.
 
 ## Scrolling and Lifecycle
 

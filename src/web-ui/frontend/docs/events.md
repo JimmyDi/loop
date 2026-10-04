@@ -25,6 +25,8 @@ After a network error, mark the view disconnected and reconnect with its cursor 
 
 Switching sessions closes only the previous view's EventSource. Backend sessions continue, and reopening synchronizes their latest results. Session snapshots/state frames update the open conversation and its header title, including asynchronous title updates that preserve the current operation.
 
+Before disconnecting, useSessionEvents copies the last connected snapshot's generation status and title into the existing sidebar summary. It cancels older in-flight list requests before this handoff and invalidates the project list for a fresh server result. This preserves the spinner while switching sessions or reconnecting, without retaining a stale running snapshot after a background completion update. Callbacks from unmounted subscriptions are ignored.
+
 ## List Synchronization
 
 AppShell mounts useListEvents once per page, connecting to `/api/workspaces/events`. This subscription stays open when switching sessions. The backend watches all loaded sessions, allowing background generation status and late titles to update every connected page without five-second polling. Project and archive changes use the same stream.

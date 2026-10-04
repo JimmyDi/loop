@@ -12,6 +12,10 @@ import { isModelEffort } from "./models/model-effort";
 import { fallbackTitle, titleInputs, validTitle } from "./titles/title-text";
 import type { SessionTitle } from "./titles/types";
 import type { ModelSelection, SessionData, SessionHeader, SessionInfo } from "./types/storage";
+import { isPermissionPreset } from "./permissions/types";
+import type { PermissionPreset } from "./permissions/types";
+import { validateRuntimeContexts } from "./runtime-context";
+import type { RuntimeContextSnapshot } from "./runtime-context";
 
 export class SessionManager {
   private pending?: SessionData;
@@ -22,6 +26,7 @@ export class SessionManager {
     private data: SessionData,
     readonly sessionFile?: string,
     private draft = false,
+    readonly restored = false,
   ) {}
 
   static inMemory(cwd = process.cwd()): SessionManager {
@@ -67,7 +72,7 @@ export class SessionManager {
     const lines = (await Bun.file(path).text()).trim().split("\n");
     const header = JSON.parse(lines.shift() ?? "") as SessionHeader;
 
-    if (header?.format !== "loop-session" || header.version !== 1)
+    if (header?.format !== "loop-session" || (header.version !== 1 && header.version !== 2))
       throw new Error("Unsupported session format or version");
 
     if (
@@ -79,6 +84,8 @@ export class SessionManager {
       typeof header.updatedAt !== "string" ||
       !Number.isFinite(Date.parse(header.createdAt)) ||
       !Number.isFinite(Date.parse(header.updatedAt)) ||
+      (header.permissionPreset !== undefined && !isPermissionPreset(header.permissionPreset)) ||
+      (header.version === 2 && !isPermissionPreset(header.permissionPreset)) ||
       (header.title !== undefined && !validTitle(header.title)) ||
       (header.model !== undefined &&
         (!header.model ||
@@ -94,8 +101,9 @@ export class SessionManager {
 
     validateMessages(messages);
     validateRunTimings(header.runTimings, messages);
+    validateRuntimeContexts(header.runtimeContexts, messages);
 
-    return new SessionManager({ header, messages }, resolve(path));
+    return new SessionManager({ header, messages }, resolve(path), false, true);
   }
 
   static async list(cwd: string, sessionDir = getSessionDir(cwd)): Promise<SessionInfo[]> {
@@ -150,6 +158,10 @@ export class SessionManager {
     return structuredClone((this.pending ?? this.data).header.runTimings ?? []);
   }
 
+  getRuntimeContexts(): RuntimeContextSnapshot[] {
+    return structuredClone((this.pending ?? this.data).header.runtimeContexts ?? []);
+  }
+
   getHeader(): SessionHeader {
     const header = structuredClone(this.data.header);
 
@@ -181,15 +193,18 @@ export class SessionManager {
   async commit(
     messages: readonly Message[],
     runTimings: readonly SessionRunTiming[] = this.getRunTimings(),
+    runtimeContexts: readonly RuntimeContextSnapshot[] = this.getRuntimeContexts(),
   ): Promise<void> {
     if (this.pending || this.writing) throw new Error("Pending session save; call flush first");
     validateRunTimings(runTimings, messages);
+    validateRuntimeContexts(runtimeContexts, messages);
 
     this.pending = {
       header: {
         ...this.data.header,
         updatedAt: new Date().toISOString(),
         runTimings: runTimings.length ? structuredClone([...runTimings]) : undefined,
+        runtimeContexts: runtimeContexts.length ? structuredClone([...runtimeContexts]) : undefined,
       },
       messages: structuredClone([...messages]),
     };
@@ -237,6 +252,29 @@ export class SessionManager {
           },
         };
 
+        await this.write(next);
+        this.data = next;
+      });
+    } finally {
+      this.writing = false;
+    }
+  }
+
+  async setPermissionPreset(permissionPreset: PermissionPreset): Promise<void> {
+    if (!isPermissionPreset(permissionPreset)) throw new Error("Invalid permission preset");
+    if (this.pending || this.writing) throw new Error("Pending session save");
+    this.writing = true;
+    try {
+      await this.serialize(async () => {
+        const next: SessionData = {
+          ...this.data,
+          header: {
+            ...this.data.header,
+            version: 2,
+            permissionPreset,
+            updatedAt: new Date().toISOString(),
+          },
+        };
         await this.write(next);
         this.data = next;
       });

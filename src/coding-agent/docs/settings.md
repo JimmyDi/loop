@@ -13,7 +13,7 @@ The agent directory defaults to `~/.loop`. `LOOP_DATA_DIR` changes that director
 }
 ```
 
-Both fields must be strings; unknown fields reject. No file means built-in defaults. `SettingsManager.create(agentDir?)` loads it; `SettingsManager.inMemory({ provider, id })` supplies defaults without a settings file. There is no settings writer or project-level settings merge.
+Provider and model must be strings when supplied, and must appear together; they may both be omitted. An optional permissionPreset accepts read-only, workspace-write or danger-full-access and defaults to read-only. Unknown fields reject. No file means built-in defaults. SettingsManager.create(agentDir?) loads it; SettingsManager.inMemory(model?, permissionPreset?) supplies defaults without a file. Permission defaults affect only new sessions; see [permissions and legacy migration](permissions.md). There is no settings writer or project-level settings merge.
 
 ## Environment reference
 

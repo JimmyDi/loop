@@ -9,7 +9,7 @@ test("write creates relative parent directories and observes cancellation", asyn
   const dir = await mkdtemp(join(tmpdir(), "loop-write-"));
 
   try {
-    const tool = createWriteTool(dir);
+    const tool = createWriteTool(dir, { permissionPreset: "workspace-write" });
 
     await tool.execute({ path: "nested/file.txt", content: "value" }, new AbortController().signal);
     expect(await Bun.file(join(dir, "nested/file.txt")).text()).toBe("value");

@@ -11,7 +11,7 @@ test("edit matches original content, rejects ambiguity and coordinates writes", 
 
   try {
     const path = join(dir, "file.txt");
-    const tool = createEditTool(dir);
+    const tool = createEditTool(dir, { permissionPreset: "workspace-write" });
 
     await Bun.write(path, "alpha beta gamma");
     await tool.execute(

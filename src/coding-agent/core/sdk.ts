@@ -1,5 +1,6 @@
 import type { Api, Model } from "@earendil-works/pi-ai";
 import { realpathSync } from "node:fs";
+import { dirname } from "node:path";
 
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, getSessionDir } from "../config";
 import { AgentSession } from "./agent-session";
@@ -12,6 +13,9 @@ import { isModelEffort } from "./models/model-effort";
 import type { ModelEffort } from "./models/model-effort";
 import { getModelEfforts } from "./model-runtime";
 import type { SessionTitleOptions } from "./titles/types";
+import { PermissionPolicy } from "./permissions/policy";
+import { DEFAULT_PERMISSION_PRESET, isPermissionPreset } from "./permissions/types";
+import type { PermissionPreset } from "./permissions/types";
 
 export type CreateAgentSessionOptions = ServiceOptions & {
   model?: Model<Api>;
@@ -21,6 +25,7 @@ export type CreateAgentSessionOptions = ServiceOptions & {
   allowUnavailableModel?: boolean;
   effort?: ModelEffort;
   title?: SessionTitleOptions;
+  permissionPreset?: PermissionPreset;
 };
 
 export async function createAgentSession(
@@ -40,6 +45,7 @@ export async function createAgentSession(
     "allowUnavailableModel",
     "effort",
     "title",
+    "permissionPreset",
   ]);
 
   for (const key of Object.keys(options)) {
@@ -47,6 +53,8 @@ export async function createAgentSession(
   }
 
   const manager = options.sessionManager;
+  if (options.permissionPreset !== undefined && !isPermissionPreset(options.permissionPreset))
+    throw new Error("Invalid permission preset");
 
   if (manager?.hasPendingSave) throw new Error("Pending session save; call flush first");
 
@@ -71,7 +79,8 @@ export async function createAgentSession(
   if (!model)
     throw new Error("Model unavailable: " + provider + "/" + id + ". Select a configured model.");
 
-  const tools = createTools(services.cwd, options.tools);
+  // Validate selected tool names before creating any storage.
+  createTools(services.cwd, options.tools);
   if (
     options.effort !== undefined &&
     (!isModelEffort(options.effort) ||
@@ -89,6 +98,25 @@ export async function createAgentSession(
   const sessionManager =
     manager ??
     (await SessionManager.create(services.cwd, getSessionDir(services.cwd, services.agentDir)));
+  const permissionPreset =
+    options.permissionPreset ??
+    manager?.getHeader().permissionPreset ??
+    (manager?.restored
+      ? DEFAULT_PERMISSION_PRESET
+      : services.settingsManager.defaultPermissionPreset);
+  if (sessionManager.getHeader().permissionPreset !== permissionPreset)
+    await sessionManager.setPermissionPreset(permissionPreset);
+  const permissionPolicy = new PermissionPolicy(
+    services.cwd,
+    {
+      protectedPaths: [
+        services.agentDir,
+        ...(sessionManager.sessionFile ? [dirname(sessionManager.sessionFile)] : []),
+      ],
+    },
+    () => sessionManager.getHeader().permissionPreset ?? DEFAULT_PERMISSION_PRESET,
+  );
+  const tools = createTools(services.cwd, options.tools, permissionPolicy);
 
   if (
     !saved ||
@@ -108,6 +136,7 @@ export async function createAgentSession(
     maxTurns: options.maxTurns,
     effort,
     title: options.title,
+    permissionPolicy,
   });
 
   return { session };

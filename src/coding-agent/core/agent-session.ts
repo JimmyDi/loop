@@ -2,11 +2,14 @@ import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 
 import { Agent } from "../../agent";
 import type { AgentEvent, PromptContent } from "../../agent";
-import { getModelEfforts } from "./model-runtime";
+import { createSessionStreamFn, getModelEfforts } from "./model-runtime";
 import type { ModelEffort } from "./models/model-effort";
 import { validateMessages } from "./messages";
+import { buildPermissionContext } from "./permissions/permission-context";
+import { prepareRuntimeContexts } from "./runtime-context";
 import type { SessionRunTiming } from "./run-timing";
 import { SessionTitleService } from "./titles/session-title";
+import type { PermissionPreset } from "./permissions/types";
 import type {
   SessionEvent,
   SessionEventListener,
@@ -71,6 +74,30 @@ export class AgentSession {
     return this.selectedEffort;
   }
 
+  get permissionPreset(): PermissionPreset | undefined {
+    return this.options.permissionPolicy?.preset();
+  }
+
+  setPermissionPreset(preset: PermissionPreset): Promise<void> {
+    try {
+      this.assertIdle();
+      if (!this.options.permissionPolicy)
+        throw new Error("Custom tool sessions do not have a managed permission policy");
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    this.busy = true;
+    this.active = this.sessionManager
+      .setPermissionPreset(preset)
+      .then(() => {
+        this.emit({ type: "permission_changed", permissionPreset: preset });
+      })
+      .finally(() => {
+        this.busy = false;
+      });
+    return this.active;
+  }
+
   get state(): SessionState {
     const runTiming = this.runTiming;
 
@@ -82,6 +109,7 @@ export class AgentSession {
       outcome: this.outcome,
       error: this.failure,
       listenerErrors: [...this.listenerErrors],
+      ...(this.permissionPreset ? { permissionPreset: this.permissionPreset } : {}),
       title: this.titles.title,
       titleError: this.titleError,
       runTimings: runTiming
@@ -305,17 +333,26 @@ export class AgentSession {
   private async run(content: PromptContent, signal: AbortSignal): Promise<void> {
     let unsubscribe = () => {};
     const failures: unknown[] = [];
+    let runtimeContexts = this.sessionManager.getRuntimeContexts();
 
     try {
       await this.options.modelRuntime.checkModel(this.selected, signal);
       signal.throwIfAborted();
 
+      const messages = this.sessionManager.messages;
+      const preparedContexts = prepareRuntimeContexts(
+        runtimeContexts,
+        buildPermissionContext(this.permissionPreset, this.sessionManager.getCwd()),
+        messages.filter((message) => message.role === "user").length,
+      );
       this.agent = new Agent({
         model: this.selected,
-        messages: this.sessionManager.messages,
+        messages,
         systemPrompt: this.options.systemPrompt,
         tools: this.options.tools,
-        streamFn: this.options.modelRuntime.streamSimple.bind(this.options.modelRuntime),
+        streamFn: createSessionStreamFn(this.options.modelRuntime, preparedContexts, () => {
+          runtimeContexts = preparedContexts;
+        }),
         streamOptions: {
           reasoning:
             this.selectedEffort === "default" || this.selectedEffort === "off"
@@ -342,7 +379,7 @@ export class AgentSession {
             timings.push(this.runTiming);
             this.emit({ type: "run_timing", timing: this.runTiming });
           }
-          await this.sessionManager.commit(messages, timings);
+          await this.sessionManager.commit(messages, timings, runtimeContexts);
         }
       } catch (error) {
         failures.push(error);

@@ -14,6 +14,23 @@ import type { StreamFn } from "../../agent";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../config";
 import type { ProviderCatalogEntry, ProviderRuntimeConfig } from "./models/provider-config";
 import type { ModelEffort } from "./models/model-effort";
+import { projectRuntimeContexts } from "./runtime-context";
+import type { RuntimeContextSnapshot } from "./runtime-context";
+
+/** Add host context only to main model requests, leaving Agent history and events untouched. */
+export const createSessionStreamFn = (
+  runtime: ModelRuntime,
+  snapshots: readonly RuntimeContextSnapshot[],
+  onRequest: () => void,
+): StreamFn => {
+  const retained = structuredClone([...snapshots]);
+  return (model, context, options) => {
+    options?.signal?.throwIfAborted();
+    const messages = projectRuntimeContexts(context.messages, retained);
+    onRequest();
+    return runtime.streamSimple(model, { ...context, messages }, options);
+  };
+};
 
 export function getModelEfforts(model: Model<Api>): ModelEffort[] {
   return model.reasoning ? ["default", ...getSupportedThinkingLevels(model)] : [];

@@ -5,6 +5,93 @@ import { join } from "node:path";
 
 import { SessionManager } from "./session-manager";
 
+test("runtime snapshots persist with history, survive failed saves and validate on restore", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".context-storage-test-"));
+  const storage = join(root, "history");
+  try {
+    const manager = SessionManager.draft(root, storage);
+    await manager.setPermissionPreset("read-only");
+    const messages = [{ role: "user" as const, content: "Task", timestamp: 1 }];
+    const snapshots = [{ userTurn: 0, content: "Context", timestamp: 1 }];
+    await Bun.write(storage, "Block directory creation");
+    await expect(manager.commit(messages, [], snapshots)).rejects.toThrow();
+    snapshots[0]!.content = "Mutated by caller";
+    expect(manager.getRuntimeContexts()[0]?.content).toBe("Context");
+    manager.getRuntimeContexts()[0]!.content = "Mutated snapshot";
+    expect(manager.getRuntimeContexts()[0]?.content).toBe("Context");
+    await rm(storage);
+    await manager.flush();
+    const restored = await SessionManager.open(manager.sessionFile!);
+    expect(restored.getRuntimeContexts()).toEqual(manager.getRuntimeContexts());
+    expect(restored.messages).toEqual(messages);
+    await restored.setTitle({ text: "Title", source: "user", messageIndices: [] });
+    await restored.commit(messages);
+    expect((await SessionManager.open(manager.sessionFile!)).getRuntimeContexts()).toEqual(
+      manager.getRuntimeContexts(),
+    );
+
+    const header = restored.getHeader();
+    const invalid = {
+      ...header,
+      runtimeContexts: [{ userTurn: 1, content: "Context", timestamp: 1 }],
+    };
+    await Bun.write(
+      manager.sessionFile!,
+      [invalid, ...messages].map((value) => JSON.stringify(value)).join("\n"),
+    );
+    await expect(SessionManager.open(manager.sessionFile!)).rejects.toThrow(
+      "Invalid session runtime context",
+    );
+    delete header.runtimeContexts;
+    await Bun.write(
+      manager.sessionFile!,
+      [header, ...messages].map((value) => JSON.stringify(value)).join("\n"),
+    );
+    expect((await SessionManager.open(manager.sessionFile!)).getRuntimeContexts()).toEqual([]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("permission metadata uses version 2, serializes, and fails without publishing new authority", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".permission-storage-test-"));
+  const storage = join(root, "storage");
+  try {
+    const manager = SessionManager.draft(root, storage);
+    await manager.setPermissionPreset("read-only");
+    expect(await Bun.file(manager.sessionFile!).exists()).toBe(false);
+    await Promise.all([
+      manager.setTitle({ text: "Title", source: "user", messageIndices: [] }),
+      manager.commit([{ role: "user", content: "Example", timestamp: 1 }]),
+    ]);
+    const restored = await SessionManager.open(manager.sessionFile!);
+    expect(restored.getHeader()).toMatchObject({ version: 2, permissionPreset: "read-only" });
+    expect(restored.restored).toBe(true);
+    const original = await Bun.file(manager.sessionFile!).text();
+    await rm(storage, { recursive: true });
+    await Bun.write(storage, "block writes");
+    await expect(manager.setPermissionPreset("danger-full-access")).rejects.toThrow();
+    expect(manager.getHeader().permissionPreset).toBe("read-only");
+    await rm(storage);
+    await manager.setPermissionPreset("workspace-write");
+    expect((await SessionManager.open(manager.sessionFile!)).getHeader().permissionPreset).toBe(
+      "workspace-write",
+    );
+    for (const value of ["unknown", null, 123]) {
+      const lines = original.trim().split("\n");
+      const header = { ...JSON.parse(lines[0]!), permissionPreset: value };
+      const contents = [JSON.stringify(header), ...lines.slice(1)].join("\n");
+      await Bun.write(manager.sessionFile!, contents);
+      await expect(SessionManager.open(manager.sessionFile!)).rejects.toThrow(
+        "Invalid session metadata",
+      );
+      expect(await Bun.file(manager.sessionFile!).text()).toBe(contents);
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("timing is saved with history, survives failed saves and accepts legacy files", async () => {
   const root = await mkdtemp(join(import.meta.dir, ".timing-storage-test-"));
   try {

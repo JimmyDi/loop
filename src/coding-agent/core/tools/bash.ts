@@ -1,13 +1,21 @@
-import { spawn } from "node:child_process";
 import { closeSync, openSync } from "node:fs";
-import { mkdtemp, rm, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { AgentTool } from "../../../agent";
+import { PermissionPolicy, rejectEscalation } from "../permissions/policy";
+import type { ToolPermissionOptions } from "../permissions/types";
+import { sandboxEnvironment } from "../sandbox/environment";
+import { sandboxLaunch, SandboxUnavailableError } from "../sandbox/launcher";
 import { MAX_BYTES, truncate } from "./truncate";
 
-export function createBashTool(cwd: string): AgentTool {
+export const createBashTool = (
+  cwd: string,
+  options: ToolPermissionOptions | PermissionPolicy = {},
+): AgentTool => {
+  const permissions =
+    options instanceof PermissionPolicy ? options : new PermissionPolicy(cwd, options);
   return {
     name: "bash",
     description: "Run a bash command in the working directory. Optional timeout is in seconds.",
@@ -21,28 +29,56 @@ export function createBashTool(cwd: string): AgentTool {
     },
     async execute(args, signal) {
       signal.throwIfAborted();
+      rejectEscalation(args);
+      if (
+        args.timeout !== undefined &&
+        (typeof args.timeout !== "number" || !Number.isFinite(args.timeout) || args.timeout < 0.01)
+      ) {
+        throw new Error("Invalid command timeout");
+      }
 
       const directory = await mkdtemp(join(tmpdir(), "loop-bash-"));
       const path = join(directory, "output.txt");
       let keep = false;
 
       try {
+        const temporary = join(await realpath(directory), "work");
+        await mkdir(temporary);
+        const policy = await permissions.resolve(temporary);
+        const confined = policy.preset !== "danger-full-access";
+        const bash = confined ? Bun.which("bash", { PATH: "/bin:/usr/bin" }) : Bun.which("bash");
+        if (!bash) throw new SandboxUnavailableError("Bash is unavailable");
+        const launch = await sandboxLaunch(
+          [bash, "--noprofile", "--norc", "-c", String(args.command)],
+          policy,
+          signal,
+        );
+        signal.throwIfAborted();
         const fd = openSync(path, "wx", 0o600);
-        const child = spawn("bash", ["-c", String(args.command)], {
-          cwd,
-          detached: true,
-          stdio: ["ignore", fd, fd],
-        });
-
-        closeSync(fd);
+        let child: ReturnType<typeof Bun.spawn>;
+        try {
+          child = Bun.spawn(launch.argv, {
+            cwd: policy.workspaceRoot,
+            detached: true,
+            stdin: "ignore",
+            stdout: fd,
+            stderr: fd,
+            env: confined ? sandboxEnvironment(temporary) : process.env,
+          });
+        } catch (error) {
+          if (confined) throw new SandboxUnavailableError("Sandbox launch failed");
+          throw error;
+        } finally {
+          closeSync(fd);
+        }
 
         const kill = (kind: NodeJS.Signals) => {
-          if (!child.pid) return;
-
           try {
             process.kill(-child.pid, kind);
           } catch (error) {
-            if ((error as NodeJS.ErrnoException).code !== "ESRCH") child.kill(kind);
+            // Bubblewrap starts a new session; terminate the wrapper as well.
+            if (child.exitCode === null || (error as NodeJS.ErrnoException).code !== "ESRCH")
+              child.kill(kind);
           }
         };
         let timedOut = false;
@@ -63,13 +99,10 @@ export function createBashTool(cwd: string): AgentTool {
 
         if (signal.aborted) cancel();
 
-        let code: number | null;
+        let code: number;
 
         try {
-          code = await new Promise<number | null>((resolve, reject) => {
-            child.once("error", reject);
-            child.once("close", resolve);
-          });
+          code = await child.exited;
         } finally {
           clearTimeout(timer);
           clearTimeout(force);
@@ -91,12 +124,20 @@ export function createBashTool(cwd: string): AgentTool {
 
         if (timedOut) throw new Error("Command timed out\n" + result);
 
-        if (code !== 0) throw new Error("Command exited with code " + code + "\n" + result);
+        if (code !== 0)
+          throw new Error(
+            "Command exited with code " +
+              code +
+              (confined ? " under " + policy.preset + " sandbox; no automatic retry" : "") +
+              "\n" +
+              result,
+          );
 
         return [{ type: "text", text: result || "(no output)" }];
       } finally {
+        await rm(join(directory, "work"), { recursive: true, force: true });
         if (!keep) await rm(directory, { recursive: true, force: true });
       }
     },
   };
-}
+};

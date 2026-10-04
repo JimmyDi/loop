@@ -1,8 +1,15 @@
 import type { AgentTool } from "../../../agent";
+import { PermissionPolicy, rejectEscalation } from "../permissions/policy";
+import type { ToolPermissionOptions } from "../permissions/types";
+import { writePermittedFile } from "../permissions/write-file";
 import { withFileMutationQueue } from "./file-mutation-queue";
 import { resolveToCwd } from "./path-utils";
 
-export function createEditTool(cwd: string): AgentTool {
+export const createEditTool = (
+  cwd: string,
+  options: ToolPermissionOptions | PermissionPolicy = {},
+): AgentTool => {
+  const policy = options instanceof PermissionPolicy ? options : new PermissionPolicy(cwd, options);
   return {
     name: "edit",
     description:
@@ -24,12 +31,14 @@ export function createEditTool(cwd: string): AgentTool {
       required: ["path", "edits"],
     },
     execute(args, signal) {
+      rejectEscalation(args);
       const path = resolveToCwd(String(args.path), cwd);
 
       return withFileMutationQueue(path, async () => {
         signal.throwIfAborted();
 
-        const original = await Bun.file(path).text();
+        const target = await policy.checkWrite(path);
+        const original = await Bun.file(target).text();
         const edits = (args.edits as Array<{ oldText: string; newText: string }>)
           .map((edit) => {
             const start = original.indexOf(edit.oldText);
@@ -51,11 +60,12 @@ export function createEditTool(cwd: string): AgentTool {
           output = output.slice(0, edit.start) + edit.newText + output.slice(edit.end);
 
         signal.throwIfAborted();
-        await Bun.write(path, output);
+        if ((await policy.checkWrite(path)) !== target) throw new Error("Edit target changed");
+        await writePermittedFile(policy, path, output, signal);
         signal.throwIfAborted();
 
         return [{ type: "text", text: "Successfully edited " + String(args.path) }];
       });
     },
   };
-}
+};

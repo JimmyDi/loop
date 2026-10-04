@@ -165,7 +165,7 @@ export class SessionController {
   }
 
   private onEvent(event: SessionEvent): void {
-    if (event.type === "session_title") {
+    if (event.type === "session_title" || event.type === "permission_changed") {
       this.snapshot = applyEvent(this.snapshot, event);
       this.events.publish({ type: "session.state", snapshot: this.snapshot });
       return;

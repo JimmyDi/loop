@@ -2,9 +2,14 @@ import { join } from "node:path";
 
 import { getAgentDir } from "../config";
 import type { ModelSelection } from "./types/storage";
+import { DEFAULT_PERMISSION_PRESET, isPermissionPreset } from "./permissions/types";
+import type { PermissionPreset } from "./permissions/types";
 
 export class SettingsManager {
-  private constructor(readonly defaultModel?: ModelSelection) {}
+  private constructor(
+    readonly defaultModel?: ModelSelection,
+    readonly defaultPermissionPreset: PermissionPreset = DEFAULT_PERMISSION_PRESET,
+  ) {}
 
   static async create(agentDir = getAgentDir()): Promise<SettingsManager> {
     const file = Bun.file(join(agentDir, "settings.json"));
@@ -16,16 +21,29 @@ export class SettingsManager {
     if (
       !value ||
       typeof value !== "object" ||
-      Object.keys(value).some((key) => !["provider", "model"].includes(key)) ||
-      typeof value.provider !== "string" ||
-      typeof value.model !== "string"
+      Array.isArray(value) ||
+      Object.keys(value).some((key) => !["provider", "model", "permissionPreset"].includes(key)) ||
+      ((value.provider !== undefined || value.model !== undefined) &&
+        (typeof value.provider !== "string" || typeof value.model !== "string"))
     )
       throw new Error("settings.json must contain provider and model strings");
 
-    return new SettingsManager({ provider: value.provider, id: value.model });
+    if (value.permissionPreset !== undefined && !isPermissionPreset(value.permissionPreset))
+      throw new Error("Invalid permission preset in settings.json");
+    return new SettingsManager(
+      value.provider === undefined ? undefined : { provider: value.provider, id: value.model },
+      value.permissionPreset,
+    );
   }
 
-  static inMemory(defaultModel?: ModelSelection): SettingsManager {
-    return new SettingsManager(defaultModel ? structuredClone(defaultModel) : undefined);
+  static inMemory(
+    defaultModel?: ModelSelection,
+    permissionPreset: PermissionPreset = DEFAULT_PERMISSION_PRESET,
+  ): SettingsManager {
+    if (!isPermissionPreset(permissionPreset)) throw new Error("Invalid permission preset");
+    return new SettingsManager(
+      defaultModel ? structuredClone(defaultModel) : undefined,
+      permissionPreset,
+    );
   }
 }

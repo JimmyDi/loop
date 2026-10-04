@@ -40,6 +40,12 @@ test("cumulative drafts replace rather than append and full snapshots replace hi
   expect(timed.state.runTimings).toEqual([timing]);
   expect(stopped.state.runTimings).toEqual([{ ...timing, finishedAt: 4000 }]);
   expect(initial.state.runTimings).toBeUndefined();
+  const permitted = applyEvent(initial, {
+    type: "permission_changed",
+    permissionPreset: "read-only",
+  });
+  expect(permitted.state.permissionPreset).toBe("read-only");
+  expect(initial.state.permissionPreset).toBeUndefined();
   const thinking = applyEvent(
     started,
     {

@@ -34,6 +34,8 @@ New sessions use the valid remembered Web model/effort or first configured model
 
 ## Submission and Mutual Exclusion
 
+Managed SDK sessions expose state.permissionPreset in snapshots. New sessions default to read-only (or the configured SDK settings default); restored sessions retain their preset, with restricted migration for legacy history. Permission changes made by a trusted host publish a complete session.state frame outside any prompt run. No Web permission mutation route or approval control is available yet. File/Bash denials appear as ordinary tool errors; see [permissions](../../../coding-agent/docs/permissions.md).
+
 1. Validate text or attachments and a requestId of at most 128 characters.
 2. Synchronously reserve command state, record requestId/runId, and publish run.accepted.
 3. Call session.prompt asynchronously; return 202 without waiting for the full answer.

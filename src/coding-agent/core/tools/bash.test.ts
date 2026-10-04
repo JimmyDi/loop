@@ -7,7 +7,7 @@ import { createBashTool } from "./bash";
 
 test("bash uses cwd, reports failure, truncates output and cancels child processes", async () => {
   const dir = await mkdtemp(join(tmpdir(), "loop-bash-test-"));
-  const tool = createBashTool(dir);
+  const tool = createBashTool(dir, { permissionPreset: "workspace-write" });
   const signal = new AbortController().signal;
 
   try {

@@ -21,3 +21,21 @@ test("settings load only supported defaults and reject malformed configuration",
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("permission-only defaults are accepted and invalid presets reject", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".permission-settings-test-"));
+  try {
+    expect((await SettingsManager.create(root)).defaultPermissionPreset).toBe("read-only");
+    await Bun.write(
+      join(root, "settings.json"),
+      JSON.stringify({ permissionPreset: "workspace-write" }),
+    );
+    const settings = await SettingsManager.create(root);
+    expect(settings.defaultModel).toBeUndefined();
+    expect(settings.defaultPermissionPreset).toBe("workspace-write");
+    await Bun.write(join(root, "settings.json"), JSON.stringify({ permissionPreset: "unknown" }));
+    await expect(SettingsManager.create(root)).rejects.toThrow("Invalid permission preset");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

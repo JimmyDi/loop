@@ -6,6 +6,47 @@
   min-height: 0;
   background: var(--surface);
 }
+.chat-workspace-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.chat-workspace-input {
+  flex-shrink: 0;
+  min-width: 0;
+}
+.chat-workspace-body[data-empty="true"] {
+  display: grid;
+  grid-template-rows: minmax(min-content, 1fr) auto minmax(24px, 1fr);
+  overflow-y: auto;
+  padding: 24px 0 max(24px, env(safe-area-inset-bottom));
+}
+.chat-workspace-body[data-empty="true"]::after {
+  content: "";
+}
+.chat-workspace-body[data-empty="true"] .composer-region {
+  margin-bottom: 0;
+}
+.chat-workspace-body[data-empty="true"] .composer-model-popover {
+  max-height: min(460px, max(160px, calc(50dvh - 120px)));
+}
+.chat-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: end;
+  gap: 16px;
+  padding: 0 24px 28px;
+  text-align: center;
+}
+.chat-welcome h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.3;
+}
 .workspace-loading {
   text-align: center;
   margin: auto;

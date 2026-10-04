@@ -37,6 +37,10 @@ A small rotating ring at the far right of a session row indicates response gener
 
 Switching to another session preserves the previous session's latest live status in the list cache before closing its subscription. Older pending list requests are cancelled and a fresh summary is requested, keeping its ring visible during the handoff. Background list updates clear the ring when generation finishes, including cancellation and failure.
 
+After generation ends with new output, an 8px blue dot replaces the ring until the latest content has been viewed. Its tooltip and accessible label are **Unread** / **未读**. Selecting a session alone does not clear it: the completed content must reach the conversation viewport in a visible, focused browser page. Scrolling to the latest content or opening a completed chat at its latest content clears the dot; staying at the submitted user message while a longer answer grows leaves it unread. Hidden pages, open dialogs and the mobile sidebar overlay do not mark messages read. Generation keeps the ring instead of the dot.
+
+Read turn positions persist in this browser's local storage and survive session switches and reloads; unavailable storage keeps them for the current page only. Background sessions use the same completed-turn identity from list refreshes, including when reopening a collapsed project or reconnecting. Title/model changes and save retries do not create unread turns. A cancelled or failed run with saved output can be unread; a run with only a user message cannot. Older history without run timing metadata has no unread indicator. Read receipts are local to the browser and are not synchronized across devices.
+
 ## Lifecycle and Errors
 
 The session context menu supports arrows, Home/End and Escape, fits within the viewport and stays above sidebar scrolling. **Rename** edits the row inline: Enter saves, Escape or blur cancels, and failed saves retain the input. **Archive** immediately removes only that session from the sidebar and keeps its history, drafts and attachments for restoration from Settings. Neither action asks for confirmation. **Permanently delete** opens a confirmation warning that the chat and its saved messages will be deleted irreversibly. Cancel and Close do not submit; the confirmation disables closing and duplicate submission while pending. Success removes the history file, clears only that chat's local drafts, attachments and pending request, and closes it if selected. Failures retain local data. Deletion errors stay inside the confirmation dialog; closing it or choosing a new row action clears the previous error, so it does not appear under the session title or carry into a new confirmation. Known busy sessions disable row actions; the backend also rejects archive and deletion while any session in the project is busy or has pending saves.
@@ -57,6 +61,7 @@ There is no file-tree editor, history search, or session transfer between projec
 
 - [Sidebar](../components/layout/Sidebar.tsx) / [tests](../components/layout/Sidebar.test.tsx).
 - [SessionItem](../components/projects/SessionItem.tsx) / [tests](../components/projects/SessionItem.test.tsx).
+- [Unread row indicators](../components/projects/SessionList.test.tsx), [read receipts](../hooks/useReadReceipt.ts) / [tests](../hooks/useReadReceipt.test.tsx), and [read state](../state/read-store.ts) / [tests](../state/read-store.test.ts).
 - [Session actions](../hooks/useSessionActions.ts) / [tests](../hooks/useSessionActions.test.tsx).
 - [ProjectItem](../components/projects/ProjectItem.tsx) / [tests](../components/projects/ProjectItem.test.tsx).
 - [ProjectActions](../components/projects/ProjectActions.tsx) / [tests](../components/projects/ProjectActions.test.tsx).

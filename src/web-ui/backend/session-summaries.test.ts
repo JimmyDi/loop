@@ -118,6 +118,7 @@ test("new Web sessions remain drafts until the first user message, appear during
     await controller.abort();
     expect(changes.length).toBeGreaterThan(beforeAbort);
     expect((await (await call(endpoint)).json())[0].isGenerating).toBe(false);
+    expect((await (await call(endpoint)).json())[0].latestCompletedTurn).toBeUndefined();
     expect(otherPage).toEqual(changes);
     expect(
       await Bun.file(join(getSessionDir(root, root), first.sessionId + ".jsonl")).exists(),

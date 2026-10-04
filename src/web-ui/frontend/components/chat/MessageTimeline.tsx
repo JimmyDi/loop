@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 
 import type { SessionSnapshot } from "../../../shared/protocol";
 import { useAutoScroll } from "../../hooks/useAutoScroll";
+import { useReadReceipt } from "../../hooks/useReadReceipt";
 import { ActionButton } from "../ui/ActionButton";
 import { AssistantTurn } from "./AssistantTurn";
 import { groupTimelineTurns } from "./timeline-turns";
@@ -17,8 +18,18 @@ export const MessageTimeline = ({
   connected: boolean;
 }) => {
   const { t } = useTranslation();
-  const scroll = useAutoScroll(snapshot);
+  const userMessageIndex = snapshot.state.messages.reduce(
+    (latest, message, index) => (message.role === "user" ? index : latest),
+    -1,
+  );
+  const scroll = useAutoScroll({
+    sessionId: snapshot.sessionId,
+    userMessageIndex,
+    running: snapshot.operation === "prompt",
+    revision: snapshot,
+  });
   const looping = connected && snapshot.operation === "prompt";
+  useReadReceipt(snapshot, connected, scroll.ref, scroll.endRef);
   const messages = [...snapshot.state.messages];
   const draftIndex = snapshot.state.draft ? (snapshot.draftIndex ?? messages.length) : undefined;
 
@@ -35,12 +46,19 @@ export const MessageTimeline = ({
         role="log"
         aria-live="off"
       >
-        <div className="timeline-content">
+        <div className="timeline-content" ref={scroll.contentRef}>
           {!messages.length && !looping && <p className="timeline-empty">{t("emptySession")}</p>}
           {turns.map((turn) => {
             const key = `${snapshot.sessionId}:${turn.index}`;
 
-            if (turn.type === "user") return <UserMessage key={key} message={turn.message} />;
+            if (turn.type === "user")
+              return (
+                <UserMessage
+                  key={key}
+                  message={turn.message}
+                  ref={turn.index === userMessageIndex ? scroll.userMessageRef : undefined}
+                />
+              );
 
             return (
               <AssistantTurn
@@ -59,11 +77,29 @@ export const MessageTimeline = ({
             );
           })}
           {looping && <LoopingIndicator />}
+          <div ref={scroll.endRef} aria-hidden="true" />
         </div>
       </div>
       {!scroll.atBottom && (
-        <ActionButton className="jump-latest" onClick={scroll.jump}>
-          {t("scrollBottom")}
+        <ActionButton
+          className="jump-latest"
+          onClick={scroll.jump}
+          title={t("scrollBottom")}
+          aria-label={t("scrollBottom")}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14m-6-6 6 6 6-6" />
+          </svg>
         </ActionButton>
       )}
     </div>

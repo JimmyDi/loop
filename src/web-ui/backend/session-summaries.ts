@@ -1,4 +1,5 @@
 import type { SessionSummary } from "../shared/protocol";
+import { latestCompletedTurn } from "../shared/completed-turn";
 import type { SessionController } from "./session-controller";
 
 export const sessionSummaries = (
@@ -33,6 +34,7 @@ export const sessionSummaries = (
       userMessageCount: users.length,
       title: state.title?.text ?? record?.title,
       isGenerating: operation === "prompt",
+      latestCompletedTurn: latestCompletedTurn(state.runTimings, state.messages.length),
     });
   }
   return [...summaries.values()].sort(

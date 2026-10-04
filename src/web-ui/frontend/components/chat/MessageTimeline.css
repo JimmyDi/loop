@@ -6,6 +6,7 @@
 .message-timeline {
   height: 100%;
   overflow-y: auto;
+  overflow-anchor: none;
   overscroll-behavior: contain;
   padding: 20px 32px 30px;
 }
@@ -22,10 +23,14 @@
   color: var(--ink-muted);
   margin-top: 15vh;
 }
-.jump-latest {
+.action-button.jump-latest {
   position: absolute;
   left: 50%;
   bottom: 10px;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  border-radius: 50%;
   transform: translateX(-50%);
   box-shadow: 0 4px 16px var(--shadow-soft);
 }

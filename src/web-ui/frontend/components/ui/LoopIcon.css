@@ -1,0 +1,14 @@
+.loop-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+  background: url("../../assets/loop-icon.png") center / contain no-repeat;
+}
+:root[data-theme="dark"] .loop-icon {
+  background-image: url("../../assets/loop-icon-light.png");
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .loop-icon {
+    background-image: url("../../assets/loop-icon-light.png");
+  }
+}

@@ -111,3 +111,5 @@ bun run check
 Tests use local synthetic model endpoints without production credentials or paid requests. The CLI PTY test requires Python 3. Runnable samples use real configured models.
 
 See [Contributing](CONTRIBUTING.md), [Security](SECURITY.md), and [License](LICENSE).
+
+The software is MIT-licensed. The approved Loop icon is separately reserved under the [brand asset policy](src/web-ui/docs/assets/loop-brand/BRAND-ASSETS.md); the bundled guide fonts retain their [SIL OFL 1.1 license](src/web-ui/docs/assets/loop-brand/fonts/OFL.txt).

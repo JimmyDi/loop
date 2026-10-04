@@ -7,6 +7,7 @@ import { AddProjectDialog } from "../projects/AddProjectDialog";
 import { ProjectItem } from "../projects/ProjectItem";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
+import { LoopIcon } from "../ui/LoopIcon";
 import { SettingsIcon } from "../ui/SettingsIcon";
 import { SettingsDialog } from "../settings/SettingsDialog";
 import "./Sidebar.css";
@@ -38,7 +39,7 @@ export const Sidebar = () => {
   return (
     <aside className="sidebar" aria-label={t("projects")}>
       <div className="sidebar-brand">
-        <span className="loop-logo">∞</span>
+        <LoopIcon />
         <strong>Loop</strong>
         <ActionButton
           className="sidebar-close ghost"

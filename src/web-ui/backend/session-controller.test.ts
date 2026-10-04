@@ -58,6 +58,37 @@ const waitFor = async (condition: () => boolean) => {
   expect(condition()).toBe(true);
 };
 
+test("approval events keep snapshots current without requiring a prompt or enabling an answerer", async () => {
+  const session = new AgentSession({
+    model,
+    systemPrompt: "Test",
+    tools: [],
+    sessionManager: SessionManager.inMemory(),
+    modelRuntime: runtime(() => createAssistantMessageEventStream()),
+  });
+  const controller = new SessionController(session, "project");
+  const input = { toolName: "write", toolCallId: "test-call", reason: "Review operation" };
+  const frames: Frame[] = [];
+  const unsubscribe = controller.events.connect((frame) => frames.push(frame));
+  frames.length = 0;
+  try {
+    expect((await session.requestApproval(input)).outcome).toBe("unavailable");
+    expect(controller.snapshot.state.pendingApprovals).toEqual([]);
+    session.registerApprovalHandler(() => {});
+    const pending = session.requestApproval(input);
+    expect(controller.snapshot.state.pendingApprovals).toHaveLength(1);
+    expect(controller.snapshot.runId).toBeUndefined();
+    await session.abort();
+    expect((await pending).outcome).toBe("cancelled");
+    expect(controller.snapshot.state.pendingApprovals).toEqual([]);
+    expect(frames.every((frame) => frame.type === "session.state")).toBe(true);
+    expect(frames).toHaveLength(4);
+  } finally {
+    unsubscribe();
+    await controller.close();
+  }
+});
+
 test("large files bypass local context estimates and accepted requests still deduplicate", async () => {
   let calls = 0;
   const session = new AgentSession({

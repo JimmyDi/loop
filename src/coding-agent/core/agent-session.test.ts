@@ -10,6 +10,183 @@ import type { ModelRuntime } from "./model-runtime";
 import type { SessionRunTiming } from "./run-timing";
 import { SessionManager } from "./session-manager";
 import { SettingsManager } from "./settings-manager";
+import { AgentSession } from "./agent-session";
+import { AgentSessionRuntime } from "./agent-session-runtime";
+import type { ApprovalRequest, ApprovalResult } from "./approvals/types";
+
+test("approval APIs expose pending snapshots, isolate listeners and preserve managed authority", async () => {
+  const options = {
+    model,
+    modelRuntime: runtime(() => stream()),
+    noContextFiles: true,
+    settingsManager: SettingsManager.inMemory(),
+    sessionManager: SessionManager.inMemory(),
+    tools: [],
+  };
+  const { session } = await createAgentSession(options);
+  const input = { toolName: "write", toolCallId: "test-call", reason: "Review operation" };
+  const seen: string[] = [];
+  const respond = (request: ApprovalRequest) =>
+    session.respondToApproval({ ...request, decision: "allowed-once" });
+  session.subscribe((event) => {
+    if (event.type === "approval_requested") {
+      Object.assign(event.request, { reason: "modified observer snapshot" });
+      throw new Error("observer failed");
+    }
+  });
+  session.subscribe(async (event) => {
+    if (event.type === "approval_requested") throw new Error("async observer failed");
+  });
+  session.subscribe((event) => {
+    seen.push(event.type);
+  });
+  try {
+    expect((await session.requestApproval(input)).outcome).toBe("unavailable");
+    expect(session.state.listenerErrors).toContain("observer failed");
+    expect(session.state.listenerErrors).toContain("async observer failed");
+    const detach = session.registerApprovalHandler(() => {});
+    const waiting = session.requestApproval(input);
+    const request = session.state.pendingApprovals![0]!;
+    expect(request.reason).toBe(input.reason);
+    Object.assign(request, { reason: "modified state snapshot" });
+    expect(session.state.pendingApprovals![0]!.reason).toBe(input.reason);
+    await expect(session.prompt("blocked")).rejects.toThrow("pending approvals");
+    await expect(session.setPermissionPreset("workspace-write")).rejects.toThrow(
+      "pending approvals",
+    );
+    await expect(session.setModel(model)).rejects.toThrow("pending approvals");
+    expect(respond(request)).toBe(true);
+    expect((await waiting).outcome).toBe("allowed-once");
+    expect(respond(request)).toBe(false);
+    expect(session.state.pendingApprovals).toEqual([]);
+    expect(session.permissionPreset).toBe("read-only");
+    expect(session.sessionManager.getHeader()).not.toHaveProperty("pendingApprovals");
+    expect(session.state.messages).toEqual([]);
+    detach();
+    session.registerApprovalHandler((next) => {
+      respond(next);
+    });
+    seen.length = 0;
+    expect((await session.requestApproval(input)).outcome).toBe("allowed-once");
+    expect(seen).toEqual(["approval_requested", "approval_resolved"]);
+    await session.setPermissionPreset("danger-full-access");
+    expect((await session.requestApproval(input)).outcome).toBe("rejected");
+  } finally {
+    await session.abort();
+    session.dispose();
+  }
+});
+
+test("run abort cancels approval waits and normal completion drains unawaited requests", async () => {
+  const input = { toolName: "test-operation", toolCallId: "test-call", reason: "Review operation" };
+  for (const cancel of [true, false]) {
+    const ready = Promise.withResolvers<ApprovalRequest>();
+    let pending!: Promise<ApprovalResult>;
+    let calls = 0;
+    const session = new AgentSession({
+      model,
+      systemPrompt: "Test",
+      sessionManager: SessionManager.inMemory(),
+      modelRuntime: runtime(() =>
+        stream(
+          ++calls === 1
+            ? answer(
+                [{ type: "toolCall", name: input.toolName, id: input.toolCallId, arguments: {} }],
+                "toolUse",
+              )
+            : answer(),
+        ),
+      ),
+      tools: [
+        {
+          name: input.toolName,
+          description: "Synthetic operation",
+          parameters: { type: "object", properties: {} },
+          execute: async () => {
+            pending = session.requestApproval(input);
+            if (cancel) await pending;
+            return [{ type: "text", text: "No action performed" }];
+          },
+        },
+      ],
+    });
+    session.registerApprovalHandler((request) => {
+      ready.resolve(request);
+    });
+    const running = session.prompt("test").catch((error: unknown) => error);
+    try {
+      const request = await ready.promise;
+      if (cancel) await session.abort();
+      await running;
+      expect((await pending).outcome).toBe("cancelled");
+      expect(session.respondToApproval({ ...request, decision: "allowed-once" })).toBe(false);
+      expect(session.state.pendingApprovals).toEqual([]);
+      expect(session.state.outcome).toBe(cancel ? "cancelled" : "success");
+      expect(session.state.isRunning).toBe(false);
+    } finally {
+      await session.abort();
+      session.dispose();
+    }
+  }
+});
+
+test("session replacement requires approval cancellation and never carries decisions or handlers", async () => {
+  const factory = async ({ sessionManager }: { sessionManager: SessionManager }) => ({
+    session: new AgentSession({
+      model,
+      modelRuntime: runtime(() => stream()),
+      tools: [],
+      systemPrompt: "Test",
+      sessionManager,
+    }),
+  });
+  const { session } = await factory({ sessionManager: SessionManager.inMemory() });
+  const sessionRuntime = new AgentSessionRuntime(session, factory);
+  const input = { toolName: "write", toolCallId: "test-call", reason: "Review operation" };
+  session.registerApprovalHandler(() => {});
+  const waiting = session.requestApproval(input);
+  const request = session.state.pendingApprovals![0]!;
+  await expect(sessionRuntime.newSession()).rejects.toThrow("pending approvals");
+  await session.abort();
+  expect((await waiting).outcome).toBe("cancelled");
+  await sessionRuntime.newSession();
+  expect(sessionRuntime.session.state.pendingApprovals).toEqual([]);
+  expect(sessionRuntime.session.respondToApproval({ ...request, decision: "allowed-once" })).toBe(
+    false,
+  );
+  expect((await sessionRuntime.session.requestApproval(input)).outcome).toBe("unavailable");
+  await expect(session.requestApproval(input)).rejects.toThrow("disposed");
+  expect(() => session.registerApprovalHandler(() => {})).toThrow("disposed");
+  sessionRuntime.session.registerApprovalHandler(() => {});
+  const closing = sessionRuntime.session.requestApproval(input);
+  await sessionRuntime.dispose();
+  expect((await closing).outcome).toBe("cancelled");
+  expect(sessionRuntime.session.state.pendingApprovals).toEqual([]);
+});
+
+test("disposing an idle session cancels pending approvals before clearing observers", async () => {
+  const session = new AgentSession({
+    model,
+    modelRuntime: runtime(() => stream()),
+    tools: [],
+    systemPrompt: "Test",
+    sessionManager: SessionManager.inMemory(),
+  });
+  const outcomes: string[] = [];
+  session.subscribe((event) => {
+    if (event.type === "approval_resolved") outcomes.push(event.result.outcome);
+  });
+  session.registerApprovalHandler(() => {});
+  const pending = session.requestApproval({
+    toolName: "write",
+    toolCallId: "test",
+    reason: "Review",
+  });
+  session.dispose();
+  expect((await pending).outcome).toBe("cancelled");
+  expect(outcomes).toEqual(["cancelled"]);
+  expect(session.state.pendingApprovals).toEqual([]);
+});
 
 test("session presets enforce built-in tools, persist, reject busy changes and migrate legacy sessions safely", async () => {
   const root = await mkdtemp(join(import.meta.dir, ".session-permission-test-"));
@@ -49,11 +226,17 @@ test("session presets enforce built-in tools, persist, reject busy changes and m
     expect(session.permissionPreset).toBe("read-only");
     expect(session.state.permissionPreset).toBe("read-only");
     expect(manager.getHeader().permissionPreset).toBe("read-only");
+    let approvalDeliveries = 0;
+    session.registerApprovalHandler((request) => {
+      approvalDeliveries++;
+      session.respondToApproval({ ...request, decision: "allowed-once" });
+    });
     const denied = session.prompt("Try write");
     await expect(session.setPermissionPreset("danger-full-access")).rejects.toThrow(
       "already running",
     );
     await denied;
+    expect(approvalDeliveries).toBe(0);
     expect(await Bun.file(join(root, "file")).exists()).toBe(false);
     expect(session.state.messages.find((message) => message.role === "toolResult")).toMatchObject({
       isError: true,
@@ -103,6 +286,48 @@ test("session presets enforce built-in tools, persist, reject busy changes and m
     expect(migrated.sessionManager.getHeader().version).toBe(2);
     migrated.dispose();
   } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("reopening storage restores no pending approval, decision or handler", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".approval-restore-test-"));
+  const manager = await SessionManager.create(root, join(root, "storage"));
+  const options = {
+    model,
+    modelRuntime: runtime(() => stream()),
+    noContextFiles: true,
+    agentDir: join(root, "agent-data"),
+    settingsManager: SettingsManager.inMemory(),
+    tools: [],
+  };
+  const { session } = await createAgentSession({ ...options, sessionManager: manager });
+  const input = { toolName: "write", toolCallId: "test-call", reason: "Review operation" };
+  try {
+    session.registerApprovalHandler(() => {});
+    const waiting = session.requestApproval(input);
+    const request = session.state.pendingApprovals![0]!;
+    const { session: restored } = await createAgentSession({
+      ...options,
+      sessionManager: await SessionManager.open(manager.sessionFile!),
+    });
+    try {
+      expect(restored.sessionId).toBe(session.sessionId);
+      expect(restored.state.pendingApprovals).toEqual([]);
+      expect(restored.respondToApproval({ ...request, decision: "allowed-once" })).toBe(false);
+      expect((await restored.requestApproval(input)).outcome).toBe("unavailable");
+      const stored = await Bun.file(manager.sessionFile!).text();
+      expect(stored).not.toContain(request.requestId);
+      expect(stored).not.toContain(input.reason);
+      expect(session.respondToApproval({ ...request, decision: "allowed-once" })).toBe(true);
+      expect((await waiting).outcome).toBe("allowed-once");
+      expect(restored.permissionPreset).toBe("read-only");
+    } finally {
+      restored.dispose();
+    }
+  } finally {
+    await session.abort();
+    session.dispose();
     await rm(root, { recursive: true, force: true });
   }
 });

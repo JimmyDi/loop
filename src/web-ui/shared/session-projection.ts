@@ -12,7 +12,18 @@ export const applyEvent = (
     tools: updateTools(snapshot.tools, event),
   };
 
-  if (event.type === "permission_changed") {
+  if (event.type === "approval_requested") {
+    next.state.pendingApprovals = [
+      ...(next.state.pendingApprovals ?? []).filter(
+        (request) => request.requestId !== event.request.requestId,
+      ),
+      event.request,
+    ];
+  } else if (event.type === "approval_resolved") {
+    next.state.pendingApprovals = (next.state.pendingApprovals ?? []).filter(
+      (request) => request.requestId !== event.result.request.requestId,
+    );
+  } else if (event.type === "permission_changed") {
     next.state.permissionPreset = event.permissionPreset;
   } else if (event.type === "run_timing") {
     next.state.runTimings = [

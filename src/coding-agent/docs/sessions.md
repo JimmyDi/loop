@@ -38,6 +38,8 @@ The manager commits one full snapshot at the end of each prompt, including model
 
 [Session titles](session-titles.md) are independent header metadata and may finish after a prompt. History/model/title writes serialize within one manager. Call `waitForTitle()` before disposal to retain generated titles, or `abort()` to cancel and drain both the main run and title work. Runtime replacement cancels and drains old title work before opening another writable session.
 
+[Approval requests](approvals.md) are session-owned, in-memory interaction state. Pending requests block new prompts, metadata changes and session replacement until settled or cancelled. Abort cancels them, and run finalization drains outstanding requests before saving. Idle disposal cancels them before clearing observers. No approval request, decision or handler is restored from session storage; rebind the handler when replacing a session.
+
 ## Execution timing
 
 `session.state.runTimings` exposes per-prompt `SessionRunTiming` metadata, keyed by the zero-based position of the user message. `startedAt` records prompt acceptance before model preflight; `finishedAt` is added when model/tool execution ends, including failure or cancellation. Duration includes preflight and the complete model/tool loop, but excludes history saving, save retries and asynchronous title work. A rejected preflight that never appends a user message creates no historical timing.

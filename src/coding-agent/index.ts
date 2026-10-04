@@ -20,6 +20,18 @@ export {
   approvalPolicyFor,
 } from "./core/permissions/types";
 export { PermissionError } from "./core/permissions/permission-error";
+export { DEFAULT_APPROVAL_TIMEOUT_MS } from "./core/approvals/types";
+export type {
+  ApprovalDecision,
+  ApprovalOutcome,
+  ApprovalInput,
+  ApprovalRequest,
+  ApprovalResult,
+  ApprovalResponse,
+  ApprovalRequestOptions,
+  ApprovalHandler,
+  ApprovalEvent,
+} from "./core/approvals/types";
 export { SandboxUnavailableError } from "./core/sandbox/launcher";
 export {
   createModelRuntime,

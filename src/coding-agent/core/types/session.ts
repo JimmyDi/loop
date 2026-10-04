@@ -8,9 +8,11 @@ import type { SessionTitle, SessionTitleOptions } from "../titles/types";
 import type { SessionRunTiming } from "../run-timing";
 import type { PermissionPolicy } from "../permissions/policy";
 import type { PermissionPreset } from "../permissions/types";
+import type { ApprovalEvent, ApprovalRequest } from "../approvals/types";
 
 export type SessionEvent =
   | AgentEvent
+  | ApprovalEvent
   | { type: "agent_settled" }
   | { type: "permission_changed"; permissionPreset: PermissionPreset }
   | { type: "run_timing"; timing: SessionRunTiming }
@@ -30,6 +32,7 @@ export type SessionState = {
   titleError?: string;
   runTimings?: SessionRunTiming[];
   permissionPreset?: PermissionPreset;
+  pendingApprovals?: ApprovalRequest[];
 };
 
 export type SessionOptions = {

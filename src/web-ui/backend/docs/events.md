@@ -17,6 +17,8 @@ Every frame includes sessionId, streamId, and seq. streamId belongs to one Sessi
 
 SDK events include message_start, message_update, message_end, tool_execution_start, tool_execution_end, run_timing, agent_settled and session_title. Web wraps them in loop.event without renaming them. message_update still carries the original AI event. run_timing supplies prompt start and finish timestamps; snapshots include state.runTimings for reconnecting clients and restored sessions. See [coding-agent events](../../../coding-agent/docs/events.md) for the full contract.
 
+Session-level title, permission_changed, approval_requested and approval_resolved updates publish session.state snapshots, including when no prompt is active. Approval snapshots carry state.pendingApprovals; resolution removes the matching request. Reconnection exposes only the currently pending requests, and a server restart restores none. An SSE connection is not an approval handler; Web does not yet provide approval controls or a decision route. See [core approvals](../../../coding-agent/docs/approvals.md).
+
 ## Replay and Snapshots
 
 Clients can supply a cursor through Last-Event-ID or the cursor query parameter; the header takes precedence. If the cursor belongs to the same stream, precedes the current sequence, and the buffer still contains contiguous subsequent frames, replay them in order. Otherwise send a full snapshot, then subscribe to new events.

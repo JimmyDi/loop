@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import type { SessionSummary } from "../../../shared/protocol";
 import { useWorkspace } from "../../state/workspace-store";
 import { useSessions } from "../../state/session-store";
+import { useReadState } from "../../state/read-store";
+import { latestCompletedTurn } from "../../../shared/completed-turn";
 import { useProjectMenu } from "../../hooks/useProjectMenu";
 import { useSessionActions } from "../../hooks/useSessionActions";
 import { ErrorNotice } from "../ui/ErrorNotice";
@@ -25,6 +27,11 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
   const action = useSessionActions(session);
   const snapshot = view?.connected ? view.snapshot : undefined;
   const generating = snapshot ? snapshot.operation === "prompt" : session.isGenerating === true;
+  const readTurn = useReadState((state) => state.readTurns[session.id] ?? -1);
+  const completedTurn = snapshot
+    ? latestCompletedTurn(snapshot.state.runTimings, snapshot.state.messages.length)
+    : session.latestCompletedTurn;
+  const unread = !generating && completedTurn !== undefined && completedTurn > readTurn;
   const busy =
     action.pending ||
     generating ||
@@ -94,6 +101,14 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
                   role="img"
                   aria-label={t("looping", "Looping...")}
                   title={t("looping", "Looping...")}
+                />
+              )}
+              {unread && (
+                <span
+                  className="session-list-unread"
+                  role="img"
+                  aria-label={t("unread")}
+                  title={t("unread")}
                 />
               )}
             </button>

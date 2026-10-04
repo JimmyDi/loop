@@ -30,6 +30,7 @@ export type SessionSummary = {
   userMessageCount: number;
   title?: string;
   isGenerating?: boolean;
+  latestCompletedTurn?: number;
   archived?: boolean;
 };
 

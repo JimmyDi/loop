@@ -1,4 +1,5 @@
 export const projectsZh = {
+  unread: "未读",
   projectOptions: "{{name}} 的选项",
   sessionOptions: "{{name}} 的选项",
   archiveSession: "归档",

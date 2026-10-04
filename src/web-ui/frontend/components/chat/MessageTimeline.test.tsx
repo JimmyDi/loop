@@ -39,6 +39,87 @@ test("MessageTimeline renders the session state without unsupported controls", (
   client.clear();
 });
 
+test("sending aligns the actual user message and keeps it steady through snapshot updates", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, cleanup, fireEvent } = await import("@testing-library/react/pure");
+  let userTop = 800;
+  let contentHeight = 950;
+  let scrollTop = 0;
+  const originalRect = window.HTMLElement.prototype.getBoundingClientRect;
+  window.HTMLElement.prototype.getBoundingClientRect = function () {
+    const bounds = originalRect.call(this);
+    if (this.classList.contains("user-message")) bounds.y = userTop - scrollTop;
+    if (this.classList.contains("timeline-content")) {
+      bounds.y = -scrollTop;
+      bounds.height = Math.max(contentHeight, Number.parseFloat(this.style.minHeight) || 0);
+    }
+    if (
+      this.parentElement?.classList.contains("timeline-content") &&
+      this.getAttribute("aria-hidden") === "true"
+    )
+      bounds.y = contentHeight - scrollTop;
+    return bounds;
+  };
+
+  try {
+    const ui = render(<MessageTimeline snapshot={{ ...snapshot, operation: "idle" }} connected />);
+    const timeline = ui.container.querySelector<HTMLDivElement>(".message-timeline")!;
+    const content = ui.container.querySelector<HTMLDivElement>(".timeline-content")!;
+    Object.defineProperties(timeline, {
+      clientHeight: { value: 500 },
+      scrollHeight: {
+        get: () => Math.max(contentHeight, Number.parseFloat(content.style.minHeight) || 0),
+      },
+      scrollTop: {
+        get: () => scrollTop,
+        set: (value: number) => {
+          scrollTop = Math.max(0, Math.min(value, timeline.scrollHeight - 500));
+        },
+      },
+    });
+    const sent: SessionSnapshot = {
+      ...snapshot,
+      state: {
+        ...snapshot.state,
+        messages: [{ role: "user", content: "Example request", timestamp: 0 }],
+      },
+    };
+    ui.rerender(<MessageTimeline snapshot={sent} connected />);
+    expect(scrollTop).toBe(800);
+    expect(ui.container.querySelector(".user-message")?.getBoundingClientRect().top).toBe(0);
+    fireEvent.scroll(timeline);
+    contentHeight = 1900;
+    ui.rerender(<MessageTimeline snapshot={structuredClone(sent)} connected />);
+    expect(scrollTop).toBe(800);
+    expect(ui.container.querySelector(".jump-latest")).not.toBeNull();
+    ui.rerender(<MessageTimeline snapshot={{ ...sent, operation: "idle" }} connected={false} />);
+    expect(scrollTop).toBe(800);
+
+    userTop = 1900;
+    contentHeight = 2050;
+    ui.rerender(
+      <MessageTimeline
+        snapshot={{
+          ...sent,
+          state: {
+            ...sent.state,
+            messages: [...sent.state.messages, { role: "user", content: [], timestamp: 1 }],
+          },
+        }}
+        connected
+      />,
+    );
+    expect(scrollTop).toBe(1900);
+    expect(ui.container.querySelectorAll(".user-message")).toHaveLength(2);
+  } finally {
+    cleanup();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
 test("Looping follows the latest content throughout model and tool generation", async () => {
   const draft = {
     role: "assistant" as const,

@@ -24,6 +24,8 @@ Web enables first-prompt title generation through coding-agent. List summaries i
 
 ## Creation and Restoration
 
+List summaries include optional latestCompletedTurn: the zero-based user-message position of the most recent finished run containing output after its user message. It derives from existing runTimings and message counts, remains stable across saves and title/model changes, and is available for unloaded saved history. Runs without output and legacy history without timings omit it. The frontend combines it with isGenerating and local read receipts to show unread dots; no read state is written to session history.
+
 New Web sessions use SessionManager.draft: a stable in-process ID and target history path, with model/title changes kept in memory until a commit contains a user message. Attachment-only user messages qualify. Invalid submissions or model preflight failures leave the draft unlisted. The normal end-of-run commit persists the first history, including cancellation or model errors after the user message was added; failed saves remain recoverable through flush. Unsent draft handles can be reopened within the server process, but do not survive a server restart. The API does not automatically delete older empty history files.
 
 LoopBridge lists a project's sessions through the public SDK, then opens SessionManager from the matching record. Unknown session IDs or history outside registered projects are rejected. Browsers cannot supply arbitrary file paths. Concurrent loads of one sessionId share a Promise and instance.

@@ -1,4 +1,5 @@
 export const projectsEn = {
+  unread: "Unread",
   projectOptions: "Options for {{name}}",
   sessionOptions: "Options for {{name}}",
   archiveSession: "Archive",

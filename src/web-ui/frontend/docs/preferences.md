@@ -48,6 +48,7 @@ All persistent keys use the `loop.web.` prefix and belong to the browser origin.
 | theme | Restore `light`, `dark`, or `system`; default to `system` |
 | sidebarWidth | Restore a sidebar width within the allowed range |
 | activeSession | Restore the selected session ID and its project ID; no title or open-session list is stored |
+| readTurns | Store the last viewed completed user-turn index per session for sidebar unread dots; no message content is stored |
 | expanded | Restore project expansion |
 | drafts, draftProjects | Store unsent text and its project by session; retained when switching sessions |
 | requests | Store unconfirmed text, images, requestId and streamId for manual retry |

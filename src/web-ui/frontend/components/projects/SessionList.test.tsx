@@ -5,6 +5,7 @@ import { Window } from "happy-dom";
 
 import type { SessionSnapshot, SessionSummary } from "../../../shared/protocol";
 import { useSessions } from "../../state/session-store";
+import { useReadState } from "../../state/read-store";
 import { useWorkspace } from "../../state/workspace-store";
 import "../../i18n/setup";
 import { SessionList } from "./SessionList";
@@ -175,6 +176,70 @@ test("generation rings follow live prompt events and background summaries withou
     cleanup();
     useSessions.setState(sessionsState, true);
     useWorkspace.setState(workspace, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("completed unread turns show a blue-dot indicator until the actual reading receipt arrives", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  const originalRead = useReadState.getState();
+  const originalSessions = useSessions.getState();
+  const originalWorkspace = useWorkspace.getState();
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, act, fireEvent, cleanup } = await import("@testing-library/react/pure");
+  const client = new QueryClient();
+  const summary: SessionSummary = {
+    id: "unread-session",
+    workspaceId: "project",
+    title: "Example",
+    messageCount: 2,
+    userMessageCount: 1,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+  };
+  const wrapper = ({ children }: { children: import("react").ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  try {
+    useSessions.setState({ views: {} });
+    useReadState.setState({ readTurns: {} });
+    const ui = render(<SessionList sessions={[{ ...summary, isGenerating: true }]} />, { wrapper });
+    expect(ui.getByRole("img", { name: "Looping..." })).toBeTruthy();
+    expect(ui.queryByRole("img", { name: "Unread" })).toBeNull();
+    const complete = { ...summary, latestCompletedTurn: 0, isGenerating: false };
+    ui.rerender(<SessionList sessions={[complete]} />);
+    expect(ui.queryByRole("img", { name: "Looping..." })).toBeNull();
+    expect(ui.getByRole("img", { name: "Unread" }).className).toBe("session-list-unread");
+    const button = ui.getByTitle("Example");
+    expect(button.lastElementChild?.className).toBe("session-list-unread");
+    fireEvent.click(button);
+    expect(useWorkspace.getState().active?.id).toBe(summary.id);
+    expect(ui.getByRole("img", { name: "Unread" })).toBeTruthy();
+    ui.unmount();
+    const reopened = render(<SessionList sessions={[complete]} />, { wrapper });
+    expect(reopened.getByRole("img", { name: "Unread" })).toBeTruthy();
+    act(() => useReadState.getState().markRead(summary.id, 0));
+    expect(reopened.queryByRole("img", { name: "Unread" })).toBeNull();
+    // Title updates cannot create unread content; a later completed turn can.
+    reopened.rerender(<SessionList sessions={[{ ...complete, title: "Renamed" }]} />);
+    expect(reopened.queryByRole("img", { name: "Unread" })).toBeNull();
+    reopened.rerender(<SessionList sessions={[{ ...complete, latestCompletedTurn: 2 }]} />);
+    expect(reopened.getByRole("img", { name: "Unread" })).toBeTruthy();
+    reopened.rerender(
+      <SessionList sessions={[{ ...complete, latestCompletedTurn: 2, isGenerating: true }]} />,
+    );
+    expect(reopened.queryByRole("img", { name: "Unread" })).toBeNull();
+    expect(reopened.getByRole("img", { name: "Looping..." })).toBeTruthy();
+    reopened.rerender(<SessionList sessions={[summary]} />);
+    expect(reopened.queryByRole("img")).toBeNull();
+  } finally {
+    cleanup();
+    client.clear();
+    useReadState.setState(originalRead, true);
+    useSessions.setState(originalSessions, true);
+    useWorkspace.setState(originalWorkspace, true);
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

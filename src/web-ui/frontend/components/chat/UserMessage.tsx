@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Message } from "../../../shared/protocol";
@@ -8,7 +9,13 @@ import { MessageFooter } from "./MessageFooter";
 import { TextFileAttachment } from "./TextFileAttachment";
 import "./UserMessage.css";
 
-export const UserMessage = ({ message }: { message: Extract<Message, { role: "user" }> }) => {
+export const UserMessage = ({
+  message,
+  ref,
+}: {
+  message: Extract<Message, { role: "user" }>;
+  ref?: Ref<HTMLElement>;
+}) => {
   const parts = typeof message.content === "string" ? [] : message.content;
   const files = parts.flatMap((part) => {
     const file = part.type === "text" ? readFileContent(part.text) : undefined;
@@ -30,7 +37,7 @@ export const UserMessage = ({ message }: { message: Extract<Message, { role: "us
         );
 
   return (
-    <article className="user-message">
+    <article className="user-message" ref={ref}>
       {images.length > 0 && (
         <div className="user-images">
           {images.map(

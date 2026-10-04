@@ -1,3 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <path d="M32 32C26 22 22 20 17 20C10 20 6 25 6 32S10 44 17 44C22 44 26 42 32 32S42 20 47 20C54 20 58 25 58 32S54 44 47 44C42 44 38 42 32 32Z" fill="none" stroke="#000" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 64 64" fill="none"><title>Loop dark mark</title><path d="M17 16V38C17 44 21 48 27 48H37C43 48 47 44 47 38V23A7 7 0 0 0 33 23V34" stroke="#000000" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" /></svg>

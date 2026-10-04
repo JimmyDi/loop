@@ -69,6 +69,8 @@ Each side has a README index and a Markdown-only docs directory, following the A
 
 This directory's docs folder contains the shared [design](docs/DESIGN.md). Feature documentation lives under frontend and backend. Saving Provider settings and switching an existing session are separate operations; see [frontend model settings](frontend/docs/models.md) for the current behavior.
 
+The approved [Loop icon delivery](docs/assets/loop-brand/README.md) contains the design source, export sizes, platform assets and usage guidelines.
+
 ## Validation
 
 From the repository root:

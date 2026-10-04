@@ -5,17 +5,6 @@
   width: 100%;
   margin: 16px 0;
 }
-.assistant-avatar {
-  flex: 0 0 28px;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  font-size: 23px;
-  background: var(--surface-raised);
-}
 .assistant-body {
   flex: 1;
   min-width: 0;

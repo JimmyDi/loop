@@ -2,6 +2,14 @@ import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 
 import { Agent } from "../../agent";
 import type { AgentEvent, PromptContent } from "../../agent";
+import { ApprovalService } from "./approvals/approval-service";
+import type {
+  ApprovalHandler,
+  ApprovalInput,
+  ApprovalRequestOptions,
+  ApprovalResponse,
+  ApprovalResult,
+} from "./approvals/types";
 import { createSessionStreamFn, getModelEfforts } from "./model-runtime";
 import type { ModelEffort } from "./models/model-effort";
 import { validateMessages } from "./messages";
@@ -10,6 +18,7 @@ import { prepareRuntimeContexts } from "./runtime-context";
 import type { SessionRunTiming } from "./run-timing";
 import { SessionTitleService } from "./titles/session-title";
 import type { PermissionPreset } from "./permissions/types";
+import { approvalPolicyFor, DEFAULT_PERMISSION_PRESET } from "./permissions/types";
 import type {
   SessionEvent,
   SessionEventListener,
@@ -33,8 +42,15 @@ export class AgentSession {
   private readonly titles: SessionTitleService;
   private titleError?: string;
   private runTiming?: SessionRunTiming;
+  private readonly approvals: ApprovalService;
+  private acceptingRunApprovals = false;
 
   constructor(private readonly options: SessionOptions) {
+    this.approvals = new ApprovalService(
+      this.sessionId,
+      () => approvalPolicyFor(this.permissionPreset ?? DEFAULT_PERMISSION_PRESET),
+      (event) => this.emit(event),
+    );
     this.selected = structuredClone(options.model);
     const effort = options.effort ?? options.sessionManager.getHeader().model?.effort;
     this.selectedEffort =
@@ -78,6 +94,35 @@ export class AgentSession {
     return this.options.permissionPolicy?.preset();
   }
 
+  registerApprovalHandler(handler: ApprovalHandler): () => void {
+    if (this.disposed) throw new Error("Session is disposed");
+
+    return this.approvals.registerHandler(handler);
+  }
+
+  async requestApproval(
+    input: ApprovalInput,
+    options: ApprovalRequestOptions = {},
+  ): Promise<ApprovalResult> {
+    if (this.disposed) throw new Error("Session is disposed");
+    if (this.busy && !this.acceptingRunApprovals)
+      throw new Error("Session is not accepting approval requests");
+    if (this.sessionManager.hasPendingSave)
+      throw new Error("Pending session save; call flush first");
+
+    const signals = [this.controller?.signal, options.signal].filter(
+      (signal): signal is AbortSignal => signal !== undefined,
+    );
+    return this.approvals.request(input, {
+      ...options,
+      signal: signals.length ? AbortSignal.any(signals) : undefined,
+    });
+  }
+
+  respondToApproval(response: ApprovalResponse): boolean {
+    return this.approvals.respond(response);
+  }
+
   setPermissionPreset(preset: PermissionPreset): Promise<void> {
     try {
       this.assertIdle();
@@ -109,6 +154,7 @@ export class AgentSession {
       outcome: this.outcome,
       error: this.failure,
       listenerErrors: [...this.listenerErrors],
+      pendingApprovals: this.approvals.pending,
       ...(this.permissionPreset ? { permissionPreset: this.permissionPreset } : {}),
       title: this.titles.title,
       titleError: this.titleError,
@@ -150,6 +196,7 @@ export class AgentSession {
     this.failure = undefined;
     this.outcome = "idle";
     this.controller = new AbortController();
+    this.acceptingRunApprovals = true;
     this.runTiming = {
       userMessageIndex: this.sessionManager.messages.length,
       startedAt: Date.now(),
@@ -163,6 +210,7 @@ export class AgentSession {
     this.titles.cancel();
     this.controller?.abort(new Error("Run cancelled"));
     this.agent?.abort();
+    this.approvals.cancelPending();
     await this.waitForIdle();
     await this.titles.wait();
   }
@@ -278,16 +326,20 @@ export class AgentSession {
   dispose(): void {
     if (this.disposed) return;
 
-    this.assertIdle();
+    this.assertIdle(false, true);
     this.disposed = true;
+    this.approvals.dispose();
     this.titles.dispose();
     this.listeners.clear();
   }
 
-  private assertIdle(allowPending = false): void {
+  private assertIdle(allowPending = false, allowApprovals = false): void {
     if (this.disposed) throw new Error("Session is disposed");
 
     if (this.busy) throw new Error("Session is already running");
+
+    if (!allowApprovals && this.approvals.pending.length)
+      throw new Error("Session has pending approvals");
 
     if (!allowPending && this.sessionManager.hasPendingSave)
       throw new Error("Pending session save; call flush first");
@@ -366,6 +418,8 @@ export class AgentSession {
     } catch (error) {
       failures.push(error);
     } finally {
+      this.acceptingRunApprovals = false;
+      this.approvals.cancelPending();
       try {
         if (this.agent) {
           const messages = this.agent.messages;

@@ -1,6 +1,6 @@
 # Session Events
 
-Coding sessions forward the five [Agent events](../../agent/docs/events.md) and add run_timing, agent_settled, session_title and permission_changed. Consumers send commands through instance methods and receive results through subscriptions.
+Coding sessions forward the five [Agent events](../../agent/docs/events.md) and add run_timing, agent_settled, session_title, permission_changed, approval_requested and approval_resolved. Consumers send commands through instance methods and receive results through subscriptions.
 
 ## Subscribe
 
@@ -39,6 +39,10 @@ See the full [SDK sample](../sdk.sample.ts) for construction and cleanup. It onl
 | `agent_settled` | An accepted prompt's execution and save attempt have finished. Inspect outcome and pending-save state. |
 | `session_title` | Title display changed or generation failed; carries title and optional error. May arrive after a run settles. |
 | permission_changed | Managed permission selection saved; carries permissionPreset. No prompt run ID is needed. |
+| `approval_requested` | Carries the approval request snapshot. Can occur outside a prompt and may resolve immediately. |
+| `approval_resolved` | Carries the request and final outcome in `result`; removes the matching pending request. |
+
+Approval events are paired by request ID, including unavailable, rejected and cancelled outcomes. A normal event subscription does not make approval available: a trusted host must explicitly register an interaction handler. See [approvals](approvals.md) for registration, decision submission, timeout and lifecycle behavior.
 
 The initial fallback title is published immediately and again after saving; a title event alone is not a history-save acknowledgement. Title errors are exposed separately in `state.titleError` and never change the main run outcome. See [session titles](session-titles.md).
 

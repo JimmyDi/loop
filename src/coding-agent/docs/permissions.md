@@ -12,7 +12,7 @@ Managed coding sessions constrain built-in tool execution through a session perm
 
 The built-in default is read-only. Restricted Bash also blocks networking, including loopback, and uses an environment allowlist. This is a separate fixed network policy in this implementation, not a claim that a filesystem preset inherently prevents networking. Model requests still run in the host and can reach the configured provider.
 
-Approval is not implemented in this version. Both policies deny any operation requiring additional authorization immediately. No approval request is sent, no tool is paused waiting for a human, and no automatic wider retry occurs. The tools do not advertise escalation arguments; supplying sandbox_permissions or justification to a mutating tool or Bash also rejects. Never does not mean approve automatically.
+The SDK provides an [approval request lifecycle](approvals.md), but built-in tool escalation is not connected yet. Both policies still deny built-in operations requiring additional authorization immediately. These tools send no approval request and perform no automatic wider retry. They do not advertise escalation arguments; supplying sandbox_permissions or justification to a mutating tool or Bash also rejects. Never does not mean approve automatically.
 
 ## Usage and configuration
 
@@ -52,7 +52,7 @@ The precedence is explicit SDK selection, saved session preset, then new-session
 
 Managed permission metadata upgrades the header to version 2. Version 2 requires a valid permissionPreset. Version 1 files remain readable and are upgraded when the managed factory records a preset. Older Loop binaries reject version 2 instead of silently running protected sessions without enforcement. Do not downgrade a header to use it in an older binary.
 
-Long-lived presets and the [runtime-context snapshots](runtime-context.md) supplied to the model are stored. The first request and later policy changes add a complete context snapshot after retained history; unchanged policy adds none, and the system prompt remains stable. There are no reusable grants or pending approvals. A session's sandbox workspace is fixed from its canonical cwd when tools are constructed; replacing that path with a symlink fails policy resolution. Changing a shell's working directory does not expand write authority.
+Long-lived presets and the [runtime-context snapshots](runtime-context.md) supplied to the model are stored. The first request and later policy changes add a complete context snapshot after retained history; unchanged policy adds none, and the system prompt remains stable. Approval requests and decisions stay in memory, with no persisted pending approvals or reusable grants. A session's sandbox workspace is fixed from its canonical cwd when tools are constructed; replacing that path with a symlink fails policy resolution. Changing a shell's working directory does not expand write authority.
 
 ## Enforcement
 
@@ -75,7 +75,7 @@ The private temporary directory is per Bash call, shared by that command's desce
 - File checks narrow but do not eliminate filesystem races. A different process can change paths between checking and a syscall.
 - Shell filesystem restrictions are path/mount based. Pre-existing hard links inside a writable tree can alias outside files; kernel/filesystem/platform gaps must not be described as complete machine isolation. Use an isolated filesystem/container for that threat model.
 - Linux network namespaces block IP networking, but accessible local Unix sockets are a separate IPC surface. This implementation is not a general service-isolation boundary.
-- Windows restricted Shell execution is unsupported and fails closed; full access still requires an installed Bash. No UI, approval service, risk classifier or authenticated management endpoint is added here.
+- Windows restricted Shell execution is unsupported and fails closed; full access still requires an installed Bash. No approval UI, risk classifier or authenticated management endpoint is implemented. The core approval service does not expand tool execution authority.
 
 ## Source and validation
 

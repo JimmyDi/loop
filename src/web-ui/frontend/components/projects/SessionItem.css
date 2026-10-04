@@ -69,6 +69,14 @@
   border-radius: 50%;
   animation: session-list-spin 0.8s linear infinite;
 }
+.session-list-unread {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  margin-inline: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
 @keyframes session-list-spin {
   to {
     transform: rotate(360deg);

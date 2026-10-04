@@ -48,7 +48,7 @@ Code-block buttons copy the original code text. The complete assistant message's
 
 Expanded reasoning items grow naturally up to the smaller of 420px or half the viewport height. Below that limit they have no vertical scrollbar; overflowing content scrolls within the items area, leaving the duration and execution-group heading outside it. Tool details remain expandable inside this area. Live updates follow the bottom while the reader stays near it; scrolling upward pauses following and scrolling back to the bottom resumes it. The region can be focused for keyboard scrolling. Completed history does not auto-follow.
 
-Near the bottom, content and container size changes follow the latest message. Scrolling upward stops automatic following and displays **Jump to latest**; clicking it resumes following.
+Sending a message scrolls that user message to the top of the conversation viewport. Short turns reserve space below the content so the message can reach the top; replies fill that space as they grow. Streaming text, tool activity, completion and reconnect updates do not automatically scroll the conversation. Readers can scroll freely, and each new user message aligns at the top again. A compact circular down-arrow button appears when content extends below the viewport, with **Jump to latest** as its localized tooltip and accessible label. It scrolls to the latest content once, without enabling automatic following. Opening completed history starts at the latest content; opening a running conversation starts at its latest user message.
 
 Complete snapshots come from the server. The browser maintains display state only and reloads history after refresh, rather than restoring a separate chat history from browser storage. See [streaming state](events.md).
 

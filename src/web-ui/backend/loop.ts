@@ -8,6 +8,7 @@ import type { AgentSession, ModelRuntime } from "../../coding-agent/index";
 import { join } from "node:path";
 
 import type { ModelChoice, ModelSelection, Project, SessionSummary } from "../shared/protocol";
+import { latestCompletedTurn } from "../shared/completed-turn";
 import { ProviderSettings } from "./providers/provider-settings";
 import { HttpError } from "./http/errors";
 
@@ -71,13 +72,14 @@ export const createLoopBridge = (
     list: async (project) => {
       const archived = await archiveFor(project).list();
       return (await SessionManager.list(project.cwd, getSessionDir(project.cwd, agentDir))).map(
-        ({ id, createdAt, updatedAt, messageCount, userMessageCount, title }) => ({
+        ({ id, createdAt, updatedAt, messageCount, userMessageCount, title, runTimings }) => ({
           id,
           workspaceId: project.id,
           createdAt,
           updatedAt,
           messageCount,
           userMessageCount,
+          latestCompletedTurn: latestCompletedTurn(runTimings, messageCount),
           title: title?.text,
           archived: archived.has(id),
         }),

@@ -10,6 +10,74 @@ import { useWorkspace } from "../../state/workspace-store";
 import "../../i18n/setup";
 import { SessionList } from "./SessionList";
 
+const createSummaries = (count: number): SessionSummary[] =>
+  Array.from({ length: count }, (_, index) => ({
+    id: `session-${index + 1}`,
+    workspaceId: "example-project",
+    title: `Conversation ${index + 1}`,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+    messageCount: 2,
+    userMessageCount: 1,
+  }));
+
+test.each([0, 1, 5, 6])("SessionList initially shows at most five of %i sessions", (count) => {
+  const client = new QueryClient();
+  try {
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={client}>
+        <SessionList sessions={createSummaries(count)} />
+      </QueryClientProvider>,
+    );
+    expect(html.match(/class="session-item"/g) ?? []).toHaveLength(Math.min(count, 5));
+    expect(html.includes("Show more")).toBe(count > 5);
+    expect(html.includes("No chats")).toBe(count === 0);
+  } finally {
+    client.clear();
+  }
+});
+
+test.each([6, 15, 16, 25, 26])(
+  "SessionList reveals ten more per click until all %i sessions are visible",
+  async (count) => {
+    const window = new Window();
+    const previous = { window: globalThis.window, document: globalThis.document };
+    Object.assign(globalThis, { window, document: window.document });
+    const { render, fireEvent, cleanup } = await import("@testing-library/react/pure");
+    const client = new QueryClient();
+    const sessions = createSummaries(count);
+    const wrapper = ({ children }: { children: import("react").ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    try {
+      const ui = render(<SessionList sessions={sessions} />, { wrapper });
+      for (let visible = 5; visible < count; visible += 10) {
+        expect(ui.container.querySelectorAll(".session-item")).toHaveLength(visible);
+        fireEvent.click(ui.getByRole("button", { name: "Show more" }));
+        const expected = Math.min(visible + 10, count);
+        expect(
+          Array.from(
+            ui.container.querySelectorAll(".session-list-title"),
+            (item) => item.textContent,
+          ),
+        ).toEqual(sessions.slice(0, expected).map((session) => session.title ?? ""));
+        // Background refreshes must preserve the number of revealed entries.
+        ui.rerender(<SessionList sessions={sessions.map((session) => ({ ...session }))} />);
+        expect(ui.container.querySelectorAll(".session-item")).toHaveLength(expected);
+      }
+      expect(ui.queryByRole("button", { name: "Show more" })).toBeNull();
+      ui.rerender(<SessionList sessions={sessions.slice(0, 5)} />);
+      expect(ui.container.querySelectorAll(".session-item")).toHaveLength(5);
+      expect(ui.queryByRole("button", { name: "Show more" })).toBeNull();
+    } finally {
+      cleanup();
+      client.clear();
+      Object.assign(globalThis, previous);
+      await window.happyDOM.close();
+    }
+  },
+);
+
 test("SessionList exposes its accessible content and state", () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const html = renderToStaticMarkup(

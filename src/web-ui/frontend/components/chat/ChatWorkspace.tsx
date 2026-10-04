@@ -8,6 +8,7 @@ import { useSessions } from "../../state/session-store";
 import { SessionHeader } from "../layout/SessionHeader";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
+import { LoopIcon } from "../ui/LoopIcon";
 import { MessageTimeline } from "./MessageTimeline";
 import { ChatComposer } from "./ChatComposer";
 import { SessionStatus } from "./SessionStatus";
@@ -26,6 +27,11 @@ export const ChatWorkspace = ({ id }: { id: string }) => {
 
   const snapshot = view?.snapshot ?? query.data;
   const connected = view?.connected ?? false;
+  const empty =
+    snapshot &&
+    snapshot.state.messages.length === 0 &&
+    !snapshot.state.draft &&
+    snapshot.operation !== "prompt";
 
   return (
     <main className="chat-workspace">
@@ -38,11 +44,20 @@ export const ChatWorkspace = ({ id }: { id: string }) => {
       )}
       {!snapshot && !query.error && <p className="workspace-loading">{t("loading")}</p>}
       {snapshot && (
-        <>
-          <MessageTimeline snapshot={snapshot} connected={connected} />
-          <SessionStatus snapshot={snapshot} connected={connected} />
-          <ChatComposer snapshot={snapshot} connected={connected} />
-        </>
+        <div className="chat-workspace-body" data-empty={empty}>
+          {empty ? (
+            <div className="chat-welcome">
+              <LoopIcon size={64} />
+              <h1>Loop everything</h1>
+            </div>
+          ) : (
+            <MessageTimeline snapshot={snapshot} connected={connected} />
+          )}
+          <div className="chat-workspace-input">
+            <SessionStatus snapshot={snapshot} connected={connected} />
+            <ChatComposer snapshot={snapshot} connected={connected} />
+          </div>
+        </div>
       )}
     </main>
   );

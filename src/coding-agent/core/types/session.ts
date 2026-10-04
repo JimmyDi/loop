@@ -6,10 +6,13 @@ import type { SessionManager } from "../session-manager";
 import type { ModelEffort } from "../models/model-effort";
 import type { SessionTitle, SessionTitleOptions } from "../titles/types";
 import type { SessionRunTiming } from "../run-timing";
+import type { PermissionPolicy } from "../permissions/policy";
+import type { PermissionPreset } from "../permissions/types";
 
 export type SessionEvent =
   | AgentEvent
   | { type: "agent_settled" }
+  | { type: "permission_changed"; permissionPreset: PermissionPreset }
   | { type: "run_timing"; timing: SessionRunTiming }
   | { type: "session_title"; title: SessionTitle; error?: string };
 
@@ -26,6 +29,7 @@ export type SessionState = {
   title?: SessionTitle;
   titleError?: string;
   runTimings?: SessionRunTiming[];
+  permissionPreset?: PermissionPreset;
 };
 
 export type SessionOptions = {
@@ -37,4 +41,5 @@ export type SessionOptions = {
   maxTurns?: number;
   effort?: ModelEffort;
   title?: SessionTitleOptions;
+  permissionPolicy?: PermissionPolicy;
 };

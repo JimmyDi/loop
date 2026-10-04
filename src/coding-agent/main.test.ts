@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { SessionManager } from "./core/session-manager";
 
-test("real CLI print uses Pi AI, restores history and reports model failure and cancellation", async () => {
+test("real CLI print calls the model runtime, restores history and reports failure and cancellation", async () => {
   const dir = await mkdtemp(join(tmpdir(), "loop-print-"));
   const requests: Array<{ messages: Array<{ role: string }> }> = [];
   let reason = "stop";
@@ -90,7 +90,7 @@ test("real CLI print uses Pi AI, restores history and reports model failure and 
   try {
     expect(await read(start())).toEqual({ code: 0, output: "hello\n", error: "" });
     expect((await read(start(["-c"]))).code).toBe(0);
-    expect(requests[1].messages.filter((item) => item.role !== "system")).toHaveLength(3);
+    expect(requests[1].messages.filter((item) => item.role !== "system")).toHaveLength(4);
     expect((await SessionManager.continueRecent(dir, join(dir, "sessions"))).messages).toHaveLength(
       4,
     );

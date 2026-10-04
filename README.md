@@ -96,7 +96,7 @@ New capabilities follow these placement rules; they must not all accumulate in A
 | `coding-agent/core` | Permission policy and enforcement, context management, recovery, and resource integrations, independent of any UI. |
 | CLI / Web | Human-facing approval interactions, review workflows, and status display, using core APIs and events. |
 
-Approval decisions flow back through core contracts; the core enforces permissions rather than relying on UI checks. These rules describe where requested capabilities belong, not additional implemented APIs. Current tools have [no permission policy or approval UI](src/coding-agent/docs/tools.md#cancellation-and-access); context loading and recovery retain the limits documented in [context files](src/coding-agent/docs/context-files.md#lifecycle-and-limits) and [sessions](src/coding-agent/docs/sessions.md#limits).
+Managed tools enforce [session permission presets and native file sandboxing](src/coding-agent/docs/permissions.md) in core. New sessions default to read-only; restricted Bash blocks networking and requires macOS Seatbelt or Linux Bubblewrap. Full access must be selected explicitly through SDK/configuration. Approval interactions are not implemented yet, so operations requiring wider authority reject. Context loading and recovery retain the limits documented in [context files](src/coding-agent/docs/context-files.md#lifecycle-and-limits) and [sessions](src/coding-agent/docs/sessions.md#limits).
 
 Loop remains single-agent: no multi-agent orchestration, delegation trees, or agent-to-agent messaging. Maturity is measured by reliability, safety, recoverability, and usability, not by multi-agent support.
 

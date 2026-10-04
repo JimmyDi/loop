@@ -34,13 +34,15 @@ Read `session.state.messages` after finalization for user, assistant, and matchi
 
 The manager commits one full snapshot at the end of each prompt, including model errors and cancellation. It writes a temporary sibling and renames it over the session file. A `message_end` event does not mean that snapshot has been persisted.
 
+[Runtime context](runtime-context.md) is saved as separate header metadata in the same commit. It is projected into model requests while leaving conversation messages, title inputs, counts and timing indices unchanged. Permission switches do not rewrite the system prompt or earlier runtime snapshots.
+
 [Session titles](session-titles.md) are independent header metadata and may finish after a prompt. History/model/title writes serialize within one manager. Call `waitForTitle()` before disposal to retain generated titles, or `abort()` to cancel and drain both the main run and title work. Runtime replacement cancels and drains old title work before opening another writable session.
 
 ## Execution timing
 
 `session.state.runTimings` exposes per-prompt `SessionRunTiming` metadata, keyed by the zero-based position of the user message. `startedAt` records prompt acceptance before model preflight; `finishedAt` is added when model/tool execution ends, including failure or cancellation. Duration includes preflight and the complete model/tool loop, but excludes history saving, save retries and asynchronous title work. A rejected preflight that never appends a user message creates no historical timing.
 
-The session emits [run_timing events](events.md) at execution start and finish. Completed timings are saved with history and restored when reopening the session. An in-progress timing has no `finishedAt`; old sessions can lack timing metadata entirely. `SessionManager.getRunTimings()` includes pending timings after a save failure, so flushing retains the original duration. Timings do not modify Pi AI messages or enter model context.
+The session emits [run_timing events](events.md) at execution start and finish. Completed timings are saved with history and restored when reopening the session. An in-progress timing has no `finishedAt`; old sessions can lack timing metadata entirely. `SessionManager.getRunTimings()` includes pending timings after a save failure, so flushing retains the original duration. Timings do not modify conversation messages or enter model context.
 
 ## Save failure
 
@@ -68,7 +70,7 @@ Subscriptions do not migrate by themselves. Remove the previous subscription and
 
 ## Limits
 
-Prompts are passed to Pi AI without a Loop-specific estimated-context rejection. Full text and history consume memory and model context; the provider can reject excessive requests through the normal prompt error flow. Loop does not truncate user content automatically.
+Prompts are passed to the model runtime without a Loop-specific estimated-context rejection. Full text and history consume memory and model context; the provider can reject excessive requests through the normal prompt error flow. Loop does not truncate user content automatically.
 
 There is no branching, fork/import API, compaction, background checkpointing, crash replay, or cross-process write coordination. A forced exit can lose the current run. Atomic rename does not promise power-loss durability or exactly-once tool effects. Keep conversation files private; tool results may contain source text, local paths, or sensitive output.
 

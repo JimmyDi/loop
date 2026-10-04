@@ -12,7 +12,7 @@ Session titles, inline rename text and the **No chats** placeholder align with t
 
 1. Click **Add project** and enter an absolute directory path or use the directory picker. After saving, the Projects group and the added project expand, and the project scrolls into view and receives keyboard focus. Empty projects show **No chats** without creating a session. Adding an already registered folder reveals its existing node without duplication. Failed saves retain the dialog and entered path for retry.
 2. Click the project row to expand or collapse its history; the folder icon opens and closes with it. Hover or keyboard focus highlights the row and reveals **…** and the compose pencil. Touch devices keep these actions visible. Click the pencil to open a new draft. It becomes a sidebar session only after its first user message is accepted into the conversation.
-3. Click a history entry to select it. Switch conversations through the sidebar; the folder button opens the project drawer on narrow screens.
+3. Each project initially shows up to five history entries. If more exist, click **Show more** to reveal the next ten, or all remaining entries when fewer than ten remain. The button disappears when all entries are visible. Click a history entry to select it. Switch conversations through the sidebar; the folder button opens the project drawer on narrow screens.
 4. Hover or keyboard-focus a session row to highlight it and reveal its Archive button. Click Archive to archive that chat immediately. Right-click the title, or press Shift+F10 while it has focus, to open Rename, Archive and Permanently delete without switching the selected chat.
 
 A local macOS service can open the system folder picker. Browser-based directory navigation is always available. If native selection fails, the UI shows the error and opens the browser-based alternative. Cancelling selection does not create a project. Directory navigation accesses the computer running the Web service.
@@ -24,6 +24,7 @@ A local macOS service can open the system folder picker. Browser-based directory
 | Query, add, rename, or remove a project | useProjects calls `/api/workspaces` and refreshes the project cache on success |
 | Browse or select a directory | useDirectoryPicker queries capabilities and calls the directory API |
 | Query history | useProjectSessions caches by workspaceId and queries when the project is expanded and accessible |
+| Reveal more history | SessionList displays five cached summaries initially and adds up to ten per click, independently for each project |
 | Start a draft | Submit workspaceId and select the returned draft handle; no history file or sidebar item is created yet |
 | Open an existing session | workspace-store records the selected session and its project; the view loads a snapshot and subscribes to events |
 
@@ -42,6 +43,8 @@ After generation ends with new output, an 8px blue dot replaces the ring until t
 Read turn positions persist in this browser's local storage and survive session switches and reloads; unavailable storage keeps them for the current page only. Background sessions use the same completed-turn identity from list refreshes, including when reopening a collapsed project or reconnecting. Title/model changes and save retries do not create unread turns. A cancelled or failed run with saved output can be unread; a run with only a user message cannot. Older history without run timing metadata has no unread indicator. Read receipts are local to the browser and are not synchronized across devices.
 
 ## Lifecycle and Errors
+
+Revealing more entries changes only the visible portion of the cached session list; it does not make another history request. List refreshes retain the current display limit. Collapsing and reopening a project or the Projects group, or reloading the page, resets the limit to five.
 
 The session context menu supports arrows, Home/End and Escape, fits within the viewport and stays above sidebar scrolling. **Rename** edits the row inline: Enter saves, Escape or blur cancels, and failed saves retain the input. **Archive** immediately removes only that session from the sidebar and keeps its history, drafts and attachments for restoration from Settings. Neither action asks for confirmation. **Permanently delete** opens a confirmation warning that the chat and its saved messages will be deleted irreversibly. Cancel and Close do not submit; the confirmation disables closing and duplicate submission while pending. Success removes the history file, clears only that chat's local drafts, attachments and pending request, and closes it if selected. Failures retain local data. Deletion errors stay inside the confirmation dialog; closing it or choosing a new row action clears the previous error, so it does not appear under the session title or carry into a new confirmation. Known busy sessions disable row actions; the backend also rejects archive and deletion while any session in the project is busy or has pending saves.
 

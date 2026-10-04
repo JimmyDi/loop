@@ -8,6 +8,8 @@ The empty input shows **Loop anything...**. Press Enter to send and Shift+Enter 
 
 The input text, caret and attachment previews share a left edge aligned with the visible **+** icon on desktop and mobile. The text's left inset and the Send/Stop button's right inset both use 12px, keeping the content evenly spaced from the composer border.
 
+Creating a new session or switching sessions focuses the input, with the caret at the end of any restored draft. Sending with Enter or the Send button returns focus to the input without scrolling the page. The input remains read-only while sending or generating. Routine response updates do not take focus from other controls.
+
 Sending requires a connected, idle session with no pending save and text or at least one image or text file. New messages are blocked during attachment reads, model changes, save operations, send confirmation, or disconnection. There is no input queue.
 
 Composer and session error notices, including run cancellation, have an **×** button at the top right. Closing a notice hides that occurrence without changing the draft, attachments, validation rules or recorded session outcome. Reconnection and pending-save recovery remain available. A new error is displayed again, including a repeated failed upload; dismissal does not carry over to another session.

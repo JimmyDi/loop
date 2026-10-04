@@ -86,8 +86,12 @@ test("development startup serves HTML, bundled assets and API before announcing 
     expect(fallback.status).toBe(200);
     expect(fallback.headers.get("content-type")).toBe("image/x-icon");
     expect(fallback.headers.get("cache-control")).toBe("no-cache");
-    expect(new Uint8Array(await fallback.arrayBuffer()).slice(0, 6)).toEqual(
-      new Uint8Array([0, 0, 1, 0, 3, 0]),
+    const fallbackBytes = new Uint8Array(await fallback.arrayBuffer());
+    expect(fallbackBytes.slice(0, 6)).toEqual(new Uint8Array([0, 0, 1, 0, 4, 0]));
+    expect(fallbackBytes).toEqual(
+      new Uint8Array(
+        await Bun.file(join(import.meta.dir, "frontend/assets/loop-icon.ico")).arrayBuffer(),
+      ),
     );
     const assets = [...html.matchAll(/(?:src|href)="([^"]+\.(?:js|css))"/g)];
 

@@ -46,6 +46,27 @@ test("cumulative drafts replace rather than append and full snapshots replace hi
   });
   expect(permitted.state.permissionPreset).toBe("read-only");
   expect(initial.state.permissionPreset).toBeUndefined();
+  const request = {
+    sessionId: "session",
+    requestId: "approval",
+    toolCallId: "call",
+    toolName: "write",
+    reason: "Review operation",
+    policy: "ask" as const,
+    createdAt: 1,
+    expiresAt: 100,
+  };
+  const requested = applyEvent(initial, { type: "approval_requested", request });
+  const duplicate = applyEvent(requested, { type: "approval_requested", request });
+  expect(duplicate.state.pendingApprovals).toEqual([request]);
+  expect(initial.state.pendingApprovals).toBeUndefined();
+  const resolved = applyEvent(duplicate, {
+    type: "approval_resolved",
+    result: { request, outcome: "cancelled", resolvedAt: 2 },
+  });
+  expect(resolved.state.pendingApprovals).toEqual([]);
+  expect(requested.state.pendingApprovals).toEqual([request]);
+  expect(resolved.tools).toEqual(initial.tools);
   const thinking = applyEvent(
     started,
     {

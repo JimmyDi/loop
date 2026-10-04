@@ -68,12 +68,17 @@ An explicit cwd must match the manager's canonical cwd. The factory resolves ser
 | `cancelTitle(): Promise<void>` | Cancel and drain title work without stopping the main prompt. |
 | `setModel(model, options?: { persist?: boolean; effort?: ModelEffort }): Promise<void>` | Change model/effort while idle and update this session's metadata; `persist: true` rejects. |
 | `flush(): Promise<void>` | Retry a pending save without rerunning the prompt. |
-| setPermissionPreset(preset): Promise<void> | Persist a managed session's preset while idle, then emit permission_changed. No single-call approval is provided. |
-| `dispose(): void` | Remove listeners and forbid further use; rejects while busy or a save is pending. |
+| setPermissionPreset(preset): Promise<void> | Persist a managed session's preset while idle, then emit permission_changed. Rejects with pending approvals. |
+| `requestApproval(input, options?): Promise<ApprovalResult>` | Create a bounded host approval request; does not execute or escalate built-in tools. |
+| `registerApprovalHandler(handler): () => void` | Register one interaction handler; detaching settles its pending requests as unavailable. |
+| `respondToApproval(response): boolean` | Submit an allowed-once or rejected decision for matching session/request IDs. |
+| `dispose(): void` | Cancel idle approval requests, remove listeners and forbid further use; rejects while busy or a save is pending. |
 
 Read `model`, `effort`, `sessionId`, `sessionFile`, `sessionManager`, `isRunning`, and `state`. State contains completed `messages`, optional `draft`, `isRunning`, `hasPendingSave`, `outcome`, `error`, and `listenerErrors`. Message/model snapshots can be inspected without mutating the underlying session.
 
 Managed sessions additionally expose permissionPreset directly and in state. Direct AgentSession construction with custom host tools has no managed preset and rejects permission changes. The managed factory's version-2 session metadata requires a current Loop reader.
+
+Session snapshots include pendingApprovals, separate from model-running status and saved history. Pending requests block new prompts, metadata changes and runtime replacement. Abort cancels approval waits, and run finalization drains outstanding requests. See [approvals](approvals.md) for the interaction contract and built-in tool integration limits.
 
 PromptContent is a string or Pi AI text/image blocks. Image-only messages are supported, with base64 image data and MIME type stored in session history. The selected model must allow image input. Existing string calls remain valid.
 

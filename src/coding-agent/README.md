@@ -31,6 +31,7 @@ The CLI is interactive by default. The SDK sample performs one request workflow 
 | Stream output and observe run completion | [Events](docs/events.md) |
 | Read, bash, edit, and write | [Tools](docs/tools.md) |
 | Session permission presets and native file sandboxing | [Permissions](docs/permissions.md) |
+| Request, answer and cancel host approvals | [Approvals](docs/approvals.md) |
 | Discover project instructions | [Context files](docs/context-files.md) |
 | Keep permission context separate from the system prompt | [Runtime context](docs/runtime-context.md) |
 

@@ -1,4 +1,5 @@
 export const projectsEn = {
+  showMoreSessions: "Show more",
   unread: "Unread",
   projectOptions: "Options for {{name}}",
   sessionOptions: "Options for {{name}}",

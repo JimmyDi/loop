@@ -30,7 +30,9 @@ The CLI is interactive by default. The SDK sample performs one request workflow 
 | On-disk JSONL schema | [Session format](docs/session-format.md) |
 | Stream output and observe run completion | [Events](docs/events.md) |
 | Read, bash, edit, and write | [Tools](docs/tools.md) |
+| Session permission presets and native file sandboxing | [Permissions](docs/permissions.md) |
 | Discover project instructions | [Context files](docs/context-files.md) |
+| Keep permission context separate from the system prompt | [Runtime context](docs/runtime-context.md) |
 
 Each page covers one feature, with usage first, API or configuration reference, current behavior and limits, and links to source/tests. The README is the entry point, keeping feature details in `docs/`.
 

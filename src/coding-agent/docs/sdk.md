@@ -43,6 +43,7 @@ That sample enables coding tools and runs once before exiting. Without an argume
 | `settingsManager` | Override loaded default-model settings. |
 | `model` | Explicit Pi AI model, overriding a saved/default selection. |
 | `tools` | Array of built-in tool names; defaults to read, bash, edit, write. Empty disables all. |
+| permissionPreset | Trusted-host choice of read-only, workspace-write or danger-full-access. Overrides saved/default selection; see [permissions](permissions.md). |
 | `sessionManager` | Existing, restored, or in-memory history. Without one, create a persistent session. |
 | `systemPrompt` | Replace base instructions while retaining cwd and discovered context files. |
 | `noContextFiles` | Disable project instruction discovery. |
@@ -67,9 +68,12 @@ An explicit cwd must match the manager's canonical cwd. The factory resolves ser
 | `cancelTitle(): Promise<void>` | Cancel and drain title work without stopping the main prompt. |
 | `setModel(model, options?: { persist?: boolean; effort?: ModelEffort }): Promise<void>` | Change model/effort while idle and update this session's metadata; `persist: true` rejects. |
 | `flush(): Promise<void>` | Retry a pending save without rerunning the prompt. |
+| setPermissionPreset(preset): Promise<void> | Persist a managed session's preset while idle, then emit permission_changed. No single-call approval is provided. |
 | `dispose(): void` | Remove listeners and forbid further use; rejects while busy or a save is pending. |
 
 Read `model`, `effort`, `sessionId`, `sessionFile`, `sessionManager`, `isRunning`, and `state`. State contains completed `messages`, optional `draft`, `isRunning`, `hasPendingSave`, `outcome`, `error`, and `listenerErrors`. Message/model snapshots can be inspected without mutating the underlying session.
+
+Managed sessions additionally expose permissionPreset directly and in state. Direct AgentSession construction with custom host tools has no managed preset and rejects permission changes. The managed factory's version-2 session metadata requires a current Loop reader.
 
 PromptContent is a string or Pi AI text/image blocks. Image-only messages are supported, with base64 image data and MIME type stored in session history. The selected model must allow image input. Existing string calls remain valid.
 

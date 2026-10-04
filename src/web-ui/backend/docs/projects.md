@@ -44,7 +44,7 @@ Native selection supports only non-SSH macOS environments, with one window at a 
 
 ## Boundaries
 
-Directory browsing accesses the server's local filesystem; it is not file upload or remote file management. A registered directory is the tools' working directory, not a security sandbox. Session APIs accept project/session IDs, not arbitrary session file paths. Storage has no cross-process write lock; CLI and Web should not write the same session simultaneously.
+Directory browsing accesses the server's local filesystem; it is not file upload or remote file management. A registered directory supplies the working directory and the managed session's workspace-write boundary; the [core permission policy](../../../coding-agent/docs/permissions.md) enforces file and Bash restrictions. Directory browsing itself remains a host operation. Session APIs accept project/session IDs, not arbitrary session file paths. Storage has no cross-process write lock; CLI and Web should not write the same session simultaneously.
 
 ## Source and Tests
 

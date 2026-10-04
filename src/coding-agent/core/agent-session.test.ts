@@ -11,6 +11,102 @@ import type { SessionRunTiming } from "./run-timing";
 import { SessionManager } from "./session-manager";
 import { SettingsManager } from "./settings-manager";
 
+test("session presets enforce built-in tools, persist, reject busy changes and migrate legacy sessions safely", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".session-permission-test-"));
+  const manager = await SessionManager.create(root, join(root, "storage"));
+  let calls = 0;
+  const policies: string[] = [];
+  const contexts: Context[] = [];
+  const modelRuntime = runtime((_model, context) => {
+    policies.push(context.systemPrompt ?? "");
+    contexts.push(structuredClone(context));
+    return stream(
+      ++calls % 2 === 1
+        ? answer(
+            [
+              {
+                type: "toolCall",
+                id: "write-" + calls,
+                name: "write",
+                arguments: { path: "file", content: "value" },
+              },
+            ],
+            "toolUse",
+          )
+        : answer(),
+    );
+  });
+  const options = {
+    model,
+    modelRuntime,
+    noContextFiles: true,
+    sessionManager: manager,
+    agentDir: join(root, "agent-data"),
+    settingsManager: SettingsManager.inMemory(),
+  };
+  try {
+    const { session } = await createAgentSession(options);
+    expect(session.permissionPreset).toBe("read-only");
+    expect(session.state.permissionPreset).toBe("read-only");
+    expect(manager.getHeader().permissionPreset).toBe("read-only");
+    const denied = session.prompt("Try write");
+    await expect(session.setPermissionPreset("danger-full-access")).rejects.toThrow(
+      "already running",
+    );
+    await denied;
+    expect(await Bun.file(join(root, "file")).exists()).toBe(false);
+    expect(session.state.messages.find((message) => message.role === "toolResult")).toMatchObject({
+      isError: true,
+    });
+    const events: string[] = [];
+    session.subscribe((event) => {
+      events.push(event.type);
+    });
+    await session.setPermissionPreset("workspace-write");
+    expect(events).toEqual(["permission_changed"]);
+    await session.prompt("Write allowed");
+    expect(await Bun.file(join(root, "file")).text()).toBe("value");
+    expect(new Set(policies).size).toBe(1);
+    expect(policies[0]).not.toContain("Current permission preset:");
+    expect(contexts[0]?.messages[1]?.content).toContain("Current permission preset: read-only");
+    expect(contexts[2]?.messages.at(-1)?.content).toContain(
+      "Current permission preset: workspace-write",
+    );
+    expect(contexts[2]?.messages.slice(0, contexts[1]?.messages.length)).toEqual(
+      contexts[1]?.messages,
+    );
+    expect(contexts[1]?.messages.slice(0, 2)).toEqual(contexts[0]?.messages);
+    expect(manager.getRuntimeContexts()).toHaveLength(2);
+    expect(JSON.stringify(session.state.messages)).not.toContain("Current permission preset:");
+    session.dispose();
+    const { session: reopened } = await createAgentSession({
+      ...options,
+      sessionManager: await SessionManager.open(manager.sessionFile!),
+    });
+    expect(reopened.permissionPreset).toBe("workspace-write");
+    await reopened.prompt("Write after restore");
+    expect(reopened.sessionManager.getRuntimeContexts()).toEqual(manager.getRuntimeContexts());
+    expect(contexts[4]?.messages.slice(0, contexts[3]?.messages.length)).toEqual(
+      contexts[3]?.messages,
+    );
+    expect(policies[4]).toBe(policies[0]);
+    reopened.dispose();
+    const legacy = SessionManager.inMemory(root);
+    const legacyFile = join(root, "legacy.jsonl");
+    await Bun.write(legacyFile, JSON.stringify(legacy.getHeader()) + "\n");
+    const { session: migrated } = await createAgentSession({
+      ...options,
+      sessionManager: await SessionManager.open(legacyFile),
+      settingsManager: SettingsManager.inMemory(undefined, "danger-full-access"),
+    });
+    expect(migrated.permissionPreset).toBe("read-only");
+    expect(migrated.sessionManager.getHeader().version).toBe(2);
+    migrated.dispose();
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 const model: Model<Api> = {
   id: "test",
   provider: "local-test",
@@ -71,6 +167,66 @@ function runtime(
     streamSimple,
   };
 }
+
+test("runtime context survives filtered failures and stays out of titles, images and user events", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".runtime-context-test-"));
+  const manager = SessionManager.inMemory(root);
+  const contexts: Context[] = [];
+  const titleContexts: Context[] = [];
+  const visibleUsers: unknown[] = [];
+  const selected = { ...model, input: ["text", "image"] as Array<"text" | "image"> };
+  const { session } = await createAgentSession({
+    cwd: root,
+    model: selected,
+    modelRuntime: runtime((_model, context) => {
+      if (context.systemPrompt?.includes("Name this coding conversation")) {
+        titleContexts.push(structuredClone(context));
+        return stream(answer());
+      }
+      contexts.push(structuredClone(context));
+      if (contexts.length === 1) {
+        return stream({ ...answer(undefined, "error"), errorMessage: "Provider failed" });
+      }
+      return stream();
+    }),
+    settingsManager: SettingsManager.inMemory(),
+    sessionManager: manager,
+    noContextFiles: true,
+    systemPrompt: "Custom base",
+    title: { mode: "first-prompt" },
+  });
+  session.subscribe((event) => {
+    if (event.type === "message_end" && event.message.role === "user") {
+      visibleUsers.push(event.message.content);
+    }
+  });
+  try {
+    await expect(session.prompt("First task")).rejects.toThrow("Provider failed");
+    await session.waitForTitle();
+    await session.setPermissionPreset("workspace-write");
+    const content = [
+      { type: "text" as const, text: "Explain this image" },
+      { type: "image" as const, data: "AAAA", mimeType: "image/png" },
+    ];
+    await session.prompt(content);
+    expect(contexts[1]?.messages).toHaveLength(4);
+    expect(contexts[1]?.messages[0]?.content).toBe("First task");
+    expect(contexts[1]?.messages[1]).toEqual(contexts[0]?.messages[1]);
+    expect(contexts[1]?.messages[2]?.content).toEqual(content);
+    expect(contexts[1]?.messages[3]?.content).toContain("workspace-write");
+    expect(contexts[1]?.systemPrompt).toBe(contexts[0]?.systemPrompt);
+    expect(visibleUsers).toEqual(["First task", content]);
+    expect(session.state.messages).toHaveLength(4);
+    expect(manager.getRuntimeContexts().map((entry) => entry.userTurn)).toEqual([0, 1]);
+    expect(titleContexts).toHaveLength(1);
+    expect(JSON.stringify(titleContexts)).not.toContain("Loop runtime context");
+    expect(session.state.title?.messageIndices).toEqual([0]);
+  } finally {
+    await session.abort();
+    session.dispose();
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 async function setup(
   modelRuntime: ModelRuntime,
@@ -157,8 +313,10 @@ test("failed and cancelled prompts stop timing and rejected preflight creates no
     rejectPreflight = true;
     await expect(session.prompt("Preflight")).rejects.toThrow("Preflight failed");
     expect(session.state.runTimings).toEqual([]);
+    expect(session.sessionManager.getRuntimeContexts()).toEqual([]);
     rejectPreflight = false;
     await expect(session.prompt("Failure")).rejects.toThrow("Model failed");
+    expect(session.sessionManager.getRuntimeContexts()).toHaveLength(1);
     expect(session.state.runTimings).toEqual([
       { userMessageIndex: 0, startedAt: 1000, finishedAt: 6000 },
     ]);
@@ -169,6 +327,7 @@ test("failed and cancelled prompts stop timing and rejected preflight creates no
     now = 12000;
     await session.abort();
     await pending;
+    expect(session.sessionManager.getRuntimeContexts()).toHaveLength(1);
     expect(session.state.runTimings?.at(-1)).toEqual({
       userMessageIndex: 1,
       startedAt: 9000,
@@ -235,6 +394,8 @@ test("two prompts create fresh Agents, preserve complete tool history and commit
   const events: string[] = [];
   let fileDuringRun = "";
 
+  await session.setPermissionPreset("workspace-write");
+
   session.subscribe((event) => {
     events.push(event.type);
 
@@ -253,8 +414,8 @@ test("two prompts create fresh Agents, preserve complete tool history and commit
     await session.prompt("same input");
 
     expect(await Bun.file(join(dir, "config.txt")).text()).toBe("saved");
-    expect(contexts.map((context) => context.messages.length)).toEqual([1, 3, 5]);
-    expect(contexts[1].messages[2]).toMatchObject({
+    expect(contexts.map((context) => context.messages.length)).toEqual([2, 4, 6]);
+    expect(contexts[1].messages[3]).toMatchObject({
       role: "toolResult",
       toolCallId: "write-1",
       toolName: "write",
@@ -410,6 +571,7 @@ test("save failure retains pending history, blocks new work and flush never reru
   try {
     await expect(session.prompt("save")).rejects.toThrow();
     expect(session.state.hasPendingSave).toBe(true);
+    expect(manager.getRuntimeContexts()).toHaveLength(1);
     expect(session.state.messages).toHaveLength(2);
     expect(await Bun.file(join(store + "-old", manager.getSessionId()) + ".jsonl").text()).toBe(
       before,
@@ -422,6 +584,9 @@ test("save failure retains pending history, blocks new work and flush never reru
     expect(requests).toBe(1);
     expect(session.state.hasPendingSave).toBe(false);
     expect((await SessionManager.open(manager.sessionFile!)).messages).toHaveLength(2);
+    expect((await SessionManager.open(manager.sessionFile!)).getRuntimeContexts()).toEqual(
+      manager.getRuntimeContexts(),
+    );
     session.dispose();
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -521,7 +686,7 @@ test("execution and storage failures are both reported without losing the snapsh
   }
 });
 
-test("effort persists with the session, reaches every Pi call and rejects unsupported or busy changes", async () => {
+test("effort persists with the session, reaches every model call and rejects unsupported or busy changes", async () => {
   const dir = await mkdtemp(join(tmpdir(), "loop-effort-"));
   const thinking = {
     ...model,

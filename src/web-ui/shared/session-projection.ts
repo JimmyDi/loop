@@ -12,7 +12,9 @@ export const applyEvent = (
     tools: updateTools(snapshot.tools, event),
   };
 
-  if (event.type === "run_timing") {
+  if (event.type === "permission_changed") {
+    next.state.permissionPreset = event.permissionPreset;
+  } else if (event.type === "run_timing") {
     next.state.runTimings = [
       ...(next.state.runTimings ?? []).filter(
         (timing) => timing.userMessageIndex !== event.timing.userMessageIndex,

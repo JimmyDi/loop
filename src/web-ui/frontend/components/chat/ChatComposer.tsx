@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SessionSnapshot } from "../../../shared/protocol";
@@ -25,6 +25,7 @@ export const ChatComposer = ({
   connected: boolean;
 }) => {
   const { t } = useTranslation();
+  const [focusRequest, setFocusRequest] = useState(0);
   const prompt = usePrompt(snapshot);
   const stopping = useAsyncAction();
   const model = useModelSelection(snapshot);
@@ -48,7 +49,11 @@ export const ChatComposer = ({
     prompt.uncertain;
   const blocked = disabled || model.pending || attachments.pending;
   const submit = () => {
-    if (!blocked && !unsupportedImages) void prompt.submit();
+    if (blocked || unsupportedImages) return;
+    if (!prompt.text.trim() && !prompt.images.length && !prompt.files.length) return;
+
+    setFocusRequest((request) => request + 1);
+    void prompt.submit();
   };
 
   return (
@@ -84,6 +89,7 @@ export const ChatComposer = ({
           removeFile={attachments.removeFile}
         />
         <ComposerInput
+          focusRequest={focusRequest}
           value={prompt.text}
           onChange={prompt.setText}
           onSubmit={submit}

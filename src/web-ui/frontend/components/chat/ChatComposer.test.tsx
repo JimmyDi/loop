@@ -35,6 +35,94 @@ test("ChatComposer renders the session state without unsupported controls", () =
   client.clear();
 });
 
+test("new and switched composers focus drafts and restore focus after sending", async () => {
+  const { Window } = await import("happy-dom");
+  const { useWorkspace } = await import("../../state/workspace-store");
+  const { useRequests } = await import("../../state/request-store");
+  const window = new Window();
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    fetch: globalThis.fetch,
+  };
+  const workspace = useWorkspace.getState();
+  const requests = useRequests.getState();
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, fireEvent, act, cleanup } = await import("@testing-library/react/pure");
+  const client = new QueryClient({
+    defaultOptions: { queries: { staleTime: Infinity, retry: false } },
+  });
+  client.setQueryData(["models"], [snapshot.model]);
+  let submitted = 0;
+  globalThis.fetch = (async (_url) => {
+    submitted++;
+    return Response.json({}, { status: 202 });
+  }) as typeof fetch;
+  const composer = (current: SessionSnapshot, connected: boolean) => (
+    <QueryClientProvider client={client}>
+      <button type="button">Other control</button>
+      <ChatComposer key={current.sessionId} snapshot={current} connected={connected} />
+    </QueryClientProvider>
+  );
+
+  try {
+    useWorkspace.setState({ drafts: { test: "Restored draft" }, images: {}, files: {} });
+    useRequests.setState({ pending: {} });
+    const fresh = { ...snapshot, sessionId: "new-session", operation: "idle" as const };
+    const ui = render(composer(fresh, false));
+    expect(document.activeElement).toBe(ui.getByRole("textbox"));
+    ui.rerender(composer(fresh, true));
+    expect(document.activeElement).toBe(ui.getByRole("textbox"));
+
+    ui.getByRole("button", { name: "Other control" }).focus();
+    const current = { ...snapshot, operation: "idle" as const };
+    ui.rerender(composer(current, true));
+    const input = ui.getByRole("textbox");
+    expect(document.activeElement).toBe(input);
+    expect(input.textContent).toBe("Restored draft");
+    const selection = document.getSelection()!;
+    expect(selection.isCollapsed).toBe(true);
+    expect(selection.getRangeAt(0).endContainer).toBe(input);
+    expect(selection.getRangeAt(0).endOffset).toBe(input.childNodes.length);
+
+    const send = ui.getByRole("button", { name: "Send message" });
+    send.focus();
+    await act(async () => fireEvent.click(send));
+    expect(submitted).toBe(1);
+    expect(document.activeElement).toBe(input);
+    expect(input.getAttribute("contenteditable")).toBe("false");
+
+    const request = useRequests.getState().pending.test!;
+    ui.rerender(composer({ ...snapshot, requestId: request.requestId }, true));
+    expect(document.activeElement).toBe(input);
+    const other = ui.getByRole("button", { name: "Other control" });
+    other.focus();
+    ui.rerender(
+      composer(
+        {
+          ...current,
+          requestId: request.requestId,
+          state: { ...current.state, isRunning: false, outcome: "success" },
+        },
+        true,
+      ),
+    );
+    expect(document.activeElement).toBe(other);
+    act(() => useWorkspace.getState().draft("test", "Next message"));
+    input.focus();
+    await act(async () => fireEvent.keyDown(input, { key: "Enter", keyCode: 13 }));
+    expect(submitted).toBe(2);
+    expect(document.activeElement).toBe(input);
+  } finally {
+    cleanup();
+    client.clear();
+    useWorkspace.setState(workspace, true);
+    useRequests.setState(requests, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
 test("attachment errors can be closed without losing drafts and reappear on the next failed upload", async () => {
   const { Window } = await import("happy-dom");
   const { useWorkspace } = await import("../../state/workspace-store");

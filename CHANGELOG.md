@@ -22,6 +22,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Changed
 
+- Web UI: center the input in new empty chats, with the theme-aware Loop icon and **Loop everything** stacked above it. Return the input to the bottom once the conversation starts, preserving drafts and composer controls.
 - Web UI: initially show five sessions per project, with a localized Show more button that reveals ten more per click and disappears when all sessions are visible.
 - Web UI: scroll each newly sent user message to the top of the conversation and keep the viewport steady while the response streams. Reserve space for short turns, preserve manual scrolling, and make Jump to latest a one-time action without automatic response following. Display it as a compact down-arrow button with a localized tooltip and accessible label.
 - Web UI: replace user and assistant message Copy labels with a bottom timestamp and copy icon shown on hover or keyboard focus, keeping the controls visible on touch devices and preserving copy success/failure feedback. Use localized Copy message and Copy response tooltips for user messages and assistant replies, respectively.

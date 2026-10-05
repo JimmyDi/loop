@@ -59,6 +59,7 @@ jobs:
           packages/web-ui/src/backend/http/static-files.test.ts
           packages/coding-agent/src/cli/args.test.ts
           packages/coding-agent/src/core/sdk.test.ts
+          packages/coding-agent/src/core/permissions/policy.test.ts
           packages/coding-agent/src/core/tools/read.test.ts
           packages/coding-agent/src/core/tools/write.test.ts
           packages/coding-agent/src/core/tools/edit.test.ts

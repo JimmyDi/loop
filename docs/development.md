@@ -40,6 +40,8 @@ Windows CI runs type, formatting and architecture checks, builds and packs the d
 
 Package verification exercises graceful Web shutdown via SIGTERM on Unix and a verifier-only IPC hook invoking the same handler on Windows, where Node's kill() forcibly terminates children. Source checkout uses LF line endings across runners. A failure on one operating system does not cancel the other matrix jobs.
 
+The active main-branch ruleset requires a pull request and the GitHub Actions checks `verify (ubuntu-latest)`, `verify (macos-latest)` and `verify (windows-latest)` before merging. The PR must be up to date with main; failed, pending or missing required checks block merging. No bypass actors are configured. These requirements live in GitHub repository settings, not workflow YAML; preserve or update the required names when renaming jobs.
+
 ## Distribution
 
 The root tarball contains minified CLI/SDK JavaScript, minified Web assets, public SDK type declarations and license notices. Production builds disable JavaScript, CSS and declaration source maps, remove ordinary code comments and strip generated source-location comments from declarations. SDK types remain readable because they describe the public API, not its implementation. Development retains source access and HMR.

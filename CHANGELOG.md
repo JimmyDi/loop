@@ -16,6 +16,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- coding-agent: use consistent native workspace paths so Windows short names and path casing do not falsely reject write/edit operations as a changed workspace. Preserve workspace-boundary and symlink-replacement checks.
+
 - Web: recognize native Windows path separators when rejecting static assets that resolve outside the packaged Web directory.
 
 ## [0.1.0] - 2026-10-05

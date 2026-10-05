@@ -36,6 +36,12 @@ Run pnpm typecheck, pnpm check and pnpm build. Run affected tests with pnpm exec
 
 Linux CI installs Bubblewrap and, when Ubuntu restricts unprivileged user namespaces, loads an AppArmor profile permitting them specifically for /usr/bin/bwrap on the disposable runner. A sandbox startup probe must pass before running the suite. Network isolation and capability dropping remain enabled; sandbox failures are not skipped or retried without confinement. PTY tests accept Linux EIO as terminal EOF while still requiring the CLI to exit successfully.
 
+Windows CI runs type, formatting and architecture checks, builds and packs the distribution, and verifies an isolated installation's CLI, SDK and Web assets/API. Its test selection covers Agent, Web frontend/shared behavior, static-asset confinement, CLI argument parsing, SDK setup, file tools, release validation, distribution contents and rejection of unavailable sandboxes. The complete application suite, POSIX PTY and real confined-shell integration tests run on Linux and macOS. Windows has no confined-shell backend; restricted Bash commands fail closed. This CI coverage does not claim full Windows terminal or shell support.
+
+Package verification exercises graceful Web shutdown via SIGTERM on Unix and a verifier-only IPC hook invoking the same handler on Windows, where Node's kill() forcibly terminates children. Source checkout uses LF line endings across runners. A failure on one operating system does not cancel the other matrix jobs.
+
+The active main-branch ruleset requires a pull request and the GitHub Actions checks `verify (ubuntu-latest)`, `verify (macos-latest)` and `verify (windows-latest)` before merging. The PR must be up to date with main; failed, pending or missing required checks block merging. No bypass actors are configured. These requirements live in GitHub repository settings, not workflow YAML; preserve or update the required names when renaming jobs.
+
 ## Distribution
 
 The root tarball contains minified CLI/SDK JavaScript, minified Web assets, public SDK type declarations and license notices. Production builds disable JavaScript, CSS and declaration source maps, remove ordinary code comments and strip generated source-location comments from declarations. SDK types remain readable because they describe the public API, not its implementation. Development retains source access and HMR.
@@ -61,7 +67,7 @@ npm publish ./loop-harness-loop-0.1.0.tgz --access public --registry=https://reg
 npx @loop-harness/loop@0.1.0 web
 ```
 
-The executable remains `loop`; internal `@loop/*` packages stay private and are bundled into this single public package. The [Check workflow](../.github/workflows/check.yml) builds, packs and verifies on Linux and macOS. It uses a version-independent `loop.tgz` filename so version bumps do not require editing CI. Ordinary push and PR checks do not publish.
+The executable remains `loop`; internal `@loop/*` packages stay private and are bundled into this single public package. The [Check workflow](../.github/workflows/check.yml) builds, packs and verifies on Linux, macOS and Windows, with the platform-specific test coverage described above. Creating or reopening a pull request, or pushing new commits to its branch, runs one matrix. There is no separate branch-push trigger: merging into or directly pushing to `main` does not start another check, and branches without a PR are not checked automatically. Release tags invoke the same checks through the Release workflow. It uses a version-independent `loop.tgz` filename so version bumps do not require editing CI. PR checks do not publish.
 
 ## Automated releases
 
@@ -82,6 +88,6 @@ git tag -a v0.1.1 -m "Release v0.1.1"
 git push origin v0.1.1
 ```
 
-The workflow rejects existing npm versions and stops if registry availability cannot be confirmed. It runs the shared Check workflow on both operating systems, then publishes the exact tarball verified on Linux after both jobs pass. The publish job downloads that run's artifact and does not rebuild or execute package lifecycle scripts. Release runs are serialized. The workflow publishes to npm's `latest` channel; it does not create a GitHub Release.
+The workflow rejects existing npm versions and stops if registry availability cannot be confirmed. It runs the shared Check workflow on all three operating systems, then publishes the exact tarball verified on Linux after all matrix jobs pass. The publish job downloads that run's artifact and does not rebuild or execute package lifecycle scripts. Release runs are serialized. The workflow publishes to npm's `latest` channel; it does not create a GitHub Release.
 
 If validation, tests or authentication fail, publishing stops. Configure npm trust before retrying an authentication failure. Before retrying an uncertain publish, check npm for that version: published versions cannot be overwritten. Do not move an existing release tag; prepare a new version for changed code. The already published `0.1.0` is not a test release for this workflow.

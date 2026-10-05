@@ -16,7 +16,7 @@ test("production packages enforce downward public boundaries, declared dependenc
   for (const file of files) {
     const result = inspectImports(file, await readFile(file, "utf8"));
     failures.push(...result.failures);
-    graph.set(file, result.edges);
+    graph.set(file.replaceAll("\\", "/"), result.edges);
   }
   expect(failures).toEqual([]);
   expect(cycles(graph)).toEqual([]);

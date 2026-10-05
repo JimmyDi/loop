@@ -48,7 +48,7 @@ test("fast tool icons settle independently while results, failures and open deta
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, { window, document: window.document });
-  const { render, cleanup, waitFor } = await import("@testing-library/react/pure");
+  const { render, cleanup, waitFor, act } = await import("@testing-library/react/pure");
   const first: ToolView = { id: "first", name: "bash", status: "running" };
   const second: ToolView = { id: "second", name: "bash", status: "waiting" };
   try {
@@ -132,9 +132,16 @@ test("fast tool icons settle independently while results, failures and open deta
       history.container.querySelector(".activity-status-icon")?.getAttribute("data-status"),
     ).toBe("success");
   } finally {
-    cleanup();
-    Object.assign(globalThis, previous);
-    await window.happyDOM.close();
+    try {
+      await act(async () => {
+        cleanup();
+        // React can still have a passive-effect callback queued in the Node scheduler.
+        await new Promise<void>((resolve) => setImmediate(resolve));
+      });
+      await window.happyDOM.close();
+    } finally {
+      Object.assign(globalThis, previous);
+    }
   }
 });
 

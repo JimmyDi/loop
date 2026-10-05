@@ -17,7 +17,8 @@ export class PermissionPolicy {
     options: ToolPermissionOptions = {},
     private readonly current?: () => PermissionPreset,
   ) {
-    this.workspaceRoot = realpathSync(cwd);
+    // Match fs.promises.realpath, including Windows short-name expansion and path casing.
+    this.workspaceRoot = realpathSync.native(cwd);
     this.initial = options.permissionPreset ?? DEFAULT_PERMISSION_PRESET;
     this.protectedPaths = [
       ...new Set([getAgentDir(), ...(options.protectedPaths ?? [])].map((path) => resolve(path))),

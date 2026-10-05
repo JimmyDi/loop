@@ -3,11 +3,13 @@ import { createRequire } from "node:module";
 import { dirname, relative, resolve } from "node:path";
 import ts from "typescript";
 
-export const root = resolve(import.meta.dirname, "..");
+const portable = (path: string): string => path.replaceAll("\\", "/");
+
+export const root = portable(resolve(import.meta.dirname, ".."));
 const config = ts.readConfigFile(resolve(root, "tsconfig.json"), ts.sys.readFile);
 const { options } = ts.parseJsonConfigFileContent(config.config, ts.sys, root);
 const names = ["agent", "coding-agent", "web-ui"];
-const owner = (file: string) => relative(root, file).split("/")[1];
+const owner = (file: string) => portable(relative(root, file)).split("/")[1];
 const terminal = (file: string) =>
   /coding-agent\/src\/(cli(?:\/|\.ts)|main\.ts|modes\/)/.test(file);
 const browser = (file: string) => /web-ui\/src\/(frontend|shared)\//.test(file);
@@ -15,10 +17,11 @@ const manifest = (name: string) =>
   JSON.parse(readFileSync(resolve(root, "packages", name, "package.json"), "utf8"));
 
 export const inspectImports = (file: string, source: string) => {
+  file = portable(resolve(file));
   const failures: string[] = [];
   const edges: string[] = [];
   const from = owner(file);
-  const entry = relative(root, file);
+  const entry = portable(relative(root, file));
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
   const reject = (name: string) => failures.push(entry + " -> " + name);
   const check = (literal: ts.Node | undefined, typeOnly: boolean) => {
@@ -80,17 +83,20 @@ export const inspectImports = (file: string, source: string) => {
       return;
     }
     if (resolved.isExternalLibraryImport && !workspace) return;
-    const target = resolve(resolved.resolvedFileName);
+    const target = portable(resolve(resolved.resolvedFileName));
     const to = owner(target);
     if (workspace) {
       const expected =
         entry === "bin.ts" && name === "@loop/coding-agent/cli"
           ? resolve(root, "packages/coding-agent/src/main.ts")
           : resolve(root, "packages", workspace[1]!, "src/index.ts");
-      if (target !== expected) reject("public export redirected " + name);
+      if (target !== portable(expected)) reject("public export redirected " + name);
     }
 
-    if (!target.startsWith(resolve(root, "packages") + "/") || target.includes(".test.")) {
+    if (
+      !target.startsWith(portable(resolve(root, "packages")) + "/") ||
+      target.includes(".test.")
+    ) {
       reject(name);
       return;
     }

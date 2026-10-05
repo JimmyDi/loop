@@ -1,9 +1,26 @@
 import { join } from "node:path";
-import { mkdir, mkdtemp, rename, rm, symlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { mkdir, mkdtemp, realpath, rename, rm, symlink } from "node:fs/promises";
 import { expect, test } from "vitest";
 
 import { PermissionPolicy, validateFilePermissionArguments } from "./policy";
 import type { ToolPermissionOptions } from "./types";
+
+test("native temporary-directory paths retain workspace identity and write boundaries", async () => {
+  const root = await mkdtemp(join(tmpdir(), "loop-policy-"));
+  try {
+    const workspace = await realpath(root);
+    const policy = new PermissionPolicy(root, { permissionPreset: "workspace-write" });
+    expect(policy.workspaceRoot).toBe(workspace);
+    expect((await policy.resolve()).workspaceRoot).toBe(workspace);
+    expect(await policy.checkWrite(join(root, "nested/file.txt"))).toBe(
+      join(workspace, "nested/file.txt"),
+    );
+    await expect(policy.checkWrite(join(root, "../outside.txt"))).rejects.toThrow("outside");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 test("file justifications validate as display text without accepting shell escalation", () => {
   expect(() => validateFilePermissionArguments({})).not.toThrow();
@@ -27,8 +44,8 @@ test("policy contains real paths, protects storage and freezes caller options", 
   const storage = join(workspace, "storage");
   await mkdir(storage, { recursive: true });
   await mkdir(join(root, "work-other"));
-  await symlink(join(root, "work-other"), join(workspace, "outside-link"));
-  await symlink(join(root, "missing"), join(workspace, "dangling"));
+  await symlink(join(root, "work-other"), join(workspace, "outside-link"), "dir");
+  await symlink(join(root, "missing"), join(workspace, "dangling"), "dir");
   const options: ToolPermissionOptions = {
     permissionPreset: "workspace-write",
     protectedPaths: [storage],
@@ -61,7 +78,7 @@ test("policy contains real paths, protects storage and freezes caller options", 
       validateFilePermissionArguments({ sandbox_permissions: "danger-full-access" }),
     ).toThrow("escalation is not supported");
     await rename(workspace, workspace + "-old");
-    await symlink(workspace + "-old", workspace);
+    await symlink(workspace + "-old", workspace, "dir");
     await expect(policy.resolve()).rejects.toThrow("Workspace identity changed");
   } finally {
     await rm(root, { recursive: true, force: true });

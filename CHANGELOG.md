@@ -6,7 +6,19 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
-- Distribution: publish new stable vX.Y.Z tags through GitHub Actions and npm Trusted Publishing after validating the package version, release notes, main-branch ancestry and version availability. Require Linux and macOS checks and publish the verified tarball with provenance. Registry trust must be configured for release.yml before the first automated release.
+- Distribution: publish new stable vX.Y.Z tags through GitHub Actions and npm Trusted Publishing after validating the package version, release notes, main-branch ancestry and version availability. Require Linux, macOS and Windows checks and publish the verified Linux tarball with provenance. Registry trust must be configured for release.yml before the first automated release.
+
+- CI: add Windows type, formatting, architecture, build, portable behavior and installed-package checks. Keep the full suite and POSIX PTY/confined-shell integration on Linux and macOS; restricted Bash remains unavailable on Windows. Normalize architecture paths and checkout line endings, and adapt npm installation and graceful-shutdown verification for Windows.
+
+### Changed
+
+- CI: run checks when pull requests are created, reopened or updated, without separate branch-push or post-merge runs. Branches without a PR and direct pushes to main no longer trigger automatic checks; release tags still run verification through the Release workflow. Let each operating system finish its checks independently when another matrix job fails.
+
+### Fixed
+
+- coding-agent: use consistent native workspace paths so Windows short names and path casing do not falsely reject write/edit operations as a changed workspace. Preserve workspace-boundary and symlink-replacement checks.
+
+- Web: recognize native Windows path separators when rejecting static assets that resolve outside the packaged Web directory.
 
 ## [0.1.0] - 2026-10-05
 

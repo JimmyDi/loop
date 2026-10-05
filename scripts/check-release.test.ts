@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { expect, test } from "vitest";
 
 test.each([
@@ -44,7 +44,11 @@ test.each([
       );
       const result = spawnSync(
         process.execPath,
-        ["--import", join(root, "registry.mjs"), join(root, "scripts/check-release.mjs")],
+        [
+          "--import",
+          pathToFileURL(join(root, "registry.mjs")).href,
+          join(root, "scripts/check-release.mjs"),
+        ],
         {
           cwd: root,
           encoding: "utf8",

@@ -58,7 +58,7 @@ Long-lived presets and the [runtime-context snapshots](runtime-context.md) suppl
 
 ## Enforcement
 
-File tools resolve existing ancestors and symbolic links, including dangling links, before making directories or writing. They serialize mutations and recheck paths before atomic replacement. Replacing a regular file avoids mutating another path through an existing hard-linked inode. New files use mode 0600; replacements preserve ordinary mode bits, not ownership, ACLs or extended metadata.
+File tools resolve existing ancestors and symbolic links, including dangling links, before making directories or writing. Workspace initialization and subsequent checks use native real-path resolution consistently, including Windows short-name expansion and path casing. They serialize mutations and recheck paths before atomic replacement. Replacing a regular file avoids mutating another path through an existing hard-linked inode. New files use mode 0600; replacements preserve ordinary mode bits, not ownership, ACLs or extended metadata.
 
 One-call file approvals bind the validated arguments, canonical target and resulting content digest. They allow only that replacement and the necessary parent/temp-file work, and do not grant a writable directory for future calls. Changing the target, original content/file identity, existing parent identity or preset while awaiting approval invalidates the decision. Generic SDK requests do not create execution permits. Approval metadata stays out of stored history; ordinary tool calls and results are still persisted.
 

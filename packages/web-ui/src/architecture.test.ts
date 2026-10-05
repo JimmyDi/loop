@@ -44,14 +44,16 @@ test("components are arrows with colocated styles and tests; implementation file
     const text = await readFile(file, "utf8");
     const lines = text.split("\n").length;
 
-    const path = relative(root, file);
+    const path = relative(root, file).replaceAll("\\", "/");
     if (!/^frontend\/i18n\/(en|zh)\.ts$/.test(path) && lines > (implementationLimits[path] ?? 200))
       failures.push(path + ": exceeds implementation limit");
 
     if (!file.endsWith(".tsx") || file.endsWith("/main.tsx")) continue;
 
     for (const suffix of [".css", ".test.tsx"]) {
-      const key = relative(root + "/frontend/components", file).replace(/\.tsx$/, "");
+      const key = relative(root + "/frontend/components", file)
+        .replaceAll("\\", "/")
+        .replace(/\.tsx$/, "");
       const owner = compositionOwners[key]?.[suffix === ".css" ? "style" : "test"];
       const companion = owner
         ? root + "/frontend/components/" + owner + suffix

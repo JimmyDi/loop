@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Window } from "happy-dom";
 
-import type { Project } from "../../../shared/protocol";
+import type { Project, SessionSummary } from "../../../shared/protocol";
 import { i18n } from "../../i18n/setup";
 import { useWorkspace } from "../../state/workspace-store";
 import { Sidebar } from "./Sidebar";
@@ -136,3 +136,110 @@ test.each(["new", "existing", "failure"])(
     }
   },
 );
+
+test("pin actions move sessions above Projects without selecting them and work while Projects is collapsed", async () => {
+  const window = new Window();
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    fetch: globalThis.fetch,
+  };
+  const workspace = useWorkspace.getState();
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, fireEvent, act, waitFor, cleanup, within } = await import(
+    "@testing-library/react/pure"
+  );
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+  });
+  const project: Project = { id: "p", name: "Example project", cwd: "/example" };
+  let sessions: SessionSummary[] = Array.from({ length: 7 }, (_, index) => ({
+    id: "s" + index,
+    workspaceId: "p",
+    title: "Chat " + index,
+    messageCount: 2,
+    userMessageCount: 1,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+  }));
+  client.setQueryData(["projects"], [project]);
+  client.setQueryData(["sessions", "p"], sessions);
+  let requests = 0;
+  globalThis.fetch = (async (url, init) => {
+    if (init?.method === "PUT") {
+      requests++;
+      const body = JSON.parse(String(init.body));
+      const session = sessions.find(
+        (session) => String(url) === "/api/sessions/" + session.id + "/pin",
+      )!;
+      const pinnedAt = body.pinned ? new Date(1000 + requests).toISOString() : undefined;
+      sessions = sessions.map((item) => (item.id === session.id ? { ...item, pinnedAt } : item));
+      return Response.json({ pinnedAt: pinnedAt ?? null });
+    }
+    return Response.json(sessions);
+  }) as typeof fetch;
+  try {
+    useWorkspace.setState({ expanded: {}, active: { id: "other", workspaceId: "p" } });
+    const ui = render(
+      <QueryClientProvider client={client}>
+        <Sidebar />
+      </QueryClientProvider>,
+    );
+    expect(ui.queryByRole("heading", { name: "Pinned" })).toBeNull();
+    fireEvent.click(ui.getByRole("button", { name: "Pin Chat 0" }));
+    await waitFor(() => expect(ui.getByRole("region", { name: "Pinned" })).toBeTruthy());
+    const pinned = within(ui.getByRole("region", { name: "Pinned" }));
+    expect(pinned.getByRole("button", { name: "Chat 0" })).toBeTruthy();
+    expect(ui.getAllByRole("button", { name: "Chat 0" })).toHaveLength(1);
+    // Moving an item out of a project reveals the next item within its five-row limit.
+    expect(ui.getByRole("button", { name: "Chat 5" })).toBeTruthy();
+    expect(ui.queryByRole("button", { name: "Chat 6" })).toBeNull();
+    fireEvent.contextMenu(ui.getByRole("button", { name: "Chat 1" }));
+    fireEvent.click(ui.getByRole("menuitem", { name: "Pin" }));
+    await waitFor(() =>
+      expect(
+        Array.from(
+          ui.container.querySelectorAll(".pinned-sessions .session-list-title"),
+          (item) => item.textContent,
+        ),
+      ).toEqual(["Chat 1", "Chat 0"]),
+    );
+    expect(useWorkspace.getState().active?.id).toBe("other");
+    fireEvent.click(ui.getByRole("button", { name: "Projects" }));
+    expect(ui.queryByRole("button", { name: project.name })).toBeNull();
+    expect(pinned.getByRole("button", { name: "Chat 0" })).toBeTruthy();
+    // Shared project queries supply live titles while the Projects section is collapsed.
+    await act(async () => {
+      client.setQueryData(
+        ["sessions", "p"],
+        sessions.map((session) =>
+          session.id === "s0"
+            ? { ...session, title: "Updated title", isGenerating: true }
+            : session,
+        ),
+      );
+    });
+    await waitFor(() => expect(pinned.getByTitle("Updated title")).toBeTruthy());
+    expect(pinned.getByRole("img", { name: "Looping..." })).toBeTruthy();
+    fireEvent.click(pinned.getByRole("button", { name: "Unpin Updated title" }));
+    await act(async () => {
+      await Bun.sleep(30);
+    });
+    expect(useWorkspace.getState().active?.id).toBe("other");
+    fireEvent.contextMenu(pinned.getByRole("button", { name: "Chat 1" }));
+    fireEvent.click(ui.getByRole("menuitem", { name: "Unpin" }));
+    await act(async () => {
+      await Bun.sleep(30);
+    });
+    expect(ui.queryByRole("region", { name: "Pinned" })).toBeNull();
+    fireEvent.click(ui.getByRole("button", { name: "Projects" }));
+    expect(ui.getByTitle("Chat 0")).toBeTruthy();
+    expect(requests).toBe(4);
+  } finally {
+    cleanup();
+    client.clear();
+    useWorkspace.setState(workspace, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});

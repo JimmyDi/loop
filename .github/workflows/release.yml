@@ -1,0 +1,56 @@
+name: Release
+on:
+  push:
+    tags:
+      - "v*"
+permissions:
+  contents: read
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Require a commit merged into main
+        run: git merge-base --is-ancestor HEAD origin/main
+      - name: Validate tag, package and release notes
+        run: node scripts/check-release.mjs
+  verify:
+    needs: validate
+    uses: ./.github/workflows/check.yml
+    with:
+      upload_package: true
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org/
+      - name: Require an npm CLI with trusted publishing support
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from "node:child_process";
+          const version = execFileSync("npm", ["--version"], { encoding: "utf8" }).trim();
+          const [major, minor, patch] = version.split(".").map(Number);
+          if (!(major > 11 || (major === 11 && (minor > 5 || (minor === 5 && patch >= 1))))) {
+            throw new Error("Trusted publishing requires npm >=11.5.1; update the runner runtime.");
+          }
+          NODE
+      - uses: actions/download-artifact@v4
+        with:
+          name: loop-release-package
+      - name: Publish the verified tarball with npm OIDC
+        run: npm publish ./loop.tgz --access public --tag latest --provenance --ignore-scripts --registry=https://registry.npmjs.org/

@@ -2,6 +2,14 @@ name: Check
 on:
   pull_request:
   push:
+  workflow_call:
+    inputs:
+      upload_package:
+        description: Preserve the verified Linux tarball for the release job
+        type: boolean
+        default: false
+permissions:
+  contents: read
 jobs:
   verify:
     strategy:
@@ -39,5 +47,12 @@ jobs:
       - run: pnpm check
       - run: pnpm build
       - run: pnpm test
-      - run: pnpm --config.ignore-scripts=true pack
-      - run: pnpm verify:package loop-harness-loop-0.1.0.tgz
+      - run: pnpm --config.ignore-scripts=true pack --out loop.tgz
+      - run: pnpm verify:package loop.tgz
+      - if: inputs.upload_package && runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: loop-release-package
+          path: loop.tgz
+          if-no-files-found: error
+          retention-days: 7

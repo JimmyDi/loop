@@ -61,4 +61,27 @@ npm publish ./loop-harness-loop-0.1.0.tgz --access public --registry=https://reg
 npx @loop-harness/loop@0.1.0 web
 ```
 
-The executable remains `loop`; internal `@loop/*` packages stay private and are bundled into this single public package. CI builds, packs and verifies the tarball on Linux and macOS; it does not publish to npm.
+The executable remains `loop`; internal `@loop/*` packages stay private and are bundled into this single public package. The [Check workflow](../.github/workflows/check.yml) builds, packs and verifies on Linux and macOS. It uses a version-independent `loop.tgz` filename so version bumps do not require editing CI. Ordinary push and PR checks do not publish.
+
+## Automated releases
+
+The [Release workflow](../.github/workflows/release.yml) runs on pushes of `v*` tags. It accepts only stable `vX.Y.Z` tags matching the root package version, on commits already merged into `main`. Prerelease tags are rejected and cannot update npm's `latest` channel.
+
+Before the first automated release, configure a Trusted Publisher in the npm package settings. Select GitHub Actions, enter this repository's owner and name, and set the workflow filename to `release.yml` (without a directory). Allow direct publishing with `npm publish` if npm displays an allowed-actions setting. Leave the environment field empty; this workflow does not use a GitHub deployment environment. The package's `repository.url` must match the GitHub repository exactly, including case. See [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/).
+
+Publishing uses Node.js 24, npm 11.5.1 or newer and short-lived OIDC credentials. Only the publish job receives `id-token: write`; no npm token secret is needed. This repository is public, and the published package includes npm provenance. Configuring the workflow file does not configure npm's trust relationship.
+
+For each release:
+
+1. Update the root package version. Internal workspace packages remain private.
+2. Move pending changelog entries into a matching `## [X.Y.Z] - YYYY-MM-DD` section with release notes and a valid date no later than the current UTC date. Keep an empty `## [Unreleased]` above it.
+3. Merge those changes, then create and push the matching tag on that commit. For example, after preparing version `0.1.1`:
+
+```bash
+git tag -a v0.1.1 -m "Release v0.1.1"
+git push origin v0.1.1
+```
+
+The workflow rejects existing npm versions and stops if registry availability cannot be confirmed. It runs the shared Check workflow on both operating systems, then publishes the exact tarball verified on Linux after both jobs pass. The publish job downloads that run's artifact and does not rebuild or execute package lifecycle scripts. Release runs are serialized. The workflow publishes to npm's `latest` channel; it does not create a GitHub Release.
+
+If validation, tests or authentication fail, publishing stops. Configure npm trust before retrying an authentication failure. Before retrying an uncertain publish, check npm for that version: published versions cannot be overwritten. Do not move an existing release tag; prepare a new version for changed code. The already published `0.1.0` is not a test release for this workflow.

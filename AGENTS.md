@@ -149,7 +149,7 @@
   under coding-agent/core only when requested; do not add unused scaffolding.
 - Document Loop's own implementation. Do not add comparisons, design references or adaptation descriptions naming other applications. Keep dependency declarations, functional identifiers and required license notices accurate.
 - Use one pnpm workspace with a shared root pnpm-lock.yaml. Install from the repository root.
-- packages/agent, packages/coding-agent and packages/web-ui are private workspace packages with public exports and colocated source/tests. Their code is bundled into the public root loop distribution.
+- packages/agent, packages/coding-agent and packages/web-ui are private workspace packages with public exports and colocated source/tests. Their code is bundled into the public root @loop-harness/loop distribution.
 - Web frontend/backend remain in the same package. Import other packages by public package name, never relative paths or internal subpaths.
 - Root bin.ts dispatches CLI and Web; sdk.ts re-exports the coding-agent SDK without terminal side effects. These are application distribution entries, not core capabilities.
 - Architecture checks cover declarations, type imports, re-exports, dynamic imports, undeclared dependencies and runtime cycles. Only coding-agent/core/model-runtime.ts may import model runtime dependency values to configure and inject the runtime.

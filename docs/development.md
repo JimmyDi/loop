@@ -26,7 +26,7 @@ Production serves prebuilt Web assets from the installed package, independently 
 
 ## Packages
 
-Three private packages own Agent, coding-agent and Web. The public root distribution is named loop. Installed SDK consumers import loop; workspace consumers import @loop/agent or @loop/coding-agent. Public exports resolve to build output; development uses the loop-source export condition.
+Three private packages own Agent, coding-agent and Web. The public root distribution is named `@loop-harness/loop`. Installed SDK consumers import `@loop-harness/loop`; workspace consumers import @loop/agent or @loop/coding-agent. Public exports resolve to build output; development uses the loop-source export condition.
 
 Web and terminal/SDK entries consume coding-agent; coding-agent consumes agent; agent calls the model API through its injected stream function. The model-runtime module configures the model runtime and injects its stream function; the agent loop initiates requests. Browser/shared modules may consume coding-agent types but cannot import its runtime. SDK imports do not load terminal or Web implementations.
 
@@ -48,9 +48,17 @@ Verify a local package after building:
 
 ```bash
 pnpm --config.ignore-scripts=true pack
-pnpm verify:package loop-0.1.0.tgz
+pnpm verify:package loop-harness-loop-0.1.0.tgz
 ```
 
 Verification checks the actual tarball's file list and installed Loop payload, installs production dependencies, rejects module resolution outside the installation, and checks SDK imports, CLI help, Web assets/API and shutdown. Third-party production dependencies keep their own published contents and license notices; Loop's content checks cover its own distribution.
 
-The command npx loop web requires publishing rights to the npm package named loop, which is already registered to another project. Use an owned scope or obtain authorization from the existing maintainers before publication. Packaging and local verification do not publish a release.
+Publish the verified tarball from an npm account with publishing rights in the `loop-harness` organization. The root manifest sets public access and the npm registry; packaging and local verification do not publish a release. Complete npm authentication and any required two-factor verification locally.
+
+```bash
+npm whoami --registry=https://registry.npmjs.org/
+npm publish ./loop-harness-loop-0.1.0.tgz --access public --registry=https://registry.npmjs.org/
+npx @loop-harness/loop@0.1.0 web
+```
+
+The executable remains `loop`; internal `@loop/*` packages stay private and are bundled into this single public package. CI builds, packs and verifies the tarball on Linux and macOS; it does not publish to npm.

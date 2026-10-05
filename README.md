@@ -2,7 +2,17 @@
 
 Loop is a local-first, single-agent harness. CLI, SDK and Web share persistent coding sessions, an in-memory agent loop and a model runtime.
 
-## Start locally
+## Start
+
+With Node.js 24+ installed, start the published Web UI:
+
+```bash
+npx @loop-harness/loop web
+```
+
+The browser opens when the local service is ready. Configure providers in Settings → Models. The published package includes the CLI, SDK and prebuilt Web UI; no Bun or frontend build tools are required.
+
+## Local development
 
 Requires Node.js 24+ and pnpm 11. Install dependencies and start the Web UI:
 
@@ -25,7 +35,7 @@ node dist/bin.js web --port 3081 --no-open
 node dist/bin.js --help
 ```
 
-The root npm package is named loop. Once it is published under an authorized registry name, the user command is npx loop web. Packaging support does not mean a registry release has occurred.
+The public npm package is `@loop-harness/loop`; the installed executable remains `loop`. See [distribution](docs/development.md#distribution) for packaging and publication.
 
 ## Architecture
 

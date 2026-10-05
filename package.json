@@ -5,6 +5,10 @@
   "type": "module",
   "description": "A local-first coding assistant with CLI, SDK and Web interfaces.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JimmyDi/loop.git"
+  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

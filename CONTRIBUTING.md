@@ -12,13 +12,13 @@ Before an authorized PR creation and before pushing its content, check the compl
 
 ## Changelog
 
-The root [CHANGELOG.md](CHANGELOG.md) tracks changes across Agent, coding-agent, and Web UI. Update its `Unreleased` section alongside features, fixes, and compatibility changes in the same PR. Agent instructions in [AGENTS.md](AGENTS.md#changelog-maintenance) make this part of completing the task, without a separate reminder.
+The root [CHANGELOG.md](CHANGELOG.md) tracks changes across Agent, coding-agent, and Web UI. Keep exactly one `Unreleased` section at the top, followed by releases in reverse chronological order. Update that section alongside features, fixes, and compatibility changes in the same PR. Agent instructions in [AGENTS.md](AGENTS.md#changelog-maintenance) make this part of completing the task, without a separate reminder.
 
 Use the applicable categories in order: Breaking Changes, Added, Changed, Fixed, Removed. Write concise English entries describing the effect on users or API consumers, identifying the affected surface. Include migration guidance for breaking changes. Refine the existing entry as a PR evolves; do not add one entry per edit or commit. Preserve unrelated entries, omit empty categories, and use only verified public issue/PR links.
 
 Pure formatting, tests, internal refactoring without behavior changes, and routine documentation updates can omit an entry. Briefly explain why in the PR. Changelog entries supplement the feature documentation; update both when behavior changes.
 
-During an explicitly requested release preparation, move the accumulated entries under the confirmed version and release date (`## [X.Y.Z] - YYYY-MM-DD`) and leave an empty `## [Unreleased]` at the top. Keep previously released sections unchanged. Recording changes does not itself create a release or authorize publishing.
+During an explicitly requested release preparation, move the accumulated entries into a new release section immediately below Unreleased under the confirmed version and release date (`## [X.Y.Z] - YYYY-MM-DD`), leaving a fresh, empty `## [Unreleased]` at the top. Keep previously released sections unchanged. Recording changes does not itself create a release or authorize publishing.
 
 This is an agent instruction workflow, not a background service. Agents need to load the repository instructions. Loop reads context files when creating a session; after changing these rules, create a new Loop session to load them. See [project context files](packages/coding-agent/src/docs/context-files.md).
 

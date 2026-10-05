@@ -34,6 +34,31 @@ test("accepts a stable release with matching identity and dated notes", () => {
   expect(() => check({ changelog: changelog.replaceAll("\n", "\r\n") })).not.toThrow();
 });
 
+test("reads the latest release independently of historical notes", () => {
+  const history = "## [0.1.0] - 2026-10-01\n\n### Added\n\n- CLI: initial release.\n\n";
+  const withHistory = changelog + "\n" + history;
+  expect(() => check({ changelog: withHistory })).not.toThrow();
+  expect(() => check({ changelog: withHistory.replace("- CLI: fix startup.", "") })).toThrow(
+    "release notes",
+  );
+  expect(() =>
+    check({ changelog: changelog.replace("## [0.1.1]", history + "## [0.1.1]") }),
+  ).toThrow("newest changelog");
+});
+
+test("requires exactly one Unreleased section before all releases", () => {
+  const release = changelog.replace("## [Unreleased]\n\n", "");
+  for (const invalid of [
+    release,
+    release + "\n## [Unreleased]\n",
+    "## [Unreleased]\n\n" + changelog,
+    changelog + "\n## [Unreleased]\n",
+    release + "\n## [Unreleased]\n\n## [0.1.0] - 2026-10-01\n\n- Previous release.\n",
+  ])
+    expect(() => check({ changelog: invalid })).toThrow("Unreleased");
+  expect(() => check({ changelog: "## [Unreleased]\n" })).toThrow("newest changelog");
+});
+
 test.each(["v01.1.1", "v0.1", "0.1.1", "v0.1.1-beta.1", "v0.1.1+build", "v0.1.1\n"])(
   "rejects malformed or prerelease tag %s before it can publish to latest",
   (tag) => expect(() => check({ tag })).toThrow("stable versions"),

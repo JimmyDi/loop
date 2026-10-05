@@ -25,6 +25,7 @@ export type SessionState = {
   draft?: AssistantMessage;
   isRunning: boolean;
   hasPendingSave: boolean;
+  unread?: boolean;
   outcome: "idle" | "success" | "error" | "cancelled";
   error?: string;
   listenerErrors: string[];

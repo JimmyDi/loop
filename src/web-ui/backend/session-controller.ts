@@ -104,6 +104,18 @@ export class SessionController {
     await this.active;
   }
 
+  async markRead(messageCount: number): Promise<boolean> {
+    const read = await this.session.sessionManager.markRead(messageCount);
+    if (read) {
+      this.snapshot = {
+        ...this.snapshot,
+        state: { ...this.snapshot.state, unread: this.session.sessionManager.unread },
+      };
+      this.events.publish({ type: "session.state", snapshot: this.snapshot });
+    }
+    return read;
+  }
+
   async command(
     operation: "model" | "flush" | "title" | "permission",
     action: () => Promise<void>,

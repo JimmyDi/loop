@@ -14,6 +14,7 @@ export type SessionHeader = {
   cwd: string;
   createdAt: string;
   updatedAt: string;
+  unread?: boolean;
   model?: ModelSelection;
   title?: SessionTitle;
   runTimings?: SessionRunTiming[];

@@ -40,6 +40,7 @@ export class SessionManager {
         cwd: realpathSync(cwd),
         createdAt: now,
         updatedAt: now,
+        unread: false,
       },
       messages: [],
     });
@@ -84,6 +85,7 @@ export class SessionManager {
       typeof header.updatedAt !== "string" ||
       !Number.isFinite(Date.parse(header.createdAt)) ||
       !Number.isFinite(Date.parse(header.updatedAt)) ||
+      (header.unread !== undefined && typeof header.unread !== "boolean") ||
       (header.permissionPreset !== undefined && !isPermissionPreset(header.permissionPreset)) ||
       (header.version === 2 && !isPermissionPreset(header.permissionPreset)) ||
       (header.title !== undefined && !validTitle(header.title)) ||
@@ -154,6 +156,31 @@ export class SessionManager {
     return this.pending !== undefined;
   }
 
+  get unread(): boolean {
+    return (this.pending ?? this.data).header.unread ?? false;
+  }
+
+  /** Clear only the completed output the reader actually saw, inside the history write queue. */
+  markRead(messageCount: number): Promise<boolean> {
+    if (!Number.isSafeInteger(messageCount) || messageCount < 0)
+      return Promise.reject(new Error("Invalid read message count"));
+    return this.serialize(async () => {
+      if (this.hasPendingSave) throw new Error("Pending session save; call flush first");
+      if (!messageCount || this.data.messages.length !== messageCount) return false;
+      if (!this.data.header.unread) return true;
+      const next = { ...this.data, header: { ...this.data.header, unread: false } };
+      await this.write(next);
+      this.data = next;
+      // A commit may have been prepared while this write awaited disk. Preserve newer output.
+      if (
+        this.pending &&
+        !this.pending.messages.slice(messageCount).some((message) => message.role !== "user")
+      )
+        this.pending.header.unread = false;
+      return true;
+    });
+  }
+
   getRunTimings(): SessionRunTiming[] {
     return structuredClone((this.pending ?? this.data).header.runTimings ?? []);
   }
@@ -198,11 +225,15 @@ export class SessionManager {
     if (this.pending || this.writing) throw new Error("Pending session save; call flush first");
     validateRunTimings(runTimings, messages);
     validateRuntimeContexts(runtimeContexts, messages);
+    const hasNewOutput = messages
+      .slice(this.data.messages.length)
+      .some((message) => message.role !== "user");
 
     this.pending = {
       header: {
         ...this.data.header,
         updatedAt: new Date().toISOString(),
+        unread: hasNewOutput || this.unread,
         runTimings: runTimings.length ? structuredClone([...runTimings]) : undefined,
         runtimeContexts: runtimeContexts.length ? structuredClone([...runtimeContexts]) : undefined,
       },

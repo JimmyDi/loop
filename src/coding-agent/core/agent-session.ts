@@ -156,6 +156,7 @@ export class AgentSession {
       draft: this.draft ? structuredClone(this.draft) : undefined,
       isRunning: this.busy,
       hasPendingSave: this.sessionManager.hasPendingSave,
+      unread: this.sessionManager.unread,
       outcome: this.outcome,
       error: this.failure,
       listenerErrors: [...this.listenerErrors],

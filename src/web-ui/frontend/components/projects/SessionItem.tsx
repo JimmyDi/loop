@@ -4,8 +4,6 @@ import { useTranslation } from "react-i18next";
 import type { SessionSummary } from "../../../shared/protocol";
 import { useWorkspace } from "../../state/workspace-store";
 import { useSessions } from "../../state/session-store";
-import { useReadState } from "../../state/read-store";
-import { latestCompletedTurn } from "../../../shared/completed-turn";
 import { useProjectMenu } from "../../hooks/useProjectMenu";
 import { useSessionActions } from "../../hooks/useSessionActions";
 import { ErrorNotice } from "../ui/ErrorNotice";
@@ -31,11 +29,8 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
     ? (snapshot.state.pendingApprovals?.some((request) => request.sessionId === session.id) ??
       false)
     : session.isWaitingForApproval === true;
-  const readTurn = useReadState((state) => state.readTurns[session.id] ?? -1);
-  const completedTurn = snapshot
-    ? latestCompletedTurn(snapshot.state.runTimings, snapshot.state.messages.length)
-    : session.latestCompletedTurn;
-  const unread = !waiting && !generating && completedTurn !== undefined && completedTurn > readTurn;
+  const unread =
+    !waiting && !generating && (snapshot ? snapshot.state.unread : session.unread) === true;
   const busy =
     action.pending ||
     waiting ||

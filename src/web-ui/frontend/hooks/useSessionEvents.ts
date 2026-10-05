@@ -28,6 +28,7 @@ export const useSessionEvents = (id?: string): void => {
               ? {
                   ...session,
                   isGenerating: snapshot.operation === "prompt",
+                  unread: snapshot.state.unread,
                   isWaitingForApproval:
                     snapshot.state.pendingApprovals?.some((request) => request.sessionId === id) ??
                     false,

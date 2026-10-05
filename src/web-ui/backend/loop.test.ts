@@ -244,18 +244,17 @@ test("Web effort reaches Pi request, survives reload and becomes the new-session
     expect(restored.state.messages).toHaveLength(2);
     expect(
       (await registry.list(project.id)).find((item) => item.id === controller.session.sessionId),
-    ).toMatchObject({ isGenerating: false, latestCompletedTurn: 0 });
+    ).toMatchObject({ isGenerating: false, unread: true });
     expect(
       (await fresh.list(project)).find((item) => item.id === controller.session.sessionId),
-    ).toMatchObject({ latestCompletedTurn: 0 });
+    ).toMatchObject({ unread: true });
     expect(restored.state.messages[0]).toMatchObject({ role: "user", content: [image] });
     restored.dispose();
     expect((await change("default", "plain")).status).toBe(200);
     expect(controller.snapshot.model.efforts).toContain("high");
     expect(
-      (await fresh.list(project)).find((item) => item.id === controller.session.sessionId)
-        ?.latestCompletedTurn,
-    ).toBe(0);
+      (await fresh.list(project)).find((item) => item.id === controller.session.sessionId)?.unread,
+    ).toBe(true);
     await controller.session.prompt("default request");
     expect(requests.at(-1)).not.toHaveProperty("reasoning_effort");
   } finally {

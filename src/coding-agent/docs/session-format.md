@@ -21,6 +21,7 @@ The exported `SessionHeader` contains:
 | `id` | Session UUID string. |
 | `cwd` | Absolute canonical working directory. It must still exist when loading. |
 | `createdAt`, `updatedAt` | ISO timestamp strings. |
+| `unread` | Boolean, false for new sessions. New completed output sets true; marking the latest output read sets false. Missing values read as false; nonboolean values reject. |
 | `model` | Optional `{ provider: string, id: string, effort?: ModelEffort }`. |
 | `title` | Optional `SessionTitle`: text, source, source message indices, and optional model identity. See [session titles](session-titles.md). |
 | `runTimings` | Optional `SessionRunTiming[]`: zero-based `userMessageIndex` plus `startedAt` and `finishedAt` in Unix milliseconds for each recorded prompt. |
@@ -44,6 +45,8 @@ User content may contain text and base64 image blocks. Images persist inside the
 There are no stored streaming deltas, drafts, system prompt, tool functions, or model-change entry records. Changing the selected model updates header metadata. Storage is a rewritten full snapshot, not an append-only event journal.
 
 ## Read and write
+
+Unread is stored only in the header. commit() sets unread when newly appended history contains assistant or tool output. This does not depend on runTimings. Re-saving the same history or a run without output preserves the flag. SessionManager.markRead(messageCount) serializes with history and metadata writes and clears unread only when that count matches the nonempty saved history. The count is supplied by the reader and is not an extra stored field. It returns true for an accepted or duplicate receipt, false for a mismatched or empty history, and rejects invalid counts, pending saves or write failures. Read metadata changes preserve messages and activity timestamps. SessionManager.unread and session.state.unread include the pending flag after a save failure; getHeader() exposes committed metadata. No extra storage file or legacy read-state migration is used.
 
 Use `SessionManager.open(path)` and its snapshot accessors rather than editing live files. `commit(messages, runTimings?, runtimeContexts?)` expects complete history and preserves existing timings and runtime context when their arguments are omitted. `getRunTimings()` and `getRuntimeContexts()` return cloned snapshots, including pending state after a save failure. Runtime snapshots require strictly increasing user-turn ordinals referencing actual user messages, nonempty content, and nonnegative safe integer timestamps. Legacy files may omit them. On failure, `flush()` retries the same pending snapshot; see [sessions and recovery](sessions.md).
 

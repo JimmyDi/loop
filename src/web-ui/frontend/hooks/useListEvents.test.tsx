@@ -3,7 +3,7 @@ import { Window } from "happy-dom";
 import { QueryClient, QueryClientProvider, QueryObserver } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
-import type { ListChange } from "../../shared/protocol";
+import type { ListChange, SessionSummary } from "../../shared/protocol";
 
 class LocalSource {
   static connections: LocalSource[] = [];
@@ -217,6 +217,63 @@ test("events cancel stale initial fetches and retain notifications received duri
     expect(source.closed).toBe(true);
   } finally {
     observer.destroy();
+    await env.finish();
+  }
+});
+
+test("a receipt saved in another browser clears unread through list refresh, including after reconnect", async () => {
+  const env = await setup();
+  const previousFetch = globalThis.fetch;
+  const { client, wrapper } = env.page();
+  let unread = true;
+  const summary = {
+    id: "shared-session",
+    workspaceId: "p",
+    title: "Example",
+    createdAt: "",
+    updatedAt: "",
+    messageCount: 2,
+    userMessageCount: 1,
+  };
+  globalThis.fetch = (async () =>
+    Response.json([{ ...summary, unread }])) as unknown as typeof fetch;
+  try {
+    const { useProjectSessions } = await import("./useProjectSessions");
+    const { SessionList } = await import("../components/projects/SessionList");
+    await import("../i18n/setup");
+    const Page = () => {
+      env.useListEvents();
+      const { sessions } = useProjectSessions("p", true);
+      return <SessionList sessions={sessions.data ?? []} />;
+    };
+    const ui = env.render(<Page />, { wrapper });
+    await env.waitFor(() => expect(ui.getByRole("img", { name: "Unread" })).toBeTruthy());
+    const source = LocalSource.connections[0]!;
+    await env.act(async () => {
+      unread = false;
+      source.send({ type: "sessions.changed", workspaceId: "p" }, 1);
+      await Bun.sleep(90);
+    });
+    expect(ui.queryByRole("img", { name: "Unread" })).toBeNull();
+    await env.act(async () => {
+      unread = true;
+      summary.messageCount = 4;
+      summary.userMessageCount = 2;
+      source.send({ type: "sessions.changed", workspaceId: "p" }, 2);
+      await Bun.sleep(90);
+    });
+    expect(ui.getByRole("img", { name: "Unread" })).toBeTruthy();
+    await env.act(async () => {
+      unread = false;
+      source.send({ type: "lists.reset" }, 0, "restarted");
+      await Bun.sleep(90);
+    });
+    expect(ui.queryByRole("img", { name: "Unread" })).toBeNull();
+    expect(client.getQueryData<SessionSummary[]>(["sessions", "p"])).toEqual([
+      { ...summary, unread: false },
+    ]);
+  } finally {
+    globalThis.fetch = previousFetch;
     await env.finish();
   }
 });

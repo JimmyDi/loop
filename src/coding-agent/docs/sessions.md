@@ -23,6 +23,7 @@ SDK consumers supply one of these managers to `createAgentSession({ sessionManag
 | `SessionManager.open(path)` | Restore and validate a Loop JSONL file. |
 | `SessionManager.continueRecent(cwd, sessionDir?)` | Resume most recent or create. |
 | `SessionManager.list(cwd, sessionDir?)` | List metadata for the canonical workspace, newest first. |
+| `manager.markRead(messageCount)` | Persist unread: false only when the viewed message count matches saved history; return false for stale counts. |
 
 List summaries include messageCount and userMessageCount so hosts can distinguish drafts from conversations. Draft metadata edits remain in memory; the first commit containing any user message, including attachments, creates the history file with the same ID and accumulated metadata. A failed first save retains pending history for flush. Web opts into drafts; the default CLI/SDK create method still persists empty sessions immediately. Uncommitted drafts do not survive process exit.
 
@@ -33,6 +34,8 @@ Malformed session files reject rather than being silently repaired or skipped. A
 Read `session.state.messages` after finalization for user, assistant, and matching tool-result messages. It returns the full history, not just this prompt's additions. Streaming drafts remain separate, and neither system prompt nor tool declarations accumulate as conversation entries.
 
 The manager commits one full snapshot at the end of each prompt, including model errors and cancellation. It writes a temporary sibling and renames it over the session file. A `message_end` event does not mean that snapshot has been persisted.
+
+New completed output also sets header unread to true; runs without output and repeated saves preserve it. Read session.state.unread or manager.unread for the current flag, and use manager.markRead(messageCount) after viewing completed output. It preserves timestamps and rejects pending saves; hosts can publish their own UI notifications after success. See [session format](session-format.md) for stale-receipt handling.
 
 [Runtime context](runtime-context.md) is saved as separate header metadata in the same commit. It is projected into model requests while leaving conversation messages, title inputs, counts and timing indices unchanged. Permission switches do not rewrite the system prompt or earlier runtime snapshots.
 

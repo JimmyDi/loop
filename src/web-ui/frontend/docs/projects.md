@@ -42,7 +42,7 @@ Switching to another session preserves the previous session's latest live status
 
 After generation ends with new output, an 8px blue dot replaces the ring until the latest content has been viewed. Its tooltip and accessible label are **Unread** / **未读**. Selecting a session alone does not clear it: the completed content must reach the conversation viewport in a visible, focused browser page. Scrolling to the latest content or opening a completed chat at its latest content clears the dot; staying at the submitted user message while a longer answer grows leaves it unread. Hidden pages, open dialogs and the mobile sidebar overlay do not mark messages read. Generation keeps the ring instead of the dot.
 
-Read turn positions persist in this browser's local storage and survive session switches and reloads; unavailable storage keeps them for the current page only. Background sessions use the same completed-turn identity from list refreshes, including when reopening a collapsed project or reconnecting. Title/model changes and save retries do not create unread turns. A cancelled or failed run with saved output can be unread; a run with only a user message cannot. Older history without run timing metadata has no unread indicator. Read receipts are local to the browser and are not synchronized across devices.
+A boolean unread persists in each session header and survives browser changes, session switches, reloads and server restarts. Reading in one browser updates the other browsers through list notifications. The dot clears after the server confirms the receipt; failed saves remain unread and retry while the completed content is visible. Read requests include the displayed message count so an older page cannot clear newer output. The sidebar renders unread directly; it does not calculate completed turns or keep a read-position cache. Background sessions receive the header flag through list refreshes, including when reopening a collapsed project or reconnecting. Title/model changes and save retries do not set unread again. A cancelled or failed run with saved output can be unread; a run with only a user message cannot. Missing unread metadata defaults to false; there is no migration of older read state. Read receipts belong to the Loop server's data directory; separate installations do not synchronize.
 
 ## Lifecycle and Errors
 
@@ -66,7 +66,7 @@ There is no file-tree editor, history search, or session transfer between projec
 
 - [Sidebar](../components/layout/Sidebar.tsx) / [tests](../components/layout/Sidebar.test.tsx).
 - [SessionItem](../components/projects/SessionItem.tsx) / [tests](../components/projects/SessionItem.test.tsx).
-- [Unread row indicators](../components/projects/SessionList.test.tsx), [read receipts](../hooks/useReadReceipt.ts) / [tests](../hooks/useReadReceipt.test.tsx), and [read state](../state/read-store.ts) / [tests](../state/read-store.test.ts).
+- [Unread row indicators](../components/projects/SessionList.test.tsx), [read receipts](../hooks/useReadReceipt.ts) / [tests](../hooks/useReadReceipt.test.tsx).
 - [Session actions](../hooks/useSessionActions.ts) / [tests](../hooks/useSessionActions.test.tsx).
 - [ProjectItem](../components/projects/ProjectItem.tsx) / [tests](../components/projects/ProjectItem.test.tsx).
 - [ProjectActions](../components/projects/ProjectActions.tsx) / [tests](../components/projects/ProjectActions.test.tsx).

@@ -36,7 +36,8 @@ const call = (id: string, name: string, args: Record<string, unknown>): ToolCall
 const setup = async (calls: ToolCall[], preset: PermissionPreset = "read-only") => {
   const root = await mkdtemp(join(import.meta.dirname, ".tool-approval-test-"));
   const work = join(root, "work");
-  await mkdir(work);
+  // An absent protected directory makes its existing ancestor read-only on Linux.
+  await mkdir(join(work, "storage"), { recursive: true });
   let requests = 0;
   const { session } = await createAgentSession({
     model,
@@ -276,11 +277,11 @@ test("failed commands with partial effects never request approval or replay", as
   });
   try {
     await session.prompt("test");
+    const result = session.state.messages.find((item) => item.role === "toolResult");
+    expect(result).toMatchObject({ isError: true });
+    expect(JSON.stringify(result)).toContain("Command exited with code 7");
     expect(await readFile(join(work, "counter"), "utf8")).toBe("x");
     expect(approvals).toBe(0);
-    expect(session.state.messages.find((item) => item.role === "toolResult")).toMatchObject({
-      isError: true,
-    });
   } finally {
     await close();
   }

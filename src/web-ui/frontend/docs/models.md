@@ -44,7 +44,7 @@ Custom models whose Provider ID and model ID match the Pi AI catalog inherit its
 
 Model and effort changes persist together in session metadata, retain history/drafts, and become the default for future Web sessions. Existing sessions retain their own choices. Switching to a model without the current effort resets it to Default. Generation, disconnection, pending saves or unconfirmed delivery disable configuration; a pending configuration request blocks Send. Failures keep the prior selection and show an error.
 
-The popover opens above the input box. Its trigger chevron points down when closed and up while open, including in submenus. Enter/Space or Up/Down opens it; arrow keys and Home/End move through items, Right enters a submenu, Left returns, and Escape closes and restores trigger focus. Tab resumes normal tab order. Outside clicks dismiss it. Model search matches provider, ID and display name. Empty catalogs direct users to Settings → Models. Narrow screens keep the menu inside the viewport and hide the keyboard hint to preserve space.
+The popover opens above the input box at 280px wide, shrinking to fit narrow viewports. Long model names truncate in the main menu and wrap in the model list. Its trigger chevron points down when closed and up while open, including in submenus. Enter/Space or Up/Down opens it; arrow keys and Home/End move through items, Right enters a submenu, Left returns, and Escape closes and restores trigger focus. Tab resumes normal tab order. Outside clicks dismiss it. Model search matches provider, ID and display name. Empty catalogs direct users to Settings → Models. Narrow screens keep the menu inside the viewport and hide the keyboard hint to preserve space.
 
 ## Privacy, Errors and Keyboard Access
 

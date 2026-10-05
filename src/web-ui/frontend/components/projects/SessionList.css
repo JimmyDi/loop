@@ -1,6 +1,6 @@
 .session-list {
   list-style: none;
-  padding: 4px 0 8px;
+  padding: 0 0 4px;
   margin: 0;
 }
 .session-list > .session-item + .session-item {

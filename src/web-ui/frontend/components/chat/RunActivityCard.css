@@ -2,8 +2,6 @@
   width: 100%;
   min-width: 0;
   margin: 8px 0;
-  /* Match the answer's 28px avatar plus 14px gap. */
-  padding-inline-start: 42px;
   color: var(--ink);
   font-size: 14px;
   line-height: 1.55;

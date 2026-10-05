@@ -425,7 +425,7 @@ test("tool rows retain order and identity across results, reconnect and historic
       state: { ...next.state, isRunning: false, outcome: "success" },
     };
     ui.rerender(<MessageTimeline snapshot={next} connected />);
-    expect(ui.container.querySelectorAll(".assistant-avatar")).toHaveLength(1);
+    expect(ui.container.querySelectorAll(".assistant-avatar")).toHaveLength(0);
     const liveAnswer = ui.container.querySelector(".assistant-message")!;
     expect(liveAnswer).toBe(streamingAnswer);
     expect(liveAnswer.getAttribute("aria-busy")).toBe("false");

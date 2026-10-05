@@ -6,6 +6,7 @@
   padding: 16px 8px 8px;
   background: var(--surface-sidebar);
   border-right: 1px solid var(--line);
+  border-left: 1px solid transparent;
 }
 @supports (backdrop-filter: blur(24px)) or (-webkit-backdrop-filter: blur(24px)) {
   .sidebar {
@@ -92,6 +93,7 @@
 .sidebar-projects {
   flex: 1;
   overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
   min-height: 0;
 }
 .sidebar-projects > .project-item:first-child {

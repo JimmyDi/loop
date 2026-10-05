@@ -1,0 +1,35 @@
+{
+  "name": "@loop/coding-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "exports": {
+    ".": {
+      "loop-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./cli": {
+      "loop-source": "./src/main.ts",
+      "types": "./dist/main.d.ts",
+      "import": "./dist/main.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run packages/coding-agent/src",
+    "check": "biome check src"
+  },
+  "dependencies": {
+    "@loop/agent": "workspace:*",
+    "@earendil-works/pi-ai": "^0.85.1",
+    "which": "^6.0.0"
+  }
+}

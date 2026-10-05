@@ -1,0 +1,28 @@
+{
+  "name": "@loop/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "exports": {
+    ".": {
+      "loop-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run packages/agent/src",
+    "check": "biome check src"
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "^0.85.1"
+  }
+}

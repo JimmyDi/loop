@@ -1,38 +1,61 @@
 {
-  "name": "loop-harness",
+  "name": "loop",
   "version": "0.1.0",
   "private": false,
   "type": "module",
-  "description": "A local-first agent harness powered by Pi AI.",
+  "description": "A local-first coding assistant with CLI, SDK and Web interfaces.",
   "license": "MIT",
-  "workspaces": [
-    "src/web-ui"
-  ],
   "bin": {
-    "loop": "./src/coding-agent/cli.ts"
+    "loop": "./dist/bin.js"
   },
   "scripts": {
-    "run": "bun ./src/coding-agent/cli.ts",
-    "run-dev": "bun run --cwd src/web-ui run-dev",
-    "test": "bun test",
-    "typecheck": "tsc --noEmit && bun run --cwd src/web-ui typecheck",
-    "check": "biome check . && bun run --cwd src/web-ui check && bun run check:architecture",
-    "check:architecture": "bun test src/coding-agent/index.test.ts",
-    "chat": "bun ./src/coding-agent/cli.ts",
+    "dev": "node --watch --watch-preserve-output --conditions=loop-source --import tsx bin.ts web --dev",
+    "coding-agent": "node --conditions=loop-source --import tsx bin.ts",
+    "build": "pnpm -r build && tsdown && node scripts/copy-web.mjs && pnpm check:distribution",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check": "biome check . && pnpm check:architecture",
+    "check:architecture": "vitest run scripts/architecture.test.ts packages/web-ui/src/architecture.test.ts",
+    "check:distribution": "node --import tsx scripts/check-distribution.ts",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "coding-agent": "bun src/coding-agent/cli.ts"
+    "prepack": "pnpm build",
+    "verify:package": "node --import tsx scripts/verify-package.mjs"
   },
   "engines": {
-    "bun": ">=1.1"
+    "node": ">=24.0.0"
   },
   "dependencies": {
-    "@earendil-works/pi-ai": "^0.85.1"
+    "@earendil-works/pi-ai": "^0.85.1",
+    "@hono/node-server": "^2.0.0",
+    "which": "^6.0.0"
   },
   "devDependencies": {
+    "@loop/agent": "workspace:*",
+    "@loop/coding-agent": "workspace:*",
+    "@loop/web-ui": "workspace:*",
     "@biomejs/biome": "^2.5.4",
-    "@types/bun": "latest",
-    "@types/node": "^22.20.3",
-    "typescript": "^5.7.0"
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "tsx": "^4.22.0",
+    "tsdown": "^0.22.0",
+    "vite": "^8.0.0",
+    "vitest": "^4.1.0",
+    "fast-glob": "^3.3.3",
+    "@types/which": "^3.0.0",
+    "expect": "^30.0.0"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/sdk.d.ts",
+      "import": "./dist/sdk.js"
+    }
   }
 }

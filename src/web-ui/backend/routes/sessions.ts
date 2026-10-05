@@ -39,13 +39,25 @@ export const sessionRoutes =
     }
 
     const match = url.pathname.match(
-      /^\/api\/sessions\/([^/]+)(?:\/(prompt|abort|flush|model|events|title|permission|approvals)(?:\/([^/]+))?)?$/,
+      /^\/api\/sessions\/([^/]+)(?:\/(prompt|abort|flush|model|events|title|permission|approvals|read)(?:\/([^/]+))?)?$/,
     );
 
     if (!match) return;
 
     const [, id, action, requestId] = match;
     if ((action === "approvals") !== !!requestId) return;
+    if (action === "read") {
+      if (method !== "PUT") throw new HttpError(405, "method_not_allowed");
+      const body = await readBody(request);
+      if (typeof body.messageCount !== "number")
+        throw new HttpError(400, "invalid_read_message_count");
+      const read = await registry.markRead(
+        requiredString(body, "workspaceId"),
+        id!,
+        body.messageCount,
+      );
+      return Response.json({ read });
+    }
     const body =
       action === "prompt" ||
       action === "model" ||

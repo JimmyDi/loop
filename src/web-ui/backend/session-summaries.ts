@@ -1,5 +1,4 @@
 import type { SessionSummary } from "../shared/protocol";
-import { latestCompletedTurn } from "../shared/completed-turn";
 import type { SessionController } from "./session-controller";
 
 export const sessionSummaries = (
@@ -35,11 +34,11 @@ export const sessionSummaries = (
         : {}),
       messageCount: state.messages.length,
       userMessageCount: users.length,
+      unread: state.unread ?? false,
       title: state.title?.text ?? record?.title,
       isGenerating: operation === "prompt",
       isWaitingForApproval:
         state.pendingApprovals?.some((request) => request.sessionId === sessionId) ?? false,
-      latestCompletedTurn: latestCompletedTurn(state.runTimings, state.messages.length),
     });
   }
   return [...summaries.values()].sort(

@@ -5,7 +5,6 @@ import { Window } from "happy-dom";
 
 import type { SessionSnapshot, SessionSummary } from "../../../shared/protocol";
 import { useSessions } from "../../state/session-store";
-import { useReadState } from "../../state/read-store";
 import { useWorkspace } from "../../state/workspace-store";
 import "../../i18n/setup";
 import { SessionList } from "./SessionList";
@@ -308,11 +307,10 @@ test("generation rings follow live prompt events and background summaries withou
 test("completed unread turns show a blue-dot indicator until the actual reading receipt arrives", async () => {
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };
-  const originalRead = useReadState.getState();
   const originalSessions = useSessions.getState();
   const originalWorkspace = useWorkspace.getState();
   Object.assign(globalThis, { window, document: window.document });
-  const { render, act, fireEvent, cleanup } = await import("@testing-library/react/pure");
+  const { render, fireEvent, cleanup } = await import("@testing-library/react/pure");
   const client = new QueryClient();
   const summary: SessionSummary = {
     id: "unread-session",
@@ -328,18 +326,16 @@ test("completed unread turns show a blue-dot indicator until the actual reading 
   );
   try {
     useSessions.setState({ views: {} });
-    useReadState.setState({ readTurns: {} });
     const ui = render(<SessionList sessions={[{ ...summary, isGenerating: true }]} />, { wrapper });
     expect(ui.getByRole("img", { name: "Looping..." })).toBeTruthy();
     expect(ui.queryByRole("img", { name: "Unread" })).toBeNull();
-    const complete = { ...summary, latestCompletedTurn: 0, isGenerating: false };
+    const complete = { ...summary, isGenerating: false, unread: true };
     ui.rerender(<SessionList sessions={[{ ...complete, isWaitingForApproval: true }]} />);
     expect(ui.getByRole("img", { name: "Waiting for approval" })).toBeTruthy();
     expect(ui.queryByRole("img", { name: "Unread" })).toBeNull();
     expect(
       (ui.getByRole("button", { name: "Archive Example" }) as HTMLButtonElement).disabled,
     ).toBe(true);
-    expect(useReadState.getState().readTurns[summary.id]).toBeUndefined();
     ui.rerender(<SessionList sessions={[complete]} />);
     expect(ui.queryByRole("img", { name: "Looping..." })).toBeNull();
     expect(ui.getByRole("img", { name: "Unread" }).className).toBe("session-list-unread");
@@ -351,15 +347,18 @@ test("completed unread turns show a blue-dot indicator until the actual reading 
     ui.unmount();
     const reopened = render(<SessionList sessions={[complete]} />, { wrapper });
     expect(reopened.getByRole("img", { name: "Unread" })).toBeTruthy();
-    act(() => useReadState.getState().markRead(summary.id, 0));
+    // Another browser's durable receipt arrives through a refreshed list.
+    reopened.rerender(<SessionList sessions={[{ ...complete, unread: false }]} />);
     expect(reopened.queryByRole("img", { name: "Unread" })).toBeNull();
     // Title updates cannot create unread content; a later completed turn can.
-    reopened.rerender(<SessionList sessions={[{ ...complete, title: "Renamed" }]} />);
+    reopened.rerender(
+      <SessionList sessions={[{ ...complete, title: "Renamed", unread: false }]} />,
+    );
     expect(reopened.queryByRole("img", { name: "Unread" })).toBeNull();
-    reopened.rerender(<SessionList sessions={[{ ...complete, latestCompletedTurn: 2 }]} />);
+    reopened.rerender(<SessionList sessions={[{ ...complete, messageCount: 4 }]} />);
     expect(reopened.getByRole("img", { name: "Unread" })).toBeTruthy();
     reopened.rerender(
-      <SessionList sessions={[{ ...complete, latestCompletedTurn: 2, isGenerating: true }]} />,
+      <SessionList sessions={[{ ...complete, messageCount: 4, isGenerating: true }]} />,
     );
     expect(reopened.queryByRole("img", { name: "Unread" })).toBeNull();
     expect(reopened.getByRole("img", { name: "Looping..." })).toBeTruthy();
@@ -368,7 +367,6 @@ test("completed unread turns show a blue-dot indicator until the actual reading 
   } finally {
     cleanup();
     client.clear();
-    useReadState.setState(originalRead, true);
     useSessions.setState(originalSessions, true);
     useWorkspace.setState(originalWorkspace, true);
     Object.assign(globalThis, previous);

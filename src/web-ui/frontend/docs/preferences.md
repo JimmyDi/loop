@@ -1,6 +1,6 @@
 # Interface Preferences
 
-The browser stores layout, language, theme, and unsent drafts. The backend stores project registration, provider credentials, the default permission for new Web sessions, and complete session history.
+The browser stores layout, language, theme, and unsent drafts. The backend stores project registration, provider credentials, the default permission for new Web sessions, session read receipts, and complete session history.
 
 ## Layout and Language
 
@@ -40,7 +40,7 @@ Theme colors use CSS `light-dark()` with `color-scheme`, requiring a modern brow
 
 ## Local State
 
-All persistent browser keys use the `loop.web.` prefix and belong to the browser origin. Different ports or browsers do not share these browser preferences. The Permission default is stored on the server and is shared by pages using the same Loop data directory.
+All persistent browser keys use the `loop.web.` prefix and belong to the browser origin. Different ports or browsers do not share these browser preferences. The Permission default and session read receipts are stored on the server and are shared by browsers using the same Loop server.
 
 | State | Storage and restoration |
 | --- | --- |
@@ -48,12 +48,13 @@ All persistent browser keys use the `loop.web.` prefix and belong to the browser
 | theme | Restore `light`, `dark`, or `system`; default to `system` |
 | sidebarWidth | Restore a sidebar width within the allowed range |
 | activeSession | Restore the selected session ID and its project ID; no title or open-session list is stored |
-| readTurns | Store the last viewed completed user-turn index per session for sidebar unread dots; no message content is stored |
 | expanded | Restore project expansion |
 | drafts, draftProjects | Store unsent text and its project by session; retained when switching sessions |
 | requests | Store unconfirmed text, images, requestId and streamId for manual retry |
 | Unsent images | Memory only per session; retained across session switches, discarded on refresh |
 | Session display snapshots | Memory only; reload from the backend after refresh |
+
+Unread is a boolean in the server's session header. The page renders that flag directly from session snapshots or list summaries. A read request carries the displayed message count to guard against stale requests; there is no read-position cache, separate receipt file or browser persistence. See [unread indicators](projects.md).
 
 Existing drafts and unconfirmed requests are retained; select their session from the sidebar to continue. The drawer's open/closed state is temporary. Unavailable browser storage or failed writes do not interrupt chat, but the affected state cannot persist.
 

@@ -768,6 +768,7 @@ test.each(["error", "aborted", "length"] as const)(
     await expect(session.prompt("first")).rejects.toThrow();
     expect(session.state.messages).toHaveLength(2);
     expect(session.isRunning).toBe(false);
+    expect(session.state.unread).toBe(true);
     expect(session.state.listenerErrors.length).toBeGreaterThan(0);
     await session.prompt("continue");
     expect(session.state.messages).toHaveLength(4);
@@ -796,6 +797,7 @@ test("save failure retains pending history, blocks new work and flush never reru
   try {
     await expect(session.prompt("save")).rejects.toThrow();
     expect(session.state.hasPendingSave).toBe(true);
+    expect(session.state.unread).toBe(true);
     expect(manager.getRuntimeContexts()).toHaveLength(1);
     expect(session.state.messages).toHaveLength(2);
     expect(await Bun.file(join(store + "-old", manager.getSessionId()) + ".jsonl").text()).toBe(
@@ -808,6 +810,7 @@ test("save failure retains pending history, blocks new work and flush never reru
     await session.flush();
     expect(requests).toBe(1);
     expect(session.state.hasPendingSave).toBe(false);
+    expect((await SessionManager.open(manager.sessionFile!)).unread).toBe(true);
     expect((await SessionManager.open(manager.sessionFile!)).messages).toHaveLength(2);
     expect((await SessionManager.open(manager.sessionFile!)).getRuntimeContexts()).toEqual(
       manager.getRuntimeContexts(),

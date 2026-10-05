@@ -34,6 +34,17 @@ export class SessionRegistry {
     return sessionSummaries(records, this.instances.values(), workspaceId);
   }
 
+  markRead(workspaceId: string, id: string, messageCount: number): Promise<boolean> {
+    return this.withProject(workspaceId, async () => {
+      if (!Number.isSafeInteger(messageCount) || messageCount < 0)
+        throw new HttpError(400, "invalid_read_message_count");
+      const controller = await this.get(id);
+      if (controller.workspaceId !== workspaceId) throw new HttpError(404, "session_not_found");
+      if (controller.session.state.hasPendingSave) throw new HttpError(409, "pending_save");
+      return controller.markRead(messageCount);
+    });
+  }
+
   async create(workspaceId: string): Promise<SessionController> {
     return this.withProject(workspaceId, async (project) => {
       const session = await this.loop.load(project);

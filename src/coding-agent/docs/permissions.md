@@ -12,7 +12,7 @@ Managed coding sessions constrain built-in tool execution through a session perm
 
 The built-in default is read-only. Restricted Bash also blocks networking, including loopback, and uses an environment allowlist. This is a separate fixed network policy in this implementation, not a claim that a filesystem preset inherently prevents networking. Model requests still run in the host and can reach the configured provider.
 
-The SDK provides an [approval request lifecycle](approvals.md), but built-in tool escalation is not connected yet. Both policies still deny built-in operations requiring additional authorization immediately. These tools send no approval request and perform no automatic wider retry. They do not advertise escalation arguments; supplying sandbox_permissions or justification to a mutating tool or Bash also rejects. Never does not mean approve automatically.
+The table describes default authority. Managed write/edit operations outside that authority can request [one-call approval](approvals.md), except writes overlapping protected Loop storage. Bash accepts sandbox_permissions (use_default or require_escalated) and requires a nonempty justification for escalation. A granted shell request runs that exact invocation without a sandbox, with host filesystem, network and environment access, including normally protected storage. File tools still reject these shell-only arguments. Missing handlers fail closed. No command is automatically retried with wider authority. Never means do not ask, not approve automatically; full-access sessions already execute with host authority.
 
 ## Usage and configuration
 
@@ -58,6 +58,8 @@ Long-lived presets and the [runtime-context snapshots](runtime-context.md) suppl
 
 File tools resolve existing ancestors and symbolic links, including dangling links, before making directories or writing. They serialize mutations and recheck paths before atomic replacement. Replacing a regular file avoids mutating another path through an existing hard-linked inode. New files use mode 0600; replacements preserve ordinary mode bits, not ownership, ACLs or extended metadata.
 
+One-call file approvals bind the validated arguments, canonical target and resulting content digest. They allow only that replacement and the necessary parent/temp-file work, and do not grant a writable directory for future calls. Changing the target, original content/file identity, existing parent identity or preset while awaiting approval invalidates the decision. Generic SDK requests do not create execution permits. Approval metadata stays out of stored history; ordinary tool calls and results are still persisted.
+
 The configured agent directory, default agent directory and current session-storage directory are protected from restricted tool writes, even inside a workspace. Host persistence is outside the sandbox and can still save history. If storage occupies the whole workspace, that whole directory is protected: put runtime data in a separate directory. Full access intentionally removes these tool fences.
 
 On macOS, Bash is launched through the system sandbox-exec with a Seatbelt profile. File writes are denied by default, workspace and private temporary grants are added, and protected roots remain denied. Network access, Mach service lookup and access to other processes are restricted. The executable is deprecated by Apple; a missing or refusing runner fails closed.
@@ -75,7 +77,7 @@ The private temporary directory is per Bash call, shared by that command's desce
 - File checks narrow but do not eliminate filesystem races. A different process can change paths between checking and a syscall.
 - Shell filesystem restrictions are path/mount based. Pre-existing hard links inside a writable tree can alias outside files; kernel/filesystem/platform gaps must not be described as complete machine isolation. Use an isolated filesystem/container for that threat model.
 - Linux network namespaces block IP networking, but accessible local Unix sockets are a separate IPC surface. This implementation is not a general service-isolation boundary.
-- Windows restricted Shell execution is unsupported and fails closed; full access still requires an installed Bash. No approval UI, risk classifier or authenticated management endpoint is implemented. The core approval service does not expand tool execution authority.
+- Windows restricted Shell execution is unsupported and fails closed; full access or an approved unsandboxed call still requires an installed Bash. No approval UI, risk classifier or authenticated management endpoint is implemented. Web and CLI have no registered approval adapter yet, so their requests requiring additional authority fail closed.
 
 ## Source and validation
 

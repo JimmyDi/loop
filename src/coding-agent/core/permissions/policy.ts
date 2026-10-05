@@ -53,17 +53,31 @@ export class PermissionPolicy {
     return { preset, workspaceRoot: this.workspaceRoot, writableRoots, protectedRoots };
   }
 
-  async checkWrite(path: string): Promise<string> {
+  async inspectWrite(
+    path: string,
+  ): Promise<{ policy: ExecutionPolicy; target: string; denial?: string }> {
     const policy = await this.resolve();
     const target = await canonicalPath(path);
-    if (policy.preset === "danger-full-access") return target;
-    if (policy.preset === "read-only") throw new PermissionError("Files are read-only");
-    if (!isWithin(target, policy.workspaceRoot))
-      throw new PermissionError("Target is outside the workspace");
+    if (policy.preset === "danger-full-access") return { policy, target };
     if (policy.protectedRoots.some((root) => isWithin(target, root) || isWithin(root, target))) {
       throw new PermissionError("Target overlaps protected Loop storage");
     }
-    return target;
+    return {
+      policy,
+      target,
+      denial:
+        policy.preset === "read-only"
+          ? "Files are read-only"
+          : !isWithin(target, policy.workspaceRoot)
+            ? "Target is outside the workspace"
+            : undefined,
+    };
+  }
+
+  async checkWrite(path: string): Promise<string> {
+    const inspected = await this.inspectWrite(path);
+    if (inspected.denial) throw new PermissionError(inspected.denial);
+    return inspected.target;
   }
 }
 

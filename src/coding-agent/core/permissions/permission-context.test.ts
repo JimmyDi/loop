@@ -2,13 +2,15 @@ import { expect, test } from "bun:test";
 
 import { buildPermissionContext } from "./permission-context";
 
-test("permission narration describes only the active policy and never promises approval", () => {
+test("permission narration describes conditional approval without promising authority", () => {
   expect(buildPermissionContext(undefined, ".")).toBe("");
   const readOnly = buildPermissionContext("read-only", ".");
   expect(readOnly).toContain("File writes and edits are denied");
   expect(readOnly).toContain("no network access");
   expect(readOnly).toContain("Approval policy: ask");
-  expect(readOnly).toContain("Approval and escalation are unavailable");
+  expect(readOnly).toContain("fail closed if no approval handler is available");
+  expect(readOnly).toContain("Approval never changes the session preset");
+  expect(readOnly).toContain("file approvals cannot modify protected Loop storage");
 
   const workspace = buildPermissionContext("workspace-write", ".");
   expect(workspace).toContain('session workspace: "."');

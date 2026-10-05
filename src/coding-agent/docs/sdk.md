@@ -80,6 +80,8 @@ Managed sessions additionally expose permissionPreset directly and in state. Dir
 
 Session snapshots include pendingApprovals, separate from model-running status and saved history. Pending requests block new prompts, metadata changes and runtime replacement. Abort cancels approval waits, and run finalization drains outstanding requests. See [approvals](approvals.md) for the interaction contract and built-in tool integration limits.
 
+Managed tools now issue approval requests before operations requiring additional authority. Register a handler before prompting and inspect request.operation for the validated arguments and scope. A matching allowed-once response resumes the waiting tool only; a standalone requestApproval call does not execute a tool. File approvals bind one replacement, while explicit Bash escalation grants one unsandboxed invocation with host filesystem/network/environment access. Both preserve the session preset.
+
 PromptContent is a string or Pi AI text/image blocks. Image-only messages are supported, with base64 image data and MIME type stored in session history. The selected model must allow image input. Existing string calls remain valid.
 
 Each accepted prompt creates a fresh lower-level Agent with committed history. Concurrent prompts and unsupported prompt options reject. Observe the prompt rejection and `state.outcome` to distinguish success, error, and cancellation; `abort()` resolving alone does not mean the prompt succeeded.

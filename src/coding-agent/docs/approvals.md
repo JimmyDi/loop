@@ -2,7 +2,7 @@
 
 Coding-agent core owns short-lived approval requests. A trusted host registers one interaction handler, receives a request, and submits a decision through the session API. The model does not assign approval outcomes or call an approval tool. Ordinary event subscriptions do not count as an available interaction handler.
 
-This implementation provides the request lifecycle independently of a UI. Built-in tool escalation is not connected yet: an allowed-once result records a decision for one request, does not execute a tool, and does not expand the session's permission preset.
+Managed built-in tools use this lifecycle before operations that need additional authority. An allowed-once decision resumes only the waiting call with its captured arguments and scope, without changing the session preset. Calling requestApproval directly still only returns a decision; it does not schedule or execute a tool.
 
 ## Minimal usage
 
@@ -43,6 +43,7 @@ try {
 | API | Contract |
 | --- | --- |
 | `session.requestApproval(input, options?)` | Returns `Promise<ApprovalResult>`. Input requires nonempty `toolName`, `toolCallId`, and `reason`. These identify a proposed operation; they do not prove its arguments or execution scope. |
+| `input.operation` | Optional `ApprovalOperation` snapshot. Managed tools supply their validated arguments and the execution scope described below. Host-created metadata is not an execution capability. |
 | `options.signal` | Optional caller cancellation, combined with the active run's cancellation signal. |
 | `options.timeoutMs` | Positive integer up to 2,147,483,647 milliseconds. Defaults to `DEFAULT_APPROVAL_TIMEOUT_MS`, 120,000 milliseconds. |
 | `session.registerApprovalHandler(handler)` | Registers the single host interaction handler and returns an idempotent detach function. A second registration rejects until the first detaches. |
@@ -52,7 +53,22 @@ try {
 
 Requests have a generated `requestId`, the owning `sessionId`, the input fields, the effective `policy`, and Unix-millisecond `createdAt`/`expiresAt` timestamps. The result contains the original request snapshot, `outcome`, and `resolvedAt`. Timeout enforcement uses elapsed monotonic time so delayed timer delivery cannot accept an expired response.
 
-Public exports include `ApprovalInput`, `ApprovalRequestOptions`, `ApprovalRequest`, `ApprovalResponse`, `ApprovalDecision`, `ApprovalOutcome`, `ApprovalResult`, `ApprovalHandler`, `ApprovalEvent`, and `DEFAULT_APPROVAL_TIMEOUT_MS`. The underlying service is internal to coding-agent core.
+Public exports include `ApprovalInput`, `ApprovalOperation`, `ApprovalRequestOptions`, `ApprovalRequest`, `ApprovalResponse`, `ApprovalDecision`, `ApprovalOutcome`, `ApprovalResult`, `ApprovalHandler`, `ApprovalEvent`, and `DEFAULT_APPROVAL_TIMEOUT_MS`. The underlying service is internal to coding-agent core.
+
+## Managed tool execution
+
+The core observes each sequential tool-start event to bind the actual tool call ID, then captures the validated arguments before execution. The execution context allows one approval request and expires when that call ends. Neither a model-supplied request ID nor an allowed-once result passed as a tool argument can create authority. The lower Agent loop remains unchanged.
+
+| Operation kind | Review data and approved scope |
+| --- | --- |
+| `file-write` | Validated write/edit arguments, canonical workspace and target path, and before/after SHA-256 digests. Allows one exact replacement, including required parent-directory creation and a temporary sibling for atomic replacement. A null before digest means the target did not exist. |
+| `shell-unrestricted` | Validated command arguments and canonical cwd, with filesystem, network and environment explicitly set to host. Allows one unsandboxed Bash invocation and its descendants with host-user access, including normally protected storage. It does not confine the command to paths mentioned in its text. |
+
+Write and edit automatically request approval when read-only or outside-workspace policy denies the target. Protected Loop storage and non-regular files remain hard denials for file tools. Edit validates its exact replacements against the original file before asking. A private permit binds the resulting content and path, is consumed once, and rechecks the target, original file identity/content, existing parent identity and preset after waiting and before replacement. Changes invalidate approval instead of silently approving a different edit.
+
+Bash stays sandboxed by default. A call requesting `sandbox_permissions: "require_escalated"` must include a nonempty `justification`; approval happens before launching any command. Its scope is full host-user filesystem, network and environment access for that invocation. Full-access sessions already have this authority and do not ask again. Standalone restricted tool factories have no session approval context and reject escalation.
+
+Rejected, unavailable, timed-out or cancelled requests produce tool errors without starting the requested mutation or shell command. A command that fails after dispatch is never automatically replayed or retried with broader permissions, since it may have partial effects. A new tool call always has a new execution context and cannot reuse an earlier decision. Existing process-group cancellation, command timeout and output truncation remain in effect.
 
 ## Outcomes and events
 
@@ -78,12 +94,12 @@ Requests can be made while idle or during an active prompt. Idle requests do not
 
 `waitForIdle()` waits for model/session operations, not standalone idle approval requests. Await the request promise to wait for its decision, or call `abort()` to cancel it.
 
-Requests, decisions, and handlers are never written into conversation history, runtime context, or session storage. Reopening a session starts with no pending approval, no remembered allow-once decision, and no handler. Rebind the handler to the replacement instance.
+Pending request records, execution permits and handler registrations are never persisted. Reopening a session starts with no pending approval, no reusable allow-once decision, and no handler. Ordinary tool calls and results remain in conversation history, including escalation arguments and denial messages; these historical records cannot grant authority. Rebind the handler to the replacement instance.
 
 ## Limits
 
-- Built-in write/edit/bash still reject operations requiring additional authority. They do not yet issue these requests, consume allowed-once decisions, or retry commands. See [permissions](permissions.md).
-- Tool argument/scope binding and one-operation execution enforcement are not part of this interaction layer. Hosts must not treat request metadata or a result object as an execution capability.
+- The approval service returns decisions; managed execution keeps its permits privately. Hosts must not treat arbitrary request metadata or a result object as an execution capability. See [permissions](permissions.md).
+- File checks narrow filesystem races but cannot eliminate concurrent changes by other host processes between a check and a syscall. Approved Bash is intentionally unsandboxed; its command text does not prove or constrain all effects.
 - Web snapshots project approval state and events, but Web/CLI approval controls and an authenticated decision route are not implemented. A viewer or event connection alone cannot answer.
 - Handler registration and response submission are trusted host APIs. Request IDs correlate decisions; they are not authentication credentials.
 - Pending state and events are in memory, without durable approval audit history.
@@ -91,3 +107,5 @@ Requests, decisions, and handlers are never written into conversation history, r
 ## Source and validation
 
 [Service](../core/approvals/approval-service.ts) / [tests](../core/approvals/approval-service.test.ts), [types](../core/approvals/types.ts), [session integration](../core/agent-session.ts) / [tests](../core/agent-session.test.ts), and [Web projection](../../web-ui/shared/session-projection.ts) / [tests](../../web-ui/shared/session-projection.test.ts). Tests use synthetic operations and model streams without real model requests.
+
+[Tool binding](../core/approvals/tool-approvals.ts) / [integration tests](../core/approvals/tool-approvals.test.ts), [file approvals](../core/permissions/file-approval.ts) / [tests](../core/permissions/file-approval.test.ts), and [shell approvals](../core/permissions/shell-approval.ts) / [tests](../core/permissions/shell-approval.test.ts).

@@ -48,6 +48,37 @@ test("requests have isolated snapshots and accept exactly one matching decision"
   service.dispose();
 });
 
+test("operation arguments and scope are copied on input, delivery, state and result", async () => {
+  const service = new ApprovalService(
+    "test",
+    () => "ask",
+    () => {},
+  );
+  let delivered: ApprovalRequest | undefined;
+  service.registerHandler((request) => {
+    delivered = request;
+  });
+  const operation = {
+    kind: "file-write" as const,
+    arguments: { edits: [{ oldText: "old", newText: "new" }] },
+    workspaceRoot: ".",
+    targetPath: "file",
+    beforeSha256: null,
+    afterSha256: "test-digest",
+  };
+  const waiting = service.request({ ...input, operation });
+  operation.arguments.edits[0]!.newText = "input mutation";
+  if (delivered?.operation?.kind === "file-write") delivered.operation.targetPath = "other";
+  const request = service.pending[0]!;
+  if (request.operation) request.operation.arguments.edits = [];
+  service.respond(response(request));
+  expect((await waiting).request.operation).toMatchObject({
+    targetPath: "file",
+    arguments: { edits: [{ oldText: "old", newText: "new" }] },
+  });
+  service.dispose();
+});
+
 test("never and missing handlers fail closed even when observers attempt approval", async () => {
   for (const policy of ["ask", "never"] as const) {
     const events: ApprovalEvent[] = [];

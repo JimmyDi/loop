@@ -3,8 +3,9 @@ import { mkdir, mkdtemp, realpath, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import type { AgentTool } from "../../../agent";
-import { PermissionPolicy, rejectEscalation } from "../permissions/policy";
+import type { PermissionTool } from "../approvals/tool-approvals";
+import { PermissionPolicy } from "../permissions/policy";
+import { approveShell } from "../permissions/shell-approval";
 import type { ToolPermissionOptions } from "../permissions/types";
 import { sandboxEnvironment } from "../sandbox/environment";
 import { sandboxLaunch, SandboxUnavailableError } from "../sandbox/launcher";
@@ -13,29 +14,34 @@ import { MAX_BYTES, truncate } from "./truncate";
 export const createBashTool = (
   cwd: string,
   options: ToolPermissionOptions | PermissionPolicy = {},
-): AgentTool => {
+): PermissionTool => {
   const permissions =
     options instanceof PermissionPolicy ? options : new PermissionPolicy(cwd, options);
   return {
     name: "bash",
-    description: "Run a bash command in the working directory. Optional timeout is in seconds.",
+    description:
+      "Run a bash command in the working directory. Optional timeout is in seconds. Request require_escalated with a justification before execution when host filesystem, network or environment access is needed; approval applies only to this call.",
     parameters: {
       type: "object",
       properties: {
         command: { type: "string" },
         timeout: { type: "number", minimum: 0.01 },
+        sandbox_permissions: { type: "string", enum: ["use_default", "require_escalated"] },
+        justification: { type: "string", minLength: 1 },
       },
       required: ["command"],
     },
-    async execute(args, signal) {
+    async execute(args, signal, approval) {
       signal.throwIfAborted();
-      rejectEscalation(args);
+      args = structuredClone(args);
       if (
         args.timeout !== undefined &&
         (typeof args.timeout !== "number" || !Number.isFinite(args.timeout) || args.timeout < 0.01)
       ) {
         throw new Error("Invalid command timeout");
       }
+      const escalated = await approveShell(permissions, args, signal, approval);
+      signal.throwIfAborted();
 
       const directory = await mkdtemp(join(tmpdir(), "loop-bash-"));
       const path = join(directory, "output.txt");
@@ -44,7 +50,10 @@ export const createBashTool = (
       try {
         const temporary = join(await realpath(directory), "work");
         await mkdir(temporary);
-        const policy = await permissions.resolve(temporary);
+        const resolved = await permissions.resolve(escalated ? undefined : temporary);
+        const policy = escalated
+          ? { ...resolved, preset: "danger-full-access" as const }
+          : resolved;
         const confined = policy.preset !== "danger-full-access";
         const bash = confined ? Bun.which("bash", { PATH: "/bin:/usr/bin" }) : Bun.which("bash");
         if (!bash) throw new SandboxUnavailableError("Bash is unavailable");

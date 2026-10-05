@@ -7,6 +7,7 @@ import { useSessions } from "../state/session-store";
 
 export const useSessionEvents = (id?: string): void => {
   const query = useQueryClient();
+  const revision = useSessions((state) => (id ? state.views[id]?.revision : undefined));
   useEffect(() => {
     if (!id) return;
 
@@ -27,6 +28,9 @@ export const useSessionEvents = (id?: string): void => {
               ? {
                   ...session,
                   isGenerating: snapshot.operation === "prompt",
+                  isWaitingForApproval:
+                    snapshot.state.pendingApprovals?.some((request) => request.sessionId === id) ??
+                    false,
                   title: snapshot.state.title?.text ?? session.title,
                 }
               : session,
@@ -41,10 +45,12 @@ export const useSessionEvents = (id?: string): void => {
 
       const cursor = fresh ? undefined : useSessions.getState().views[id]?.cursor;
       const suffix = cursor
-        ? "?cursor=" + encodeURIComponent(cursor.streamId + ":" + cursor.seq)
+        ? "&cursor=" + encodeURIComponent(cursor.streamId + ":" + cursor.seq)
         : "";
 
-      source = new EventSource("/api/sessions/" + encodeURIComponent(id) + "/events" + suffix);
+      source = new EventSource(
+        "/api/sessions/" + encodeURIComponent(id) + "/events?approvals=1" + suffix,
+      );
       source.onmessage = (event) => {
         if (disposed) return;
         try {
@@ -92,5 +98,5 @@ export const useSessionEvents = (id?: string): void => {
       source.close();
       disconnect();
     };
-  }, [id, query]);
+  }, [id, query, revision]);
 };

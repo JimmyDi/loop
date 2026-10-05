@@ -1,3 +1,5 @@
+import { isPermissionPreset } from "../core/permissions/types";
+
 export function parseArgs(args: string[]) {
   const flags = new Map<string, string>();
   const messages: string[] = [];
@@ -24,6 +26,7 @@ export function parseArgs(args: string[]) {
     "--session-dir",
     "--system-prompt",
     "--tools",
+    "--permission-preset",
   ]);
 
   for (let index = 0; index < args.length; index++) {
@@ -51,6 +54,11 @@ export function parseArgs(args: string[]) {
   if (["--no-session", "--session", "--continue"].filter((flag) => flags.has(flag)).length > 1)
     throw new Error("Choose only one of --session, --continue or --no-session");
 
+  if (flags.has("--permission-preset") && !isPermissionPreset(flags.get("--permission-preset")))
+    throw new Error(
+      "Invalid permission preset: use read-only, workspace-write or danger-full-access",
+    );
+
   return { flags, prompt: messages.join(" ") };
 }
 
@@ -67,6 +75,8 @@ export const HELP = [
   "--system-prompt TEXT        Replace the base system prompt",
   "--no-context-files          Disable project instruction discovery",
   "--tools read,bash,edit,write Enable tools (empty string disables all)",
+  "--permission-preset LEVEL   read-only, workspace-write or danger-full-access",
   "--help/-h --version/-v",
-  "Interactive: /abort /model [provider/model] /new /resume [path] /flush /quit",
+  "Interactive: /abort /model [provider/model] /permissions [level] /new /resume [path] /flush /quit",
+  "Approval: /approve REQUEST_ID or /reject REQUEST_ID (interactive terminal only)",
 ].join("\n");

@@ -1,6 +1,6 @@
 # Permissions and Process Sandboxing
 
-Managed coding sessions constrain built-in tool execution through a session permission preset. The policy lives in coding-agent/core; Agent remains the model and sequential tool loop. The Web application and CLI inherit the SDK's enforcement even though they do not yet have a permission picker or approval interaction.
+Managed coding sessions constrain built-in tool execution through a session permission preset. The policy lives in coding-agent/core; Agent remains the model and sequential tool loop. The [Web permission picker](../../web-ui/frontend/docs/permissions.md) and [CLI commands](cli.md#permissions-and-approvals) select these presets and answer individual approval requests through core APIs.
 
 ## Presets
 
@@ -12,7 +12,7 @@ Managed coding sessions constrain built-in tool execution through a session perm
 
 The built-in default is read-only. Restricted Bash also blocks networking, including loopback, and uses an environment allowlist. This is a separate fixed network policy in this implementation, not a claim that a filesystem preset inherently prevents networking. Model requests still run in the host and can reach the configured provider.
 
-The table describes default authority. Managed write/edit operations outside that authority can request [one-call approval](approvals.md), except writes overlapping protected Loop storage. Bash accepts sandbox_permissions (use_default or require_escalated) and requires a nonempty justification for escalation. A granted shell request runs that exact invocation without a sandbox, with host filesystem, network and environment access, including normally protected storage. File tools still reject these shell-only arguments. Missing handlers fail closed. No command is automatically retried with wider authority. Never means do not ask, not approve automatically; full-access sessions already execute with host authority.
+The table describes default authority. Managed write/edit operations outside that authority can request [one-call approval](approvals.md), except writes overlapping protected Loop storage. Bash accepts sandbox_permissions (use_default or require_escalated) and requires a nonempty justification for escalation. A granted shell request runs that exact invocation without a sandbox, with host filesystem, network and environment access, including normally protected storage. File tools reject sandbox_permissions; their optional justification is display-only text and cannot grant authority. Missing handlers fail closed. No command is automatically retried with wider authority. Never means do not ask, not approve automatically; full-access sessions already execute with host authority.
 
 ## Usage and configuration
 
@@ -42,7 +42,9 @@ Public APIs:
 - PermissionPreset, ApprovalPolicy, DEFAULT_PERMISSION_PRESET, isPermissionPreset, approvalPolicyFor and PermissionError: public types and helpers.
 - createBashTool, createWriteTool and createEditTool accept a second ToolPermissionOptions argument with permissionPreset and additional protectedPaths. Standalone factories also default to read-only.
 
-The optional settings.json permissionPreset field changes future-session defaults. Model fields may be omitted together; unknown fields and invalid presets reject. No project-level permission defaults or new CLI flags are added.
+The optional settings.json permissionPreset field changes future-session defaults. Model fields may be omitted together; unknown fields and invalid presets reject. The Web picker and CLI /permissions command change only the active session. CLI --permission-preset overrides the startup session explicitly. No project-level permission defaults are added.
+
+Web also provides Settings → General → Permission, stored separately in web-ui/settings.json under the agent directory. The Web bridge passes this override only when creating a new session across any project. Existing sessions and CLI/SDK defaults remain unchanged; see the [Web default contract](../../web-ui/backend/docs/permissions.md#new-session-default).
 
 Direct new AgentSession calls with host-provided tools are a trusted extension surface. They do not claim managed enforcement, expose no effective preset, and reject setPermissionPreset. Use createAgentSession with built-in tool names for managed permissions; a TypeScript type or arbitrary custom tool is not an isolation boundary.
 
@@ -77,7 +79,7 @@ The private temporary directory is per Bash call, shared by that command's desce
 - File checks narrow but do not eliminate filesystem races. A different process can change paths between checking and a syscall.
 - Shell filesystem restrictions are path/mount based. Pre-existing hard links inside a writable tree can alias outside files; kernel/filesystem/platform gaps must not be described as complete machine isolation. Use an isolated filesystem/container for that threat model.
 - Linux network namespaces block IP networking, but accessible local Unix sockets are a separate IPC surface. This implementation is not a general service-isolation boundary.
-- Windows restricted Shell execution is unsupported and fails closed; full access or an approved unsandboxed call still requires an installed Bash. No approval UI, risk classifier or authenticated management endpoint is implemented. Web and CLI have no registered approval adapter yet, so their requests requiring additional authority fail closed.
+- Windows restricted Shell execution is unsupported and fails closed; full access or an approved unsandboxed call still requires an installed Bash. Approval does not classify command risk or add user-account authentication. Without a connected Web approval interface or interactive CLI terminal, additional authority fails closed.
 
 ## Source and validation
 

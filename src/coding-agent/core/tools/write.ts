@@ -1,6 +1,6 @@
 import type { PermissionTool } from "../approvals/tool-approvals";
 import { approveFileWrite, snapshotFile } from "../permissions/file-approval";
-import { PermissionPolicy, rejectEscalation } from "../permissions/policy";
+import { PermissionPolicy, validateFilePermissionArguments } from "../permissions/policy";
 import type { ToolPermissionOptions } from "../permissions/types";
 import { writePermittedFile } from "../permissions/write-file";
 import { withFileMutationQueue } from "./file-mutation-queue";
@@ -16,11 +16,21 @@ export const createWriteTool = (
     description: "Create or replace a text file, creating parent directories.",
     parameters: {
       type: "object",
-      properties: { path: { type: "string" }, content: { type: "string" } },
+      properties: {
+        path: { type: "string" },
+        content: { type: "string" },
+        justification: {
+          type: "string",
+          minLength: 1,
+          maxLength: 240,
+          description:
+            "For approval, briefly explain this file change in one sentence in the user's language. This explanation does not grant permissions.",
+        },
+      },
       required: ["path", "content"],
     },
     execute(args, signal, approval) {
-      rejectEscalation(args);
+      validateFilePermissionArguments(args);
       args = structuredClone(args);
       const path = resolveToCwd(String(args.path), cwd);
 

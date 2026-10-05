@@ -5,6 +5,8 @@ import type { AgentSessionRuntime } from "../../core/agent-session-runtime";
 import type { ModelRuntime } from "../../core/model-runtime";
 import { SessionManager } from "../../core/session-manager";
 import { InteractiveOutput } from "./interactive-output";
+import { InteractiveApprovals } from "./interactive-approvals";
+import { isPermissionPreset } from "../../core/permissions/types";
 
 export async function runInteractiveMode(
   runtime: AgentSessionRuntime,
@@ -21,10 +23,15 @@ export async function runInteractiveMode(
   const output = new InteractiveOutput((text) => {
     process.stdout.write(text);
   });
+  const approvals = new InteractiveApprovals((text) => {
+    process.stdout.write("\n" + text + "\n");
+    input.prompt();
+  }, !!process.stdin.isTTY && !!process.stdout.isTTY);
 
   const bind = (session: AgentSession) => {
     unsubscribe();
     unsubscribe = session.subscribe((event) => output.handle(event));
+    approvals.bind(session);
   };
 
   bind(runtime.session);
@@ -44,8 +51,21 @@ export async function runInteractiveMode(
       return;
     }
 
+    if (approvals.handle(text)) {
+      input.prompt();
+      return;
+    }
+
     if (text === "/abort") await runtime.session.abort();
-    else if (text === "/flush") await runtime.session.flush();
+    else if (text === "/permissions")
+      console.log("Permissions: " + runtime.session.permissionPreset);
+    else if (text.startsWith("/permissions ")) {
+      const preset = text.slice(13).trim();
+      if (!isPermissionPreset(preset))
+        throw new Error("Use read-only, workspace-write or danger-full-access");
+      await runtime.session.setPermissionPreset(preset);
+      console.log("Permissions: " + runtime.session.permissionPreset);
+    } else if (text === "/flush") await runtime.session.flush();
     else if (text === "/new") await runtime.newSession();
     else if (text === "/resume") {
       const manager = runtime.session.sessionManager;
@@ -104,8 +124,9 @@ export async function runInteractiveMode(
   const terminate = () => input.close();
 
   process.on("SIGTERM", terminate);
-  console.log("Loop · /abort /model /new /resume /quit");
+  console.log("Loop · /abort /model /permissions /new /resume /quit");
   console.log("Model: " + runtime.session.model.provider + "/" + runtime.session.model.id);
+  console.log("Permissions: " + runtime.session.permissionPreset);
   input.prompt();
 
   if (initialPrompt) submit(initialPrompt);
@@ -120,6 +141,7 @@ export async function runInteractiveMode(
     input.removeAllListeners();
     process.stdin.pause();
     unsubscribe();
+    approvals.dispose();
     output.finish();
     runtime.setRebindSession(undefined);
   }

@@ -4,6 +4,8 @@ Status: migrated to a Bun workspace. Web frontend and backend share `src/web-ui/
 
 Usage and actual contracts for implemented features are documented separately in the [frontend](../frontend/README.md) and [backend](../backend/README.md) feature indexes. Their docs directories contain one page per feature; this document retains the overall design and distribution plan.
 
+Per-session permission selection and allow-once/reject approval are now implemented. See [permission controls](../frontend/docs/permissions.md) and [permission endpoints](../backend/docs/permissions.md) for current scope, connection lifecycle and local request boundaries; earlier initial-scope exclusions below are historical.
+
 ## 1. Design Decisions
 
 The goal is to use Loop coding-agent in the browser through a project-based chat interface.

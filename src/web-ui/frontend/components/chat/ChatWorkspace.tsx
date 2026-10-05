@@ -12,6 +12,7 @@ import { LoopIcon } from "../ui/LoopIcon";
 import { MessageTimeline } from "./MessageTimeline";
 import { ChatComposer } from "./ChatComposer";
 import { SessionStatus } from "./SessionStatus";
+import { SessionApprovals } from "./SessionApprovals";
 import "./ChatWorkspace.css";
 
 export const ChatWorkspace = ({ id }: { id: string }) => {
@@ -55,6 +56,7 @@ export const ChatWorkspace = ({ id }: { id: string }) => {
           )}
           <div className="chat-workspace-input">
             <SessionStatus snapshot={snapshot} connected={connected} />
+            <SessionApprovals snapshot={snapshot} connected={connected} />
             <ChatComposer snapshot={snapshot} connected={connected} />
           </div>
         </div>

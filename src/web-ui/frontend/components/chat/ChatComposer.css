@@ -25,7 +25,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 6px;
   padding: 4px var(--composer-content-inset) 10px;
   min-height: 48px;
 }
@@ -50,5 +50,21 @@
 @media (max-width: 767px) {
   .composer-region {
     width: calc(100% - 24px);
+  }
+  .composer-toolbar .composer-model-settings {
+    flex: 0 1 auto;
+  }
+  .composer-toolbar .composer-model-trigger {
+    max-width: 100%;
+    padding-inline: 4px;
+  }
+  .composer-toolbar .composer-model-effort {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .composer-toolbar .permission-trigger {
+    padding-inline: 6px;
+    font-size: 12px;
   }
 }

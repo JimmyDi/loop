@@ -7,13 +7,15 @@ import { ProjectStore } from "./projects/project-store";
 import { createRouter } from "./router";
 import { SessionRegistry } from "./session-registry";
 import { ProviderSettings } from "./providers/provider-settings";
+import { WebSettings } from "./settings/web-settings";
 
 export const startServer = (port = 3080) => {
   const agentDir = getAgentDir();
   const projects = new ProjectStore(join(agentDir, "web-ui", "projects.json"));
   const providers = new ProviderSettings(join(agentDir, "web-ui", "provider.json"));
-  const registry = new SessionRegistry(projects, createLoopBridge(agentDir, providers));
-  const route = createRouter(registry, providers);
+  const settings = new WebSettings(agentDir);
+  const registry = new SessionRegistry(projects, createLoopBridge(agentDir, providers, settings));
+  const route = createRouter(registry, providers, settings);
   const icon = (name: string, type: string) => () =>
     new Response(Bun.file(join(import.meta.dir, "../frontend/assets", name)), {
       headers: { "Content-Type": type, "Cache-Control": "no-cache" },

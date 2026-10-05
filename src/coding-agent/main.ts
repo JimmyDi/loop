@@ -7,11 +7,13 @@ import { createModelRuntime } from "./core/model-runtime";
 import { createAgentSession } from "./core/sdk";
 import { SessionManager } from "./core/session-manager";
 import { SettingsManager } from "./core/settings-manager";
+import { isPermissionPreset } from "./core/permissions/types";
 import { recoverPendingSave } from "./modes/save-recovery";
 import { runInteractiveMode, runPrintMode } from "./modes";
 
 export async function main(args = process.argv.slice(2)): Promise<number> {
   const { flags, prompt } = parseArgs(args);
+  const permissionPreset = flags.get("--permission-preset");
 
   if (flags.has("--help")) {
     console.log(HELP);
@@ -69,6 +71,10 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
         tools: flags.has("--tools") ? flags.get("--tools")!.split(",").filter(Boolean) : undefined,
         systemPrompt: flags.get("--system-prompt"),
         noContextFiles: flags.has("--no-context-files"),
+        permissionPreset:
+          options.sessionManager === sessionManager && isPermissionPreset(permissionPreset)
+            ? permissionPreset
+            : undefined,
       }),
     { cwd: sessionManager.getCwd(), sessionManager, model },
   );

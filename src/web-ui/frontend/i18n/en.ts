@@ -1,7 +1,9 @@
 import { projectsEn } from "./projects-en";
+import { permissionsEn } from "./permissions-en";
 
 export const en = {
   ...projectsEn,
+  permissions: permissionsEn,
   projects: "Projects",
   addProject: "Add project",
   newSession: "New session",
@@ -187,6 +189,10 @@ export const en = {
   maxOutputTokens: "Maximum output tokens",
   addModel: "Add model",
   errors: {
+    invalid_permission_preset: "Choose a supported permission level.",
+    invalid_approval_decision: "Choose Allow once or Reject.",
+    approval_not_pending:
+      "This request has already ended or its approval interface disconnected. Refreshing the session.",
     invalid_text_files:
       "Attach up to 4 UTF-8 text or code files. Documents, archives and binary files are not supported.",
     invalid_text_encoding:

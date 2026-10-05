@@ -202,15 +202,66 @@ test("generation rings follow live prompt events and background summaries withou
     expect(within(first).getByRole("img", { name: "Looping..." })).toBeTruthy();
     expect(first.querySelector(".session-list-title")?.textContent).toBe("First conversation");
     expect(first.lastElementChild?.className).toBe("session-list-spinner");
+    const request = {
+      requestId: "approval",
+      sessionId: "first",
+      toolName: "write",
+      toolCallId: "call",
+      reason: "Create the requested file",
+      policy: "ask" as const,
+      createdAt: 0,
+      expiresAt: null,
+    };
+    let seq = 2;
+    for (const operation of ["prompt", "idle"] as const) {
+      act(() => {
+        useSessions.getState().frame({
+          type: "session.state",
+          sessionId: "first",
+          streamId: "stream",
+          seq: seq++,
+          snapshot: {
+            ...snapshot,
+            operation,
+            state: { ...snapshot.state, pendingApprovals: [request] },
+          },
+        });
+      });
+      expect(within(first).getByRole("img", { name: "Waiting for approval" })).toBeTruthy();
+      expect(first.firstElementChild?.className).toBe("session-list-waiting");
+      expect(within(first).queryByRole("img", { name: "Looping..." })).toBeNull();
+      expect(
+        (ui.getByRole("button", { name: "Archive First conversation" }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(true);
+    }
     fireEvent.click(second);
     expect(useWorkspace.getState().active?.id).toBe("second");
     expect(second.getAttribute("aria-current")).toBe("page");
 
     // A stale polling response must not override an already-settled live snapshot.
     ui.rerender(
-      <SessionList sessions={summaries.map((session) => ({ ...session, isGenerating: true }))} />,
+      <SessionList
+        sessions={summaries.map((session) => ({
+          ...session,
+          isGenerating: true,
+          isWaitingForApproval: true,
+        }))}
+      />,
     );
-    let seq = 2;
+    expect(within(second).getByRole("img", { name: "Waiting for approval" })).toBeTruthy();
+    expect(within(second).queryByRole("img", { name: "Looping..." })).toBeNull();
+    act(() => {
+      useSessions.getState().frame({
+        type: "session.state",
+        sessionId: "first",
+        streamId: "stream",
+        seq: seq++,
+        snapshot: { ...snapshot, operation: "prompt" },
+      });
+    });
+    expect(within(first).queryByRole("img", { name: "Waiting for approval" })).toBeNull();
+    expect(within(first).getByRole("img", { name: "Looping..." })).toBeTruthy();
     for (const outcome of ["success", "cancelled", "error"] as const) {
       act(() => {
         useSessions.getState().frame({
@@ -277,6 +328,13 @@ test("completed unread turns show a blue-dot indicator until the actual reading 
     expect(ui.getByRole("img", { name: "Looping..." })).toBeTruthy();
     expect(ui.queryByRole("img", { name: "Unread" })).toBeNull();
     const complete = { ...summary, latestCompletedTurn: 0, isGenerating: false };
+    ui.rerender(<SessionList sessions={[{ ...complete, isWaitingForApproval: true }]} />);
+    expect(ui.getByRole("img", { name: "Waiting for approval" })).toBeTruthy();
+    expect(ui.queryByRole("img", { name: "Unread" })).toBeNull();
+    expect(
+      (ui.getByRole("button", { name: "Archive Example" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(useReadState.getState().readTurns[summary.id]).toBeUndefined();
     ui.rerender(<SessionList sessions={[complete]} />);
     expect(ui.queryByRole("img", { name: "Looping..." })).toBeNull();
     expect(ui.getByRole("img", { name: "Unread" }).className).toBe("session-list-unread");

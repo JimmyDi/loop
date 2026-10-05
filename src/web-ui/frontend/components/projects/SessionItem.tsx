@@ -27,13 +27,18 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
   const action = useSessionActions(session);
   const snapshot = view?.connected ? view.snapshot : undefined;
   const generating = snapshot ? snapshot.operation === "prompt" : session.isGenerating === true;
+  const waiting = snapshot
+    ? (snapshot.state.pendingApprovals?.some((request) => request.sessionId === session.id) ??
+      false)
+    : session.isWaitingForApproval === true;
   const readTurn = useReadState((state) => state.readTurns[session.id] ?? -1);
   const completedTurn = snapshot
     ? latestCompletedTurn(snapshot.state.runTimings, snapshot.state.messages.length)
     : session.latestCompletedTurn;
-  const unread = !generating && completedTurn !== undefined && completedTurn > readTurn;
+  const unread = !waiting && !generating && completedTurn !== undefined && completedTurn > readTurn;
   const busy =
     action.pending ||
+    waiting ||
     generating ||
     !!(snapshot && (snapshot.operation !== "idle" || snapshot.state.hasPendingSave));
   const title = snapshot?.state.title?.text ?? session.title ?? t("newSession");
@@ -94,8 +99,16 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
                 }
               }}
             >
+              {waiting && (
+                <span
+                  className="session-list-waiting"
+                  role="img"
+                  aria-label={t("permissions.waiting")}
+                  title={t("permissions.waiting")}
+                />
+              )}
               <span className="session-list-title">{title}</span>
-              {generating && (
+              {generating && !waiting && (
                 <span
                   className="session-list-spinner"
                   role="img"

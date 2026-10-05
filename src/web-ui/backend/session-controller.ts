@@ -5,6 +5,7 @@ import { projectTools } from "../shared/tool-projection";
 import { HttpError, errorText } from "./http/errors";
 import type { SessionPort } from "./loop";
 import { SessionEvents } from "./session-events";
+import { SessionApprovals } from "./session-approvals";
 import { promptContent } from "../shared/prompt-images";
 import type { PromptImage } from "../shared/prompt-images";
 import type { PromptFile } from "../shared/prompt-files";
@@ -12,6 +13,7 @@ import type { PromptFile } from "../shared/prompt-files";
 export class SessionController {
   readonly createdAt = new Date().toISOString();
   readonly events: SessionEvents;
+  readonly approvals: SessionApprovals;
   snapshot: SessionSnapshot;
   private unsubscribe: () => void;
   private active: Promise<void> = Promise.resolve();
@@ -34,11 +36,16 @@ export class SessionController {
     };
     this.events = new SessionEvents(session.sessionId, () => this.snapshot);
     this.snapshot.streamId = this.events.streamId;
+    this.approvals = new SessionApprovals(session, this.events);
     this.unsubscribe = session.subscribe((event) => this.onEvent(event));
   }
 
   get busy(): boolean {
-    return this.snapshot.operation !== "idle" || this.session.state.hasPendingSave;
+    return (
+      this.snapshot.operation !== "idle" ||
+      this.session.state.hasPendingSave ||
+      !!this.session.state.pendingApprovals?.length
+    );
   }
 
   prompt(
@@ -98,7 +105,7 @@ export class SessionController {
   }
 
   async command(
-    operation: "model" | "flush" | "title",
+    operation: "model" | "flush" | "title" | "permission",
     action: () => Promise<void>,
   ): Promise<void> {
     this.assertIdle(operation === "flush");
@@ -127,12 +134,14 @@ export class SessionController {
   dispose(): void {
     this.assertIdle();
     this.session.dispose();
+    this.approvals.dispose();
     this.unsubscribe();
     this.events.close();
   }
 
   private assertIdle(allowPending = false): void {
-    if (this.snapshot.operation !== "idle") throw new HttpError(409, "session_busy");
+    if (this.snapshot.operation !== "idle" || this.session.state.pendingApprovals?.length)
+      throw new HttpError(409, "session_busy");
 
     if (!allowPending && this.session.state.hasPendingSave)
       throw new HttpError(409, "pending_save");

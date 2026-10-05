@@ -27,7 +27,12 @@ export const createBashTool = (
         command: { type: "string" },
         timeout: { type: "number", minimum: 0.01 },
         sandbox_permissions: { type: "string", enum: ["use_default", "require_escalated"] },
-        justification: { type: "string", minLength: 1 },
+        justification: {
+          type: "string",
+          minLength: 1,
+          description:
+            "Briefly explain why this command needs host access in one sentence in the user's language.",
+        },
       },
       required: ["command"],
     },

@@ -1,0 +1,9 @@
+.permission-settings {
+  margin-bottom: 12px;
+}
+.permission-settings .general-settings-description {
+  flex: 1 1 180px;
+}
+.permission-settings .error-notice {
+  margin-top: 8px;
+}

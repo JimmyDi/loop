@@ -8,7 +8,10 @@ export const sessionSummaries = (
   workspaceId: string,
 ): SessionSummary[] => {
   const summaries = new Map(
-    records.map((record) => [record.id, { ...record, isGenerating: false }]),
+    records.map((record) => [
+      record.id,
+      { ...record, isGenerating: false, isWaitingForApproval: false },
+    ]),
   );
   for (const controller of instances) {
     if (controller.workspaceId !== workspaceId) continue;
@@ -34,6 +37,8 @@ export const sessionSummaries = (
       userMessageCount: users.length,
       title: state.title?.text ?? record?.title,
       isGenerating: operation === "prompt",
+      isWaitingForApproval:
+        state.pendingApprovals?.some((request) => request.sessionId === sessionId) ?? false,
       latestCompletedTurn: latestCompletedTurn(state.runTimings, state.messages.length),
     });
   }

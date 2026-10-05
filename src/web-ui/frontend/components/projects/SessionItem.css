@@ -11,6 +11,7 @@
   background: var(--surface-selected);
 }
 .session-item-open {
+  position: relative;
   display: flex;
   align-items: center;
   flex: 1;
@@ -59,6 +60,16 @@
   stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+.session-list-waiting {
+  position: absolute;
+  left: 22px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: #ff9800;
 }
 .session-list-spinner {
   flex: 0 0 14px;

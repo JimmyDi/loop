@@ -1,6 +1,6 @@
 # Interface Preferences
 
-The browser stores layout, language, theme, and unsent drafts. The backend stores project registration, provider credentials, and complete session history.
+The browser stores layout, language, theme, and unsent drafts. The backend stores project registration, provider credentials, the default permission for new Web sessions, and complete session history.
 
 ## Layout and Language
 
@@ -14,7 +14,7 @@ Open **Settings** at the bottom of the sidebar, then use the language dropdown i
 
 Hovering over Settings highlights a 40px-high row with 12px corners and narrow 8px side insets. A translucent tint darkens the background in Light mode and lightens it in Dark mode while retaining the sidebar's glass effect. The row sits 8px below the divider and above the bottom edge. The brief color transition respects reduced-motion preferences.
 
-The General panel starts with a General page heading and a General section heading. A rounded settings card contains Language, a short description, and its dropdown. In Chinese these headings read 通用, and the description reads 应用界面使用的语言.
+The General panel starts with a General page heading and a General section heading. Rounded settings cards contain Permission followed by Language, each with a short description and dropdown. Permission selects Read only, Workspace write, or Full access for future Web sessions across all projects; existing sessions keep their saved permissions. Full access requires confirmation. The backend persists this preference independently of browser language and theme; see [permissions](permissions.md). In Chinese the headings read 通用, and the Language description reads 应用界面使用的语言.
 
 **Archived → Archived chats** displays directly inside Settings, replacing the General → Manage dialog. All Settings sections share the same dialog width: up to 760px on desktop, adapting to the viewport on narrow screens. Switching sections keeps the dialog size and position stable. Chats are grouped by project with timestamps, counts, filters, Unarchive and confirmed delete actions. No search input is displayed. Open a chat to view it and close Settings. See [project actions](projects.md) for archive and removal behavior.
 
@@ -40,7 +40,7 @@ Theme colors use CSS `light-dark()` with `color-scheme`, requiring a modern brow
 
 ## Local State
 
-All persistent keys use the `loop.web.` prefix and belong to the browser origin. Different ports or browsers do not share these preferences.
+All persistent browser keys use the `loop.web.` prefix and belong to the browser origin. Different ports or browsers do not share these browser preferences. The Permission default is stored on the server and is shared by pages using the same Loop data directory.
 
 | State | Storage and restoration |
 | --- | --- |

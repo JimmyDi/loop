@@ -54,7 +54,7 @@ Verify a local package after building:
 
 ```bash
 pnpm --config.ignore-scripts=true pack
-pnpm verify:package loop-harness-loop-0.1.1.tgz
+pnpm verify:package loop-harness-loop-0.1.2.tgz
 ```
 
 Verification checks the actual tarball's file list and installed Loop payload, installs production dependencies, rejects module resolution outside the installation, and checks SDK imports, CLI help, Web assets/API and shutdown. Third-party production dependencies keep their own published contents and license notices; Loop's content checks cover its own distribution.
@@ -63,8 +63,8 @@ Publish the verified tarball from an npm account with publishing rights in the `
 
 ```bash
 npm whoami --registry=https://registry.npmjs.org/
-npm publish ./loop-harness-loop-0.1.1.tgz --access public --registry=https://registry.npmjs.org/
-npx @loop-harness/loop@0.1.1 web
+npm publish ./loop-harness-loop-0.1.2.tgz --access public --registry=https://registry.npmjs.org/
+npx @loop-harness/loop@0.1.2 web
 ```
 
 The executable remains `loop`; internal `@loop/*` packages stay private and are bundled into this single public package. The [Check workflow](../.github/workflows/check.yml) builds, packs and verifies on Linux, macOS and Windows, with the platform-specific test coverage described above. Creating or reopening a pull request, or pushing new commits to its branch, runs one matrix. There is no separate branch-push trigger: merging into or directly pushing to `main` does not start another check, and branches without a PR are not checked automatically. Release tags invoke the same checks through the Release workflow. It uses a version-independent `loop.tgz` filename so version bumps do not require editing CI. PR checks do not publish.
@@ -81,11 +81,11 @@ For each release:
 
 1. Update the root package version. Internal workspace packages remain private.
 2. Move pending changelog entries into a new `## [X.Y.Z] - YYYY-MM-DD` release section immediately below Unreleased, with release notes and a valid date no later than the current UTC date. Keep exactly one empty `## [Unreleased]` section at the top, followed by releases in reverse chronological order. Release validation rejects missing, duplicate or misplaced Unreleased sections and pending entries.
-3. Merge those changes, then create and push the matching tag on that commit. For example, after preparing version `0.1.1`:
+3. Merge those changes, then create and push the matching tag on that commit. For example, after preparing version `0.1.2`:
 
 ```bash
-git tag -a v0.1.1 -m "Release v0.1.1"
-git push origin v0.1.1
+git tag -a v0.1.2 -m "Release v0.1.2"
+git push origin v0.1.2
 ```
 
 The workflow rejects existing npm versions and stops if registry availability cannot be confirmed. It runs the shared Check workflow on all three operating systems, then publishes the exact tarball verified on Linux after all matrix jobs pass. The publish job downloads that run's artifact and does not rebuild or execute package lifecycle scripts. Release runs are serialized. The workflow publishes to npm's `latest` channel; it does not create a GitHub Release.

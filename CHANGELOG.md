@@ -4,6 +4,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-05
+
 ### Changed
 
 - CI and distribution: upgrade checkout, Node and pnpm setup, and artifact actions to releases that use Node.js 24, removing deprecated Node.js 20 action runtimes from checks and automated publishing.

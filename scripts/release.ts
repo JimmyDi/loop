@@ -32,8 +32,12 @@ export const validateRelease = (
     throw new Error("Package repository must match the GitHub repository for npm provenance.");
 
   const sections = [...changelog.matchAll(/^## (.+)\r?$/gm)];
-  if (sections[0]?.[1] !== "[Unreleased]")
-    throw new Error("Changelog must start with an Unreleased section.");
+  const pending = sections[0];
+  if (
+    pending?.[1] !== "[Unreleased]" ||
+    sections.filter((section) => section[1] === "[Unreleased]").length !== 1
+  )
+    throw new Error("Changelog must start with exactly one Unreleased section.");
   const release = sections[1];
   const heading = release?.[1].match(/^\[([^\]]+)\] - (\d{4}-\d{2}-\d{2})$/);
   if (heading?.[1] !== manifest.version)
@@ -46,7 +50,7 @@ export const validateRelease = (
     date > today
   )
     throw new Error("The release date must be a valid date no later than today (UTC).");
-  const unreleased = changelog.slice(sections[0].index + sections[0][0].length, release.index);
+  const unreleased = changelog.slice(pending.index + pending[0].length, release.index);
   if (unreleased.trim())
     throw new Error("Move pending changelog entries into the release section.");
   const notes = changelog.slice(release.index + release[0].length, sections[2]?.index);

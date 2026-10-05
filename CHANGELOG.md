@@ -1,8 +1,10 @@
 # Changelog
 
-Notable changes across Agent, coding-agent, and Web UI are recorded here. Pending changes accumulate under Unreleased; release preparation groups them by version and date. See [Contributing](CONTRIBUTING.md#changelog) for the maintenance workflow.
+Notable changes across Agent, coding-agent, and Web UI are recorded here. Pending changes accumulate under Unreleased at the top, followed by releases in reverse chronological order; release preparation groups pending entries by version and date. See [Contributing](CONTRIBUTING.md#changelog) for the maintenance workflow.
 
 ## [Unreleased]
+
+## [0.1.1] - 2026-10-05
 
 ### Added
 
@@ -11,6 +13,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 - CI: add Windows type, formatting, architecture, build, portable behavior and installed-package checks. Keep the full suite and POSIX PTY/confined-shell integration on Linux and macOS; restricted Bash remains unavailable on Windows. Normalize architecture paths and checkout line endings, and adapt npm installation and graceful-shutdown verification for Windows.
 
 ### Changed
+
+- Distribution: require exactly one Unreleased section at the top of the changelog and validate the newest release below it against the package version. Publishing requires an empty Unreleased section.
 
 - CI: run checks when pull requests are created, reopened or updated, without separate branch-push or post-merge runs. Branches without a PR and direct pushes to main no longer trigger automatic checks; release tags still run verification through the Release workflow. Let each operating system finish its checks independently when another matrix job fails.
 

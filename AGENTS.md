@@ -10,13 +10,10 @@
 
 ## Runtime and dependencies
 
-- Use Bun instead of Node.js, npm, pnpm, yarn, Vite, or Express.
-- Use `bun install` to install dependencies.
-- Use `bun run <script>` for package scripts.
-- Use `bun test` for tests.
-- Use `bun build` for bundling.
-- Prefer Bun APIs such as `Bun.file`, `Bun.serve`, and `bun:sqlite` where applicable.
-- Use Pi AI as the only real model entry point. Configure models and inject `streamFn` in `coding-agent`; consume the native Pi AI event stream in `agent`. Keep synthetic responses inside the corresponding `*.test.ts` file.
+- Use Node.js 24 or newer for runtime and pnpm for workspace dependencies and scripts.
+- Use Vite for frontend development/builds, tsdown for Node ESM and declarations, and Vitest for tests.
+- Keep production code free of Bun globals, imports and runtime assumptions.
+- Use the configured model runtime as the only real model entry point. Configure models and inject `streamFn` in `coding-agent`; consume the native model event stream in `agent`. Keep synthetic responses inside the corresponding `*.test.ts` file.
 
 ## Code style
 
@@ -29,7 +26,7 @@
 
 ## Dependency and call direction
 
-- Application commands flow downward: Web/CLI/SDK -> `coding-agent` -> `agent` -> Pi AI.
+- Application commands flow downward: Web/CLI/SDK -> `coding-agent` -> `agent` -> model API.
 - The terminal entry lives in `coding-agent/cli.ts` and uses core instance APIs.
 - Cross-layer imports must use the lower layer's public `index.ts`; do not import its internal files.
 - `agent` must not import `coding-agent`.
@@ -39,13 +36,12 @@
 - Lower layers publish events, streams or subscription callbacks defined by their own contracts.
   Upper layers subscribe and update their own state. Lower layers must not import, instantiate,
   or directly invoke upper-layer services or UI handlers; registered listeners are allowed.
-- `coding-agent/core/models/model.ts` may import Pi AI to resolve model configuration, and
-  `coding-agent/core/model-runtime.ts` may wire the Pi AI stream function injected into `agent`.
-  The agent loop initiates model calls. Other coding-agent files may import Pi AI types only.
+- coding-agent/core/model-runtime.ts may import the model runtime dependency to resolve model configuration and wire the stream function injected into agent.
+  The agent loop initiates model calls. Other coding-agent files may import model runtime types only.
 - Keep production module specifiers statically resolvable. Do not route dependencies through
-  test files, files outside `src`, or computed imports to bypass these boundaries.
-- `src/coding-agent/index.test.ts` checks these boundaries. Run `bun run check:architecture`
-  after changing imports or module structure; this check also runs in `bun run check` and `bun test`.
+  test files, files outside the owning package source, or computed imports to bypass these boundaries.
+- `scripts/architecture.test.ts` checks these boundaries. Run `pnpm run check:architecture`
+  after changing imports or module structure; this check also runs in `pnpm run check` and `pnpm exec vitest run`.
 
 ## Capability ownership
 
@@ -61,9 +57,9 @@
 
 ## Feature documentation
 
-- Keep Markdown-only `docs/` directories under both `src/agent` and `src/coding-agent`. Each page covers one implemented feature; do not add placeholder pages for unsupported Pi capabilities.
+- Keep Markdown-only `docs/` directories under both `packages/agent/src` and `packages/coding-agent/src`. Each page covers one implemented feature; do not add placeholder pages for unsupported capabilities.
 - Use each module's README as the entry point and feature index. Keep the root README focused on startup and architecture, linking to detailed feature pages.
-- Organize feature pages around purpose, minimal usage, API/configuration reference, lifecycle and errors, current limitations, and related source/tests where applicable. Follow Pi's topic-oriented organization while documenting Loop's actual contracts.
+- Organize feature pages around purpose, minimal usage, API/configuration reference, lifecycle and errors, current limitations, and related source/tests where applicable. Organize documentation by topic and describe Loop's actual contracts.
 - Use relative links and language-tagged code fences. Make commands copyable; use public imports in consumer examples and placeholders for credentials or machine-specific values.
 - Update the relevant feature page when its API or behavior changes. Check Markdown links and TypeScript examples without making real model calls.
 
@@ -80,9 +76,9 @@
 
 ## Validation
 
-- Default to targeted tests covering the changed behavior: run `bun test <affected test files>`, including directly affected consumers and regression tests. Do not run the full repository suite by default or merely because a task is finishing or a PR is being prepared.
+- Default to targeted tests covering the changed behavior: run `pnpm exec vitest run <affected test files>`, including directly affected consumers and regression tests. Do not run the full repository suite by default or merely because a task is finishing or a PR is being prepared.
 - Expand testing only when the user explicitly requests it or a concrete dependency, failure, or cross-cutting change cannot be verified with a scoped selection. Explain the reason before running the broader set; a large diff alone is not sufficient.
-- Keep required Biome, type, architecture, and affected Bun build checks appropriate to the change. These checks do not require a full test run. For Markdown-only instruction/documentation changes, check the edited content and links; do not run application tests or builds unless executable examples or behavior are affected.
+- Keep required Biome, type, architecture, and affected Node and Vite build checks appropriate to the change. These checks do not require a full test run. For Markdown-only instruction/documentation changes, check the edited content and links; do not run application tests or builds unless executable examples or behavior are affected.
 - Once relevant checks pass, do not repeat or broaden them without new edits, failures, or unresolved evidence.
 - Keep each feature test beside its feature file, using `feature.test.ts` for `feature.ts`. Write any test-only Provider or fixture directly in that test file instead of adding shared mock or testing modules.
 - Remove temporary runtime data such as `.loop` fixtures created during validation.
@@ -120,7 +116,7 @@
 
 ## Formatting details
 
-- Treat `biome.json` as the source of truth; use `bun run format` to format and `bun run check` to validate.
+- Treat `biome.json` as the source of truth; use `pnpm run format` to format and `pnpm run check` to validate.
 - Keep one import per line. Group external or platform imports before local imports, then leave one blank line before declarations.
 - Keep one blank line between top-level declarations and logically separate blocks.
 - Let the formatter wrap long function calls, object literals, and conditional expressions instead of compressing them onto one line.
@@ -129,31 +125,32 @@
 - Prefer early returns for guard clauses and multiline blocks for non-trivial conditionals.
 - Keep data types explicit and colocated with their feature; move shared types to dedicated type files when reused.
 - Keep one primary responsibility per file.
-- Keep two core source boundaries: `coding-agent` and `agent`. The `src/web-ui` application directory contains its frontend, backend, shared protocol and `docs/`; it consumes the public coding-agent entry, and neither core layer may depend on it.
+- Keep two core source boundaries: `coding-agent` and `agent`. The `packages/web-ui/src` application directory contains its frontend, backend, shared protocol and `docs/`; it consumes the public coding-agent entry, and neither core layer may depend on it.
 - The coding-agent CLI uses core instance methods and subscriptions.
   SDK consumers use the public coding-agent entry.
-- Follow Pi entry points under coding-agent/core: sdk.ts, agent-session.ts,
+- Keep entry points under coding-agent/core: sdk.ts, agent-session.ts,
   agent-session-runtime.ts, session-manager.ts, and model-runtime.ts. Split helpers and
   types into focused subfolders. Keep terminal entry points and modes inside coding-agent;
   do not recreate a separate top-level cli directory.
-- Keep exactly four implementation files in src/agent: types.ts, agent-loop.ts, agent.ts
+- Keep exactly four implementation files in packages/agent/src: types.ts, agent-loop.ts, agent.ts
   and index.ts, with colocated tests. Keep the API usage sample in agent.sample.ts beside them;
   it is not part of the public exports. Do not add a separate examples directory, helper
-  directories or placeholder modules. Feature documentation in `src/agent/docs` is allowed.
-- Keep the minimal Pi-style loop in agent/agent-loop.ts. It owns history writes, consumes
-  Pi AI streams and result(), validates tool arguments with Pi AI, and executes tools sequentially.
+  directories or placeholder modules. Feature documentation in `packages/agent/src/docs` is allowed.
+- Keep the minimal sequential loop in agent/agent-loop.ts. It owns history writes, consumes
+  model streams and result(), validates tool arguments with the model runtime, and executes tools sequentially.
   Agent owns in-memory history, subscriptions, running state and cancellation.
 - Keep streamFn explicit and return the final AssistantMessage from prompt(). Reject concurrent
   prompts, model errors, cancellation, truncation, deferred responses and exhausted maxTurns.
   Completed history excludes streaming drafts. Pair skipped tool calls before the next request.
 - Do not add steering, follow-up, queues, persistence, retries, compaction, tool progress, hooks
   or provider implementations to agent. Application persistence stays in coding-agent.
-- Reuse Pi AI message, model and stream types; preserve the original AI event in message updates.
+- Reuse the model runtime dependency's message, model and stream types; preserve the original AI event in message updates.
   Do not import application or UI implementations into agent. Add resource integrations
   under coding-agent/core only when requested; do not add unused scaffolding.
-- Document Loop's own implementation. Do not add source-origin or adaptation claims without verified evidence.
-- Use one Bun workspace with a shared root `bun.lock`. Run dependency installation from the
-  repository root. `src/web-ui/package.json` owns the Web frontend/backend dependencies and
-  development scripts; do not split frontend and backend into separate packages. Keep agent
-  and coding-agent as source folders without package manifests. Do not add a top-level
-  `packages` directory. Use public `index.ts` files for internal module boundaries.
+- Document Loop's own implementation. Do not add comparisons, design references or adaptation descriptions naming other applications. Keep dependency declarations, functional identifiers and required license notices accurate.
+- Use one pnpm workspace with a shared root pnpm-lock.yaml. Install from the repository root.
+- packages/agent, packages/coding-agent and packages/web-ui are private workspace packages with public exports and colocated source/tests. Their code is bundled into the public root loop distribution.
+- Web frontend/backend remain in the same package. Import other packages by public package name, never relative paths or internal subpaths.
+- Root bin.ts dispatches CLI and Web; sdk.ts re-exports the coding-agent SDK without terminal side effects. These are application distribution entries, not core capabilities.
+- Architecture checks cover declarations, type imports, re-exports, dynamic imports, undeclared dependencies and runtime cycles. Only coding-agent/core/model-runtime.ts may import model runtime dependency values to configure and inject the runtime.
+- Existing style/test ownership exceptions are explicitly listed in the Web architecture test; new components require colocated companions. Translation dictionaries are data, not implementation-size targets.

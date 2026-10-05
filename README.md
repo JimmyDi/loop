@@ -1,115 +1,57 @@
 # Loop
 
-Loop is a local-first, single-agent harness. Its CLI and SDK share a persistent coding session, an in-memory agent loop, and Pi AI for model calls.
+Loop is a local-first, single-agent harness. CLI, SDK and Web share persistent coding sessions, an in-memory agent loop and a model runtime.
 
 ## Start locally
 
-Requires [Bun](https://bun.sh/) 1.1 or newer. Install dependencies with `bun install` and configure a local `.env`:
-
-```sh
-LOOP_AI_PROVIDER=openai
-LOOP_MODEL=gpt-5.5
-LOOP_AI_API_KEY=your-api-key
-```
-
-Choose interactive CLI, one-shot Print, or the SDK sample:
+Requires Node.js 24+ and pnpm 11. Install dependencies and start the Web UI:
 
 ```bash
-bun run coding-agent
-bun run coding-agent --print "Read package.json"
-bun src/coding-agent/sdk.sample.ts "Hello, what time is it now?"
+pnpm install
+pnpm dev
 ```
+The browser opens when the loopback service is ready. Configure providers in Settings → Models.
 
-For compatible gateways, configure `LOOP_AI_BASE_URL` and credentials as described in [Models](src/coding-agent/docs/models.md). Without a custom URL, OpenAI uses native Responses. With a custom URL, the OpenAI provider uses Chat Completions.
+Development serves React through Vite middleware on the same port as the API; frontend changes use HMR and backend changes restart the process.
 
-For the browser UI (verified with Bun 1.3.14), run:
+For the CLI, configure LOOP_AI_PROVIDER, LOOP_MODEL and LOOP_AI_API_KEY in the environment or a local .env, then run pnpm coding-agent. See [models](packages/coding-agent/src/docs/models.md) for compatible gateways and configuration.
+
+Build and launch the production application:
 
 ```bash
-bun run-dev
+pnpm build
+node dist/bin.js web
+node dist/bin.js web --port 3081 --no-open
+node dist/bin.js --help
 ```
 
-Web frontend/backend dependencies live in the private `src/web-ui` workspace. Install once from the root with `bun install`; all packages share `bun.lock`. See [Web UI](src/web-ui/README.md) for startup options and development checks.
+The root npm package is named loop. Once it is published under an authorized registry name, the user command is npx loop web. Packaging support does not mean a registry release has occurred.
+
+## Architecture
+
+| Package | Responsibility |
+| --- | --- |
+| packages/agent | In-memory model and sequential tool loop |
+| packages/coding-agent | Sessions, permissions, tools, persistence, CLI and SDK |
+| packages/web-ui | Frontend, backend and shared protocol |
+
+All three are private workspace packages with independent manifests and public exports, bundled into the root distribution. Root bin.ts and sdk.ts are application distribution entries. Commands flow Web/CLI/SDK → coding-agent → agent → model API. Events flow upward through subscriptions. Only the model-runtime module configures and injects the model runtime; the loop initiates requests. pnpm check:architecture enforces dependencies and rejects cycles and private imports.
+
+Loop remains single-agent. Reliability, safety, recoverability and usability determine maturity.
 
 ## Documentation
 
-| Module | Start here | Feature guides |
-| --- | --- | --- |
-| Agent | [Overview](src/agent/README.md) | [API](src/agent/docs/agent.md), [loop](src/agent/docs/agent-loop.md), [events](src/agent/docs/events.md), [tools](src/agent/docs/tools.md), [cancellation](src/agent/docs/cancellation.md) |
-| Coding-agent | [Overview](src/coding-agent/README.md) | [SDK](src/coding-agent/docs/sdk.md), [CLI](src/coding-agent/docs/cli.md), [models](src/coding-agent/docs/models.md), [sessions](src/coding-agent/docs/sessions.md) |
-| Web UI | [Overview](src/web-ui/README.md) | [Frontend](src/web-ui/frontend/README.md), [backend](src/web-ui/backend/README.md), [design](src/web-ui/docs/DESIGN.md) |
-
-Each module's README indexes its feature pages. Documentation describes the current Loop implementation; Pi features not implemented here are not part of the API.
-
-See [Changelog](CHANGELOG.md) for pending changes and release history.
-
-## Source boundaries
-
-```text
-src/
-  agent/
-    agent.ts        In-memory history, subscriptions, and cancellation
-    agent-loop.ts   Model requests and sequential tools
-    types.ts        Agent contracts using Pi AI types
-    index.ts        Public exports
-    docs/           One Markdown page per feature
-  coding-agent/
-    core/           SDK, sessions, models, resources, and coding tools
-    cli.ts          Terminal entry point
-    main.ts         CLI configuration and lifecycle
-    cli/            Argument parsing
-    modes/          Interactive and Print consumers
-    index.ts        Public exports
-    docs/           One Markdown page per feature
-  web-ui/
-    package.json    Shared Web frontend/backend dependencies and scripts
-    frontend/       React components, hooks and styles
-    backend/        Bun HTTP/SSE server over the public coding-agent SDK
-    shared/         HTTP and event contracts
-    docs/           Design and implementation notes
-```
-
-One Bun workspace contains the core source folders and the Web application package. Commands flow downward through public entries; events flow upward through subscriptions. Agent does not import coding-agent. The coding-agent core and SDK do not import terminal modes or Web code. `bun run check:architecture` enforces these boundaries.
-
-```mermaid
-flowchart TD
-  CLI[CLI] -->|instance API| Coding[coding-agent]
-  Web[Web backend] -->|public SDK| Coding
-  SDK[SDK consumer] -->|instance API| Coding
-  Coding -->|session events| CLI
-  Coding -->|session events| Web
-  Coding -->|session events| SDK
-  Coding -->|instance API| Agent[agent]
-  Agent -->|AgentEvent| Coding
-  Agent -->|injected streamFn| AI[Pi AI]
-  AI -->|AssistantMessageEventStream| Agent
-```
-
-Pi AI owns providers, authentication integration, and response parsing. Agent owns the tool/model loop. Coding-agent owns persistence and application services. There is no separate workspace package installation.
-
-### Capability ownership
-
-New capabilities follow these placement rules; they must not all accumulate in Agent:
-
-| Layer | Responsibility |
+| Area | Entry |
 | --- | --- |
-| `agent` | Minimal model and sequential tool loop, in-memory history, events, running state, and cancellation. |
-| `coding-agent/core` | Permission policy and enforcement, context management, recovery, and resource integrations, independent of any UI. |
-| CLI / Web | Human-facing approval interactions, review workflows, and status display, using core APIs and events. |
-
-Managed tools enforce [session permission presets and native file sandboxing](src/coding-agent/docs/permissions.md) in core. New sessions default to read-only; restricted Bash blocks networking and requires macOS Seatbelt or Linux Bubblewrap. Full access must be selected explicitly through SDK/configuration, the CLI permission option or the Web permission picker. Core provides [approvals bound to individual tool calls](src/coding-agent/docs/approvals.md): exact file replacements and explicitly requested unsandboxed Bash invocations can proceed after a host decision without changing the preset. The interactive CLI and Web UI expose per-session permission selection and allow-once/reject controls. Print mode, piped input and disconnected Web sessions fail closed when approval is unavailable. Context loading and recovery retain the limits documented in [context files](src/coding-agent/docs/context-files.md#lifecycle-and-limits) and [sessions](src/coding-agent/docs/sessions.md#limits).
-
-Loop remains single-agent: no multi-agent orchestration, delegation trees, or agent-to-agent messaging. Maturity is measured by reliability, safety, recoverability, and usability, not by multi-agent support.
+| Agent API, events and tools | [Agent](packages/agent/README.md) |
+| SDK, CLI, models and sessions | [Coding-agent](packages/coding-agent/README.md) |
+| Browser application and server | [Web UI](packages/web-ui/README.md) |
+| Development, build and distribution | [Development](docs/development.md) |
 
 ## Validation
 
-```bash
-bun test
-bun run typecheck
-bun run check
-```
+Run pnpm typecheck, pnpm check, pnpm build and pnpm test. Use affected tests by default; the build is required for distribution startup tests. Model tests use synthetic local responses. The CLI PTY test requires Python 3. Confined shell tests require macOS Seatbelt or Linux Bubblewrap.
 
-Tests use local synthetic model endpoints without production credentials or paid requests. The CLI PTY test requires Python 3. Runnable samples use real configured models.
+See [Changelog](CHANGELOG.md), [Contributing](CONTRIBUTING.md), [Security](SECURITY.md) and [License](LICENSE).
 
-See [Contributing](CONTRIBUTING.md), [Security](SECURITY.md), and [License](LICENSE).
-
-The software is MIT-licensed. The approved Loop icon is separately reserved under the [brand asset policy](src/web-ui/docs/assets/loop-brand/BRAND-ASSETS.md); the bundled guide fonts retain their [SIL OFL 1.1 license](src/web-ui/docs/assets/loop-brand/fonts/OFL.txt).
+The software is MIT-licensed. The Loop icon remains reserved under the [brand asset policy](packages/web-ui/src/docs/assets/loop-brand/BRAND-ASSETS.md); guide fonts retain their [SIL OFL 1.1 license](packages/web-ui/src/docs/assets/loop-brand/fonts/OFL.txt).

@@ -1,10 +1,10 @@
 # Contributing
 
-Use Bun for installation, tests, scripts, and type checks. Keep examples synthetic and provider credentials in environment variables.
+Use Node.js 24+, pnpm, Vitest, TypeScript and Biome. Run pnpm build before integration tests that launch the distribution. Keep examples synthetic and provider credentials in environment variables.
 
 ## Validation
 
-Run only tests covering the changed behavior and directly affected consumers by default, using `bun test <affected test files>`. Do not automatically run the full suite when finishing work or preparing a PR. Broaden coverage only for an explicit request or a concrete risk that targeted tests cannot verify, and explain why. Keep applicable formatting, type, architecture and build checks; Markdown-only edits normally require content/link checks instead of application tests. See [agent validation rules](AGENTS.md#validation).
+Run only tests covering the changed behavior and directly affected consumers by default, using `pnpm exec vitest run <affected test files>`. Do not automatically run the full suite when finishing work or preparing a PR. Broaden coverage only for an explicit request or a concrete risk that targeted tests cannot verify, and explain why. Keep applicable formatting, type, architecture and build checks; Markdown-only edits normally require content/link checks instead of application tests. See [agent validation rules](AGENTS.md#validation).
 
 ## Sensitive data before a PR
 
@@ -20,7 +20,7 @@ Pure formatting, tests, internal refactoring without behavior changes, and routi
 
 During an explicitly requested release preparation, move the accumulated entries under the confirmed version and release date (`## [X.Y.Z] - YYYY-MM-DD`) and leave an empty `## [Unreleased]` at the top. Keep previously released sections unchanged. Recording changes does not itself create a release or authorize publishing.
 
-This is an agent instruction workflow, not a background service. Agents need to load the repository instructions. Loop reads context files when creating a session; after changing these rules, create a new Loop session to load them. See [project context files](src/coding-agent/docs/context-files.md).
+This is an agent instruction workflow, not a background service. Agents need to load the repository instructions. Loop reads context files when creating a session; after changing these rules, create a new Loop session to load them. See [project context files](packages/coding-agent/src/docs/context-files.md).
 
 ## Pull request titles
 

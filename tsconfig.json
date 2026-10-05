@@ -6,7 +6,11 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "types": ["bun"]
+    "jsx": "react-jsx",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"],
+    "customConditions": ["loop-source"]
   },
-  "include": ["src/agent/**/*.ts", "src/coding-agent/**/*.ts"]
+  "include": ["packages/**/*.ts", "packages/**/*.tsx", "scripts/**/*.ts", "*.ts"],
+  "exclude": ["node_modules", "dist", "packages/*/dist"]
 }

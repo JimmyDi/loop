@@ -1,4 +1,5 @@
-import type { AgentTool } from "../../../agent";
+import type { PermissionTool } from "../approvals/tool-approvals";
+import { approveFileWrite, snapshotFile } from "../permissions/file-approval";
 import { PermissionPolicy, rejectEscalation } from "../permissions/policy";
 import type { ToolPermissionOptions } from "../permissions/types";
 import { writePermittedFile } from "../permissions/write-file";
@@ -8,7 +9,7 @@ import { resolveToCwd } from "./path-utils";
 export const createWriteTool = (
   cwd: string,
   options: ToolPermissionOptions | PermissionPolicy = {},
-): AgentTool => {
+): PermissionTool => {
   const policy = options instanceof PermissionPolicy ? options : new PermissionPolicy(cwd, options);
   return {
     name: "write",
@@ -18,17 +19,35 @@ export const createWriteTool = (
       properties: { path: { type: "string" }, content: { type: "string" } },
       required: ["path", "content"],
     },
-    execute(args, signal) {
+    execute(args, signal, approval) {
       rejectEscalation(args);
+      args = structuredClone(args);
       const path = resolveToCwd(String(args.path), cwd);
 
-      return withFileMutationQueue(path, async () => {
-        signal.throwIfAborted();
-        await writePermittedFile(policy, path, String(args.content), signal);
-        signal.throwIfAborted();
+      return withFileMutationQueue(
+        path,
+        async () => {
+          signal.throwIfAborted();
+          const { target, denial } = await policy.inspectWrite(path);
+          const content = String(args.content);
+          const permit = denial
+            ? await approveFileWrite(
+                policy,
+                path,
+                target,
+                content,
+                await snapshotFile(target),
+                signal,
+                approval,
+              )
+            : undefined;
+          await writePermittedFile(policy, path, content, signal, permit);
+          signal.throwIfAborted();
 
-        return [{ type: "text", text: "Successfully wrote to " + String(args.path) }];
-      });
+          return [{ type: "text", text: "Successfully wrote to " + String(args.path) }];
+        },
+        signal,
+      );
     },
   };
 };

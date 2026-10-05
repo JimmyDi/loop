@@ -81,6 +81,7 @@ export class ApprovalService {
       toolCallId: input.toolCallId,
       toolName: input.toolName,
       reason: input.reason,
+      ...(input.operation ? { operation: structuredClone(input.operation) } : {}),
       requestId: crypto.randomUUID(),
       sessionId: this.sessionId,
       policy: this.policy(),

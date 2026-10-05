@@ -229,14 +229,14 @@ test("session presets enforce built-in tools, persist, reject busy changes and m
     let approvalDeliveries = 0;
     session.registerApprovalHandler((request) => {
       approvalDeliveries++;
-      session.respondToApproval({ ...request, decision: "allowed-once" });
+      session.respondToApproval({ ...request, decision: "rejected" });
     });
     const denied = session.prompt("Try write");
     await expect(session.setPermissionPreset("danger-full-access")).rejects.toThrow(
       "already running",
     );
     await denied;
-    expect(approvalDeliveries).toBe(0);
+    expect(approvalDeliveries).toBe(1);
     expect(await Bun.file(join(root, "file")).exists()).toBe(false);
     expect(session.state.messages.find((message) => message.role === "toolResult")).toMatchObject({
       isError: true,

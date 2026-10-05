@@ -25,6 +25,7 @@ export type {
   ApprovalDecision,
   ApprovalOutcome,
   ApprovalInput,
+  ApprovalOperation,
   ApprovalRequest,
   ApprovalResult,
   ApprovalResponse,

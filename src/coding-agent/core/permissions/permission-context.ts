@@ -25,6 +25,8 @@ export const buildPermissionContext = (
       ? "Loop does not restrict shell network access."
       : "Restricted shell commands have no network access. File reads are not confined to the workspace.",
     "Approval policy: " + approvalPolicyFor(preset) + ".",
-    "Approval and escalation are unavailable; operations requiring additional authority are denied. Do not retry denied operations through another tool.",
+    preset === "danger-full-access"
+      ? "No additional approval is requested in full-access mode."
+      : "Writes and edits outside the preset require approval for the exact file change; file approvals cannot modify protected Loop storage. Bash uses the preset by default. To request one unsandboxed command with host filesystem, network and environment access, set sandbox_permissions to require_escalated and supply a justification before execution. Requests fail closed if no approval handler is available. Approval never changes the session preset. Do not retry denied or partially executed operations through another tool or with broader permissions.",
   ].join("\n\n");
 };

@@ -3,6 +3,7 @@ import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 import { Agent } from "../../agent";
 import type { AgentEvent, PromptContent } from "../../agent";
 import { ApprovalService } from "./approvals/approval-service";
+import { ToolApprovals } from "./approvals/tool-approvals";
 import type {
   ApprovalHandler,
   ApprovalInput,
@@ -43,9 +44,13 @@ export class AgentSession {
   private titleError?: string;
   private runTiming?: SessionRunTiming;
   private readonly approvals: ApprovalService;
+  private readonly toolApprovals: ToolApprovals;
   private acceptingRunApprovals = false;
 
   constructor(private readonly options: SessionOptions) {
+    this.toolApprovals = new ToolApprovals((input, options) =>
+      this.requestApproval(input, options),
+    );
     this.approvals = new ApprovalService(
       this.sessionId,
       () => approvalPolicyFor(this.permissionPreset ?? DEFAULT_PERMISSION_PRESET),
@@ -362,6 +367,7 @@ export class AgentSession {
   }
 
   private onAgentEvent(event: AgentEvent): void {
+    this.toolApprovals.onEvent(event);
     if (event.type === "message_start" && event.message.role === "user" && this.runTiming)
       this.emit({ type: "run_timing", timing: this.runTiming });
     if (
@@ -401,7 +407,9 @@ export class AgentSession {
         model: this.selected,
         messages,
         systemPrompt: this.options.systemPrompt,
-        tools: this.options.tools,
+        tools: this.options.permissionPolicy
+          ? this.toolApprovals.bind(this.options.tools)
+          : this.options.tools,
         streamFn: createSessionStreamFn(this.options.modelRuntime, preparedContexts, () => {
           runtimeContexts = preparedContexts;
         }),

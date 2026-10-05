@@ -1,4 +1,6 @@
-import type { AgentTool } from "../../../agent";
+import type { PermissionTool } from "../approvals/tool-approvals";
+import { approveFileWrite, snapshotFile } from "../permissions/file-approval";
+import { PermissionError } from "../permissions/permission-error";
 import { PermissionPolicy, rejectEscalation } from "../permissions/policy";
 import type { ToolPermissionOptions } from "../permissions/types";
 import { writePermittedFile } from "../permissions/write-file";
@@ -8,7 +10,7 @@ import { resolveToCwd } from "./path-utils";
 export const createEditTool = (
   cwd: string,
   options: ToolPermissionOptions | PermissionPolicy = {},
-): AgentTool => {
+): PermissionTool => {
   const policy = options instanceof PermissionPolicy ? options : new PermissionPolicy(cwd, options);
   return {
     name: "edit",
@@ -30,42 +32,60 @@ export const createEditTool = (
       },
       required: ["path", "edits"],
     },
-    execute(args, signal) {
+    execute(args, signal, approval) {
       rejectEscalation(args);
+      args = structuredClone(args);
       const path = resolveToCwd(String(args.path), cwd);
 
-      return withFileMutationQueue(path, async () => {
-        signal.throwIfAborted();
+      return withFileMutationQueue(
+        path,
+        async () => {
+          signal.throwIfAborted();
 
-        const target = await policy.checkWrite(path);
-        const original = await Bun.file(target).text();
-        const edits = (args.edits as Array<{ oldText: string; newText: string }>)
-          .map((edit) => {
-            const start = original.indexOf(edit.oldText);
+          const { target, denial } = await policy.inspectWrite(path);
+          if (denial && !approval) throw new PermissionError(denial + "; approval is unavailable");
+          const before = await snapshotFile(target);
+          if (!before.bytes) throw new Error("Edit target does not exist");
+          const original = new TextDecoder().decode(before.bytes);
+          const edits = (args.edits as Array<{ oldText: string; newText: string }>)
+            .map((edit) => {
+              const start = original.indexOf(edit.oldText);
 
-            if (start < 0 || original.indexOf(edit.oldText, start + 1) >= 0)
-              throw new Error("oldText must match exactly once");
+              if (start < 0 || original.indexOf(edit.oldText, start + 1) >= 0)
+                throw new Error("oldText must match exactly once");
 
-            return { ...edit, start, end: start + edit.oldText.length };
-          })
-          .sort((a, b) => a.start - b.start);
+              return { ...edit, start, end: start + edit.oldText.length };
+            })
+            .sort((a, b) => a.start - b.start);
 
-        for (let index = 1; index < edits.length; index++) {
-          if (edits[index].start < edits[index - 1].end) throw new Error("Edits overlap");
-        }
+          for (let index = 1; index < edits.length; index++) {
+            if (edits[index].start < edits[index - 1].end) throw new Error("Edits overlap");
+          }
 
-        let output = original;
+          let output = original;
 
-        for (const edit of edits.reverse())
-          output = output.slice(0, edit.start) + edit.newText + output.slice(edit.end);
+          for (const edit of edits.reverse())
+            output = output.slice(0, edit.start) + edit.newText + output.slice(edit.end);
 
-        signal.throwIfAborted();
-        if ((await policy.checkWrite(path)) !== target) throw new Error("Edit target changed");
-        await writePermittedFile(policy, path, output, signal);
-        signal.throwIfAborted();
+          signal.throwIfAborted();
+          const permit = await approveFileWrite(
+            policy,
+            path,
+            target,
+            output,
+            before,
+            signal,
+            approval,
+          );
+          if (!permit && (await policy.checkWrite(path)) !== target)
+            throw new Error("Edit target changed");
+          await writePermittedFile(policy, path, output, signal, permit);
+          signal.throwIfAborted();
 
-        return [{ type: "text", text: "Successfully edited " + String(args.path) }];
-      });
+          return [{ type: "text", text: "Successfully edited " + String(args.path) }];
+        },
+        signal,
+      );
     },
   };
 };

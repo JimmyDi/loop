@@ -4,10 +4,29 @@ export type ApprovalDecision = "allowed-once" | "rejected";
 
 export type ApprovalOutcome = ApprovalDecision | "cancelled" | "timed-out" | "unavailable";
 
+export type ApprovalOperation =
+  | {
+      kind: "file-write";
+      arguments: Record<string, unknown>;
+      workspaceRoot: string;
+      targetPath: string;
+      beforeSha256: string | null;
+      afterSha256: string;
+    }
+  | {
+      kind: "shell-unrestricted";
+      arguments: Record<string, unknown>;
+      workspaceRoot: string;
+      filesystem: "host";
+      network: "host";
+      environment: "host";
+    };
+
 export type ApprovalInput = {
   toolCallId: string;
   toolName: string;
   reason: string;
+  operation?: ApprovalOperation;
 };
 
 export type ApprovalRequest = Readonly<

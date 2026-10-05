@@ -18,7 +18,7 @@ Configure a service in **Settings → Models**, then add a project and create a 
 | --- | --- |
 | Add projects, browse directories, and navigate sessions | [Projects and sessions](docs/projects.md) |
 | Compose, send, cancel, and retry after failure | [Chat input](docs/chat.md) |
-| Markdown, thinking, tool results, and copying | [Message rendering](docs/messages.md) |
+| Markdown, Mermaid, thinking, tool results, and copying | [Message rendering](docs/messages.md) |
 | Custom providers and the current session's model | [Model settings](docs/models.md) |
 | SSE subscriptions, snapshots, and reconnection | [Streaming state](docs/events.md) |
 | Per-session permissions and allow-once/reject controls | [Permissions and approvals](docs/permissions.md) |

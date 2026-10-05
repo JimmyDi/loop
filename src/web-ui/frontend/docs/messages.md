@@ -9,7 +9,7 @@ User messages use compact spacing before the reply, reasoning section or Looping
 | Content | Behavior |
 | --- | --- |
 | User messages | Text and attachments, with a timestamp and copy icon revealed below on hover |
-| Assistant text | Markdown, syntax highlighting, tables, and KaTeX math |
+| Assistant text | Markdown, syntax highlighting, tables, KaTeX math, and Mermaid diagrams |
 | Thinking | Expandable blocks containing only thinking returned by the model |
 | Tool calls | Direct tool rows with individual status icons; expand a row to inspect parameters and results |
 | Failed messages | Display errorMessage after streaming ends; errors remain visible when reopening history |
@@ -44,7 +44,22 @@ marked and KaTeX convert Markdown, then DOMPurify sanitizes it. Interactive elem
 
 User messages and completed assistant replies reveal a bottom row with the message time and an icon-only copy button on hover or keyboard focus. The row stays visible on touch devices and reserves its space to avoid shifting the conversation when revealed. Times use the interface language and local time zone; hovering over a time shows the full date and time. Attachment-only messages show the time without an empty copy action.
 
-Code-block buttons copy the original code text. The complete assistant message's copy button includes text only, excluding thinking and tool arguments. Message copy buttons use localized **Copy message** and **Copy response** tooltips and accessible labels for user messages and assistant replies, respectively. They show a check on success or an error icon on failure, with localized tooltips and screen-reader feedback. The UI is not a full image, audio, or attachment viewer and does not render Mermaid diagrams.
+Code-block buttons copy the original code text. The complete assistant message's copy button includes text only, excluding thinking and tool arguments. Message copy buttons use localized **Copy message** and **Copy response** tooltips and accessible labels for user messages and assistant replies, respectively. They show a check on success or an error icon on failure, with localized tooltips and screen-reader feedback. The UI is not a full image, audio, or attachment viewer.
+
+### Mermaid Diagrams
+
+Assistant text renders fenced `mermaid` code blocks as diagrams, including restored history and intermediate assistant updates. For example:
+
+```mermaid
+flowchart LR
+  A[Request] --> B[Response]
+```
+
+Mermaid initializes on demand in the browser from the bundled dependency; no model call or remote rendering service is used. Diagrams follow Light, Dark and System appearance, including live system-theme changes. Each preview is a borderless, keyboard-focusable scroll region with no view toggle or source disclosure. Hover over the diagram or focus within it to reveal a top-right copy icon; touch devices keep it visible. The icon button has a transparent background, including on hover, so it blends into the surrounding preview in every theme. Its localized **Copy Mermaid source** tooltip and accessible label identify the action. Clicking it copies only that block's original Mermaid text, preserving whitespace without Markdown fences or generated SVG. After the clipboard confirms success, that button changes to a visible checkmark with a localized **Copied** label for three seconds, then restores the copy icon. Repeated successful copies restart the timer, and each diagram has independent feedback. Failed copies retain the copy icon with localized failure feedback instead of a success check. The button announces the result to screen readers, and the preview stays visible. Replacing the diagram or unmounting the message clears its timer and ignores late clipboard results. **Copy response** still copies the original Markdown, not generated SVG. Ordinary code blocks, user text, thinking and tool output keep their existing behavior.
+
+During streaming, rendering waits for a 200ms pause in text updates. Source stays readable while loading or rendering, and unchanged successful diagrams are reused within the mounted message. Completing a response triggers rendering without that delay. Stale results are ignored after text changes or unmount; queued obsolete work is skipped. An already running Mermaid render cannot be interrupted, but its temporary DOM is removed when it settles. Syntax, size, layout or loading failures preserve the source and do not prevent other blocks from rendering. Completed responses show a localized fallback notice; partial streaming diagrams do not show error notices.
+
+Rendering uses strict security, disables HTML labels and automatic document scanning, protects security/theme settings from diagram configuration, sanitizes generated SVG separately from Markdown, and does not bind diagram callbacks or retain clickable diagram links. Limits are 50,000 source characters and Mermaid's 500-edge limit; oversized or unsupported diagrams remain source. Rich HTML labels, custom icon packs, external diagram/layout plugins, zoom and export controls are not supported. Stored messages and backend/SDK contracts are unchanged.
 
 ## Scrolling and Lifecycle
 
@@ -66,5 +81,9 @@ Complete snapshots come from the server. The browser maintains display state onl
 - [ToolGroup](../components/chat/ToolGroup.tsx) / [tests](../components/chat/ToolGroup.test.tsx).
 - [Content grouping](../components/chat/assistant-content.ts) / [tests](../components/chat/assistant-content.test.ts).
 - [Markdown utilities](../lib/markdown.ts) / [security and formatting tests](../lib/markdown.test.ts).
+- [MarkdownText](../components/chat/MarkdownText.tsx) / [rendering and copy tests](../components/chat/MarkdownText.test.tsx).
+- [Mermaid renderer](../lib/mermaid.ts) / [SVG security and rendering tests](../lib/mermaid.test.ts).
+- [Mermaid copy feedback](../lib/mermaid-copy.ts) / [timer and clipboard tests](../lib/mermaid-copy.test.ts).
+- [useMermaid](../hooks/useMermaid.ts) / [streaming, theme and lifecycle tests](../hooks/useMermaid.test.tsx).
 - [useAutoScroll](../hooks/useAutoScroll.ts) / [tests](../hooks/useAutoScroll.test.tsx).
 - [Tool projection](../../shared/tool-projection.ts) / [tests](../../shared/tool-projection.test.ts).

@@ -35,6 +35,7 @@ export const sessionSummaries = (
       messageCount: state.messages.length,
       userMessageCount: users.length,
       unread: state.unread ?? false,
+      pinnedAt: controller.session.sessionManager.getHeader().pinnedAt,
       title: state.title?.text ?? record?.title,
       isGenerating: operation === "prompt",
       isWaitingForApproval:

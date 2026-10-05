@@ -48,6 +48,17 @@
   opacity: 0;
   pointer-events: none;
 }
+.project-icon-button.action-button.icon {
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 4px;
+  border-radius: 6px;
+}
+.project-icon-button.action-button.icon svg {
+  width: 16px;
+  height: 16px;
+}
 .project-heading:hover .project-actions,
 .project-heading:hover > .project-icon-button,
 .project-heading:focus-within .project-actions,

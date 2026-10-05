@@ -86,6 +86,10 @@ export class SessionManager {
       !Number.isFinite(Date.parse(header.createdAt)) ||
       !Number.isFinite(Date.parse(header.updatedAt)) ||
       (header.unread !== undefined && typeof header.unread !== "boolean") ||
+      (header.pinnedAt !== undefined &&
+        (typeof header.pinnedAt !== "string" ||
+          !Number.isFinite(Date.parse(header.pinnedAt)) ||
+          new Date(header.pinnedAt).toISOString() !== header.pinnedAt)) ||
       (header.permissionPreset !== undefined && !isPermissionPreset(header.permissionPreset)) ||
       (header.version === 2 && !isPermissionPreset(header.permissionPreset)) ||
       (header.title !== undefined && !validTitle(header.title)) ||
@@ -183,6 +187,26 @@ export class SessionManager {
 
   getRunTimings(): SessionRunTiming[] {
     return structuredClone((this.pending ?? this.data).header.runTimings ?? []);
+  }
+
+  /** Persist pin metadata without changing conversation activity or pending history. */
+  setPinned(pinned: boolean): Promise<string | undefined> {
+    if (typeof pinned !== "boolean") return Promise.reject(new Error("Invalid pinned state"));
+    return this.serialize(async () => {
+      const pinnedAt = pinned ? (this.data.header.pinnedAt ?? new Date().toISOString()) : undefined;
+      if (pinnedAt === this.data.header.pinnedAt) return pinnedAt;
+      const next = { ...this.data, header: { ...this.data.header } };
+      if (pinnedAt) next.header.pinnedAt = pinnedAt;
+      else delete next.header.pinnedAt;
+      await this.write(next);
+      this.data = next;
+      // A commit can be prepared while this metadata write awaits disk.
+      if (this.pending) {
+        if (pinnedAt) this.pending.header.pinnedAt = pinnedAt;
+        else delete this.pending.header.pinnedAt;
+      }
+      return pinnedAt;
+    });
   }
 
   getRuntimeContexts(): RuntimeContextSnapshot[] {

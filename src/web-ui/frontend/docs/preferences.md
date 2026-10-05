@@ -1,6 +1,6 @@
 # Interface Preferences
 
-The browser stores layout, language, theme, and unsent drafts. The backend stores project registration, provider credentials, the default permission for new Web sessions, session read receipts, and complete session history.
+The browser stores layout, language, theme, and unsent drafts. The backend stores project registration, provider credentials, the default permission for new Web sessions, session pins, read receipts, and complete session history.
 
 ## Layout and Language
 
@@ -40,7 +40,7 @@ Theme colors use CSS `light-dark()` with `color-scheme`, requiring a modern brow
 
 ## Local State
 
-All persistent browser keys use the `loop.web.` prefix and belong to the browser origin. Different ports or browsers do not share these browser preferences. The Permission default and session read receipts are stored on the server and are shared by browsers using the same Loop server.
+All persistent browser keys use the `loop.web.` prefix and belong to the browser origin. Different ports or browsers do not share these browser preferences. The Permission default, session pins and read receipts are stored on the server and are shared by browsers using the same Loop server.
 
 | State | Storage and restoration |
 | --- | --- |
@@ -53,6 +53,8 @@ All persistent browser keys use the `loop.web.` prefix and belong to the browser
 | requests | Store unconfirmed text, images, requestId and streamId for manual retry |
 | Unsent images | Memory only per session; retained across session switches, discarded on refresh |
 | Session display snapshots | Memory only; reload from the backend after refresh |
+
+Pins are optional pinnedAt timestamps in the session header and are shared across browsers using the same server; the UI derives pin state and order from project summaries, with no browser pin cache or migration.
 
 Unread is a boolean in the server's session header. The page renders that flag directly from session snapshots or list summaries. A read request carries the displayed message count to guard against stale requests; there is no read-position cache, separate receipt file or browser persistence. See [unread indicators](projects.md).
 

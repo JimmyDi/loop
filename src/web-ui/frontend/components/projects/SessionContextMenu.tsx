@@ -2,18 +2,23 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import type { useProjectMenu } from "../../hooks/useProjectMenu";
+import { SessionPinIcon } from "./SessionPinIcon";
 import "./SessionContextMenu.css";
 
 export const SessionContextMenu = ({
   menu,
   title,
   disabled,
+  pinned = false,
+  pinDisabled = false,
   onChoose,
 }: {
   menu: ReturnType<typeof useProjectMenu>;
   title: string;
   disabled: boolean;
-  onChoose(action: "rename" | "archive" | "delete"): void;
+  pinned?: boolean;
+  pinDisabled?: boolean;
+  onChoose(action: "rename" | "pin" | "archive" | "delete"): void;
 }) => {
   const { t } = useTranslation();
   return createPortal(
@@ -34,6 +39,7 @@ export const SessionContextMenu = ({
       {(
         [
           ["rename", "rename", "M16 3a2.1 2.1 0 0 1 3 3L8 17l-5 1 1-5L16 3Zm-2 2 3 3"],
+          ["pin", pinned ? "unpinSession" : "pinSession", ""],
           [
             "archive",
             "archiveSession",
@@ -47,12 +53,16 @@ export const SessionContextMenu = ({
           type="button"
           role="menuitem"
           tabIndex={-1}
-          disabled={disabled}
+          disabled={action === "pin" ? pinDisabled : disabled}
           onClick={() => onChoose(action)}
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d={path} />
-          </svg>
+          {action === "pin" ? (
+            <SessionPinIcon pinned={pinned} />
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d={path} />
+            </svg>
+          )}
           {t(label)}
         </button>
       ))}

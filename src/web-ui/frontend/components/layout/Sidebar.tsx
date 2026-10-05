@@ -5,6 +5,7 @@ import { useProjects } from "../../hooks/useProjects";
 import { useWorkspace } from "../../state/workspace-store";
 import { AddProjectDialog } from "../projects/AddProjectDialog";
 import { ProjectItem } from "../projects/ProjectItem";
+import { PinnedSessions } from "../projects/PinnedSessions";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { LoopIcon } from "../ui/LoopIcon";
@@ -49,59 +50,62 @@ export const Sidebar = () => {
           ×
         </ActionButton>
       </div>
-      <div className="sidebar-heading">
-        <button
-          type="button"
-          className="sidebar-projects-toggle"
-          aria-expanded={projectsExpanded}
-          aria-controls={projectsId}
-          onClick={() => setProjectsExpanded((expanded) => !expanded)}
-        >
-          <span>{t("projects")}</span>
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
+      <div className="sidebar-scroll">
+        <PinnedSessions projects={projects.data ?? []} />
+        <div className="sidebar-heading">
+          <button
+            type="button"
+            className="sidebar-projects-toggle"
+            aria-expanded={projectsExpanded}
+            aria-controls={projectsId}
+            onClick={() => setProjectsExpanded((expanded) => !expanded)}
           >
-            <path d={projectsExpanded ? "m4 6 4 4 4-4" : "m6 4 4 4-4 4"} />
-          </svg>
-        </button>
-        <ActionButton
-          className="icon ghost"
-          aria-label={t("addProject")}
-          onClick={() => setAdding(true)}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            aria-hidden="true"
+            <span>{t("projects")}</span>
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d={projectsExpanded ? "m4 6 4 4 4-4" : "m6 4 4 4-4 4"} />
+            </svg>
+          </button>
+          <ActionButton
+            className="icon ghost"
+            aria-label={t("addProject")}
+            onClick={() => setAdding(true)}
           >
-            <path d="M12 4v16M4 12h16" />
-          </svg>
-        </ActionButton>
-      </div>
-      <div className="sidebar-projects" id={projectsId} ref={projectList}>
-        {projectsExpanded && (
-          <>
-            {projects.isPending && <p>{t("loading")}</p>}
-            <ErrorNotice error={projects.error} />
-            {projects.data?.map((project) => (
-              <ProjectItem key={project.id} project={project} />
-            ))}
-            {projects.data?.length === 0 && (
-              <ActionButton className="sidebar-empty" onClick={() => setAdding(true)}>
-                {t("noProjects")}
-              </ActionButton>
-            )}
-          </>
-        )}
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M12 4v16M4 12h16" />
+            </svg>
+          </ActionButton>
+        </div>
+        <div className="sidebar-projects" id={projectsId} ref={projectList}>
+          {projectsExpanded && (
+            <>
+              {projects.isPending && <p>{t("loading")}</p>}
+              <ErrorNotice error={projects.error} />
+              {projects.data?.map((project) => (
+                <ProjectItem key={project.id} project={project} />
+              ))}
+              {projects.data?.length === 0 && (
+                <ActionButton className="sidebar-empty" onClick={() => setAdding(true)}>
+                  {t("noProjects")}
+                </ActionButton>
+              )}
+            </>
+          )}
+        </div>
       </div>
       <footer>
         <ActionButton

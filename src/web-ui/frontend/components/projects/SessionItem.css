@@ -34,7 +34,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.session-item-archive.action-button {
+.session-item-action.action-button {
   width: 0;
   margin-right: 0;
   padding: 0;
@@ -42,19 +42,28 @@
   pointer-events: none;
   overflow: hidden;
 }
-.session-item-row:hover .session-item-archive.action-button,
-.session-item-row:focus-within .session-item-archive.action-button,
-.session-item-row[data-menu-open="true"] .session-item-archive.action-button {
-  width: 30px;
+.session-item-action.action-button.icon {
+  height: 24px;
+  min-height: 24px;
+  border-radius: 6px;
+}
+.session-item-action.action-button.icon svg {
+  width: 16px;
+  height: 16px;
+}
+.session-item-row:hover .session-item-action.action-button,
+.session-item-row:focus-within .session-item-action.action-button,
+.session-item-row[data-menu-open="true"] .session-item-action.action-button {
+  width: 24px;
   margin-right: 6px;
-  padding: 5px;
+  padding: 4px;
   opacity: 1;
   pointer-events: auto;
 }
-.session-item-archive:disabled {
+.session-item-action:disabled {
   cursor: not-allowed;
 }
-.session-item-archive svg {
+.session-item-action svg {
   fill: none;
   stroke: currentColor;
   stroke-width: 1.6;
@@ -115,10 +124,10 @@
   }
 }
 @media (hover: none) {
-  .session-item-archive.action-button {
-    width: 30px;
+  .session-item-action.action-button {
+    width: 24px;
     margin-right: 6px;
-    padding: 5px;
+    padding: 4px;
     opacity: 1;
     pointer-events: auto;
   }

@@ -276,3 +276,101 @@ test("HTTP unread headers survive restart and reject stale receipts across brows
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("HTTP pins live in session headers, synchronize lists and survive restart without model calls", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".pin-http-"));
+  const projects = new ProjectStore(join(root, "projects.json"));
+  const project = await projects.add(root, "Example");
+  const other = await projects.add(await mkdtemp(join(root, "other-")), "Other");
+  const settings = new ProviderSettings(join(root, "provider.json"));
+  const makeRegistry = () => new SessionRegistry(projects, createLoopBridge(root, settings));
+  let registry = makeRegistry();
+  let route = createRouter(registry);
+  const first = await registry.create(project.id);
+  const id = first.session.sessionId;
+  const manager = first.session.sessionManager;
+  await manager.commit([{ role: "user", content: "Example", timestamp: 1 }]);
+  // Reopen the saved session through the real bridge, without a generation request.
+  await registry.close();
+  registry = makeRegistry();
+  route = createRouter(registry);
+  const pin = (
+    pinned: unknown,
+    workspaceId = project.id,
+    sessionId = id,
+    method = "PUT",
+    origin?: string,
+  ) =>
+    route(
+      new Request("http://localhost/api/sessions/" + sessionId + "/pin", {
+        method,
+        headers: { "Content-Type": "application/json", ...(origin ? { origin } : {}) },
+        body: method === "GET" ? undefined : JSON.stringify({ workspaceId, pinned }),
+      }),
+    );
+  const list = async (archived = false) =>
+    (
+      await route(
+        new Request(
+          "http://localhost/api/sessions?workspaceId=" +
+            project.id +
+            (archived ? "&archived=true" : ""),
+        ),
+      )
+    ).json();
+  try {
+    const original = await Bun.file(manager.sessionFile!).text();
+    const firstBrowser: ListFrame[] = [];
+    const secondBrowser: ListFrame[] = [];
+    registry.events.connect((event) => firstBrowser.push(event));
+    registry.events.connect((event) => secondBrowser.push(event));
+    for (const invalid of [null, "true", 1, undefined])
+      expect((await pin(invalid)).status).toBe(400);
+    expect((await pin(true, project.id, id, "GET")).status).toBe(405);
+    expect((await pin(true, project.id, id, "PUT", "https://example.test")).status).toBe(403);
+    expect((await pin(true, other.id)).status).toBe(404);
+    expect((await pin(true, project.id, "missing")).status).toBe(404);
+    const response = await pin(true);
+    expect(response.status).toBe(200);
+    const { pinnedAt } = await response.json();
+    expect(pinnedAt).toBe(new Date(pinnedAt).toISOString());
+    expect(await (await pin(true)).json()).toEqual({ pinnedAt });
+    expect((await list())[0]).toMatchObject({ id, pinnedAt });
+    const saved = await Bun.file(manager.sessionFile!).text();
+    expect(JSON.parse(saved.split("\n")[0]!)).toEqual({
+      ...JSON.parse(original.split("\n")[0]!),
+      pinnedAt,
+    });
+    expect(saved.split("\n").slice(1)).toEqual(original.split("\n").slice(1));
+    expect(firstBrowser).toEqual(secondBrowser);
+    expect(secondBrowser.at(-1)).toMatchObject({
+      type: "sessions.changed",
+      workspaceId: project.id,
+    });
+    const controller = await registry.get(id);
+    // Pin metadata is independent of an active generation operation.
+    controller.snapshot.operation = "prompt";
+    expect((await pin(false)).status).toBe(200);
+    expect(controller.snapshot.operation).toBe("prompt");
+    expect((await list())[0].pinnedAt).toBeUndefined();
+    controller.snapshot.operation = "idle";
+    const repinned = await (await pin(true)).json();
+    await registry.archive(project.id, [id], true);
+    expect(await list()).toEqual([]);
+    expect((await list(true))[0].pinnedAt).toBe(repinned.pinnedAt);
+    await registry.archive(project.id, [id], false);
+    await registry.close();
+    registry = makeRegistry();
+    route = createRouter(registry);
+    expect((await list())[0].pinnedAt).toBe(repinned.pinnedAt);
+    expect(await (await pin(false)).json()).toEqual({ pinnedAt: null });
+    expect((await SessionManager.open(manager.sessionFile!)).getHeader().pinnedAt).toBeUndefined();
+    await pin(true);
+    await registry.archive(project.id, [id], "delete-session");
+    expect(await list()).toEqual([]);
+    expect(await Bun.file(manager.sessionFile!).exists()).toBe(false);
+  } finally {
+    await registry.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});

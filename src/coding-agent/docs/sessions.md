@@ -24,6 +24,7 @@ SDK consumers supply one of these managers to `createAgentSession({ sessionManag
 | `SessionManager.continueRecent(cwd, sessionDir?)` | Resume most recent or create. |
 | `SessionManager.list(cwd, sessionDir?)` | List metadata for the canonical workspace, newest first. |
 | `manager.markRead(messageCount)` | Persist unread: false only when the viewed message count matches saved history; return false for stale counts. |
+| manager.setPinned(pinned) | Persist optional header pinnedAt, preserving history and activity; return its timestamp or undefined after unpinning. |
 
 List summaries include messageCount and userMessageCount so hosts can distinguish drafts from conversations. Draft metadata edits remain in memory; the first commit containing any user message, including attachments, creates the history file with the same ID and accumulated metadata. A failed first save retains pending history for flush. Web opts into drafts; the default CLI/SDK create method still persists empty sessions immediately. Uncommitted drafts do not survive process exit.
 
@@ -41,7 +42,7 @@ New completed output also sets header unread to true; runs without output and re
 
 [Session titles](session-titles.md) are independent header metadata and may finish after a prompt. History/model/title writes serialize within one manager. Call `waitForTitle()` before disposal to retain generated titles, or `abort()` to cancel and drain both the main run and title work. Runtime replacement cancels and drains old title work before opening another writable session.
 
-[Approval requests](approvals.md) are session-owned, in-memory interaction state. Pending requests block new prompts, metadata changes and session replacement until settled or cancelled. Abort cancels them, and run finalization drains outstanding requests before saving. Idle disposal cancels them before clearing observers. No approval request, decision or handler is restored from session storage; rebind the handler when replacing a session.
+[Approval requests](approvals.md) are session-owned, in-memory interaction state. Pending requests block new prompts, permission/model/title changes and session replacement until settled or cancelled. Abort cancels them, and run finalization drains outstanding requests before saving. Idle disposal cancels them before clearing observers. No approval request, decision or handler is restored from session storage; rebind the handler when replacing a session.
 
 ## Execution timing
 

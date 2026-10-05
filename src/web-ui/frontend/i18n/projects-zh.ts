@@ -1,4 +1,9 @@
 export const projectsZh = {
+  pinnedSessions: "已置顶",
+  pinSession: "置顶",
+  unpinSession: "取消置顶",
+  pinChat: "置顶 {{name}}",
+  unpinChat: "取消置顶 {{name}}",
   showMoreSessions: "显示更多",
   unread: "未读",
   projectOptions: "{{name}} 的选项",

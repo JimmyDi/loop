@@ -77,7 +77,16 @@ export const createLoopBridge = (
     list: async (project) => {
       const archived = await archiveFor(project).list();
       return (await SessionManager.list(project.cwd, getSessionDir(project.cwd, agentDir))).map(
-        ({ id, createdAt, updatedAt, messageCount, userMessageCount, title, unread }) => ({
+        ({
+          id,
+          createdAt,
+          updatedAt,
+          messageCount,
+          userMessageCount,
+          title,
+          unread,
+          pinnedAt,
+        }) => ({
           id,
           workspaceId: project.id,
           createdAt,
@@ -85,6 +94,7 @@ export const createLoopBridge = (
           messageCount,
           userMessageCount,
           unread: unread ?? false,
+          pinnedAt,
           title: title?.text,
           archived: archived.has(id),
         }),

@@ -469,3 +469,97 @@ test("read writes serialize with commits and failed saves retain unread for retr
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("pin metadata persists in the header without changing history or activity", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".pin-storage-"));
+  try {
+    const manager = SessionManager.draft(root, join(root, "history"));
+    expect(manager.getHeader().pinnedAt).toBeUndefined();
+    const pinnedAt = await manager.setPinned(true);
+    expect(pinnedAt).toBe(new Date(pinnedAt!).toISOString());
+    expect(await manager.setPinned(true)).toBe(pinnedAt);
+    expect(await Bun.file(manager.sessionFile!).exists()).toBe(false);
+    await manager.commit([{ role: "user", content: "Example", timestamp: 1 }]);
+    const before = await Bun.file(manager.sessionFile!).text();
+    const header = manager.getHeader();
+    expect((await SessionManager.open(manager.sessionFile!)).getHeader().pinnedAt).toBe(pinnedAt);
+    expect((await SessionManager.list(root, join(root, "history")))[0]?.pinnedAt).toBe(pinnedAt);
+    expect(await manager.setPinned(false)).toBeUndefined();
+    const after = await Bun.file(manager.sessionFile!).text();
+    const { pinnedAt: _pin, ...unpinnedHeader } = JSON.parse(before.split("\n")[0]!);
+    expect(JSON.parse(after.split("\n")[0]!)).toEqual(unpinnedHeader);
+    expect(after.split("\n").slice(1)).toEqual(before.split("\n").slice(1));
+    expect(await manager.setPinned(false)).toBeUndefined();
+    for (const invalid of [
+      null,
+      true,
+      1,
+      "",
+      "invalid",
+      "2026-02-30T00:00:00.000Z",
+      "2026-01-01",
+    ]) {
+      await Bun.write(
+        manager.sessionFile!,
+        [JSON.stringify({ ...header, pinnedAt: invalid }), ...after.split("\n").slice(1)].join(
+          "\n",
+        ),
+      );
+      await expect(SessionManager.open(manager.sessionFile!)).rejects.toThrow(
+        "Invalid session metadata",
+      );
+    }
+    await expect(manager.setPinned("true" as unknown as boolean)).rejects.toThrow(
+      "Invalid pinned state",
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("pin writes serialize with history and metadata; failed pin and history saves remain recoverable", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".pin-race-"));
+  const storage = join(root, "history");
+  const user = { role: "user" as const, content: "Example", timestamp: 1 };
+  try {
+    const manager = await SessionManager.create(root, storage);
+    await manager.commit([user]);
+    const pinning = manager.setPinned(true);
+    await Promise.resolve();
+    await Promise.all([pinning, manager.commit([user, user])]);
+    const pinnedAt = await pinning;
+    expect((await SessionManager.open(manager.sessionFile!)).getHeader().pinnedAt).toBe(pinnedAt);
+    const unpinning = manager.setPinned(false);
+    await Promise.resolve();
+    await Promise.all([unpinning, manager.commit([user, user, user])]);
+    expect((await SessionManager.open(manager.sessionFile!)).getHeader().pinnedAt).toBeUndefined();
+    await Promise.all([
+      manager.commit([user]),
+      manager.setPinned(true),
+      manager.setTitle({ text: "Manual title", source: "user", messageIndices: [] }),
+      manager.markRead(1),
+    ]);
+    const accepted = manager.getHeader().pinnedAt;
+    expect((await SessionManager.open(manager.sessionFile!)).getHeader()).toMatchObject({
+      pinnedAt: accepted,
+      title: { text: "Manual title" },
+    });
+    await rm(storage, { recursive: true });
+    await Bun.write(storage, "Block writes");
+    await expect(manager.setPinned(false)).rejects.toThrow();
+    expect(manager.getHeader().pinnedAt).toBe(accepted);
+    await expect(manager.commit([user, user])).rejects.toThrow();
+    expect(manager.hasPendingSave).toBe(true);
+    await rm(storage);
+    await manager.setPinned(false);
+    expect(manager.hasPendingSave).toBe(true);
+    expect(manager.messages).toEqual([user, user]);
+    await manager.flush();
+    const restored = await SessionManager.open(manager.sessionFile!);
+    expect(restored.getHeader().pinnedAt).toBeUndefined();
+    expect(restored.messages).toEqual([user, user]);
+    expect(manager.hasPendingSave).toBe(false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

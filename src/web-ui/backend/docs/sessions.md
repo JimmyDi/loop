@@ -17,6 +17,7 @@ Each sessionId has one writable AgentSession in the current Web process. Web man
 | POST /api/sessions/:id/title | Regenerate from saved user text; return the snapshot on completion |
 | PUT /api/sessions/:id/permission | Persist a supported session preset while idle |
 | PUT /api/sessions/:id/read | Accept workspaceId and a nonnegative safe-integer messageCount; clear header unread only when the viewed count matches nonempty saved history and return { read: boolean } |
+| PUT /api/sessions/:id/pin | Accept workspaceId and boolean pinned; persist header pinnedAt and return { pinnedAt: string or null } |
 | POST /api/sessions/:id/approvals/:requestId | Answer a pending request with allowed-once or rejected |
 
 A complete snapshot contains model identity, supported efforts, selected effort, SDK state, operation, tool projection, optional runId/requestId and compact lastApproval outcome metadata. operation is idle, prompt, model, flush, title or permission; it does not indicate whether model text has started arriving.
@@ -26,6 +27,8 @@ Session list summaries include userMessageCount and isGenerating, derived from s
 Web enables first-prompt title generation through coding-agent. List summaries include optional title text; snapshots expose title source and optional titleError in SDK state. Background title events publish session.state without changing the operation or opening a run. Explicit title commands share the command lock. Provider reconfiguration and project removal cancel and drain auxiliary work before changing its runtime or disposing sessions. See [session titles](../../../coding-agent/docs/session-titles.md).
 
 ## Creation and Restoration
+
+Session summaries expose optional pinnedAt from the saved header, including the current manager's accepted metadata for loaded sessions. PUT /api/sessions/:id/pin validates project membership and boolean pinned, shares the session's write queue, and makes no generation call. It remains available during a prompt or approval wait without changing that operation. true preserves an existing timestamp; false removes it. The endpoint returns 400 for invalid input, 404 for unknown projects/sessions or a mismatched owner, 405 for other methods, and enforces the same local-origin request checks as other mutations. Project removal, deletion, server shutdown and provider reconfiguration are coordinated by the existing project operation guard. Persistence errors leave accepted metadata intact and return an error. Success publishes sessions.changed so every browser page refreshes its summaries; list reconnects resynchronize from headers. Archive and project removal preserve session files and their pins; deletion removes both. There is no browser-state import, fallback or separate pin file.
 
 List summaries include isWaitingForApproval, derived from the live session’s pending requests. Saved history and sessions without pending requests report false; pending approvals are not restored after server restart. Approval request and resolution events refresh background lists through session.state notifications.
 

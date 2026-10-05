@@ -5,7 +5,7 @@ import "../../i18n/setup";
 import { SessionContextMenu } from "./SessionContextMenu";
 import type { useProjectMenu } from "../../hooks/useProjectMenu";
 
-test("session menu exposes only the three requested actions", async () => {
+test("session menu places Pin below Rename and supports Unpin while a session is busy", async () => {
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, { window, document: window.document });
@@ -28,6 +28,7 @@ test("session menu exposes only the three requested actions", async () => {
     );
     expect(ui.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
       "Rename",
+      "Pin",
       "Archive",
       "Permanently delete",
     ]);
@@ -38,11 +39,14 @@ test("session menu exposes only the three requested actions", async () => {
         menu={menu}
         title="Example"
         disabled={true}
+        pinned={true}
         onChoose={(action) => chosen.push(action)}
       />,
     );
     fireEvent.click(ui.getByRole("menuitem", { name: "Permanently delete" }));
     expect(chosen).toEqual(["archive"]);
+    fireEvent.click(ui.getByRole("menuitem", { name: "Unpin" }));
+    expect(chosen).toEqual(["archive", "pin"]);
   } finally {
     cleanup();
     Object.assign(globalThis, previous);

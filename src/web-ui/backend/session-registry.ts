@@ -57,6 +57,17 @@ export class SessionRegistry {
     });
   }
 
+  setPinned(workspaceId: string, id: string, pinned: boolean): Promise<string | undefined> {
+    return this.withProject(workspaceId, async () => {
+      if (typeof pinned !== "boolean") throw new HttpError(400, "invalid_pinned_state");
+      const controller = await this.get(id);
+      if (controller.workspaceId !== workspaceId) throw new HttpError(404, "session_not_found");
+      const pinnedAt = await controller.session.sessionManager.setPinned(pinned);
+      this.events.publish({ type: "sessions.changed", workspaceId });
+      return pinnedAt;
+    });
+  }
+
   async get(id: string): Promise<SessionController> {
     if (this.closing) throw new HttpError(503, "server_closing");
 

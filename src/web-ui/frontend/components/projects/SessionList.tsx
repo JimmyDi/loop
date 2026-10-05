@@ -9,18 +9,19 @@ import "./SessionList.css";
 export const SessionList = ({ sessions }: { sessions: SessionSummary[] }) => {
   const { t } = useTranslation();
   const [visibleCount, setVisibleCount] = useState(5);
+  const unpinned = sessions.filter((session) => !session.pinnedAt);
 
   return (
     <ul className="session-list">
       {!sessions.length && <li className="session-empty">{t("noSessions")}</li>}
-      {sessions.slice(0, visibleCount).map((session) => (
+      {unpinned.slice(0, visibleCount).map((session) => (
         <SessionItem key={session.id} session={session} />
       ))}
-      {sessions.length > visibleCount && (
+      {unpinned.length > visibleCount && (
         <li className="session-list-more">
           <ActionButton
             className="session-show-more ghost"
-            onClick={() => setVisibleCount((count) => Math.min(count + 10, sessions.length))}
+            onClick={() => setVisibleCount((count) => Math.min(count + 10, unpinned.length))}
           >
             {t("showMoreSessions")}
           </ActionButton>

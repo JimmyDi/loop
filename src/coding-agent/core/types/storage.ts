@@ -15,6 +15,7 @@ export type SessionHeader = {
   createdAt: string;
   updatedAt: string;
   unread?: boolean;
+  pinnedAt?: string;
   model?: ModelSelection;
   title?: SessionTitle;
   runTimings?: SessionRunTiming[];

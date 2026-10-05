@@ -1,0 +1,22 @@
+.pinned-sessions {
+  padding-top: 18px;
+}
+.pinned-sessions h2 {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  margin: 0;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 400;
+  color: color-mix(in srgb, var(--ink-muted) 65%, transparent);
+}
+.pinned-sessions .session-item-open {
+  padding-left: 12px;
+}
+.pinned-sessions .session-rename {
+  padding-left: 7px;
+}
+.pinned-sessions .session-list-waiting {
+  left: 1px;
+}

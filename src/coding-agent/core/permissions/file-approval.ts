@@ -4,7 +4,7 @@ import { dirname } from "node:path";
 import type { ToolApprovalContext } from "../approvals/tool-approvals";
 import { PermissionError } from "./permission-error";
 import type { PermissionPolicy } from "./policy";
-import { canonicalPath, existingAncestor } from "./paths";
+import { canonicalPath, existingAncestor, isWithin } from "./paths";
 
 export type FileSnapshot = {
   bytes: Uint8Array | null;
@@ -58,13 +58,18 @@ export const approveFileWrite = async (
   const result = await approval.request(
     {
       kind: "file-write",
+      permissionMode: isWithin(target, inspected.policy.workspaceRoot)
+        ? "workspace-write"
+        : "danger-full-access",
       arguments: structuredClone(approval.arguments),
       workspaceRoot: policy.workspaceRoot,
       targetPath: target,
       beforeSha256: before.sha256,
       afterSha256,
     },
-    inspected.denial,
+    typeof approval.arguments.justification === "string" && approval.arguments.justification.trim()
+      ? approval.arguments.justification.trim()
+      : inspected.denial,
   );
   signal.throwIfAborted();
   if (result.outcome !== "allowed-once")

@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, jest, test } from "bun:test";
 
 import { ApprovalService } from "./approval-service";
 import type { ApprovalEvent, ApprovalHandler, ApprovalRequest } from "./types";
@@ -27,7 +27,7 @@ test("requests have isolated snapshots and accept exactly one matching decision"
   mutable.reason = "changed";
   const request = service.pending[0]!;
   expect(request).toMatchObject({ ...input, sessionId: "test-session", policy: "ask" });
-  expect(request.expiresAt - request.createdAt).toBe(120_000);
+  expect(request.expiresAt).toBeNull();
   Object.assign(request, { toolName: "changed" });
   Object.assign(delivered!, { toolCallId: "changed" });
   expect(service.pending[0]).toMatchObject(input);
@@ -184,7 +184,37 @@ test("cancellation and disposal discard late responses and settle once", async (
   expect(service.pending).toEqual([]);
 });
 
-test("timeouts fail closed even when a response arrives before an overdue timer callback", async () => {
+test("default and explicit indefinite requests still accept one decision after a day of waiting", async () => {
+  jest.useFakeTimers();
+  const events: ApprovalEvent[] = [];
+  const service = new ApprovalService(
+    "test-session",
+    () => "ask",
+    (event) => events.push(event),
+  );
+  service.registerHandler(() => {});
+  try {
+    for (const options of [{}, { timeoutMs: null }]) {
+      const waiting = service.request(input, options);
+      const request = service.pending[0]!;
+      expect(request.expiresAt).toBeNull();
+      expect(jest.getTimerCount()).toBe(0);
+      const count = events.length;
+      jest.advanceTimersByTime(86_400_000);
+      await Promise.resolve();
+      expect(events).toHaveLength(count);
+      expect(service.pending).toEqual([request]);
+      expect(service.respond(response(request))).toBe(true);
+      expect((await waiting).outcome).toBe("allowed-once");
+      expect(service.respond(response(request))).toBe(false);
+    }
+  } finally {
+    service.dispose();
+    jest.useRealTimers();
+  }
+});
+
+test("explicit timeouts fail closed even when a response arrives before an overdue timer callback", async () => {
   const service = new ApprovalService(
     "test-session",
     () => "ask",
@@ -193,6 +223,7 @@ test("timeouts fail closed even when a response arrives before an overdue timer 
   service.registerHandler(() => {});
   const waiting = service.request(input, { timeoutMs: 5 });
   const request = service.pending[0]!;
+  expect(request.expiresAt).toBe(request.createdAt + 5);
   expect((await waiting).outcome).toBe("timed-out");
   expect(service.respond(response(request))).toBe(false);
   const delayed = service.request(input, { timeoutMs: 5 });

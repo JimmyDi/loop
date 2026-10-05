@@ -17,8 +17,10 @@ SDK callers use `createAgentSession({ tools: ["read"] })` or `tools: []`. Duplic
 | --- | --- | --- |
 | `read` | Required `path`; optional positive integer `offset` and `limit`. | Text starting at a 1-based line offset. NUL-containing files reject. |
 | `bash` | Required `command`; optional `timeout` in seconds, at least 0.01; optional `sandbox_permissions`: use_default or require_escalated, with nonempty `justification` required for escalation. | Combined stdout/stderr, or an error containing failure output. |
-| `edit` | Required `path` and non-empty `edits: [{ oldText, newText }]`. | Applies unique, non-overlapping exact replacements. |
-| `write` | Required `path` and `content`. | Creates or replaces a file, creating parent directories. |
+| `edit` | Required `path` and non-empty `edits: [{ oldText, newText }]`; optional `justification` (1–240 characters) for the approval explanation. | Applies unique, non-overlapping exact replacements. |
+| `write` | Required `path` and `content`; optional `justification` (1–240 characters) for the approval explanation. | Creates or replaces a file, creating parent directories. |
+
+When a write or edit needs approval, the model is instructed to supply a brief justification in the user's language. It is shown as plain text, with a policy-generated reason when omitted. It cannot change the permission preset or authorize execution; no extra model call is made to summarize it. Bash escalation already requires a justification and uses it as the approval explanation.
 
 Every edit matches against the original file. An absent or repeated `oldText`, overlapping matches, or an empty `oldText` fails. Mutations to the same canonical path are serialized within this process, including dangling symlink aliases. A waiting approval holds that path until it settles. Operations queued behind it can cancel immediately without executing later; active mutations still finish cleanup before releasing their slot.
 
@@ -36,7 +38,7 @@ The tools check the Agent signal. Bash terminates its process group on cancellat
 
 Relative paths resolve from cwd; absolute and home-relative paths are accepted subject to the effective [permission preset](permissions.md). Managed sessions and standalone mutating tool factories default to read-only. Select workspace-write explicitly to allow ordinary workspace mutations. Managed write/edit calls can request [approval](approvals.md) for one exact file change outside the preset; protected storage remains denied. Standalone factories have no session approval context. File tools use atomic regular-file replacement, preserving mode bits but not hard-link identity or extended metadata. Reads remain unconfined.
 
-Bash applies an operating-system sandbox on macOS/Linux by default. An explicit require_escalated request asks for one unsandboxed command with host filesystem, network and environment access before dispatch. It never retries a failed command automatically. A full-access session already bypasses these restrictions. Missing or rejecting handlers, timeout and cancellation prevent dispatch. Web/CLI approval controls are not implemented yet; SDK hosts register a session handler and submit decisions. A model request for escalation does not itself authorize execution.
+Bash applies an operating-system sandbox on macOS/Linux by default. An explicit require_escalated request asks for one unsandboxed command with host filesystem, network and environment access before dispatch. It never retries a failed command automatically. A full-access session already bypasses these restrictions. Missing or rejecting handlers, timeout and cancellation prevent dispatch. Web and interactive CLI provide approval controls; SDK hosts register a session handler and submit decisions. A model request for escalation does not itself authorize execution.
 
 ## Source
 

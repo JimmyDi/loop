@@ -15,14 +15,18 @@ Each sessionId has one writable AgentSession in the current Web process. Web man
 | PUT /api/sessions/:id/model | Accept provider and id; return a snapshot after switching |
 | PUT /api/sessions/:id/title | Accept nonempty title; normalize, save and pin it against automatic generation |
 | POST /api/sessions/:id/title | Regenerate from saved user text; return the snapshot on completion |
+| PUT /api/sessions/:id/permission | Persist a supported session preset while idle |
+| POST /api/sessions/:id/approvals/:requestId | Answer a pending request with allowed-once or rejected |
 
-A complete snapshot contains model identity, supported efforts, selected effort, SDK state, operation, tool projection, and optional runId/requestId. operation is idle, prompt, model, flush, or title; it does not indicate whether model text has started arriving.
+A complete snapshot contains model identity, supported efforts, selected effort, SDK state, operation, tool projection, optional runId/requestId and compact lastApproval outcome metadata. operation is idle, prompt, model, flush, title or permission; it does not indicate whether model text has started arriving.
 
 Session list summaries include userMessageCount and isGenerating, derived from saved history and the current Web process's live session state. Drafts with no user messages are omitted from the default list. Unloaded historical sessions return isGenerating: false. The first completed user-message event publishes a sessions.changed notification on the [list stream](events.md#list-change-notifications), so the sidebar item appears while the response is still streaming, even on pages viewing another session. Archived listings continue to include older empty archived records for management.
 
 Web enables first-prompt title generation through coding-agent. List summaries include optional title text; snapshots expose title source and optional titleError in SDK state. Background title events publish session.state without changing the operation or opening a run. Explicit title commands share the command lock. Provider reconfiguration and project removal cancel and drain auxiliary work before changing its runtime or disposing sessions. See [session titles](../../../coding-agent/docs/session-titles.md).
 
 ## Creation and Restoration
+
+List summaries include isWaitingForApproval, derived from the live session’s pending requests. Saved history and sessions without pending requests report false; pending approvals are not restored after server restart. Approval request and resolution events refresh background lists through session.state notifications.
 
 List summaries include optional latestCompletedTurn: the zero-based user-message position of the most recent finished run containing output after its user message. It derives from existing runTimings and message counts, remains stable across saves and title/model changes, and is available for unloaded saved history. Runs without output and legacy history without timings omit it. The frontend combines it with isGenerating and local read receipts to show unread dots; no read state is written to session history.
 
@@ -34,7 +38,7 @@ New sessions use the valid remembered Web model/effort or first configured model
 
 ## Submission and Mutual Exclusion
 
-Managed SDK sessions expose state.permissionPreset in snapshots. New sessions default to read-only (or the configured SDK settings default); restored sessions retain their preset, with restricted migration for legacy history. Permission changes made by a trusted host publish a complete session.state frame outside any prompt run. No Web permission mutation route or approval control is available yet. File/Bash denials appear as ordinary tool errors; see [permissions](../../../coding-agent/docs/permissions.md).
+Managed SDK sessions expose state.permissionPreset in snapshots. New Web sessions use the default saved in Settings → General → Permission, falling back to the SDK settings default when no Web override exists (built-in Read only). Changing this default leaves existing sessions and drafts unchanged. Restored sessions retain their preset, with restricted migration for legacy history. Permission changes publish a complete session.state frame outside any prompt run. The Web picker and approval cards use [permission endpoints](permissions.md); permission changes share the idle command lock, while approval responses can unblock a running tool. File/Bash denials appear as ordinary tool errors; see [core permissions](../../../coding-agent/docs/permissions.md).
 
 1. Validate text or attachments and a requestId of at most 128 characters.
 2. Synchronously reserve command state, record requestId/runId, and publish run.accepted.

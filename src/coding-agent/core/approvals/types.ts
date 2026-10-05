@@ -7,6 +7,8 @@ export type ApprovalOutcome = ApprovalDecision | "cancelled" | "timed-out" | "un
 export type ApprovalOperation =
   | {
       kind: "file-write";
+      /** Display tier covering the canonical target; approval still permits only this replacement. */
+      permissionMode?: "workspace-write" | "danger-full-access";
       arguments: Record<string, unknown>;
       workspaceRoot: string;
       targetPath: string;
@@ -35,7 +37,8 @@ export type ApprovalRequest = Readonly<
     sessionId: string;
     policy: ApprovalPolicy;
     createdAt: number;
-    expiresAt: number;
+    /** Null means the request waits until a decision or cancellation. */
+    expiresAt: number | null;
   }
 >;
 
@@ -53,7 +56,8 @@ export type ApprovalResponse = {
 
 export type ApprovalRequestOptions = {
   signal?: AbortSignal;
-  timeoutMs?: number;
+  /** Omit or use null to wait indefinitely; positive values opt into a deadline. */
+  timeoutMs?: number | null;
 };
 
 /** Deliver a request to a host interaction; submit its decision through the session API. */
@@ -63,4 +67,4 @@ export type ApprovalEvent =
   | { type: "approval_requested"; request: ApprovalRequest }
   | { type: "approval_resolved"; result: ApprovalResult };
 
-export const DEFAULT_APPROVAL_TIMEOUT_MS = 120_000;
+export const DEFAULT_APPROVAL_TIMEOUT_MS = null;

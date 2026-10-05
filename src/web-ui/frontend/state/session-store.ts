@@ -3,12 +3,18 @@ import { create } from "zustand";
 import type { Cursor, Frame, SessionSnapshot } from "../../shared/protocol";
 import { applyFrame } from "../../shared/session-projection";
 
-export type SessionView = { snapshot?: SessionSnapshot; cursor?: Cursor; connected: boolean };
+export type SessionView = {
+  snapshot?: SessionSnapshot;
+  cursor?: Cursor;
+  connected: boolean;
+  revision?: number;
+};
 
 type SessionsState = {
   views: Record<string, SessionView>;
   frame(frame: Frame): boolean;
   connection(id: string, connected: boolean): void;
+  resync(id: string): void;
 };
 
 export const useSessions = create<SessionsState>((set, get) => ({
@@ -39,6 +45,7 @@ export const useSessions = create<SessionsState>((set, get) => ({
         ...state.views,
         [frame.sessionId]: {
           snapshot,
+          revision: previous?.revision,
           connected: true,
           cursor: { streamId: frame.streamId, seq: frame.seq },
         },
@@ -52,6 +59,18 @@ export const useSessions = create<SessionsState>((set, get) => ({
       views: {
         ...state.views,
         [id]: { ...state.views[id], connected },
+      },
+    })),
+  resync: (id) =>
+    set((state) => ({
+      views: {
+        ...state.views,
+        [id]: {
+          ...state.views[id],
+          cursor: undefined,
+          connected: false,
+          revision: (state.views[id]?.revision ?? 0) + 1,
+        },
       },
     })),
 }));

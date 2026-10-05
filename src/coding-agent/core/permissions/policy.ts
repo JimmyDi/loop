@@ -81,9 +81,17 @@ export class PermissionPolicy {
   }
 }
 
-/** Unadvertised arguments must not be a way to grant or silently ignore a requested escalation. */
-export const rejectEscalation = (args: Record<string, unknown>): void => {
-  if (Object.hasOwn(args, "sandbox_permissions") || Object.hasOwn(args, "justification")) {
+/** File justifications are display text; shell escalation arguments never grant file authority. */
+export const validateFilePermissionArguments = (args: Record<string, unknown>): void => {
+  if (Object.hasOwn(args, "sandbox_permissions")) {
     throw new PermissionError("Sandbox escalation is not supported");
+  }
+  if (
+    args.justification !== undefined &&
+    (typeof args.justification !== "string" ||
+      !args.justification.trim() ||
+      args.justification.length > 240)
+  ) {
+    throw new PermissionError("Justification must be a nonempty string of at most 240 characters");
   }
 };

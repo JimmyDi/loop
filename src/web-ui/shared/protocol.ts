@@ -1,4 +1,8 @@
 import type {
+  ApprovalDecision,
+  ApprovalRequest,
+  ApprovalResult,
+  PermissionPreset,
   ModelEffort,
   SessionEvent,
   SessionRunTiming,
@@ -6,6 +10,7 @@ import type {
 } from "../../coding-agent/index";
 
 export type { ModelEffort, SessionEvent, SessionRunTiming, SessionState };
+export type { ApprovalDecision, ApprovalRequest, ApprovalResult, PermissionPreset };
 
 export type Message = SessionState["messages"][number];
 
@@ -30,6 +35,7 @@ export type SessionSummary = {
   userMessageCount: number;
   title?: string;
   isGenerating?: boolean;
+  isWaitingForApproval?: boolean;
   latestCompletedTurn?: number;
   archived?: boolean;
 };
@@ -51,7 +57,10 @@ export type SessionSnapshot = {
   state: SessionState;
   model: ModelChoice;
   effort?: ModelEffort;
-  operation: "idle" | "prompt" | "model" | "flush" | "title";
+  operation: "idle" | "prompt" | "model" | "flush" | "title" | "permission";
+  lastApproval?: Pick<ApprovalResult, "outcome" | "resolvedAt"> & {
+    request: Pick<ApprovalRequest, "sessionId" | "requestId" | "toolName">;
+  };
   runId?: string;
   requestId?: string;
   draftIndex?: number;

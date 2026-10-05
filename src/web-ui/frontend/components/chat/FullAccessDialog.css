@@ -1,0 +1,63 @@
+.full-access-dialog {
+  width: min(600px, calc(100vw - 32px));
+  padding: 28px;
+  border-radius: 24px;
+}
+.full-access-dialog .full-access-description {
+  margin: 0 0 20px;
+  color: var(--ink-muted);
+  line-height: 1.6;
+  font-size: 14px;
+}
+.full-access-scopes {
+  margin-bottom: 20px;
+  padding: 0 18px;
+  border-radius: 16px;
+  background: var(--surface-subtle);
+}
+.full-access-scope {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+}
+.full-access-scope + .full-access-scope {
+  border-top: 1px solid var(--line);
+}
+.full-access-scope svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+.full-access-scope strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.full-access-scope p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+.full-access-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.full-access-dialog footer .action-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 20px;
+  background: var(--surface-hover);
+}
+.full-access-dialog .full-access-confirm.action-button {
+  background: var(--error-surface);
+  color: var(--error-ink);
+}
+.full-access-dialog .full-access-confirm.action-button:hover:not(:disabled) {
+  background: var(--error-line);
+}
+@media (max-width: 480px) {
+  .full-access-dialog {
+    padding: 20px;
+  }
+}

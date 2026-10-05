@@ -2,6 +2,7 @@ import { useId } from "react";
 import { useTranslation } from "react-i18next";
 
 import { LanguageSelect } from "./LanguageSelect";
+import { PermissionSettings } from "./PermissionSettings";
 import "./GeneralSettings.css";
 
 export const GeneralSettings = () => {
@@ -15,6 +16,7 @@ export const GeneralSettings = () => {
       <h3 className="general-settings-title">{t("general")}</h3>
       <section className="general-settings-section" aria-labelledby={sectionId}>
         <h4 id={sectionId}>{t("general")}</h4>
+        <PermissionSettings />
         <div className="general-settings-row">
           <div className="general-settings-description">
             <span id={labelId}>{t("language")}</span>

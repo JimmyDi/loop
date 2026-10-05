@@ -5,11 +5,13 @@ import type { SessionSnapshot } from "../../../shared/protocol";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { usePrompt } from "../../hooks/usePrompt";
 import { useModelSelection } from "../../hooks/useModelSelection";
+import { useSessionPermission } from "../../hooks/useSessionPermission";
 import { command } from "../../lib/api";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { ComposerInput } from "./ComposerInput";
 import { ComposerModelSettings } from "./ComposerModelSettings";
+import { SessionPermissions } from "./SessionPermissions";
 import { ComposerAttachments } from "./ComposerAttachments";
 import { ComposerAddMenu } from "./ComposerAddMenu";
 import { useComposerAttachments } from "../../hooks/useComposerAttachments";
@@ -29,6 +31,7 @@ export const ChatComposer = ({
   const prompt = usePrompt(snapshot);
   const stopping = useAsyncAction();
   const model = useModelSelection(snapshot);
+  const permission = useSessionPermission(snapshot);
   const attachments = useComposerAttachments(snapshot.sessionId);
   const models = useModels();
   const current =
@@ -45,9 +48,10 @@ export const ChatComposer = ({
     !connected ||
     snapshot.operation !== "idle" ||
     snapshot.state.hasPendingSave ||
+    !!snapshot.state.pendingApprovals?.length ||
     prompt.pending ||
     prompt.uncertain;
-  const blocked = disabled || model.pending || attachments.pending;
+  const blocked = disabled || model.pending || permission.pending || attachments.pending;
   const submit = () => {
     if (blocked || unsupportedImages) return;
     if (!prompt.text.trim() && !prompt.images.length && !prompt.files.length) return;
@@ -60,7 +64,14 @@ export const ChatComposer = ({
     <div className="composer-region">
       <ErrorNotice
         dismissible
-        error={prompt.error ?? stopping.error ?? model.error ?? attachments.error ?? imageError}
+        error={
+          prompt.error ??
+          stopping.error ??
+          model.error ??
+          permission.error ??
+          attachments.error ??
+          imageError
+        }
       />
       {prompt.uncertain && (
         <div className="composer-uncertain">
@@ -93,7 +104,7 @@ export const ChatComposer = ({
           value={prompt.text}
           onChange={prompt.setText}
           onSubmit={submit}
-          disabled={disabled || model.pending}
+          disabled={disabled || model.pending || permission.pending}
           onFiles={(files) => void attachments.add(files)}
           placeholder={t("placeholder")}
         />
@@ -104,9 +115,17 @@ export const ChatComposer = ({
             fileCount={prompt.files.length}
             add={(files) => void attachments.add(files)}
           />
+          <SessionPermissions
+            key={snapshot.sessionId}
+            snapshot={snapshot}
+            disabled={disabled || model.pending || attachments.pending}
+            pending={permission.pending}
+            error={permission.error}
+            select={permission.change}
+          />
           <ComposerModelSettings
             snapshot={snapshot}
-            disabled={disabled}
+            disabled={disabled || permission.pending}
             pending={model.pending}
             error={model.error}
             select={model.change}

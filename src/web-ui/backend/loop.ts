@@ -10,6 +10,7 @@ import { join } from "node:path";
 import type { ModelChoice, ModelSelection, Project, SessionSummary } from "../shared/protocol";
 import { latestCompletedTurn } from "../shared/completed-turn";
 import { ProviderSettings } from "./providers/provider-settings";
+import { WebSettings } from "./settings/web-settings";
 import { HttpError } from "./http/errors";
 
 export type SessionPort = Pick<
@@ -27,6 +28,9 @@ export type SessionPort = Pick<
   | "renameTitle"
   | "refreshTitle"
   | "cancelTitle"
+  | "setPermissionPreset"
+  | "registerApprovalHandler"
+  | "respondToApproval"
 >;
 
 export type LoopBridge = {
@@ -41,6 +45,7 @@ export type LoopBridge = {
 export const createLoopBridge = (
   agentDir: string,
   providers = new ProviderSettings(join(agentDir, "web-ui", "provider.json")),
+  settings = new WebSettings(agentDir),
 ): LoopBridge => {
   let runtime: Promise<ModelRuntime> | undefined;
   const archives = new Map<string, SessionArchive>();
@@ -105,6 +110,7 @@ export const createLoopBridge = (
         model: record ? undefined : providers.defaultModel(),
         allowUnavailableModel: true,
         effort: record ? undefined : providers.defaultEffort(),
+        permissionPreset: record ? undefined : (await settings.read()).permissionPreset,
         title: { mode: "first-prompt" },
       });
 

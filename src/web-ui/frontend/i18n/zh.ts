@@ -1,7 +1,9 @@
 import { projectsZh } from "./projects-zh";
+import { permissionsZh } from "./permissions-zh";
 
 export const zh = {
   ...projectsZh,
+  permissions: permissionsZh,
   projects: "项目",
   addProject: "添加项目",
   newSession: "新建会话",
@@ -184,6 +186,9 @@ export const zh = {
   maxOutputTokens: "最大输出 Token 数",
   addModel: "添加模型",
   errors: {
+    invalid_permission_preset: "请选择有效的权限级别。",
+    invalid_approval_decision: "请选择仅允许一次或拒绝。",
+    approval_not_pending: "此请求已结束或审批界面已断开，正在刷新会话。",
     invalid_text_files: "最多添加 4 个 UTF-8 文本或代码文件，暂不支持文档、压缩包和二进制文件。",
     invalid_text_encoding: "此文件不是 UTF-8 纯文本，请转换编码或选择文本文件。",
     file_read_failed: "无法读取文件，请重新添加。",

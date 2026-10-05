@@ -11,4 +11,9 @@ test("parses print, session paths and literal prompt arguments without silently 
   expect(() => parseArgs(["--session"])).toThrow("Missing");
   expect(() => parseArgs(["--no-session", "-c"])).toThrow("Choose");
   expect(() => parseArgs(["--mode", "rpc"])).toThrow("Unsupported");
+  expect(
+    parseArgs(["--permission-preset", "workspace-write"]).flags.get("--permission-preset"),
+  ).toBe("workspace-write");
+  expect(() => parseArgs(["--permission-preset", "full"])).toThrow("Invalid permission preset");
+  expect(() => parseArgs(["--permission-preset"])).toThrow("Missing");
 });

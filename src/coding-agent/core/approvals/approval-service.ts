@@ -17,7 +17,7 @@ type PendingApproval = {
   request: ApprovalRequest;
   interactive: boolean;
   handler?: HandlerRegistration;
-  deadline: number;
+  deadline: number | null;
   signal?: AbortSignal;
   cleanup: () => void;
   resolve: (result: ApprovalResult) => void;
@@ -73,7 +73,10 @@ export class ApprovalService {
       throw new Error("Approval requires a tool call ID, tool name and reason");
 
     const timeoutMs = options.timeoutMs ?? DEFAULT_APPROVAL_TIMEOUT_MS;
-    if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
+    if (
+      timeoutMs !== null &&
+      (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
+    )
       throw new Error("Approval timeout must be a positive 32-bit integer");
 
     const createdAt = Date.now();
@@ -86,7 +89,7 @@ export class ApprovalService {
       sessionId: this.sessionId,
       policy: this.policy(),
       createdAt,
-      expiresAt: createdAt + timeoutMs,
+      expiresAt: timeoutMs === null ? null : createdAt + timeoutMs,
     });
     const handler = this.handler;
     const immediate: ApprovalOutcome | undefined =
@@ -104,7 +107,7 @@ export class ApprovalService {
       request,
       interactive: immediate === undefined,
       handler,
-      deadline: performance.now() + timeoutMs,
+      deadline: timeoutMs === null ? null : performance.now() + timeoutMs,
       signal: options.signal,
       cleanup: () => {},
       resolve,
@@ -112,7 +115,10 @@ export class ApprovalService {
     this.requests.set(request.requestId, pending);
 
     const cancel = () => this.settle(pending, "cancelled");
-    const timer = setTimeout(() => this.settle(pending, "timed-out"), timeoutMs);
+    const timer =
+      timeoutMs === null
+        ? undefined
+        : setTimeout(() => this.settle(pending, "timed-out"), timeoutMs);
     options.signal?.addEventListener("abort", cancel, { once: true });
     pending.cleanup = () => {
       clearTimeout(timer);
@@ -156,7 +162,7 @@ export class ApprovalService {
       this.settle(pending, "unavailable");
       return false;
     }
-    if (performance.now() >= pending.deadline) {
+    if (pending.deadline !== null && performance.now() >= pending.deadline) {
       this.settle(pending, "timed-out");
       return false;
     }

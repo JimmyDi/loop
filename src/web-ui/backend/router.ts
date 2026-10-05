@@ -3,13 +3,20 @@ import { assertLocalRequest } from "./http/local-request";
 import { projectRoutes } from "./routes/projects";
 import { sessionRoutes } from "./routes/sessions";
 import { providerRoutes } from "./routes/providers";
+import { generalSettingsRoutes } from "./routes/settings";
+import type { WebSettings } from "./settings/web-settings";
 import type { ProviderSettings } from "./providers/provider-settings";
 import type { SessionRegistry } from "./session-registry";
 
-export const createRouter = (registry: SessionRegistry, providers?: ProviderSettings) => {
+export const createRouter = (
+  registry: SessionRegistry,
+  providers?: ProviderSettings,
+  webSettings?: WebSettings,
+) => {
   const projects = projectRoutes(registry);
   const sessions = sessionRoutes(registry);
   const settings = providers && providerRoutes(registry, providers);
+  const general = webSettings && generalSettingsRoutes(webSettings);
 
   return async (request: Request): Promise<Response> => {
     try {
@@ -17,6 +24,7 @@ export const createRouter = (registry: SessionRegistry, providers?: ProviderSett
 
       const url = new URL(request.url);
       const response =
+        (await general?.(request, url)) ??
         (await settings?.(request, url)) ??
         (await projects(request, url)) ??
         (await sessions(request, url)) ??

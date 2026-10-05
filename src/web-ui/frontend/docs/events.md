@@ -4,7 +4,7 @@ The frontend receives session updates through a same-origin EventSource. HTTP qu
 
 ## Loading and Subscribing
 
-ChatWorkspace first requests `/api/sessions/:id`. After it succeeds, useSessionEvents connects to `/api/sessions/:id/events` and passes frames to session-store. Components read the latest display snapshot instead of maintaining separate message histories.
+ChatWorkspace first requests `/api/sessions/:id`. After it succeeds, useSessionEvents connects to `/api/sessions/:id/events?approvals=1` and passes frames to session-store. Components read the latest display snapshot instead of maintaining separate message histories. The query parameter explicitly enables the session's interactive approval adapter.
 
 | Frame type | Display behavior |
 | --- | --- |
@@ -23,7 +23,9 @@ Each view records a streamId/seq cursor. Duplicate frames are ignored. A sequenc
 
 After a network error, mark the view disconnected and reconnect with its cursor after about 1.5 seconds. Parse errors request a fresh snapshot. Existing content remains visible while disconnected, but normal sending and model switching are disabled. See [the SSE service](../../backend/docs/events.md) for replay limits.
 
-Switching sessions closes only the previous view's EventSource. Backend sessions continue, and reopening synchronizes their latest results. Session snapshots/state frames update the open conversation and its header title, including asynchronous title updates that preserve the current operation.
+Switching sessions closes only the previous view's EventSource. Backend sessions continue, and reopening synchronizes their latest results. If every interactive view disconnects, existing approvals remain pending until a decision, cancellation or session shutdown; reconnecting restores them. New disconnected requests fail closed. Session snapshots/state frames update the open conversation and its header title, including asynchronous title updates that preserve the current operation. See [permissions and approvals](permissions.md).
+
+Permission and approval submissions use the live SSE updates on success and request a fresh snapshot after a failed or uncertain HTTP result. The store then marks that session disconnected, clears its cursor and increments a local connection revision. The hook reconnects without replaying commands. This avoids replacing newer live state with an older HTTP response or interrupting a working connection after each decision.
 
 Before disconnecting, useSessionEvents copies the last connected snapshot's generation status and title into the existing sidebar summary. It cancels older in-flight list requests before this handoff and invalidates the project list for a fresh server result. This preserves the spinner while switching sessions or reconnecting, without retaining a stale running snapshot after a background completion update. Callbacks from unmounted subscriptions are ignored.
 

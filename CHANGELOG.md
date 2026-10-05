@@ -4,6 +4,10 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Added
+
+- Distribution: publish new stable vX.Y.Z tags through GitHub Actions and npm Trusted Publishing after validating the package version, release notes, main-branch ancestry and version availability. Require Linux and macOS checks and publish the verified tarball with provenance. Registry trust must be configured for release.yml before the first automated release.
+
 ## [0.1.0] - 2026-10-05
 
 ### Breaking Changes

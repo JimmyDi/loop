@@ -7,31 +7,61 @@ import { Readable } from "node:stream";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { mkdtemp, rm } from "node:fs/promises";
-import { setTimeout as sleep } from "node:timers/promises";
 import { expect, test } from "vitest";
 
 // A real PTY drives the CLI; the local endpoint supplies deterministic model responses.
 test("PTY supports streaming, model/new/resume commands and cancellation", async () => {
   const dir = await mkdtemp(join(tmpdir(), "loop-pty-"));
-  let requests = 0;
+  const requests: string[] = [];
   const server = await serveTest({
     hostname: "127.0.0.1",
     port: 0,
     async fetch(request) {
-      await request.json();
-      requests++;
+      const body = (await request.json()) as {
+        messages: { role: string; content: string | { type: string; text?: string }[] }[];
+      };
+      // Managed permission context can follow the user's fixture prompt.
+      const prompt = body.messages
+        .filter((message) => message.role === "user")
+        .map((message) =>
+          typeof message.content === "string"
+            ? message.content
+            : message.content
+                .filter((part) => part.type === "text")
+                .map((part) => part.text)
+                .join(""),
+        )
+        .findLast((text) =>
+          ["hello", "wait", "after cancellation", "write example"].includes(text),
+        );
+      const phase = body.messages.at(-1)?.role === "tool" ? "tool result" : prompt;
+      requests.push(phase ?? "unknown");
+      const frame = (delta: object, finish_reason: string | null) =>
+        "data: " +
+        JSON.stringify({
+          id: "test",
+          object: "chat.completion.chunk",
+          created: 1,
+          model: "test",
+          choices: [{ index: 0, delta, finish_reason }],
+        }) +
+        "\n\n";
 
-      if (requests === 2)
+      // Cancellation may happen before dispatch; response selection cannot use request counts.
+      if (phase === "wait") {
         return new Response(
           new ReadableStream({
             start(controller) {
-              controller.enqueue(new TextEncoder().encode(": wait\n\n"));
+              controller.enqueue(
+                new TextEncoder().encode(frame({ content: "PTY_WAIT_READY" }, null)),
+              );
             },
           }),
           { headers: { "Content-Type": "text/event-stream" } },
         );
+      }
 
-      if (requests === 4) {
+      if (phase === "write example") {
         const delta = {
           tool_calls: [
             {
@@ -45,37 +75,15 @@ test("PTY supports streaming, model/new/resume commands and cancellation", async
             },
           ],
         };
-        const frame = (delta: object, finish_reason: string | null) =>
-          "data: " +
-          JSON.stringify({
-            id: "test",
-            object: "chat.completion.chunk",
-            created: 1,
-            model: "test",
-            choices: [{ index: 0, delta, finish_reason }],
-          }) +
-          "\n\n";
         return new Response(frame(delta, null) + frame({}, "tool_calls") + "data: [DONE]\n\n", {
           headers: { "Content-Type": "text/event-stream" },
         });
       }
 
-      const chunk = (content: string, reason: string | null) =>
-        "data: " +
-        JSON.stringify({
-          id: "test",
-          object: "chat.completion.chunk",
-          created: 1,
-          model: "test",
-          choices: [{ index: 0, delta: { content }, finish_reason: reason }],
-        }) +
-        "\n\n";
-
-      await sleep(300);
-
-      return new Response(chunk("PTY_STREAM_OK", null) + chunk("", "stop") + "data: [DONE]\n\n", {
-        headers: { "Content-Type": "text/event-stream" },
-      });
+      return new Response(
+        frame({ content: "PTY_STREAM_OK" }, null) + frame({}, "stop") + "data: [DONE]\n\n",
+        { headers: { "Content-Type": "text/event-stream" } },
+      );
     },
   });
   const script = [
@@ -84,41 +92,52 @@ test("PTY supports streaming, model/new/resume commands and cancellation", async
     "child = subprocess.Popen(sys.argv[1:], stdin=slave, stdout=slave, stderr=slave, close_fds=True)",
     "os.close(slave)",
     "transcript = bytearray()",
+    "pending = bytearray()",
     "def read_chunk():",
     "    try: return os.read(master, 65536)",
     "    except OSError as error:",
     "        if error.errno == errno.EIO: return b''  # Linux PTY EOF",
     "        raise",
     "def read_until(marker):",
-    "    received = bytearray()",
     "    deadline = time.monotonic() + 8",
     "    while time.monotonic() < deadline:",
+    "        end = pending.find(marker)",
+    "        if end >= 0:",
+    "            end += len(marker)",
+    "            received = bytes(pending[:end]); del pending[:end]",
+    "            return received",
     "        if select.select([master], [], [], 0.1)[0]:",
     "            data = read_chunk()",
-    "            if not data: raise RuntimeError('PTY closed before marker: ' + repr(received))",
-    "            received.extend(data); transcript.extend(data)",
-    "            if marker in received: return received",
-    "    raise RuntimeError('PTY timeout: ' + repr(received))",
+    "            if not data: raise RuntimeError('PTY closed before marker: ' + repr(pending))",
+    "            pending.extend(data); transcript.extend(data)",
+    "    raise RuntimeError('PTY timeout waiting for ' + repr(marker) + ': ' + repr(pending))",
     "def send(text): os.write(master, (text + chr(10)).encode())",
     "try:",
-    "    read_until(b'local-test/test')",
+    "    read_until(b'local-test/test'); read_until(b'> ')",
     "    send('hello'); read_until(b'Waiting for model'); read_until(b'PTY_STREAM_OK')",
-    "    time.sleep(0.1)",
+    "    read_until(b'> ')",
     "    sessions = glob.glob(os.path.join(os.environ['LOOP_DATA_DIR'], 'sessions', '*.jsonl'))",
     "    assert len(sessions) == 1",
-    "    send('/model local-test/test'); time.sleep(0.15)",
+    "    send('/model local-test/test'); read_until(b'> ')",
     "    send('/permissions workspace-write'); read_until(b'Permissions: workspace-write')",
+    "    read_until(b'> ')",
     "    send('/permissions invalid'); read_until(b'Use read-only')",
-    "    send('/new'); time.sleep(0.15)",
+    "    read_until(b'> ')",
+    "    send('/new'); read_until(b'> ')",
     "    send('/permissions'); read_until(b'Permissions: read-only')",
+    "    read_until(b'> ')",
     "    assert len(glob.glob(os.path.join(os.environ['LOOP_DATA_DIR'], 'sessions', '*.jsonl'))) == 2",
-    "    send('/resume ' + sessions[0]); time.sleep(0.15)",
+    "    send('/resume ' + sessions[0]); read_until(b'> ')",
     "    send('/permissions'); read_until(b'Permissions: workspace-write')",
-    "    send('wait'); read_until(b'Waiting for model')",
+    "    read_until(b'> ')",
+    "    send('wait'); read_until(b'Waiting for model'); read_until(b'PTY_WAIT_READY')",
     "    send('/new'); read_until(b'already running')",
-    "    send('/abort'); read_until(b'cancel')",
+    "    read_until(b'> ')",
+    "    send('/abort'); read_until(b'Run cancelled')",
     "    send('after cancellation'); read_until(b'PTY_STREAM_OK')",
-    "    time.sleep(0.1); send('/permissions read-only'); read_until(b'Permissions: read-only')",
+    "    read_until(b'> ')",
+    "    send('/permissions read-only'); read_until(b'Permissions: read-only')",
+    "    read_until(b'> ')",
     "    send('write example'); approval = read_until(b'/reject ')",
     "    request_id = re.search(rb'/approve ([a-f0-9-]+)', approval).group(1).decode()",
     "    assert not os.path.exists('approved.txt')",
@@ -126,7 +145,7 @@ test("PTY supports streaming, model/new/resume commands and cancellation", async
     "    assert not os.path.exists('approved.txt')",
     "    send('/approve ' + request_id); read_until(b'PTY_STREAM_OK')",
     "    assert open('approved.txt').read() == 'approved'",
-    "    time.sleep(0.1); send('/quit')",
+    "    read_until(b'> '); send('/quit')",
     "    deadline = time.monotonic() + 5",
     "    while child.poll() is None and time.monotonic() < deadline:",
     "        if select.select([master], [], [], 0.1)[0]:",
@@ -181,7 +200,13 @@ test("PTY supports streaming, model/new/resume commands and cancellation", async
     expect(error).toBe("");
     expect(code).toBe(0);
     expect(output).toContain("PTY passed");
-    expect(requests).toBe(5);
+    expect(requests).toEqual([
+      "hello",
+      "wait",
+      "after cancellation",
+      "write example",
+      "tool result",
+    ]);
   } finally {
     await server.stop(true);
     await rm(dir, { recursive: true, force: true });

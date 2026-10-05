@@ -34,6 +34,8 @@ Web and terminal/SDK entries consume coding-agent; coding-agent consumes agent; 
 
 Run pnpm typecheck, pnpm check and pnpm build. Run affected tests with pnpm exec vitest run followed by their file paths. Build before tests that launch the compiled application. Model tests use synthetic local responses. Confined shell tests require macOS Seatbelt or Linux Bubblewrap.
 
+Linux CI installs Bubblewrap and, when Ubuntu restricts unprivileged user namespaces, loads an AppArmor profile permitting them specifically for /usr/bin/bwrap on the disposable runner. A sandbox startup probe must pass before running the suite. Network isolation and capability dropping remain enabled; sandbox failures are not skipped or retried without confinement. PTY tests accept Linux EIO as terminal EOF while still requiring the CLI to exit successfully.
+
 ## Distribution
 
 The root tarball contains minified CLI/SDK JavaScript, minified Web assets, public SDK type declarations and license notices. Production builds disable JavaScript, CSS and declaration source maps, remove ordinary code comments and strip generated source-location comments from declarations. SDK types remain readable because they describe the public API, not its implementation. Development retains source access and HMR.

@@ -15,7 +15,7 @@ test("inline rename saves on Enter without opening a session and Escape cancels"
   };
   const state = useSessions.getState();
   Object.assign(globalThis, { window, document: window.document });
-  const { render, fireEvent, waitFor, cleanup } = await import("@testing-library/react/pure");
+  const { render, fireEvent, act, cleanup } = await import("@testing-library/react/pure");
   const client = new QueryClient();
   client.setQueryData(["sessions", "p"], [{ id: "s", title: "Before" }]);
   const calls: unknown[] = [];
@@ -38,8 +38,8 @@ test("inline rename saves on Enter without opening a session and Escape cancels"
     const input = ui.getByRole("textbox");
     expect(document.activeElement).toBe(input);
     fireEvent.change(input, { target: { value: "  After  " } });
-    fireEvent.keyDown(input, { key: "Enter" });
-    await waitFor(() => expect(closed).toBe(1));
+    await act(async () => fireEvent.keyDown(input, { key: "Enter" }));
+    expect(closed).toBe(1);
     expect(calls).toEqual([["/api/sessions/s/title", "PUT", { title: "After" }]]);
     expect(client.getQueryData<{ id: string; title: string }[]>(["sessions", "p"])).toEqual([
       { id: "s", title: "After" },
@@ -48,7 +48,7 @@ test("inline rename saves on Enter without opening a session and Escape cancels"
     expect(closed).toBe(2);
     expect(calls.length).toBe(1);
   } finally {
-    cleanup();
+    await act(async () => cleanup());
     client.clear();
     useSessions.setState(state, true);
     Object.assign(globalThis, previous);

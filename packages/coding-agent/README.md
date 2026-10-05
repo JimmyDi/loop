@@ -2,7 +2,7 @@
 
 A CLI and TypeScript SDK built on the existing [Loop Agent](../agent/README.md). Coding-agent owns model configuration, built-in tools, resources, and persistent sessions. Every prompt creates a fresh Agent with completed history.
 
-Import from [index.ts](src/index.ts). This private pnpm workspace package owns its dependencies and public SDK/CLI exports. The root loop distribution bundles it.
+Import from [index.ts](src/index.ts). This private pnpm workspace package owns its dependencies and public SDK/CLI exports. The root `@loop-harness/loop` distribution bundles it.
 
 ## Start
 

@@ -2,7 +2,7 @@
 
 An in-memory conversation loop for Loop. The host supplies a model and stream function; Agent manages completed messages, sequential tools, subscriptions, and cancellation.
 
-Import from [index.ts](src/index.ts). This private workspace package declares its own dependencies and public exports. It is bundled into the root loop distribution.
+Import from [index.ts](src/index.ts). This private workspace package declares its own dependencies and public exports. It is bundled into the root `@loop-harness/loop` distribution.
 
 ## Start
 

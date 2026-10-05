@@ -373,7 +373,7 @@ test("unclassified text stays visible outside reasoning until a call arrives, in
       restored.rerender(<MessageTimeline snapshot={finished} connected />);
       expect(restored.container.querySelector(".run-activity-card")).toBeNull();
       expect(restored.container.querySelector(".assistant-message")?.textContent).toContain(text);
-      expect(restored.container.querySelectorAll(".assistant-avatar")).toHaveLength(1);
+      expect(restored.container.querySelectorAll(".assistant-avatar")).toHaveLength(0);
       if (message.errorMessage) expect(restored.container.textContent).toContain("Stopped");
     }
   } finally {

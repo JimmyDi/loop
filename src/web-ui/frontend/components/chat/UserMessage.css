@@ -4,7 +4,7 @@
   align-items: flex-end;
   align-self: flex-end;
   max-width: min(82%, 800px);
-  margin: 16px 0;
+  margin: 16px 0 4px;
 }
 .user-message-text {
   padding: 13px 18px;

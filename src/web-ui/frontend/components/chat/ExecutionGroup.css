@@ -37,7 +37,7 @@
   border-left: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: 13px;
+  gap: 6px;
 }
 .activity-step {
   flex-shrink: 0;

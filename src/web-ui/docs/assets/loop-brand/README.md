@@ -32,4 +32,4 @@ The application Dark theme uses the [white-tile SVG adaptation](svg/loop-icon-li
 
 The primary SVG and 1024px PNG preserve the approved artwork exactly. The master uses masks and a blurred color field inside a crisp vector outline; raster exports are the appearance-preserving fallback. Single-color marks have no filters or masks.
 
-The application uses this design in the sidebar, welcome screen, assistant avatars, browser favicons and Safari icons. Runtime copies live in `src/web-ui/frontend/assets/`; the design masters remain here. A copy of this directory is provided in the adjacent `Loop-Icon-Delivery.zip`.
+The application uses this design in the sidebar, welcome screen, browser favicons and Safari icons. Runtime copies live in `src/web-ui/frontend/assets/`; the design masters remain here. A copy of this directory is provided in the adjacent `Loop-Icon-Delivery.zip`.

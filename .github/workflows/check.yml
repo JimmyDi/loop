@@ -1,0 +1,43 @@
+name: Check
+on:
+  pull_request:
+  push:
+jobs:
+  verify:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - if: runner.os == 'Linux'
+        name: Prepare Linux sandbox tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          if [ "$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null || true)" = "1" ]; then
+            # Permit user namespaces only for bwrap on this disposable runner.
+            sudo tee /etc/apparmor.d/bwrap > /dev/null <<'PROFILE'
+          abi <abi/4.0>,
+          include <tunables/global>
+          /usr/bin/bwrap flags=(unconfined) {
+            userns,
+          }
+          PROFILE
+            sudo apparmor_parser -r /etc/apparmor.d/bwrap
+          fi
+          bwrap --unshare-user --unshare-pid --unshare-net --unshare-ipc --unshare-uts \
+            --new-session --die-with-parent --cap-drop ALL --ro-bind / / \
+            --dev /dev --proc /proc -- /bin/sh -c 'exit 0'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm check
+      - run: pnpm build
+      - run: pnpm test
+      - run: pnpm --config.ignore-scripts=true pack
+      - run: pnpm verify:package loop-0.1.0.tgz

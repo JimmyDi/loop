@@ -22,6 +22,7 @@ The exported `SessionHeader` contains:
 | `cwd` | Absolute canonical working directory. It must still exist when loading. |
 | `createdAt`, `updatedAt` | ISO timestamp strings. |
 | `unread` | Boolean, false for new sessions. New completed output sets true; marking the latest output read sets false. Missing values read as false; nonboolean values reject. |
+| pinnedAt | Optional canonical ISO UTC timestamp of the pin. Missing means unpinned; nonstring, invalid or noncanonical values reject. |
 | `model` | Optional `{ provider: string, id: string, effort?: ModelEffort }`. |
 | `title` | Optional `SessionTitle`: text, source, source message indices, and optional model identity. See [session titles](session-titles.md). |
 | `runTimings` | Optional `SessionRunTiming[]`: zero-based `userMessageIndex` plus `startedAt` and `finishedAt` in Unix milliseconds for each recorded prompt. |
@@ -45,6 +46,8 @@ User content may contain text and base64 image blocks. Images persist inside the
 There are no stored streaming deltas, drafts, system prompt, tool functions, or model-change entry records. Changing the selected model updates header metadata. Storage is a rewritten full snapshot, not an append-only event journal.
 
 ## Read and write
+
+SessionManager.setPinned(pinned: boolean) serializes pin changes with history, title, model and read writes. It returns the saved ISO timestamp when pinned, or undefined when unpinned. Repeating true preserves the existing pin timestamp; false removes pinnedAt. Pin writes preserve conversation messages and updatedAt, never enter model context, and do not create an empty draft file. A commit prepared during a pin write inherits the accepted metadata. If history has a pending save, pin updates preserve that pending snapshot for flush. A failed pin write leaves the accepted header unchanged and can be retried. getHeader() and SessionManager.list() expose the saved pinnedAt; hosts can publish their own list notifications after success. Missing fields require no migration. Use a single manager per writable session; independent processes do not coordinate writes.
 
 Unread is stored only in the header. commit() sets unread when newly appended history contains assistant or tool output. This does not depend on runTimings. Re-saving the same history or a run without output preserves the flag. SessionManager.markRead(messageCount) serializes with history and metadata writes and clears unread only when that count matches the nonempty saved history. The count is supplied by the reader and is not an extra stored field. It returns true for an accepted or duplicate receipt, false for a mismatched or empty history, and rejects invalid counts, pending saves or write failures. Read metadata changes preserve messages and activity timestamps. SessionManager.unread and session.state.unread include the pending flag after a save failure; getHeader() exposes committed metadata. No extra storage file or legacy read-state migration is used.
 

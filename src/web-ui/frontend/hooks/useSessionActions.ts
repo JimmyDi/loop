@@ -10,6 +10,27 @@ import { useAsyncAction } from "./useAsyncAction";
 export const useSessionActions = (session: SessionSummary) => {
   const query = useQueryClient();
   const action = useAsyncAction();
+  const setPinned = async (pinned: boolean): Promise<void> => {
+    const queryKey = ["sessions", session.workspaceId];
+    await action.run(async () => {
+      try {
+        const result = await command<{ pinnedAt: string | null }>(
+          "/sessions/" + encodeURIComponent(session.id) + "/pin",
+          { workspaceId: session.workspaceId, pinned },
+          "PUT",
+        );
+        await query.cancelQueries({ queryKey });
+        query.setQueryData<SessionSummary[]>(queryKey, (current) =>
+          current?.map((item) =>
+            item.id === session.id ? { ...item, pinnedAt: result.pinnedAt ?? undefined } : item,
+          ),
+        );
+      } finally {
+        // Reconcile uncertain deliveries and changes made by other browser pages.
+        await query.invalidateQueries({ queryKey });
+      }
+    });
+  };
   const change = async (kind: "archive" | "delete"): Promise<boolean> => {
     let saved = false;
     await action.run(async () => {
@@ -45,5 +66,11 @@ export const useSessionActions = (session: SessionSummary) => {
     });
     return saved;
   };
-  return { change, pending: action.pending, error: action.error, clearError: action.clearError };
+  return {
+    change,
+    setPinned,
+    pending: action.pending,
+    error: action.error,
+    clearError: action.clearError,
+  };
 };

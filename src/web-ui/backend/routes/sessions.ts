@@ -39,13 +39,24 @@ export const sessionRoutes =
     }
 
     const match = url.pathname.match(
-      /^\/api\/sessions\/([^/]+)(?:\/(prompt|abort|flush|model|events|title|permission|approvals|read)(?:\/([^/]+))?)?$/,
+      /^\/api\/sessions\/([^/]+)(?:\/(prompt|abort|flush|model|events|title|permission|approvals|read|pin)(?:\/([^/]+))?)?$/,
     );
 
     if (!match) return;
 
     const [, id, action, requestId] = match;
     if ((action === "approvals") !== !!requestId) return;
+    if (action === "pin") {
+      if (method !== "PUT") throw new HttpError(405, "method_not_allowed");
+      const body = await readBody(request);
+      if (typeof body.pinned !== "boolean") throw new HttpError(400, "invalid_pinned_state");
+      const pinnedAt = await registry.setPinned(
+        requiredString(body, "workspaceId"),
+        id!,
+        body.pinned,
+      );
+      return Response.json({ pinnedAt: pinnedAt ?? null });
+    }
     if (action === "read") {
       if (method !== "PUT") throw new HttpError(405, "method_not_allowed");
       const body = await readBody(request);

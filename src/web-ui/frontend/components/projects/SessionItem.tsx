@@ -11,11 +11,13 @@ import { ActionButton } from "../ui/ActionButton";
 import { SessionContextMenu } from "./SessionContextMenu";
 import { SessionDeleteDialog } from "./SessionDeleteDialog";
 import { SessionRenameInput } from "./SessionRenameInput";
+import { SessionPinIcon } from "./SessionPinIcon";
 import "./SessionItem.css";
 
 export const SessionItem = ({ session }: { session: SessionSummary }) => {
   const { t } = useTranslation();
   const active = useWorkspace((state) => state.active?.id === session.id);
+  const pinned = !!session.pinnedAt;
   const view = useSessions((state) => state.views[session.id]);
   const [point, setPoint] = useState<{ x: number; y: number }>();
   const [editing, setEditing] = useState(false);
@@ -23,6 +25,7 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
   const restoreFocus = useRef(false);
   const menu = useProjectMenu(point);
   const action = useSessionActions(session);
+  const togglePin = () => void action.setPinned(!pinned);
   const snapshot = view?.connected ? view.snapshot : undefined;
   const generating = snapshot ? snapshot.operation === "prompt" : session.isGenerating === true;
   const waiting = snapshot
@@ -43,10 +46,11 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
       menu.trigger.current?.focus();
     }
   }, [editing, menu.trigger]);
-  const choose = (next: "rename" | "archive" | "delete") => {
+  const choose = (next: "rename" | "pin" | "archive" | "delete") => {
     menu.close();
     action.clearError();
     if (next === "rename") setEditing(true);
+    else if (next === "pin") togglePin();
     else if (next === "delete") setDeleting(true);
     else void action.change("archive");
   };
@@ -133,7 +137,17 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
               )}
             </button>
             <ActionButton
-              className="session-item-archive icon ghost"
+              className="session-item-action session-item-pin icon ghost"
+              aria-label={t(pinned ? "unpinChat" : "pinChat", { name: title })}
+              title={t(pinned ? "unpinSession" : "pinSession")}
+              aria-pressed={pinned}
+              disabled={action.pending}
+              onClick={togglePin}
+            >
+              <SessionPinIcon pinned={pinned} />
+            </ActionButton>
+            <ActionButton
+              className="session-item-action session-item-archive icon ghost"
               aria-label={t("archiveChat", { name: title })}
               title={t("archiveSession")}
               disabled={busy}
@@ -148,7 +162,14 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
       </div>
       {!deleting && <ErrorNotice error={action.error} />}
       {menu.open && (
-        <SessionContextMenu menu={menu} title={title} disabled={busy} onChoose={choose} />
+        <SessionContextMenu
+          menu={menu}
+          title={title}
+          disabled={busy}
+          pinned={pinned}
+          pinDisabled={action.pending}
+          onChoose={choose}
+        />
       )}
       {deleting && (
         <SessionDeleteDialog

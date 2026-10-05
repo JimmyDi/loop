@@ -1,14 +1,19 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 
 import type { SessionSnapshot, SessionSummary } from "../../shared/protocol";
 import { api, command } from "../lib/api";
 
+export const projectSessionsQueryOptions = (workspaceId: string) =>
+  queryOptions({
+    queryKey: ["sessions", workspaceId],
+    queryFn: ({ signal }) =>
+      api<SessionSummary[]>("/sessions?workspaceId=" + encodeURIComponent(workspaceId), { signal }),
+  });
+
 export const useProjectSessions = (workspaceId: string, enabled: boolean) => {
   const sessions = useQuery({
-    queryKey: ["sessions", workspaceId],
+    ...projectSessionsQueryOptions(workspaceId),
     enabled,
-    queryFn: ({ signal }) =>
-      api<SessionSummary[]>("/sessions?workspaceId=" + workspaceId, { signal }),
   });
   const create = useMutation({
     mutationFn: () => command<SessionSnapshot>("/sessions", { workspaceId }),

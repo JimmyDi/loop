@@ -1,4 +1,9 @@
 export const projectsEn = {
+  pinnedSessions: "Pinned",
+  pinSession: "Pin",
+  unpinSession: "Unpin",
+  pinChat: "Pin {{name}}",
+  unpinChat: "Unpin {{name}}",
   showMoreSessions: "Show more",
   unread: "Unread",
   projectOptions: "Options for {{name}}",

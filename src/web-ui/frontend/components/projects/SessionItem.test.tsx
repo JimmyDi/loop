@@ -48,7 +48,7 @@ test("row archives immediately; context menu preserves selection and only delete
     );
     const row = ui.getByTitle("Example");
     fireEvent.contextMenu(row, { clientX: 200, clientY: 300 });
-    expect(ui.getAllByRole("menuitem")).toHaveLength(3);
+    expect(ui.getAllByRole("menuitem")).toHaveLength(4);
     expect(useWorkspace.getState().active?.id).toBe("other");
     fireEvent.click(ui.getByRole("menuitem", { name: "Rename" }));
     expect(ui.getByRole("textbox")).toBeTruthy();

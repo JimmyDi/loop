@@ -37,6 +37,7 @@ export type SessionSummary = {
   isGenerating?: boolean;
   isWaitingForApproval?: boolean;
   unread?: boolean;
+  pinnedAt?: string;
   archived?: boolean;
 };
 

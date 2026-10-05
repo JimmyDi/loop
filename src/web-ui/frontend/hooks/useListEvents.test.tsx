@@ -277,3 +277,56 @@ test("a receipt saved in another browser clears unread through list refresh, inc
     await env.finish();
   }
 });
+
+test("server pin notifications update collapsed project pins on other pages and reconnect", async () => {
+  const env = await setup();
+  const previousFetch = globalThis.fetch;
+  const { wrapper } = env.page();
+  let pinnedAt: string | undefined;
+  const summary: SessionSummary = {
+    id: "shared-pin",
+    workspaceId: "p",
+    title: "Example",
+    createdAt: "2026-01-01",
+    updatedAt: "2026-01-01",
+    messageCount: 1,
+    userMessageCount: 1,
+  };
+  globalThis.fetch = (async (_url) => Response.json([{ ...summary, pinnedAt }])) as typeof fetch;
+  try {
+    const { PinnedSessions } = await import("../components/projects/PinnedSessions");
+    await import("../i18n/setup");
+    const Page = () => {
+      env.useListEvents();
+      return <PinnedSessions projects={[{ id: "p", name: "Example", cwd: "/example" }]} />;
+    };
+    const ui = env.render(<Page />, { wrapper });
+    const source = LocalSource.connections[0]!;
+    await env.act(async () => {
+      source.send({ type: "lists.reset" }, 0);
+      await Bun.sleep(90);
+    });
+    expect(ui.queryByRole("region", { name: "Pinned" })).toBeNull();
+    await env.act(async () => {
+      pinnedAt = "2026-01-02T00:00:00.000Z";
+      source.send({ type: "sessions.changed", workspaceId: "p" }, 1);
+      await Bun.sleep(90);
+    });
+    expect(ui.getByRole("button", { name: "Unpin Example" })).toBeTruthy();
+    await env.act(async () => {
+      pinnedAt = undefined;
+      source.send({ type: "sessions.changed", workspaceId: "p" }, 2);
+      await Bun.sleep(90);
+    });
+    expect(ui.queryByRole("region", { name: "Pinned" })).toBeNull();
+    await env.act(async () => {
+      pinnedAt = "2026-01-03T00:00:00.000Z";
+      source.send({ type: "lists.reset" }, 0, "restarted");
+      await Bun.sleep(90);
+    });
+    expect(ui.getByRole("button", { name: "Unpin Example" })).toBeTruthy();
+  } finally {
+    globalThis.fetch = previousFetch;
+    await env.finish();
+  }
+});

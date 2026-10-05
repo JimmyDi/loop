@@ -34,7 +34,7 @@ Use the supplied size-specific PNG exports at 16-32px. The geometry remains the 
 
 ## Web handoff
 
-The Loop application includes copies of the favicon, Apple touch and Safari mask assets in `src/web-ui/frontend/assets/`. Its sidebar, welcome screen and assistant avatars share the supplied 256px primary and white-tile PNGs, displayed at 28px or 64px. Browser favicons and Safari icons retain the standard artwork independently of the application's theme setting. The PWA manifest remains a delivery template. For other authorized deployments, copy the contents of `web/` together and adapt URLs to the host application. The following fragment assumes the files are served under `/assets/loop/`:
+The Loop application includes copies of the favicon, Apple touch and Safari mask assets in `src/web-ui/frontend/assets/`. Its sidebar and welcome screen share the supplied 256px primary and white-tile PNGs, displayed at 28px or 64px. Browser favicons and Safari icons retain the standard artwork independently of the application's theme setting. The PWA manifest remains a delivery template. For other authorized deployments, copy the contents of `web/` together and adapt URLs to the host application. The following fragment assumes the files are served under `/assets/loop/`:
 
 ```html
 <link rel="icon" href="/assets/loop/favicon.ico" sizes="16x16 32x32 48x48 256x256" />

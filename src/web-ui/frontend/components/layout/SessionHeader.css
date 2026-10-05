@@ -3,7 +3,7 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   padding: 10px 16px;
   border-bottom: 1px solid var(--line);
   background: var(--surface-header);

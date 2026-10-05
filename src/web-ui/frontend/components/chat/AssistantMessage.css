@@ -1,16 +1,8 @@
 .assistant-message {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
   width: 100%;
   margin: 16px 0;
 }
 .assistant-body {
-  flex: 1;
   min-width: 0;
   padding-top: 1px;
-}
-.assistant-message[aria-busy="true"] {
-  /* Reserve the avatar column until the draft is confirmed as an answer. */
-  padding-inline-start: 42px;
 }

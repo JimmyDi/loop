@@ -1,5 +1,5 @@
 import { readFile, realpath, stat } from "node:fs/promises";
-import { extname, isAbsolute, relative, resolve } from "node:path";
+import { extname, isAbsolute, relative, resolve, sep } from "node:path";
 
 const types: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -26,7 +26,7 @@ export const staticResponse = async (request: Request, directory: string): Promi
     };
     const file = await realpath(resolve(root, aliases[pathname] ?? "." + pathname));
     const path = relative(root, file);
-    if (path === ".." || path.startsWith("../") || isAbsolute(path))
+    if (path === ".." || path.startsWith(".." + sep) || isAbsolute(path))
       return new Response(null, { status: 403 });
     if (!(await stat(file)).isFile()) return new Response(null, { status: 404 });
     return new Response(request.method === "HEAD" ? null : new Uint8Array(await readFile(file)), {

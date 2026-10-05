@@ -15,7 +15,7 @@ The goal is to use Loop coding-agent in the browser through a project-based chat
 | Agent | Use this project's public `packages/coding-agent/src` SDK |
 | Directories | Keep frontend, backend, and shared protocol under `Loop/packages/web-ui/src/`, with design documents in its `docs/` directory |
 | Runtime | Keep Loop's unified Node.js project; Node.js serves HTTP, SSE, and frontend pages |
-| Startup target | Eventually use `npx loop web` to start a local service and open the browser; npm distribution requires later integration |
+| Startup target | Use `npx @loop-harness/loop web` to start the published local service and open the browser |
 | Project management | Add, rename, and remove projects in the frontend; the Projects tree groups sessions by project |
 | Directory selection | Prefer the system picker on local macOS; otherwise use browser directory navigation, with typed paths supported |
 | Language | English and Chinese, initially matching browser preferences and retaining a manual choice |
@@ -57,10 +57,10 @@ The frontend must not import server runtime code. Shared protocol types may use 
 
 ### 2.1 Local Startup and npm Distribution
 
-The eventual user entry is the following command. This is a release target, not a currently available Loop command:
+The published package starts through the following command:
 
 ```bash
-npx loop web
+npx @loop-harness/loop web
 ```
 
 The startup sequence is: the package manager retrieves the published package and runs its `bin`; the CLI dispatches `web`; a local Node.js HTTP server serves prebuilt pages plus API/SSE; after readiness it prints the URL and opens the default browser. Model calls, tools, and sessions continue through Loop's public SDK.
@@ -69,7 +69,7 @@ The startup sequence is: the package manager retrieves the published package and
 | --- | --- |
 | Web-directory implementation | `main.ts` handles Web arguments and starts Node.js, Projects/session APIs, pages, and event connections without changing coding-agent CLI |
 | Local integration | pnpm workspace installs dependencies and runs checks centrally; development serves Vite middleware with frontend HMR |
-| npm distribution | The root package name and command are `loop`, with a unified web entry and build artifacts; registry publication needs separate authorization |
+| npm distribution | The public root package is `@loop-harness/loop`, with the `loop` executable, a unified Web entry and prebuilt assets; private workspace packages are bundled |
 
 Install and start development from the root:
 
@@ -86,7 +86,7 @@ On shutdown, stop accepting operations, cancel active runs through public APIs, 
 
 Before release, use Vite and tsdown to build browser HTML/JS/CSS and the Node service entry, explicitly including SDK runtime code or dependencies. Release mode must serve prebuilt assets without compiling the frontend at startup or requiring a source checkout. Resolve resources relative to the package, not the user's working directory. Project/session data remain in user storage, not the npm cache or installation directory.
 
-The exact command npx loop web requires publishing rights to the npm package loop. The root manifest now uses that name and points to the compiled Node launcher. Node.js 24+ is required; no Bun runtime or frontend compiler is needed by the production installation. Registry ownership has not been verified and no package has been published.
+The root manifest names `@loop-harness/loop`, points to the compiled Node launcher and sets public npm access. Publication requires publishing rights in the `loop-harness` organization. Node.js 24+ is required; no Bun runtime or frontend compiler is needed by the production installation. See [distribution](../../../../docs/development.md#distribution) for packaging, isolated verification and publication commands.
 
 ## 3. Agent Integration and Capability Boundaries
 
@@ -379,7 +379,7 @@ The following stages cover implementation and integration. Code has been added a
 3. **State flow**: six Loop events, snapshots, request deduplication, tool-result merging, failed-save/flush recovery, and model switching.
 4. **Interface implementation**: theme, base components, full layout, text input, messages/Markdown/tool cards, and bilingual labels; omit unsupported controls and dependencies.
 5. **Local integration**: with dependencies available, verify startup, desktop/mobile visuals, input methods, streaming scroll, project/session switching, reconnection, and error cleanup.
-6. **Later release integration**: with separate authorization, implement root dispatch, build/npm configuration, and verify npx loop web; this is outside a web-ui-only delivery.
+6. **Distribution integration**: root dispatch and build/npm configuration bundle the private packages into `@loop-harness/loop`; verify the installed CLI, SDK, Web assets/API and shutdown in isolation before publication.
 
 Acceptance criteria:
 
@@ -398,7 +398,7 @@ Acceptance criteria:
 
 Implementation tests use local streams and tool substitutes without real models. Keep tests beside implementations, without shared mock/testing modules. Run Vitest tests, type, Biome, and architecture checks appropriate to the change; visual acceptance covers desktop and mobile. If root checks omit TSX, provide Web checks. Explicitly report checks blocked by missing dependencies rather than claiming success.
 
-Later release acceptance must test packaged output in an isolated temporary directory: installation must not require source checkout or frontend build tools; assets must resolve from any cwd; missing Node.js must produce a clear runtime requirement; installed Node.js must run and exit correctly; npm package identity and publishing rights must be confirmed. Packages must exclude user directories, credentials, registrations, sessions, and test data. This work does not publish to npm or perform Git operations.
+Release acceptance must test packaged output in an isolated temporary directory: installation must not require source checkout or frontend build tools; assets must resolve from any cwd; missing Node.js must produce a clear runtime requirement; installed Node.js must run and exit correctly; npm package identity and publishing rights must be confirmed. Packages must exclude user directories, credentials, registrations, sessions, and test data. This work does not publish to npm or perform Git operations.
 
 ## 10. Loop Implementation
 

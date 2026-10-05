@@ -4,9 +4,11 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-05
+
 ### Breaking Changes
 
-- CLI, SDK and Web: require Node.js 24+ and replace Bun with pnpm, Vite, tsdown and Vitest. Move source modules into private workspace packages with enforced public dependency boundaries. The root package is named loop and ships a Node CLI, SDK and prebuilt Web UI. Workspace consumers use @loop/agent and @loop/coding-agent; installed SDK consumers import loop. Setup assumes a fresh installation, with no conversion of session or provider files. See [development and distribution](docs/development.md).
+- CLI, SDK and Web: require Node.js 24+ and replace Bun with pnpm, Vite, tsdown and Vitest. Move source modules into private workspace packages with enforced public dependency boundaries. The public root package is named @loop-harness/loop and ships a Node CLI, SDK and prebuilt Web UI through npx @loop-harness/loop web; the executable remains loop. Workspace consumers use @loop/agent and @loop/coding-agent; installed SDK consumers import @loop-harness/loop. Setup assumes a fresh installation, with no conversion of session or provider files. See [development and distribution](docs/development.md).
 
 - coding-agent: approval requests now wait indefinitely by default. ApprovalRequest.expiresAt and DEFAULT_APPROVAL_TIMEOUT_MS may be null; consumers must handle an absent deadline, or pass timeoutMs: 120_000 explicitly to set a bounded SDK wait. See [approval deadlines](packages/coding-agent/src/docs/approvals.md#deadlines).
 

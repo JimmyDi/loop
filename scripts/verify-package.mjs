@@ -39,14 +39,14 @@ try {
     { env, encoding: "utf8" },
   );
   assert.equal(installed.status, 0, installed.stderr);
-  await verifyDistribution(join(app, "node_modules/loop"), true);
+  await verifyDistribution(join(app, "node_modules/@loop-harness/loop"), true);
   await writeFile(
     guard,
     'import { registerHooks } from "node:module"; registerHooks({ resolve(specifier, context, next) { if (specifier === "bun" || specifier.startsWith("bun:") || specifier === "vite") throw Error("Development runtime requested"); const result = next(specifier, context); if (result.url.startsWith("file:") && !result.url.startsWith(' +
       JSON.stringify(pathToFileURL(base + "/").href) +
       ')) throw Error("Resolution escaped installed package"); return result; } });',
   );
-  const entry = join(app, "node_modules/loop/dist/bin.js");
+  const entry = join(app, "node_modules/@loop-harness/loop/dist/bin.js");
   const inspect = spawnSync(
     process.execPath,
     [
@@ -54,7 +54,7 @@ try {
       guard,
       "--input-type=module",
       "-e",
-      'import { createAgentSession } from "loop"; if (typeof createAgentSession !== "function") throw Error("SDK missing");',
+      'import { createAgentSession } from "@loop-harness/loop"; if (typeof createAgentSession !== "function") throw Error("SDK missing");',
     ],
     { cwd: app, env, encoding: "utf8" },
   );

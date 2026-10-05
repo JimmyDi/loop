@@ -1,6 +1,6 @@
 # TypeScript SDK
 
-The SDK embeds Loop in a Node.js 24+ application. Installed consumers import from loop; the examples below use the private workspace package @loop/coding-agent for repository development. Import the public [index.ts](../index.ts); it has no terminal startup or file-creation side effects. Creating a session may load configuration and create storage.
+The SDK embeds Loop in a Node.js 24+ application. Installed consumers import from `@loop-harness/loop`; the examples below use the private workspace package @loop/coding-agent for repository development. Import the public [index.ts](../index.ts); it has no terminal startup or file-creation side effects. Creating a session may load configuration and create storage.
 
 ## Minimal call
 

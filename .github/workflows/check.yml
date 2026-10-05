@@ -40,4 +40,4 @@ jobs:
       - run: pnpm build
       - run: pnpm test
       - run: pnpm --config.ignore-scripts=true pack
-      - run: pnpm verify:package loop-0.1.0.tgz
+      - run: pnpm verify:package loop-harness-loop-0.1.0.tgz

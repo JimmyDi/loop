@@ -10,7 +10,7 @@ Run pnpm dev from the root for development. Vite middleware serves React/CSS wit
 
 For production, run pnpm build and node dist/bin.js web from the root. The compiled package serves prebuilt assets without Vite or a source checkout. Help works without opening a server: node dist/bin.js web --help.
 
-The root package is named loop and provides the web subcommand. npx loop web becomes available after an authorized npm publication; registry ownership has not been checked. Node.js 24+ is required. Bun is not required.
+The public root package is `@loop-harness/loop` and provides the `web` subcommand. Start the published version with `npx @loop-harness/loop web`. Node.js 24+ is required; Bun and frontend build tools are not required.
 
 ## Model connection
 

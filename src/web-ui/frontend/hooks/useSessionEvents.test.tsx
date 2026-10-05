@@ -95,6 +95,7 @@ test.each([false, true])(
               tools: {},
               state: {
                 messages: [],
+                unread: true,
                 isRunning: false,
                 hasPendingSave: false,
                 outcome: "idle",
@@ -136,6 +137,9 @@ test.each([false, true])(
         client.getQueryData<SessionSummary[]>(["sessions", "project"])?.[0]?.isWaitingForApproval,
       ).toBe(waiting);
       expect(useSessions.getState().views.first?.connected).toBe(false);
+      expect(client.getQueryData<SessionSummary[]>(["sessions", "project"])?.[0]?.unread).toBe(
+        true,
+      );
       act(() => source.onmessage?.({ data: "late frame from a closed subscription" }));
       expect(
         connections.filter((item) => item.url === "/api/sessions/first/events?approvals=1"),

@@ -333,3 +333,139 @@ test("untitled history derives its first user text without modifying storage or 
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("unread belongs to the header and stale receipts cannot clear newer completed output", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".unread-storage-"));
+  const user = { role: "user" as const, content: "Example request", timestamp: 0 };
+  const reply = {
+    role: "assistant" as const,
+    content: [{ type: "text" as const, text: "Example reply" }],
+    api: "openai-completions" as const,
+    provider: "example",
+    model: "example",
+    stopReason: "stop" as const,
+    timestamp: 1,
+    usage: {
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+      totalTokens: 0,
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+    },
+  };
+  const firstTiming = { userMessageIndex: 0, startedAt: 0, finishedAt: 1 };
+  const secondTiming = { userMessageIndex: 2, startedAt: 2, finishedAt: 3 };
+  try {
+    const manager = SessionManager.draft(root, join(root, "history"));
+    expect(manager.getHeader().unread).toBe(false);
+    expect(await manager.markRead(2)).toBe(false);
+    expect(await Bun.file(manager.sessionFile!).exists()).toBe(false);
+    // Unread and read requests work without execution timing metadata.
+    await manager.commit([user, reply]);
+    const original = await Bun.file(manager.sessionFile!).text();
+    expect(manager.unread).toBe(true);
+    for (const turn of [-1, 1.5, Number.NaN])
+      await expect(manager.markRead(turn)).rejects.toThrow("Invalid read message count");
+    expect(await manager.markRead(4)).toBe(false);
+    await Promise.all([
+      manager.markRead(2),
+      manager.setTitle({ text: "Renamed", source: "user", messageIndices: [] }),
+      manager.setModel({ provider: "example", id: "other" }),
+    ]);
+    expect(manager.getHeader()).toMatchObject({
+      unread: false,
+      title: { text: "Renamed" },
+      model: { id: "other" },
+    });
+    await manager.commit([user, reply], [firstTiming]);
+    expect(manager.unread).toBe(false);
+    await manager.commit([user, reply, user, reply], [firstTiming, secondTiming]);
+    expect(await manager.markRead(2)).toBe(false);
+    expect(manager.unread).toBe(true);
+    const beforeRead = manager.getHeader();
+    expect(await manager.markRead(4)).toBe(true);
+    expect(await manager.markRead(4)).toBe(true);
+    expect(manager.getHeader()).toEqual({ ...beforeRead, unread: false });
+    const restored = await SessionManager.open(manager.sessionFile!);
+    expect(restored.unread).toBe(false);
+    expect(restored.messages).toEqual([user, reply, user, reply]);
+    // A new failed run containing only its user message must not create unread output.
+    await restored.commit(
+      [user, reply, user, reply, user],
+      [firstTiming, secondTiming, { userMessageIndex: 4, startedAt: 4, finishedAt: 5 }],
+    );
+    expect(restored.unread).toBe(false);
+    const lines = original.trim().split("\n");
+    for (const unread of ["true", 1, null]) {
+      await Bun.write(
+        manager.sessionFile!,
+        [JSON.stringify({ ...JSON.parse(lines[0]!), unread }), ...lines.slice(1)].join("\n"),
+      );
+      await expect(SessionManager.open(manager.sessionFile!)).rejects.toThrow(
+        "Invalid session metadata",
+      );
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("read writes serialize with commits and failed saves retain unread for retry", async () => {
+  const root = await mkdtemp(join(import.meta.dir, ".unread-race-"));
+  const storage = join(root, "history");
+  const user = { role: "user" as const, content: "Example", timestamp: 0 };
+  const reply = {
+    role: "assistant" as const,
+    content: [{ type: "text" as const, text: "Reply" }],
+    api: "openai-completions" as const,
+    provider: "example",
+    model: "example",
+    stopReason: "stop" as const,
+    timestamp: 1,
+    usage: {
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+      totalTokens: 0,
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+    },
+  };
+  const timings = [{ userMessageIndex: 0, startedAt: 0, finishedAt: 1 }];
+  try {
+    const manager = SessionManager.draft(root, storage);
+    await manager.commit([user, reply], timings);
+    // Let the receipt start writing before a newer commit is prepared.
+    const reading = manager.markRead(2);
+    await Promise.resolve();
+    const nextTimings = [...timings, { userMessageIndex: 2, startedAt: 2, finishedAt: 3 }];
+    await Promise.all([reading, manager.commit([user, reply, user, reply], nextTimings)]);
+    expect(manager.unread).toBe(true);
+    expect((await SessionManager.open(manager.sessionFile!)).unread).toBe(true);
+    // Re-saving the same history must also preserve a concurrent successful read.
+    const readingLatest = manager.markRead(4);
+    await Promise.resolve();
+    await Promise.all([readingLatest, manager.commit(manager.messages, nextTimings)]);
+    expect(manager.unread).toBe(false);
+    expect((await SessionManager.open(manager.sessionFile!)).unread).toBe(false);
+    await rm(storage, { recursive: true });
+    await Bun.write(storage, "Block writes");
+    const newest = [...nextTimings, { userMessageIndex: 4, startedAt: 4, finishedAt: 5 }];
+    await expect(manager.commit([user, reply, user, reply, user, reply], newest)).rejects.toThrow();
+    expect(manager.unread).toBe(true);
+    await expect(manager.markRead(6)).rejects.toThrow("Pending session save");
+    await rm(storage);
+    await manager.flush();
+    expect((await SessionManager.open(manager.sessionFile!)).unread).toBe(true);
+    await rm(storage, { recursive: true });
+    await Bun.write(storage, "Block receipt");
+    await expect(manager.markRead(6)).rejects.toThrow();
+    expect(manager.unread).toBe(true);
+    await rm(storage);
+    expect(await manager.markRead(6)).toBe(true);
+    expect((await SessionManager.open(manager.sessionFile!)).unread).toBe(false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

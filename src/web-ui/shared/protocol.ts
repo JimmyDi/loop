@@ -36,7 +36,7 @@ export type SessionSummary = {
   title?: string;
   isGenerating?: boolean;
   isWaitingForApproval?: boolean;
-  latestCompletedTurn?: number;
+  unread?: boolean;
   archived?: boolean;
 };
 

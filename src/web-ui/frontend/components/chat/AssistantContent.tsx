@@ -16,7 +16,8 @@ export const AssistantContent = ({
 }) => (
   <>
     {groupAssistantContent(message.content).map((part) => {
-      if (part.type === "text") return <MarkdownText key={part.key} text={part.text} />;
+      if (part.type === "text")
+        return <MarkdownText key={part.key} text={part.text} streaming={streaming} />;
 
       if (part.type === "thinking") return <ThinkingBlock key={part.key} text={part.thinking} />;
 

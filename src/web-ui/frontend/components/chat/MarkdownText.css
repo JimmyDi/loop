@@ -89,3 +89,61 @@
 .markdown-text img {
   max-width: 100%;
 }
+.markdown-mermaid {
+  position: relative;
+  margin: 12px 0;
+  border: 0;
+  background: transparent;
+}
+.markdown-mermaid-preview {
+  padding: 16px;
+  overflow: auto;
+  max-width: 100%;
+}
+.markdown-mermaid-preview > svg {
+  display: block;
+  margin: auto;
+}
+.markdown-mermaid-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border: 0;
+  background: transparent;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+}
+.markdown-mermaid-copy > svg {
+  width: 16px;
+  height: 16px;
+}
+.markdown-mermaid:hover > .markdown-mermaid-copy,
+.markdown-mermaid:focus-within > .markdown-mermaid-copy,
+.markdown-mermaid-copy[data-copy-status="copied"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+.markdown-mermaid-copy:hover {
+  color: var(--ink);
+}
+.markdown-mermaid-copy:focus-visible {
+  outline: 2px solid var(--focus-border);
+  outline-offset: 2px;
+}
+@media (hover: none) {
+  .markdown-mermaid-copy {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+.markdown-mermaid > [hidden] {
+  display: none;
+}
+.markdown-mermaid-error {
+  color: var(--ink-muted);
+  font-size: 12px;
+}

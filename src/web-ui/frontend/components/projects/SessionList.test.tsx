@@ -229,6 +229,9 @@ test("generation rings follow live prompt events and background summaries withou
       });
       expect(within(first).getByRole("img", { name: "Waiting for approval" })).toBeTruthy();
       expect(first.firstElementChild?.className).toBe("session-list-waiting");
+      expect(first.firstElementChild?.getAttribute("aria-hidden")).toBe("true");
+      expect(first.lastElementChild?.className).toBe("session-list-pending");
+      expect(within(first).getAllByRole("img")).toHaveLength(1);
       expect(within(first).queryByRole("img", { name: "Looping..." })).toBeNull();
       expect(
         (ui.getByRole("button", { name: "Archive First conversation" }) as HTMLButtonElement)
@@ -250,6 +253,7 @@ test("generation rings follow live prompt events and background summaries withou
       />,
     );
     expect(within(second).getByRole("img", { name: "Waiting for approval" })).toBeTruthy();
+    expect(second.lastElementChild?.className).toBe("session-list-pending");
     expect(within(second).queryByRole("img", { name: "Looping..." })).toBeNull();
     act(() => {
       useSessions.getState().frame({
@@ -261,6 +265,7 @@ test("generation rings follow live prompt events and background summaries withou
       });
     });
     expect(within(first).queryByRole("img", { name: "Waiting for approval" })).toBeNull();
+    expect(first.querySelector(".session-list-pending")).toBeNull();
     expect(within(first).getByRole("img", { name: "Looping..." })).toBeTruthy();
     for (const outcome of ["success", "cancelled", "error"] as const) {
       act(() => {

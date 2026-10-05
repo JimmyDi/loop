@@ -102,12 +102,24 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
               {waiting && (
                 <span
                   className="session-list-waiting"
-                  role="img"
-                  aria-label={t("permissions.waiting")}
+                  aria-hidden="true"
                   title={t("permissions.waiting")}
                 />
               )}
               <span className="session-list-title">{title}</span>
+              {waiting && (
+                <span
+                  className="session-list-pending"
+                  role="img"
+                  aria-label={t("permissions.waiting")}
+                  title={t("permissions.waiting")}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 2" />
+                  </svg>
+                </span>
+              )}
               {generating && !waiting && (
                 <span
                   className="session-list-spinner"

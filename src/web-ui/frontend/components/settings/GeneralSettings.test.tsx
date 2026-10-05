@@ -1,18 +1,27 @@
 import { expect, test } from "bun:test";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Window } from "happy-dom";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { i18n } from "../../i18n/setup";
 import { GeneralSettings } from "./GeneralSettings";
 
-test("General exposes language separately from appearance settings", () => {
-  const html = renderToStaticMarkup(<GeneralSettings />);
+test("General exposes default permission before language, separately from appearance settings", () => {
+  const client = new QueryClient();
+  client.setQueryData(["general-settings"], { permissionPreset: "read-only" });
+  const html = renderToStaticMarkup(
+    <QueryClientProvider client={client}>
+      <GeneralSettings />
+    </QueryClientProvider>,
+  );
 
   expect(html).toContain("Language");
   expect(html).toContain('aria-haspopup="listbox"');
-  expect(html).not.toContain("Permission");
+  expect(html).toContain("Permission");
+  expect(html.indexOf("Permission")).toBeLessThan(html.indexOf("Language"));
   expect(html).not.toContain("Theme");
   expect(html).not.toContain('type="radio"');
+  client.clear();
 });
 
 test("resource updates refresh visible translations without a language change or remount", async () => {
@@ -20,6 +29,8 @@ test("resource updates refresh visible translations without a language change or
   const previous = { window: globalThis.window, document: globalThis.document };
   const language = i18n.language;
   const description = i18n.getResource("zh", "translation", "languageDescription");
+  const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
+  client.setQueryData(["general-settings"], { permissionPreset: "read-only" });
   let languageChanges = 0;
   const onLanguageChanged = () => {
     languageChanges++;
@@ -31,7 +42,11 @@ test("resource updates refresh visible translations without a language change or
   try {
     await i18n.changeLanguage("zh");
     i18n.on("languageChanged", onLanguageChanged);
-    const view = render(<GeneralSettings />);
+    const view = render(
+      <QueryClientProvider client={client}>
+        <GeneralSettings />
+      </QueryClientProvider>,
+    );
     const trigger = view.getByRole("button", { name: "语言 中文" });
 
     fireEvent.click(trigger);
@@ -55,6 +70,7 @@ test("resource updates refresh visible translations without a language change or
     expect(languageChanges).toBe(0);
   } finally {
     cleanup();
+    client.clear();
     i18n.off("languageChanged", onLanguageChanged);
     i18n.addResourceBundle("zh", "translation", { languageDescription: description }, true, true);
     await i18n.changeLanguage(language);

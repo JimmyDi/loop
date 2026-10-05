@@ -20,6 +20,16 @@ export const applyEvent = (
       event.request,
     ];
   } else if (event.type === "approval_resolved") {
+    const { outcome, resolvedAt, request } = event.result;
+    next.lastApproval = {
+      outcome,
+      resolvedAt,
+      request: {
+        sessionId: request.sessionId,
+        requestId: request.requestId,
+        toolName: request.toolName,
+      },
+    };
     next.state.pendingApprovals = (next.state.pendingApprovals ?? []).filter(
       (request) => request.requestId !== event.result.request.requestId,
     );

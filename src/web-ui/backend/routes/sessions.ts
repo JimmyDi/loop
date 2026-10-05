@@ -2,7 +2,7 @@ import { readBody, requiredString } from "../http/input";
 import { eventResponse } from "../http/sse";
 import { HttpError } from "../http/errors";
 import type { SessionRegistry } from "../session-registry";
-import { isModelEffort } from "../../../coding-agent/index";
+import { isModelEffort, isPermissionPreset } from "../../../coding-agent/index";
 import { validImages } from "../../shared/prompt-images";
 import { validTextFiles } from "../../shared/prompt-files";
 
@@ -39,14 +39,19 @@ export const sessionRoutes =
     }
 
     const match = url.pathname.match(
-      /^\/api\/sessions\/([^/]+)(?:\/(prompt|abort|flush|model|events|title))?$/,
+      /^\/api\/sessions\/([^/]+)(?:\/(prompt|abort|flush|model|events|title|permission|approvals)(?:\/([^/]+))?)?$/,
     );
 
     if (!match) return;
 
-    const [, id, action] = match;
+    const [, id, action, requestId] = match;
+    if ((action === "approvals") !== !!requestId) return;
     const body =
-      action === "prompt" || action === "model" || (action === "title" && method === "PUT")
+      action === "prompt" ||
+      action === "model" ||
+      action === "permission" ||
+      action === "approvals" ||
+      (action === "title" && method === "PUT")
         ? await readBody(request, action === "prompt" ? Infinity : undefined)
         : {};
     const controller = await registry.get(id!);
@@ -55,7 +60,18 @@ export const sessionRoutes =
 
     if (!action && method === "GET") return Response.json(controller.snapshot);
 
-    if (action === "events" && method === "GET") return eventResponse(controller.events, request);
+    if (action === "events" && method === "GET")
+      return eventResponse(
+        url.searchParams.get("approvals") === "1" ? controller.approvals : controller.events,
+        request,
+      );
+
+    if (action === "approvals" && method === "POST") {
+      if (body.decision !== "allowed-once" && body.decision !== "rejected")
+        throw new HttpError(400, "invalid_approval_decision");
+      controller.approvals.respond(requestId!, body.decision);
+      return Response.json(controller.snapshot);
+    }
 
     if (action === "prompt" && method === "POST") {
       const requestId = requiredString(body, "requestId");
@@ -73,7 +89,11 @@ export const sessionRoutes =
       return Response.json({ runId }, { status: 202 });
     }
 
-    if (action === "title" && method === "PUT") {
+    if (action === "permission" && method === "PUT") {
+      if (!isPermissionPreset(body.preset)) throw new HttpError(400, "invalid_permission_preset");
+      const preset = body.preset;
+      await controller.command("permission", () => controller.session.setPermissionPreset(preset));
+    } else if (action === "title" && method === "PUT") {
       const title = requiredString(body, "title");
       await controller.command("title", () => controller.session.renameTitle(title));
     } else if (action === "title" && method === "POST") {

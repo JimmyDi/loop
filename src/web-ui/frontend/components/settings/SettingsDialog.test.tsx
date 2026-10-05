@@ -27,6 +27,7 @@ test("Settings opens General outside the mobile drawer and restores focus withou
   client.setQueryData(["projects"], []);
   client.setQueryData(["provider-settings"], { providers: [], catalog: [] });
   client.setQueryData(["archived-chats"], []);
+  client.setQueryData(["general-settings"], { permissionPreset: "read-only" });
   Object.assign(globalThis, { window, document: window.document, EventSource: LocalSource });
   const { render, fireEvent, act, cleanup } = await import("@testing-library/react/pure");
 

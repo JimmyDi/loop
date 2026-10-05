@@ -88,12 +88,20 @@ test("real CLI print calls the model runtime, restores history and reports failu
   };
 
   try {
-    expect(await read(start())).toEqual({ code: 0, output: "hello\n", error: "" });
+    expect(await read(start(["--permission-preset", "workspace-write"]))).toEqual({
+      code: 0,
+      output: "hello\n",
+      error: "",
+    });
     expect((await read(start(["-c"]))).code).toBe(0);
     expect(requests[1].messages.filter((item) => item.role !== "system")).toHaveLength(4);
     expect((await SessionManager.continueRecent(dir, join(dir, "sessions"))).messages).toHaveLength(
       4,
     );
+    expect(
+      (await SessionManager.continueRecent(dir, join(dir, "sessions"))).getHeader()
+        .permissionPreset,
+    ).toBe("workspace-write");
 
     reason = "length";
 

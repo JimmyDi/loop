@@ -19,6 +19,7 @@ const snapshot: SessionSnapshot = {
     hasPendingSave: false,
     outcome: "idle",
     listenerErrors: [],
+    permissionPreset: "read-only",
   },
 };
 
@@ -32,6 +33,8 @@ test("ChatComposer renders the session state without unsupported controls", () =
 
   expect(html).toContain("Stop generating");
   expect(html).toContain('aria-disabled="true"');
+  expect(html.indexOf('class="composer-toolbar"')).toBeLessThan(html.indexOf("permission-trigger"));
+  expect(html).toContain("Session permissions: Read only");
   client.clear();
 });
 

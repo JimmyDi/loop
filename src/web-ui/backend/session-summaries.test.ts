@@ -3,13 +3,96 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 
-import { getSessionDir, SessionManager } from "../../coding-agent/index";
+import { AgentSession, getSessionDir, SessionManager } from "../../coding-agent/index";
 import { createLoopBridge } from "./loop";
 import { ProjectStore } from "./projects/project-store";
 import { ProviderSettings } from "./providers/provider-settings";
 import { SessionRegistry } from "./session-registry";
 import { createRouter } from "./router";
-import type { ListFrame } from "../shared/protocol";
+import type { ListFrame, SessionSummary } from "../shared/protocol";
+import { SessionController } from "./session-controller";
+import { sessionSummaries } from "./session-summaries";
+import { ListEvents } from "./list-events";
+
+test("approval lifecycle refreshes background summaries and clears waiting on resolution", async () => {
+  const model = {
+    id: "example",
+    provider: "example",
+    name: "Example",
+    api: "openai-completions" as const,
+    baseUrl: "https://example.invalid",
+    reasoning: false,
+    input: ["text" as const],
+    contextWindow: 4096,
+    maxTokens: 128,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+  };
+  const session = new AgentSession({
+    model,
+    systemPrompt: "Test",
+    tools: [],
+    sessionManager: SessionManager.inMemory(),
+    modelRuntime: {
+      getModel: () => model,
+      getModels: () => [model],
+      checkModel: async () => {},
+      streamSimple: () => {
+        throw new Error("This test must not call the model");
+      },
+    },
+  });
+  const controller = new SessionController(session, "project");
+  const records: SessionSummary[] = [
+    {
+      id: session.sessionId,
+      workspaceId: "project",
+      createdAt: controller.createdAt,
+      updatedAt: controller.createdAt,
+      messageCount: 2,
+      userMessageCount: 1,
+    },
+  ];
+  const summary = () => sessionSummaries(records, [controller], "project")[0]!;
+  const events = new ListEvents();
+  const changes: boolean[] = [];
+  events.watch(controller);
+  events.connect((frame) => {
+    if (frame.type === "sessions.changed") changes.push(summary().isWaitingForApproval!);
+  });
+  let disconnect = controller.approvals.connect(() => {});
+  try {
+    expect(summary().isWaitingForApproval).toBe(false);
+    for (const outcome of ["allowed-once", "rejected", "cancelled"] as const) {
+      const pending = session.requestApproval({
+        toolCallId: "call",
+        toolName: "write",
+        reason: "Create the requested file",
+      });
+      const request = session.state.pendingApprovals![0]!;
+      expect(summary().isWaitingForApproval).toBe(true);
+      expect(summary().isGenerating).toBe(false);
+      expect(changes.at(-1)).toBe(true);
+      disconnect();
+      expect(summary().isWaitingForApproval).toBe(true);
+      disconnect = controller.approvals.connect(() => {});
+      if (outcome === "cancelled") await controller.abort();
+      else controller.approvals.respond(request.requestId, outcome);
+      expect((await pending).outcome).toBe(outcome);
+      expect(summary().isWaitingForApproval).toBe(false);
+      expect(changes.at(-1)).toBe(false);
+    }
+    expect(changes).toEqual([true, false, true, false, true, false]);
+    // Disk records cannot restore transient waiting state after a restart.
+    expect(
+      sessionSummaries([{ ...records[0]!, isWaitingForApproval: true }], [], "project")[0],
+    ).toMatchObject({ isGenerating: false, isWaitingForApproval: false });
+    expect(sessionSummaries([], [controller], "other-project")).toEqual([]);
+  } finally {
+    disconnect();
+    events.close();
+    await controller.close();
+  }
+});
 
 test("new Web sessions remain drafts until the first user message, appear during streaming and survive restart", async () => {
   const root = await mkdtemp(join(import.meta.dir, ".draft-session-test-"));

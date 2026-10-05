@@ -31,6 +31,9 @@
 .chat-workspace-body[data-empty="true"] .composer-model-popover {
   max-height: min(460px, max(160px, calc(50dvh - 120px)));
 }
+.chat-workspace-body[data-empty="true"] .permission-popover {
+  max-height: min(420px, max(160px, calc(50dvh - 120px)));
+}
 .chat-welcome {
   display: flex;
   flex-direction: column;

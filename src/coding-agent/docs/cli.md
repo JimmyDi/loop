@@ -26,6 +26,7 @@ bash src/coding-agent/cli.sample.sh
 | `--session-dir PATH` | Override session storage/lookup directory. |
 | `--no-session` | Keep history in memory only. |
 | `--tools read,bash,edit,write` | Select built-in tools. `--tools ""` disables all. |
+| `--permission-preset LEVEL` | Explicitly select read-only, workspace-write or danger-full-access for the startup session, including a restored session. |
 | `--system-prompt TEXT` | Replace base instructions with literal text, not a file path. |
 | `--no-context-files` | Disable ancestor/project instruction discovery. |
 | `--help`, `-h` | Show options without starting a session. |
@@ -41,6 +42,9 @@ bash src/coding-agent/cli.sample.sh
 | `/abort` | Cancel the run and wait for finalization. |
 | `/model` | Show the active provider/model. |
 | `/model provider/id` | Switch a configured model while idle; a bare ID uses the current provider. |
+| `/permissions [level]` | Show the effective preset or persist a supported preset while idle. |
+| `/approve REQUEST_ID` | Allow exactly one pending operation in this session. |
+| `/reject REQUEST_ID` | Reject the pending operation. |
 | `/new` | Replace the current session with an empty one. |
 | `/resume` | List saved session paths for the current workspace. |
 | `/resume path` | Open that session and recreate its workspace services. |
@@ -49,7 +53,17 @@ bash src/coding-agent/cli.sample.sh
 
 Ctrl+C cancels when busy and exits when idle, unless a save is pending. There is no input queue: another ordinary prompt while busy rejects.
 
-Startup shows the active model. Accepted prompts show waiting feedback; model updates can show thinking or tool preparation, followed by tool status and streamed text. Complete text without deltas is rendered when the assistant ends. Thinking content itself is not printed.
+Startup shows the active model and permission preset. Accepted prompts show waiting feedback; model updates can show thinking or tool preparation, followed by tool status and streamed text. Complete text without deltas is rendered when the assistant ends. Thinking content itself is not printed.
+
+## Permissions and approvals
+
+Without an explicit flag, startup restores the saved permission preset or uses the new-session settings default (built-in: read-only). The flag applies only to the startup session: /new uses new-session defaults and /resume restores that session's saved preset. /permissions changes only the active session; it does not change global settings. Full access permits host writes and unsandboxed shell commands without individual approval.
+
+Interactive approval requires both terminal input and output. The CLI prints the tool, reason, exact arguments and scope as escaped JSON. File requests identify the canonical path and content hashes; shell requests explicitly cover host filesystem, network, environment and descendants without a sandbox. Use the displayed request ID with /approve or /reject; a plain yes or stale ID cannot approve.
+
+The waiting tool has no approval deadline and resumes only after an accepted decision. Rejection, /abort, Ctrl+C during a run, or shutdown settle the request without granting execution. SDK requests with an explicit timeout still report expiry. The terminal prints the outcome. Session replacement rebinds the interaction handler; decisions do not transfer to another session.
+
+Print mode and non-terminal input do not register an approval handler. Operations requiring additional authority fail closed instead of waiting for piped input. See [permissions](permissions.md) and [approval lifecycle](approvals.md).
 
 ## Print and errors
 

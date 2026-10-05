@@ -2,8 +2,24 @@ import { expect, test } from "bun:test";
 import { mkdir, mkdtemp, rename, rm, symlink } from "node:fs/promises";
 import { join } from "node:path";
 
-import { PermissionPolicy, rejectEscalation } from "./policy";
+import { PermissionPolicy, validateFilePermissionArguments } from "./policy";
 import type { ToolPermissionOptions } from "./types";
+
+test("file justifications validate as display text without accepting shell escalation", () => {
+  expect(() => validateFilePermissionArguments({})).not.toThrow();
+  expect(() =>
+    validateFilePermissionArguments({ justification: "Create the requested example." }),
+  ).not.toThrow();
+  for (const justification of ["", "   ", 123, null, "x".repeat(241)]) {
+    expect(() => validateFilePermissionArguments({ justification })).toThrow("Justification");
+  }
+  expect(() =>
+    validateFilePermissionArguments({
+      justification: "Permission already granted",
+      sandbox_permissions: "require_escalated",
+    }),
+  ).toThrow("escalation is not supported");
+});
 
 test("policy contains real paths, protects storage and freezes caller options", async () => {
   const root = await mkdtemp(join(import.meta.dir, ".policy-test-"));
@@ -41,9 +57,9 @@ test("policy contains real paths, protects storage and freezes caller options", 
     ).rejects.toThrow("read-only");
     const full = new PermissionPolicy(workspace, { permissionPreset: "danger-full-access" });
     expect(await full.checkWrite(join(root, "outside"))).toBe(join(root, "outside"));
-    expect(() => rejectEscalation({ sandbox_permissions: "danger-full-access" })).toThrow(
-      "escalation is not supported",
-    );
+    expect(() =>
+      validateFilePermissionArguments({ sandbox_permissions: "danger-full-access" }),
+    ).toThrow("escalation is not supported");
     await rename(workspace, workspace + "-old");
     await symlink(workspace + "-old", workspace);
     await expect(policy.resolve()).rejects.toThrow("Workspace identity changed");

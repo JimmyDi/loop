@@ -54,7 +54,7 @@ test("cumulative drafts replace rather than append and full snapshots replace hi
     reason: "Review operation",
     policy: "ask" as const,
     createdAt: 1,
-    expiresAt: 100,
+    expiresAt: null,
   };
   const requested = applyEvent(initial, { type: "approval_requested", request });
   const duplicate = applyEvent(requested, { type: "approval_requested", request });

@@ -21,7 +21,20 @@ export const ApprovalDetails = ({
         </p>
       )}
       <p>
-        {t(operation.kind === "file-write" ? "permissions.fileScope" : "permissions.shellScope")}
+        {operation.kind === "mcp-tool" && (
+          <span>
+            {operation.serverName} · {operation.toolName} ·{" "}
+            {operation.transport === "stdio" ? "STDIO" : "Streamable HTTP"}
+            <br />
+          </span>
+        )}
+        {t(
+          operation.kind === "file-write"
+            ? "permissions.fileScope"
+            : operation.kind === "mcp-tool"
+              ? "mcp.approvalScope"
+              : "permissions.shellScope",
+        )}
       </p>
       <pre tabIndex={0}>
         <code>{JSON.stringify(operation.arguments, null, 2)}</code>

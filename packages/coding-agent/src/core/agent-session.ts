@@ -28,6 +28,8 @@ import type {
 
 import type { PromptTiming } from "./prompt-timing";
 import type { ContextBudget } from "./context-budget";
+import { withToolDisplayName } from "./tool-display";
+import type { PermissionTool } from "./approvals/tool-approvals";
 
 export class AgentSession {
   private listeners = new Set<SessionEventListener>();
@@ -49,6 +51,7 @@ export class AgentSession {
   private acceptingRunApprovals = false;
   private promptTiming?: PromptTiming;
   private contextBudget?: ContextBudget;
+  private toolDisplayNames = new Map<string, string>();
 
   constructor(private readonly options: SessionOptions) {
     this.toolApprovals = new ToolApprovals((input, options) =>
@@ -58,6 +61,7 @@ export class AgentSession {
       this.sessionId,
       () => approvalPolicyFor(this.permissionPreset ?? DEFAULT_PERMISSION_PRESET),
       (event) => this.emit(event),
+      () => this.permissionPreset === "danger-full-access",
     );
     this.selected = structuredClone(options.model);
     const effort = options.effort ?? options.sessionManager.getHeader().model?.effort;
@@ -153,8 +157,15 @@ export class AgentSession {
 
   get state(): SessionState {
     const timing = this.promptTiming;
+    const names = new Map(this.toolDisplayNames);
+    for (const tool of this.options.mcpManager?.tools(this.sessionManager.getCwd()) ?? []) {
+      const displayName = (tool as PermissionTool).displayName;
+      if (displayName && !names.has(tool.name)) names.set(tool.name, displayName);
+    }
     return {
-      messages: this.agent?.messages ?? this.sessionManager.messages,
+      messages: (this.agent?.messages ?? this.sessionManager.messages).map((message) =>
+        withToolDisplayName(message, names),
+      ),
       draft: this.draft ? structuredClone(this.draft) : undefined,
       isRunning: this.busy,
       hasPendingSave: this.sessionManager.hasPendingSave,
@@ -391,7 +402,25 @@ export class AgentSession {
 
     if (event.type === "message_end" && event.message.role === "assistant") this.draft = undefined;
 
-    this.emit(event);
+    if (event.type === "tool_execution_start" || event.type === "tool_execution_end") {
+      this.emit({
+        ...event,
+        toolDisplayName: this.toolDisplayNames.get(event.toolName),
+        ...(event.type === "tool_execution_end"
+          ? {
+              result: withToolDisplayName(
+                event.result,
+                this.toolDisplayNames,
+              ) as typeof event.result,
+            }
+          : {}),
+      });
+    } else if (
+      (event.type === "message_start" || event.type === "message_end") &&
+      event.message.role === "toolResult"
+    ) {
+      this.emit({ ...event, message: withToolDisplayName(event.message, this.toolDisplayNames) });
+    } else this.emit(event);
   }
 
   private async run(content: PromptContent, signal: AbortSignal): Promise<void> {
@@ -409,13 +438,23 @@ export class AgentSession {
         buildPermissionContext(this.permissionPreset, this.sessionManager.getCwd()),
         messages.filter((message) => message.role === "user").length,
       );
+      const tools = [
+        ...this.options.tools,
+        ...(this.options.mcpManager?.tools(this.sessionManager.getCwd()) ?? []),
+      ];
+      this.toolDisplayNames = new Map(
+        tools.flatMap((tool: PermissionTool) =>
+          tool.displayName ? [[tool.name, tool.displayName] as const] : [],
+        ),
+      );
       this.agent = new Agent({
         model: this.selected,
         messages,
         systemPrompt: this.options.systemPrompt,
-        tools: this.options.permissionPolicy
-          ? this.toolApprovals.bind(this.options.tools)
-          : this.options.tools,
+        tools:
+          this.options.permissionPolicy || this.options.mcpManager
+            ? this.toolApprovals.bind(tools)
+            : tools,
         streamFn: createSessionStreamFn(
           this.options.modelRuntime,
           preparedContexts,
@@ -444,7 +483,9 @@ export class AgentSession {
       this.approvals.cancelPending();
       try {
         if (this.agent) {
-          const messages = this.agent.messages;
+          const messages = this.agent.messages.map((message) =>
+            withToolDisplayName(message, this.toolDisplayNames),
+          );
           const timings = this.sessionManager.getPromptTimings();
           if (this.promptTiming && messages[this.promptTiming.userMessageIndex]?.role === "user") {
             this.promptTiming = {

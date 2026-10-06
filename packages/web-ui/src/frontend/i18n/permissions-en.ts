@@ -46,6 +46,7 @@ export const permissionsEn = {
   allowOnce: "Allow once",
   disconnected: "Reconnect to respond",
   outcomes: {
+    "allowed-session": "Allowed for this session",
     "allowed-once": "Allowed once",
     rejected: "Rejected",
     cancelled: "Approval cancelled",

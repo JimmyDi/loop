@@ -115,7 +115,9 @@ The backend registry owns independent AgentSession instances. Do not repeatedly 
 - Model selection, stopping, history restoration on refresh, reconnection synchronization, and failed-save retry.
 - English/Chinese switching with persisted language preference.
 
-Loop currently has no skills, MCP, approval mode, task scheduling, session branches, session renaming/deletion, message rollback/retry, steering, or queues. These are excluded from the initial UI. Web project renaming and unregistering do not change the session API. Tools have no progress events; bash displays activity and final output, without a terminal, interactive stdin, or live output panel.
+Loop supports session permission presets and approval cards for managed file/shell operations. Built-in approval policy follows the session preset; there is no separately configurable global approval mode. MCP calls follow session permissions: Full access allows automatically, while restricted presets require approval or an exact live-session tool grant. Plugins exposes connection settings and server enable switches without separate permission controls. See [permissions and approvals](../frontend/docs/permissions.md) and [MCP configuration](../frontend/docs/plugins.md).
+
+Loop currently has no skills, task scheduling, session branches, session renaming/deletion, message rollback/retry, steering, or queues. These are excluded from the initial UI. Web project renaming and unregistering do not change the session API. Tools have no progress events; bash displays activity and final output, without a terminal, interactive stdin, or live output panel.
 
 File operations and bash run at the session `cwd` on the backend machine, not in the browser visitor's filesystem. The initial deployment is local and single-user, with same-origin pages/APIs served by Node.js on loopback. Remote multi-user hosting is outside scope.
 
@@ -384,7 +386,7 @@ Acceptance criteria:
 - Each tool result has one display. Without progress events, do not invent percentages or a live terminal.
 - Stream interruption and snapshot/replay neither duplicate text nor lose tool state. Preflight failure after 202 still ends the waiting state.
 - Cancellation, model errors, and save failures have explicit states. flush does not rerun tools; model/flush completion does not leave busy state behind.
-- Do not expose unsupported attachments, approval, tasks, Trace, artifacts, skills, or MCP controls.
+- Do not expose unsupported tasks, Trace, artifacts, skills, or MCP Apps controls.
 - Print the URL/open a browser only after readiness. Cover occupied/system-assigned ports, --no-open, SSH, and browser-opening failure. Shutdown cancels and finalizes; save failures must not be reported as successful exits.
 
 Implementation tests use local streams and tool substitutes without real models. Keep tests beside implementations, without shared mock/testing modules. Run Vitest tests, type, Biome, and architecture checks appropriate to the change; visual acceptance covers desktop and mobile. If root checks omit TSX, provide Web checks. Explicitly report checks blocked by missing dependencies rather than claiming success.

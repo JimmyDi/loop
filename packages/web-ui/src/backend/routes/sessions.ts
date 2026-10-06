@@ -90,7 +90,11 @@ export const sessionRoutes =
       );
 
     if (action === "approvals" && method === "POST") {
-      if (body.decision !== "allowed-once" && body.decision !== "rejected")
+      if (
+        body.decision !== "allowed-once" &&
+        body.decision !== "allowed-session" &&
+        body.decision !== "rejected"
+      )
         throw new HttpError(400, "invalid_approval_decision");
       controller.approvals.respond(requestId!, body.decision);
       return Response.json(controller.snapshot);

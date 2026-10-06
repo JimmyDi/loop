@@ -1,4 +1,5 @@
 import type { ApprovalPolicy } from "../permissions/types";
+import { McpGrants } from "./mcp-grants";
 import { DEFAULT_APPROVAL_TIMEOUT_MS } from "./types";
 import type {
   ApprovalEvent,
@@ -14,6 +15,8 @@ import type {
 type HandlerRegistration = { deliver: ApprovalHandler };
 
 type PendingApproval = {
+  mcp?: ApprovalRequestOptions["mcp"];
+  source?: ApprovalResult["source"];
   request: ApprovalRequest;
   interactive: boolean;
   handler?: HandlerRegistration;
@@ -25,6 +28,7 @@ type PendingApproval = {
 
 /** Session-owned interaction state. This service does not grant tool execution authority. */
 export class ApprovalService {
+  private readonly grants = new McpGrants();
   private requests = new Map<string, PendingApproval>();
   private handler?: HandlerRegistration;
   private disposed = false;
@@ -36,6 +40,7 @@ export class ApprovalService {
     private readonly sessionId: string,
     private readonly policy: () => ApprovalPolicy,
     private readonly emit: (event: ApprovalEvent) => void,
+    private readonly fullAccess: () => boolean = () => false,
   ) {}
 
   get pending(): ApprovalRequest[] {
@@ -79,6 +84,13 @@ export class ApprovalService {
     )
       throw new Error("Approval timeout must be a positive 32-bit integer");
 
+    const mcp = input.operation?.kind === "mcp-tool" ? options.mcp : undefined;
+    if (mcp)
+      options = {
+        ...options,
+        signal: options.signal ? AbortSignal.any([options.signal, mcp.lifetime]) : mcp.lifetime,
+      };
+    const source = this.grants.source(mcp, this.fullAccess());
     const createdAt = Date.now();
     const request: ApprovalRequest = Object.freeze({
       toolCallId: input.toolCallId,
@@ -87,7 +99,8 @@ export class ApprovalService {
       ...(input.operation ? { operation: structuredClone(input.operation) } : {}),
       requestId: crypto.randomUUID(),
       sessionId: this.sessionId,
-      policy: this.policy(),
+      policy: input.operation?.kind === "mcp-tool" ? "ask" : this.policy(),
+      ...(mcp ? { allowSession: true } : {}),
       createdAt,
       expiresAt: timeoutMs === null ? null : createdAt + timeoutMs,
     });
@@ -97,14 +110,18 @@ export class ApprovalService {
         ? "cancelled"
         : this.disposed
           ? "unavailable"
-          : request.policy !== "ask"
-            ? "rejected"
-            : !handler
-              ? "unavailable"
-              : undefined;
+          : source
+            ? "allowed-once"
+            : request.policy !== "ask"
+              ? "rejected"
+              : !handler
+                ? "unavailable"
+                : undefined;
     const { promise, resolve } = Promise.withResolvers<ApprovalResult>();
     const pending: PendingApproval = {
       request,
+      mcp,
+      source,
       interactive: immediate === undefined,
       handler,
       deadline: timeoutMs === null ? null : performance.now() + timeoutMs,
@@ -148,12 +165,15 @@ export class ApprovalService {
     if (
       !response ||
       response.sessionId !== this.sessionId ||
-      (response.decision !== "allowed-once" && response.decision !== "rejected")
+      (response.decision !== "allowed-once" &&
+        response.decision !== "allowed-session" &&
+        response.decision !== "rejected")
     )
       return false;
 
     const pending = this.requests.get(response.requestId);
     if (!pending?.interactive) return false;
+    if (response.decision === "allowed-session" && !pending.request.allowSession) return false;
     if (this.cancelling || this.disposed || pending.signal?.aborted) {
       this.settle(pending, "cancelled");
       return false;
@@ -186,6 +206,7 @@ export class ApprovalService {
 
     this.disposed = true;
     this.handler = undefined;
+    this.grants.clear();
     this.cancelPending();
   }
 
@@ -193,7 +214,13 @@ export class ApprovalService {
     if (!this.requests.delete(pending.request.requestId)) return false;
 
     pending.cleanup();
-    const result: ApprovalResult = { request: pending.request, outcome, resolvedAt: Date.now() };
+    if (outcome === "allowed-session" && pending.mcp) this.grants.remember(pending.mcp);
+    const result: ApprovalResult = {
+      request: pending.request,
+      outcome,
+      resolvedAt: Date.now(),
+      ...(pending.source ? { source: pending.source } : {}),
+    };
     pending.resolve(structuredClone(result));
     this.publish({ type: "approval_resolved", result });
     return true;

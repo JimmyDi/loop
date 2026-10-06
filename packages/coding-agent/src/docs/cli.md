@@ -44,6 +44,7 @@ bash packages/coding-agent/src/cli.sample.sh
 | `/model provider/id` | Switch a configured model while idle; a bare ID uses the current provider. |
 | `/permissions [level]` | Show the effective preset or persist a supported preset while idle. |
 | `/approve REQUEST_ID` | Allow exactly one pending operation in this session. |
+| `/approve-session REQUEST_ID` | Allow an eligible MCP tool with any arguments for the live session and catalog lifetime. |
 | `/reject REQUEST_ID` | Reject the pending operation. |
 | `/new` | Replace the current session with an empty one. |
 | `/resume` | List saved session paths for the current workspace. |
@@ -59,7 +60,7 @@ Startup shows the active model and permission preset. Accepted prompts show wait
 
 Without an explicit flag, startup restores the saved permission preset or uses the new-session settings default (built-in: read-only). The flag applies only to the startup session: /new uses new-session defaults and /resume restores that session's saved preset. /permissions changes only the active session; it does not change global settings. Full access permits host writes and unsandboxed shell commands without individual approval.
 
-Interactive approval requires both terminal input and output. The CLI prints the tool, reason, exact arguments and scope as escaped JSON. File requests identify the canonical path and content hashes; shell requests explicitly cover host filesystem, network, environment and descendants without a sandbox. Use the displayed request ID with /approve or /reject; a plain yes or stale ID cannot approve.
+Interactive approval requires both terminal input and output. The CLI prints the tool, reason, exact arguments and scope as escaped JSON. File requests identify the canonical path and content hashes; shell requests explicitly cover host filesystem, network, environment and descendants without a sandbox. Use the displayed request ID with /approve or /reject; a plain yes or stale ID cannot approve. Eligible MCP requests also display /approve-session, which grants that exact tool until the live session or catalog lifetime ends. Other operations reject that decision. CLI startup does not automatically load MCP configuration; see [MCP integration](mcp.md).
 
 The waiting tool has no approval deadline and resumes only after an accepted decision. Rejection, /abort, Ctrl+C during a run, or shutdown settle the request without granting execution. SDK requests with an explicit timeout still report expiry. The terminal prints the outcome. Session replacement rebinds the interaction handler; decisions do not transfer to another session.
 

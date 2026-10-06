@@ -11,9 +11,10 @@ import type { ApprovalEvent, ApprovalRequest } from "../approvals/types";
 
 import type { PromptTiming } from "../prompt-timing";
 import type { ContextBudget } from "../context-budget";
+import type { McpManager } from "../mcp/mcp-manager";
 
 export type SessionEvent =
-  | AgentEvent
+  | (AgentEvent & { toolDisplayName?: string })
   | ApprovalEvent
   | { type: "agent_settled" }
   | { type: "prompt_timing"; timing: PromptTiming }
@@ -46,6 +47,7 @@ export type SessionOptions = {
   sessionManager: SessionManager;
   systemPrompt: string;
   tools: AgentTool[];
+  mcpManager?: McpManager;
   maxTurns?: number;
   effort?: ModelEffort;
   title?: SessionTitleOptions;

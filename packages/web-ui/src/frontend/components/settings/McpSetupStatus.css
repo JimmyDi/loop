@@ -1,0 +1,8 @@
+.mcp-setup-status { display: grid; gap: 4px; font-size: 12px; color: var(--ink-muted); }
+.mcp-setup-status-heading { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+.mcp-setup-status p { margin: 0; font-size: 11px; line-height: 1.5; }
+.mcp-setup-status[data-status="ready"] .mcp-setup-status-heading { color: light-dark(#23824b, #79c99a); }
+.mcp-setup-status .mcp-setup-error { color: light-dark(#b42318, #fda29b); }
+.mcp-setup-spinner { width: 18px; height: 18px; flex-shrink: 0; border: 2px solid var(--line); border-top-color: var(--ink-muted); border-radius: 50%; animation: mcp-setup-spin 0.8s linear infinite; }
+@keyframes mcp-setup-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .mcp-setup-spinner { animation: none; } }

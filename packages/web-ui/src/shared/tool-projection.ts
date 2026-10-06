@@ -19,10 +19,12 @@ export const projectTools = (messages: readonly Message[]): Record<string, ToolV
     }
 
     if (message.role === "toolResult") {
+      const displayName = message.details?.loopDisplayName;
       tools[message.toolCallId] = {
         ...tools[message.toolCallId],
         id: message.toolCallId,
         name: message.toolName,
+        ...(typeof displayName === "string" ? { displayName } : {}),
         status: message.isError ? "error" : "success",
         result: message,
       };
@@ -39,6 +41,7 @@ export const updateTools = (tools: Record<string, ToolView>, event: SessionEvent
       [event.toolCallId]: {
         id: event.toolCallId,
         name: event.toolName,
+        ...(event.toolDisplayName ? { displayName: event.toolDisplayName } : {}),
         args: event.args,
         status: "running" as const,
       },

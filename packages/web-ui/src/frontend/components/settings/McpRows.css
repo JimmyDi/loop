@@ -1,0 +1,7 @@
+.mcp-rows { display: grid; gap: 8px; }
+.mcp-rows h4 { margin: 0; font-size: 12px; font-weight: 400; line-height: 18px; }
+.mcp-input-row { display: flex; gap: 8px; align-items: center; }
+.mcp-input-row input { width: 0; flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-subtle); color: var(--ink); font: inherit; font-size: 12px; line-height: 18px; }
+.mcp-input-row input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.action-button.mcp-add-row { justify-self: start; width: auto; border-radius: 10px; color: var(--ink-muted); }
+@container (max-width: 350px) { .mcp-input-row { flex-wrap: wrap; } .mcp-input-row input { flex-basis: calc(50% - 28px); } }

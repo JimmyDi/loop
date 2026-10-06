@@ -45,14 +45,15 @@ try {
 | --- | --- |
 | `session.requestApproval(input, options?)` | Returns `Promise<ApprovalResult>`. Input requires nonempty `toolName`, `toolCallId`, and `reason`. These identify a proposed operation; they do not prove its arguments or execution scope. |
 | `input.operation` | Optional `ApprovalOperation` snapshot. Managed tools supply their validated arguments and the execution scope described below. Host-created metadata is not an execution capability. |
+| `options.mcp` | Trusted host-only exact MCP toolKey and catalog lifetime AbortSignal; managed MCP adapters provide this context. Never derive it from model arguments or approval responses. |
 | `options.signal` | Optional caller cancellation, combined with the active run's cancellation signal. |
 | `options.timeoutMs` | Omitted or null (the value of `DEFAULT_APPROVAL_TIMEOUT_MS`) waits indefinitely. A positive integer up to 2,147,483,647 milliseconds explicitly opts into a timeout for SDK requests. |
 | `session.registerApprovalHandler(handler)` | Registers the single host interaction handler and returns an idempotent detach function. A second registration rejects until the first detaches. |
 | `ApprovalHandler` | Receives an isolated `ApprovalRequest` snapshot; returns void or a promise of void. Returning from delivery does not approve anything. Submit decisions separately. |
-| `session.respondToApproval(response)` | Requires `sessionId`, `requestId`, and `decision`: `allowed-once` or `rejected`. Returns true only for an accepted first decision. |
+| `session.respondToApproval(response)` | Requires `sessionId`, `requestId`, and `decision`: `allowed-once`, `rejected`, or `allowed-session` for requests advertising `allowSession`. Returns true only for an accepted first decision. |
 | `session.state.pendingApprovals` | Fresh snapshots of current requests; an empty array when none remain. The shared state type permits omission; AgentSession supplies an array. |
 
-Requests have a generated `requestId`, the owning `sessionId`, the input fields, the effective `policy`, and a Unix-millisecond `createdAt` timestamp. `expiresAt` is null by default, or a Unix-millisecond deadline when the caller explicitly supplies a timeout. The result contains the original request snapshot, `outcome`, and `resolvedAt`. Requests without a deadline have no expiry timer. Explicit timeout enforcement uses elapsed monotonic time so delayed timer delivery cannot accept an expired response.
+Eligible MCP requests also advertise `allowSession: true`. Requests have a generated `requestId`, the owning `sessionId`, the input fields, the effective `policy`, and a Unix-millisecond `createdAt` timestamp. `expiresAt` is null by default, or a Unix-millisecond deadline when the caller explicitly supplies a timeout. The result contains the original request snapshot, `outcome`, and `resolvedAt`. Requests without a deadline have no expiry timer. Explicit timeout enforcement uses elapsed monotonic time so delayed timer delivery cannot accept an expired response.
 
 Public exports include `ApprovalInput`, `ApprovalOperation`, `ApprovalRequestOptions`, `ApprovalRequest`, `ApprovalResponse`, `ApprovalDecision`, `ApprovalOutcome`, `ApprovalResult`, `ApprovalHandler`, `ApprovalEvent`, and `DEFAULT_APPROVAL_TIMEOUT_MS`. The underlying service is internal to coding-agent core.
 
@@ -71,19 +72,20 @@ Write and edit automatically request approval when read-only or outside-workspac
 
 Bash stays sandboxed by default. A call requesting `sandbox_permissions: "require_escalated"` must include a nonempty `justification`; approval happens before launching any command. Its scope is full host-user filesystem, network and environment access for that invocation. Full-access sessions already have this authority and do not ask again. Standalone restricted tool factories have no session approval context and reject escalation.
 
-Rejected, unavailable, timed-out or cancelled requests produce tool errors without starting the requested mutation or shell command. A command that fails after dispatch is never automatically replayed or retried with broader permissions, since it may have partial effects. A new tool call always has a new execution context and cannot reuse an earlier decision. Existing process-group cancellation, command timeout and output truncation remain in effect.
+Rejected, unavailable, timed-out or cancelled requests produce tool errors without starting the requested mutation or shell command. A command that fails after dispatch is never automatically replayed or retried with broader permissions, since it may have partial effects. A new built-in tool call always has a new execution context and cannot reuse an earlier decision. MCP tools may reuse explicit live-session grants as described in the [MCP contract](mcp.md#call-permissions). Existing process-group cancellation, command timeout and output truncation remain in effect.
 
 ## Outcomes and events
 
 | Outcome | Meaning |
 | --- | --- |
-| `allowed-once` | The host accepted this particular pending request. No persistent grant is created. |
-| `rejected` | The host rejected it, or effective policy is `never`. |
+| `allowed-once` | This particular pending request was allowed by the host or live-session MCP authorization. No new grant is created. |
+| `allowed-session` | The host allowed this MCP tool for the live session and catalog lifetime; requires allowSession on the request. |
+| `rejected` | The host rejected it, or built-in policy is `never`. |
 | `cancelled` | The caller/run aborted, the run ended with a request still pending, or the session was disposed. |
 | `timed-out` | An explicitly configured request deadline elapsed without an accepted response. |
 | `unavailable` | No handler exists, it detached, or delivery threw, rejected, or returned an invalid value before settlement. |
 
-Every valid accepted request emits `approval_requested` with `request`, followed by exactly one `approval_resolved` with `result`, including immediate refusal. Missing handlers and `never` cannot be bypassed by a response from an ordinary event listener. Managed restricted presets use `ask`; full access uses `never`, meaning do not ask for additional authority, not automatic approval. Custom-tool sessions use `ask` without claiming managed enforcement.
+Every valid accepted request emits `approval_requested` with `request`, followed by exactly one `approval_resolved` with `result`, including immediate refusal and live-session MCP authorization. Results may include source (session-grant or full-access) for automatic MCP decisions. Missing handlers and built-in `never` cannot be bypassed by a response from an ordinary event listener. Managed restricted presets use `ask`; full access uses `never`, meaning do not ask for additional authority, not automatic approval. Custom-tool sessions use `ask` without claiming managed enforcement. Managed `mcp-tool` calls follow the live session preset: Full access allows automatically, while restricted presets require approval or an exact tool/session grant; see [MCP tool approvals](mcp.md). Their operation records contain serverName, toolName, transport, workspaceRoot and exact arguments. Configuration changes abort pending decisions and prevent dispatch through stale connections.
 
 Events and handler payloads are isolated snapshots. Listener failures are recorded through the existing [session event](events.md) error handling and cannot authorize a request. Nested synchronous responses preserve requested-before-resolved ordering for all session observers. An unanswered request remains pending until a decision, cancellation, handler failure/removal or disposal; only an explicitly configured timeout adds a deadline. A handler can watch the resolved event to dismiss an outstanding interaction.
 
@@ -101,7 +103,7 @@ Requests can be made while idle or during an active prompt. Idle requests do not
 
 `waitForIdle()` waits for model/session operations, not standalone idle approval requests. Await the request promise to wait for its decision, or call `abort()` to cancel it.
 
-Pending request records, execution permits and handler registrations are never persisted. Reopening a session starts with no pending approval, no reusable allow-once decision, and no handler. Ordinary tool calls and results remain in conversation history, including escalation arguments and denial messages; these historical records cannot grant authority. Rebind the handler to the replacement instance.
+Pending request records, execution permits and handler registrations are never persisted. Reopening a session starts with no pending approval, no reusable allow-once decision, and no handler. MCP session grants are also memory-only and disappear with the owning instance. Ordinary tool calls and results remain in conversation history, including escalation arguments and denial messages; these historical records cannot grant authority. Rebind the handler to the replacement instance.
 
 ## Limits
 

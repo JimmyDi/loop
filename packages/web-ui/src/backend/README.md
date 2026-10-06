@@ -22,6 +22,7 @@ One service provides both frontend and backend; they do not need separate proces
 | Permission selection and interactive approval connections | [Permission endpoints](docs/permissions.md) |
 | Event frames, snapshots, replay, and connection lifecycle | [SSE events](docs/events.md) |
 | Custom models, credential storage, and runtime updates | [Provider configuration](docs/providers.md) |
+| Persistent MCP settings and shared background discovery | [MCP endpoints](docs/mcp.md) |
 | Local request checks, input limits, and error contracts | [HTTP boundaries](docs/http.md) |
 
 Each page covers one implemented feature, its interfaces, lifecycle, limits, and source/tests. See the [frontend documentation](../frontend/README.md) for browser workflows and [coding-agent](../../../coding-agent/src/docs/session-format.md) for the complete session storage format.

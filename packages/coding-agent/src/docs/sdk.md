@@ -42,7 +42,8 @@ That sample enables coding tools and runs once before exiting. Without an argume
 | `modelRuntime` | Host model lookup, authentication check, and stream service. |
 | `settingsManager` | Override loaded default-model settings. |
 | `model` | Explicit model configuration, overriding a saved/default selection. |
-| `tools` | Array of built-in tool names; defaults to read, bash, edit, write. Empty disables all. |
+| `tools` | Array of built-in tool names; defaults to read, bash, edit, write. Empty disables built-ins. |
+| `mcpManager` | Optional shared MCP manager; snapshots its ready tools at each prompt. The host owns cleanup. |
 | permissionPreset | Trusted-host choice of read-only, workspace-write or danger-full-access. Overrides saved/default selection; see [permissions](permissions.md). |
 | `sessionManager` | Existing, restored, or in-memory history. Without one, create a persistent session. |
 | `systemPrompt` | Replace base instructions while retaining cwd and discovered context files. |
@@ -71,7 +72,7 @@ An explicit cwd must match the manager's canonical cwd. The factory resolves ser
 | setPermissionPreset(preset): Promise<void> | Persist a managed session's preset while idle, then emit permission_changed. Rejects with pending approvals. |
 | `requestApproval(input, options?): Promise<ApprovalResult>` | Create a bounded host approval request; does not execute or escalate built-in tools. |
 | `registerApprovalHandler(handler): () => void` | Register one interaction handler; detaching settles its pending requests as unavailable. |
-| `respondToApproval(response): boolean` | Submit an allowed-once or rejected decision for matching session/request IDs. |
+| `respondToApproval(response): boolean` | Submit allowed-once or rejected for matching session/request IDs; eligible MCP requests also accept allowed-session. |
 | `dispose(): void` | Cancel idle approval requests, remove listeners and forbid further use; rejects while busy or a save is pending. |
 
 Read `model`, `effort`, `sessionId`, `sessionFile`, `sessionManager`, `isRunning`, and `state`. State contains completed `messages`, optional `draft`, `isRunning`, `hasPendingSave`, `outcome`, `error`, and `listenerErrors`. Message/model snapshots can be inspected without mutating the underlying session. The optional `state.contextBudget` and `context_budget` event expose the latest full-request estimate. `prompt()` can reject with exported `ContextBudgetExceededError` before model dispatch; complete history is retained. Actual provider usage remains in completed assistant messages. See [context budget](context-budget.md) for recovery and estimation limits.
@@ -92,7 +93,7 @@ The public messageText helper concatenates text blocks in order, excludes thinki
 
 Use [sessions](sessions.md) for storage and replacement through `AgentSessionRuntime`. On a failed save, retain the live session, repair storage, and call `flush()` before disposing it. The in-memory example above has no disk-save recovery requirement.
 
-Loop does not expose `session.agent`, steering, follow-up, queues, compaction, extensions, skills, MCP, or RPC.
+Hosts can supply a shared `mcpManager` to add ready external tools to each prompt; see [MCP servers](mcp.md) for lifecycle, session permission enforcement and memory-only session tool grants. Loop does not expose `session.agent`, steering, follow-up, queues, compaction, extensions, skills, or RPC.
 
 ## Source
 

@@ -138,6 +138,27 @@ test("approval shows exact file edits, gates disconnected input and resyncs an u
       await i18n.changeLanguage("en");
     });
     // Older snapshots and custom requests must not invent a permission tier.
+    ui.rerender(
+      <ApprovalCard
+        request={{
+          ...request,
+          toolName: "mcp_example",
+          operation: {
+            kind: "mcp-tool",
+            workspaceRoot: "/workspace",
+            arguments: { value: "test" },
+            serverName: "Example MCP",
+            toolName: "example",
+            transport: "http",
+          },
+        }}
+        connected
+      />,
+    );
+    expect(ui.getByText("Review MCP call:")).toBeTruthy();
+    expect(ui.container.textContent).toContain("Example MCP · example · Streamable HTTP");
+    expect(ui.container.textContent).toContain("Allow one external MCP tool call");
+    expect(ui.container.textContent).not.toContain("one exact file replacement");
     for (const operation of [
       { ...workspaceRequest.operation!, permissionMode: undefined },
       undefined,
@@ -149,6 +170,62 @@ test("approval shows exact file edits, gates disconnected input and resyncs an u
     cleanup();
     await i18n.changeLanguage(language);
     useSessions.setState(state, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("MCP session approval displays its scope and submits only the live request decision", async () => {
+  const window = new Window();
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    fetch: globalThis.fetch,
+  };
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, fireEvent, cleanup, act } = await import("@testing-library/react/pure");
+  const responses: unknown[] = [];
+  globalThis.fetch = (async (_url, options) => {
+    responses.push(JSON.parse(String(options?.body)));
+    return Response.json({});
+  }) as typeof fetch;
+  try {
+    const request: ApprovalRequest = {
+      sessionId: "session",
+      requestId: "mcp-request",
+      toolName: "internal-tool",
+      toolCallId: "call",
+      reason: "MCP call",
+      policy: "ask",
+      createdAt: 0,
+      expiresAt: null,
+      allowSession: true,
+      operation: {
+        kind: "mcp-tool",
+        serverName: "Example",
+        toolName: "read_file",
+        transport: "http",
+        workspaceRoot: "/workspace",
+        arguments: { path: "example.txt" },
+      },
+    };
+    const view = render(<ApprovalCard request={request} connected={false} />);
+    expect(view.getByText("Example · read_file")).toBeTruthy();
+    expect(view.getByText(/any arguments/)).toBeTruthy();
+    expect(
+      view
+        .getByRole("button", { name: "Allow this tool for this session" })
+        .hasAttribute("disabled"),
+    ).toBe(true);
+    view.rerender(<ApprovalCard request={request} connected />);
+    await act(async () =>
+      fireEvent.click(view.getByRole("button", { name: "Allow this tool for this session" })),
+    );
+    expect(responses).toEqual([{ decision: "allowed-session" }]);
+    view.rerender(<ApprovalCard request={{ ...request, allowSession: undefined }} connected />);
+    expect(view.queryByRole("button", { name: "Allow this tool for this session" })).toBeNull();
+  } finally {
+    cleanup();
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

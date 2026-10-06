@@ -3,6 +3,46 @@ import { expect, test } from "vitest";
 import type { Message } from "./protocol";
 import { projectTools, updateTools } from "./tool-projection";
 
+test("MCP display labels survive execution updates and restored messages without rewriting names", () => {
+  const started = updateTools(
+    {},
+    {
+      type: "tool_execution_start",
+      toolCallId: "mcp-call",
+      toolName: "mcp_internal_hash",
+      toolDisplayName: "Example · list_directory",
+      args: { path: "test" },
+    },
+  );
+  expect(started["mcp-call"]).toMatchObject({
+    name: "mcp_internal_hash",
+    displayName: "Example · list_directory",
+    status: "running",
+  });
+  const result: Extract<Message, { role: "toolResult" }> = {
+    role: "toolResult",
+    toolCallId: "mcp-call",
+    toolName: "mcp_internal_hash",
+    content: [{ type: "text", text: "synthetic result" }],
+    timestamp: 0,
+    isError: false,
+    details: { loopDisplayName: "Example · list_directory" },
+  };
+  const ended = updateTools(started, { type: "message_end", message: result });
+  expect(ended["mcp-call"]).toMatchObject({
+    displayName: "Example · list_directory",
+    args: { path: "test" },
+  });
+  expect(projectTools([result])["mcp-call"]).toMatchObject({
+    name: "mcp_internal_hash",
+    displayName: "Example · list_directory",
+    status: "success",
+  });
+  expect(
+    projectTools([{ ...result, details: undefined }])["mcp-call"]!.displayName,
+  ).toBeUndefined();
+});
+
 test("streamed arguments keep updating without resetting execution state or losing results", () => {
   const message = {
     role: "assistant",

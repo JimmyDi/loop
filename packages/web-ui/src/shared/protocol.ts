@@ -44,6 +44,7 @@ export type SessionSummary = {
 export type ToolView = {
   id: string;
   name: string;
+  displayName?: string;
   args?: Record<string, unknown>;
   status: "waiting" | "running" | "success" | "error";
   result?: Extract<Message, { role: "toolResult" }>;

@@ -128,6 +128,7 @@ test("HTTP permissions persist per session and an exact file write waits for a l
     expect((await call("/permission", "PUT", { preset: "danger-full-access" })).status).toBe(409);
     const endpoint = "/approvals/" + request.requestId;
     expect((await call(endpoint, "POST", { decision: "always" })).status).toBe(400);
+    expect((await call(endpoint, "POST", { decision: "allowed-session" })).status).toBe(409);
     expect(
       (await call(endpoint, "POST", { decision: "allowed-once" }, "https://example.test")).status,
     ).toBe(403);

@@ -101,3 +101,63 @@ test("noninteractive input cannot register an approval handler or answer a reque
     session.dispose();
   }
 });
+
+test("terminal session approval grants only an eligible MCP tool until its catalog expires", async () => {
+  const session = createSession();
+  const lines: string[] = [];
+  const approvals = new InteractiveApprovals((line) => lines.push(line), true);
+  const catalog = new AbortController();
+  const mcpInput = {
+    toolName: "mcp_example_list",
+    toolCallId: "mcp-call",
+    reason: "Review MCP call",
+    operation: {
+      kind: "mcp-tool" as const,
+      workspaceRoot: "/workspace",
+      arguments: { path: "first" },
+      serverName: "Example",
+      toolName: "list",
+      transport: "stdio" as const,
+    },
+  };
+  const options = {
+    mcp: { lifetime: catalog.signal, toolKey: "list" },
+  };
+  approvals.bind(session);
+  try {
+    const pending = session.requestApproval(mcpInput, options);
+    const id = session.state.pendingApprovals![0]!.requestId;
+    expect(lines.join("")).toContain("/approve-session " + id);
+    expect(lines.join("")).toContain("this tool, any arguments");
+    expect(approvals.handle("/approve-session " + id)).toBe(true);
+    expect((await pending).outcome).toBe("allowed-session");
+    const repeated = await session.requestApproval(
+      {
+        ...mcpInput,
+        toolCallId: "second-call",
+        operation: { ...mcpInput.operation, arguments: { path: "second" } },
+      },
+      options,
+    );
+    expect(repeated.source).toBe("session-grant");
+    expect(session.state.pendingApprovals).toHaveLength(0);
+    const builtIn = session.requestApproval(input);
+    const builtInId = session.state.pendingApprovals![0]!.requestId;
+    expect(lines.at(-1)).not.toContain("/approve-session");
+    expect(() => approvals.handle("/approve-session " + builtInId)).toThrow();
+    expect(session.state.pendingApprovals).toHaveLength(1);
+    approvals.handle("/reject " + builtInId);
+    expect((await builtIn).outcome).toBe("rejected");
+    catalog.abort();
+    expect((await session.requestApproval(mcpInput, options)).outcome).toBe("cancelled");
+    const replacement = session.requestApproval(mcpInput, {
+      mcp: { ...options.mcp, lifetime: new AbortController().signal },
+    });
+    const replacementId = session.state.pendingApprovals![0]!.requestId;
+    approvals.handle("/reject " + replacementId);
+    expect((await replacement).outcome).toBe("rejected");
+  } finally {
+    approvals.dispose();
+    session.dispose();
+  }
+});

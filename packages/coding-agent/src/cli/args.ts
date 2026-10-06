@@ -78,5 +78,5 @@ export const HELP = [
   "--permission-preset LEVEL   read-only, workspace-write or danger-full-access",
   "--help/-h --version/-v",
   "Interactive: /abort /model [provider/model] /permissions [level] /new /resume [path] /flush /quit",
-  "Approval: /approve REQUEST_ID or /reject REQUEST_ID (interactive terminal only)",
+  "Approval: /approve REQUEST_ID or /reject REQUEST_ID; eligible MCP: /approve-session REQUEST_ID (interactive terminal only)",
 ].join("\n");

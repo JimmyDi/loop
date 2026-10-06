@@ -22,6 +22,12 @@ test("settings groups expose separate keyboard entry points and archive selectio
       ui.getByRole("tablist", { name: "Personal" }).querySelectorAll('[role="tab"]'),
     ).toHaveLength(3);
     const archived = ui.getByRole("tab", { name: "Archived chats" });
+    const plugins = ui.getByRole("tab", { name: "Plugins" });
+    expect(ui.getByRole("tablist", { name: "Integrations" })).toBeTruthy();
+    expect(plugins.tabIndex).toBe(0);
+    fireEvent.keyDown(plugins, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(plugins);
+    expect(selected.pop()).toBe("plugins");
     expect(archived.tabIndex).toBe(0);
     fireEvent.click(archived);
     expect(selected).toEqual(["archivedChats"]);

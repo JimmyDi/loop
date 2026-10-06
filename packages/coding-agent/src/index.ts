@@ -59,3 +59,12 @@ export { createReadTool, createBashTool, createEditTool, createWriteTool } from 
 export { messageText } from "./core/messages";
 export { DEFAULT_MODEL, DEFAULT_PROVIDER, getAgentDir, getSessionDir } from "./config";
 export type { PromptTiming } from "./core/prompt-timing";
+export { McpManager } from "./core/mcp/mcp-manager";
+export { McpConfigError } from "./core/mcp/types";
+export type {
+  McpFailureCode,
+  McpServerConfig,
+  McpServerView,
+  McpStatus,
+  McpValue,
+} from "./core/mcp/types";

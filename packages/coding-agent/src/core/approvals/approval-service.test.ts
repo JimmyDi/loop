@@ -312,3 +312,20 @@ test("bulk cancellation and handler removal reject reentrant approval of another
     service.dispose();
   }
 });
+
+test("session grants cannot be submitted for file operations or through forged approval responses", async () => {
+  const service = new ApprovalService(
+    "session",
+    () => "ask",
+    () => {},
+  );
+  service.registerHandler(() => {});
+  const pending = service.request({ toolName: "write", toolCallId: "call", reason: "test" });
+  const request = service.pending[0]!;
+  expect(service.respond({ ...request, decision: "allowed-session" })).toBe(false);
+  expect(service.respond({ ...request, sessionId: "other", decision: "allowed-once" })).toBe(false);
+  expect(service.respond({ ...request, decision: "allowed-once" })).toBe(true);
+  await pending;
+  expect(service.respond({ ...request, decision: "allowed-session" })).toBe(false);
+  service.dispose();
+});

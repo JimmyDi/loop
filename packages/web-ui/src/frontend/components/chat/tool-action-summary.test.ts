@@ -4,6 +4,17 @@ import type { ToolView } from "../../../shared/protocol";
 import { i18n } from "../../i18n/setup";
 import { toolActionSummary } from "./tool-action-summary";
 
+test("MCP completion summaries use display names independently of internal IDs", () => {
+  const tools: ToolView[] = [
+    {
+      id: "call",
+      name: "mcp_internal_hash",
+      displayName: "Example · list_directory",
+      status: "success",
+    },
+  ];
+  expect(toolActionSummary(tools, i18n.getFixedT("en"))).toBe("Used Example · list_directory");
+});
 test("completed summaries count homogeneous batches and combine actions in order", () => {
   const cases: [string[], string, string][] = [
     [[], "", ""],

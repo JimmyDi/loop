@@ -1,12 +1,14 @@
 .modal.settings-dialog {
-  width: min(760px, calc(100vw - 32px));
+  width: min(960px, calc(100vw - 32px));
   height: min(720px, calc(100dvh - 48px));
   max-height: calc(100dvh - 48px);
   padding: 16px 20px 20px 12px;
   border: 0;
   border-radius: 28px;
+  background: light-dark(#fff, #191919);
   overflow: hidden;
 }
+
 .settings-dialog > .modal-header {
   height: 32px;
   margin: 0 0 12px 12px;
@@ -45,5 +47,12 @@
   .settings-dialog-body {
     grid-template-columns: 124px minmax(0, 1fr);
     gap: 12px;
+  }
+}
+
+@media (max-width: 560px) {
+  .settings-dialog-body {
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 8px;
   }
 }

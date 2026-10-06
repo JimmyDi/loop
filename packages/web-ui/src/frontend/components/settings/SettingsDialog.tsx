@@ -6,6 +6,7 @@ import { Modal } from "../ui/Modal";
 import { GeneralSettings } from "./GeneralSettings";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { ModelsSettings } from "./ModelsSettings";
+import { PluginsSettings } from "./PluginsSettings";
 import { ArchivedChats } from "./ArchivedChats";
 import { SettingsNavigation } from "./SettingsNavigation";
 import { settingsGroups } from "./settings-sections";
@@ -43,6 +44,8 @@ export const SettingsDialog = ({ onClose }: { onClose(): void }) => {
                   <ModelsSettings />
                 ) : item === "appearance" ? (
                   <AppearanceSettings />
+                ) : item === "plugins" ? (
+                  <PluginsSettings />
                 ) : (
                   <ArchivedChats onOpen={onClose} />
                 ))}

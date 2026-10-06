@@ -6,7 +6,7 @@ import {
   SessionManager,
   SettingsManager,
 } from "@loop/coding-agent";
-import type { AgentSession, ModelRuntime } from "@loop/coding-agent";
+import type { AgentSession, ModelRuntime, McpManager } from "@loop/coding-agent";
 
 import type { ModelChoice, ModelSelection, Project, SessionSummary } from "../shared/protocol";
 import { ProviderSettings } from "./providers/provider-settings";
@@ -47,6 +47,7 @@ export const createLoopBridge = (
   agentDir: string,
   providers = new ProviderSettings(join(agentDir, "web-ui", "provider.json")),
   settings = new WebSettings(agentDir),
+  mcpManager?: McpManager,
 ): LoopBridge => {
   let runtime: Promise<ModelRuntime> | undefined;
   const archives = new Map<string, SessionArchive>();
@@ -115,6 +116,7 @@ export const createLoopBridge = (
       const modelRuntime = await getRuntime();
       const settingsManager = await SettingsManager.create(agentDir);
       const { session } = await createAgentSession({
+        mcpManager,
         cwd: project.cwd,
         agentDir,
         sessionManager,

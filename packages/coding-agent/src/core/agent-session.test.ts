@@ -15,6 +15,8 @@ import { AgentSessionRuntime } from "./agent-session-runtime";
 import type { ApprovalRequest, ApprovalResult } from "./approvals/types";
 import { ContextBudgetExceededError } from "./context-budget";
 import type { ContextBudget } from "./context-budget";
+import { McpManager } from "./mcp/mcp-manager";
+import type { McpConnection } from "./mcp/connection";
 
 test("approval APIs expose pending snapshots, isolate listeners and preserve managed authority", async () => {
   const options = {
@@ -76,6 +78,122 @@ test("approval APIs expose pending snapshots, isolate listeners and preserve man
   } finally {
     await session.abort();
     session.dispose();
+  }
+});
+
+test("MCP discovery cannot block prompts; ready tools join the next prompt and execute with approval", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "loop-session-mcp-"));
+  const ready = Promise.withResolvers<McpConnection>();
+  const manager = new McpManager(join(directory, "mcp.json"), () => ready.promise);
+  const dispatched = vi.fn(async () => [{ type: "text" as const, text: "synthetic MCP result" }]);
+  const requests: Context[] = [];
+  const labels: string[] = [];
+  const storage = await SessionManager.create(directory, directory);
+  const { session } = await createAgentSession({
+    cwd: directory,
+    agentDir: directory,
+    sessionManager: storage,
+    settingsManager: SettingsManager.inMemory(),
+    noContextFiles: true,
+    tools: ["read"],
+    model,
+    mcpManager: manager,
+    permissionPreset: "danger-full-access",
+    modelRuntime: runtime((_model, context) => {
+      requests.push(structuredClone(context));
+      const external = context.tools?.find((tool) => tool.name.startsWith("mcp_"));
+      return stream(
+        requests.length === 2 && external
+          ? answer(
+              [
+                { type: "text", text: "Read the MCP fixture." },
+                {
+                  type: "toolCall",
+                  id: "mcp-call",
+                  name: external.name,
+                  arguments: { value: "input" },
+                },
+              ],
+              "toolUse",
+            )
+          : answer(),
+      );
+    }),
+  });
+  session.registerApprovalHandler((request) => {
+    expect(request.operation).toMatchObject({ kind: "mcp-tool", arguments: { value: "input" } });
+    expect(request.policy).toBe("ask");
+    session.respondToApproval({ ...request, decision: "allowed-once" });
+  });
+  session.subscribe((event) => {
+    if (event.type === "tool_execution_start" && event.toolDisplayName)
+      labels.push(event.toolDisplayName);
+  });
+  try {
+    await manager.save(
+      {
+        id: "fixture",
+        name: "Fixture",
+        enabled: true,
+        transport: "stdio",
+        command: "synthetic-command",
+        args: [],
+        env: [],
+        envVars: [],
+        cwd: "",
+      },
+      true,
+    );
+    await session.prompt("First prompt while MCP is connecting");
+    expect(requests[0]!.tools?.map((tool) => tool.name)).toEqual(["read"]);
+    ready.resolve({
+      tools: [
+        {
+          name: "example",
+          inputSchema: {
+            type: "object",
+            properties: { value: { type: "string" } },
+            required: ["value"],
+          },
+        },
+      ],
+      call: dispatched,
+      refresh: async () => [],
+      close: async () => {},
+    });
+    await vi.waitFor(() => expect(manager.tools(directory)).toHaveLength(1));
+    await session.prompt("Use the newly ready MCP");
+    expect(requests[1]!.tools).toHaveLength(2);
+    expect(dispatched).toHaveBeenCalledWith("example", { value: "input" }, expect.any(AbortSignal));
+    expect(
+      session.state.messages.some(
+        (message) =>
+          message.role === "toolResult" &&
+          message.content.some(
+            (item) => item.type === "text" && item.text === "synthetic MCP result",
+          ),
+      ),
+    ).toBe(true);
+    expect(session.state.contextBudget?.fits).not.toBe(false);
+    expect(labels).toEqual(["Fixture · example"]);
+    const result = session.sessionManager.messages.find((message) => message.role === "toolResult");
+    expect(result).toMatchObject({ details: { loopDisplayName: "Fixture · example" } });
+    const restored = await SessionManager.open(storage.sessionFile!);
+    expect(restored.messages.find((message) => message.role === "toolResult")).toMatchObject({
+      toolName: result?.role === "toolResult" ? result.toolName : undefined,
+      details: { loopDisplayName: "Fixture · example" },
+    });
+    await manager.setEnabled("fixture", false);
+    await session.prompt("Next prompt with MCP disabled");
+    expect(requests.at(-1)!.tools?.map((tool) => tool.name)).toEqual(["read"]);
+    expect(session.state.messages.find((message) => message.role === "toolResult")).toMatchObject({
+      details: { loopDisplayName: "Fixture · example" },
+    });
+  } finally {
+    await session.abort();
+    session.dispose();
+    await manager.close();
+    await rm(directory, { recursive: true, force: true });
   }
 });
 
@@ -1054,5 +1172,74 @@ test("prompt wall time ends before saving, survives restore and is absent from m
     clock.mockRestore();
     commit.mockRestore();
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("MCP calls follow live session permissions across preset changes", async () => {
+  for (const [preset, count] of [
+    ["danger-full-access", 1],
+    ["workspace-write", 0],
+    ["read-only", 0],
+  ] as const) {
+    const directory = await mkdtemp(join(tmpdir(), "loop-mcp-session-permissions-"));
+    const call = vi.fn(async () => [{ type: "text" as const, text: "synthetic MCP result" }]);
+    const manager = new McpManager(join(directory, "mcp.json"), async () => ({
+      tools: [{ name: "example", inputSchema: { type: "object" } }],
+      call,
+      refresh: async () => [],
+      close: async () => {},
+    }));
+    const { session } = await createAgentSession({
+      cwd: directory,
+      agentDir: directory,
+      sessionManager: SessionManager.inMemory(directory),
+      settingsManager: SettingsManager.inMemory(),
+      noContextFiles: true,
+      tools: ["read"],
+      model,
+      mcpManager: manager,
+      permissionPreset: preset,
+      modelRuntime: runtime((_model, context) => {
+        const external = context.tools?.find((tool) => tool.name.startsWith("mcp_"));
+        return stream(
+          context.messages.at(-1)?.role === "user" && external
+            ? answer(
+                [{ type: "toolCall", id: "call", name: external.name, arguments: {} }],
+                "toolUse",
+              )
+            : answer(),
+        );
+      }),
+    });
+    try {
+      await manager.save(
+        {
+          id: "example",
+          name: "Example",
+          enabled: true,
+          transport: "stdio",
+          command: "synthetic-command",
+          args: [],
+          env: [],
+          envVars: [],
+          cwd: "",
+        },
+        true,
+      );
+      await vi.waitFor(() => expect(manager.tools(directory)).toHaveLength(1));
+      await session.prompt("Use the example MCP tool");
+      expect(call).toHaveBeenCalledTimes(count);
+      await session.setPermissionPreset("danger-full-access");
+      await session.prompt("Call the example MCP tool again");
+      expect(call).toHaveBeenCalledTimes(count + 1);
+      await session.setPermissionPreset("read-only");
+      await session.prompt("Call the example MCP tool after restricting permissions");
+      expect(call).toHaveBeenCalledTimes(count + 1);
+    } finally {
+      await session.abort();
+      session.dispose();
+      await manager.close();
+      await rm(directory, { recursive: true, force: true });
+    }
   }
 });

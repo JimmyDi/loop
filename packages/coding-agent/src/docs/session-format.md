@@ -39,7 +39,7 @@ Obsolete execution-section timing metadata in existing version-2 headers is igno
 
 Each subsequent line is a `Message` directly, not an entry wrapper with `id` or `parentId`. Roles are `user`, `assistant`, and `toolResult`. Message timestamps are numeric milliseconds, unlike the header's ISO strings.
 
-Assistant messages retain content blocks, API/provider/model identity, usage, stop reason, and any model error. Tool results retain `toolCallId`, `toolName`, `content`, and `isError`. Matching results must follow completed assistant tool calls before a new conversation turn. The loader rejects unsupported message shapes or incomplete pairing; error/aborted assistant calls are excluded from pairing validation because request normalization filters those assistants on replay.
+Assistant messages retain content blocks, API/provider/model identity, usage, stop reason, and any model error. Tool results retain `toolCallId`, `toolName`, `content`, and `isError`. New MCP results additionally preserve the host-generated `details.loopDisplayName` (server name and original tool name) for historical display, including after disabling or removing the server. This optional presentation metadata does not change call/result pairing or the model tool identifier. Matching results must follow completed assistant tool calls before a new conversation turn. The loader rejects unsupported message shapes or incomplete pairing; error/aborted assistant calls are excluded from pairing validation because request normalization filters those assistants on replay.
 
 User content may contain text and base64 image blocks. Images persist inside the same session JSONL; there is no separate attachment file.
 

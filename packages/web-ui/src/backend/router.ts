@@ -1,3 +1,6 @@
+import type { McpManager } from "@loop/coding-agent";
+
+import { mcpRoutes } from "./routes/mcp";
 import { errorResponse } from "./http/errors";
 import { assertLocalRequest } from "./http/local-request";
 import { projectRoutes } from "./routes/projects";
@@ -12,7 +15,9 @@ export const createRouter = (
   registry: SessionRegistry,
   providers?: ProviderSettings,
   webSettings?: WebSettings,
+  mcp?: McpManager,
 ) => {
+  const integrations = mcp && mcpRoutes(mcp);
   const projects = projectRoutes(registry);
   const sessions = sessionRoutes(registry);
   const settings = providers && providerRoutes(registry, providers);
@@ -24,6 +29,7 @@ export const createRouter = (
 
       const url = new URL(request.url);
       const response =
+        (await integrations?.(request, url)) ??
         (await general?.(request, url)) ??
         (await settings?.(request, url)) ??
         (await projects(request, url)) ??

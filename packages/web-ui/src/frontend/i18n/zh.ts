@@ -2,6 +2,9 @@ import { projectsZh } from "./projects-zh";
 import { permissionsZh } from "./permissions-zh";
 
 export const zh = {
+  integrations: "集成",
+  plugins: "插件",
+  mcp: mcpZh,
   ...projectsZh,
   permissions: permissionsZh,
   projects: "项目",
@@ -169,8 +172,15 @@ export const zh = {
   maxOutputTokens: "最大输出 Token 数",
   addModel: "添加模型",
   errors: {
+    invalid_mcp_config: "请检查名称、命令或 URL、重复的键和环境变量名。工作目录需填写绝对路径。",
+    mcp_secret_required: "更换连接目标后，请重新填写已保存的环境变量或请求头值。",
+    mcp_exists: "此 MCP 服务器已存在。",
+    mcp_not_found: "此 MCP 服务器已不存在，请刷新列表。",
+    mcp_config_invalid: "已保存的 MCP 配置无效，请修复 mcp.json 后重启 Loop。",
+    mcp_config_unreadable: "无法读取 MCP 配置，请检查文件权限后重启 Loop。",
+    mcp_config_write_failed: "无法保存 MCP 配置，请检查磁盘空间和文件权限。",
     invalid_permission_preset: "请选择有效的权限级别。",
-    invalid_approval_decision: "请选择仅允许一次或拒绝。",
+    invalid_approval_decision: "请选择可用的审批选项。",
     approval_not_pending: "此请求已结束或审批界面已断开，正在刷新会话。",
     invalid_text_files: "最多添加 4 个 UTF-8 文本或代码文件，暂不支持文档、压缩包和二进制文件。",
     invalid_text_encoding: "此文件不是 UTF-8 纯文本，请转换编码或选择文本文件。",
@@ -208,3 +218,4 @@ export const zh = {
     operation_failed: "操作失败。",
   },
 };
+import { mcpZh } from "./mcp-zh";

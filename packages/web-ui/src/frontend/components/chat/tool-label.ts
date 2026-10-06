@@ -19,7 +19,7 @@ export const toolLabel = (
   const argument = tool.args?.[action === "bash" ? "command" : "path"];
   const target =
     action === "other"
-      ? tool.name
+      ? (tool.displayName ?? tool.name)
       : typeof argument === "string" && argument.trim()
         ? argument.trim()
         : t(`toolLabels.${action}.target`);

@@ -14,6 +14,8 @@ Approval cards have no expiry countdown; built-in tool requests wait for a decis
 
 Approval cards have an orange rounded border and a tinted Waiting for approval header with a status dot. The summary sits in the card body, with expandable details below. Choose Deny or Allow once using the right-aligned rounded buttons; Allow once uses a black background with white text. The layout adapts to narrow screens and both color themes. Allow once resumes only the waiting operation and leaves the permission preset unchanged. It does not confirm execution success; ordinary tool results report that separately. Stop generating cancels the run and pending approval. Resolved requests remove their cards and decision buttons without leaving an outcome label or empty approval area above the composer.
 
+MCP cards summarize the server and tool name and offer Allow this tool for this session when core advertises that option. It covers that exact tool with any arguments, stays in live-session memory, and expires on configuration/catalog changes or session disposal. The core rejects this decision for built-in file and shell requests. Manage MCP connections and enable switches in [Plugins](plugins.md); there are no separate server/tool permission controls.
+
 ## Connection lifecycle
 
 The active view opens /events?approvals=1 for its session. Multiple pages share one backend handler and the first valid decision wins. Cards and responses carry both the session ID and request ID. Switching sessions closes only the old view's connection and never transfers a decision or permission choice.
@@ -24,7 +26,7 @@ Successful decision and permission requests update the view through the existing
 
 ## Limits
 
-There is no always-allow control, persistent approval grant, durable approval audit, project-level default, or remote user-account permission system. The most recent approval outcome is retained in the live snapshot as compact metadata only. Full access and an approved shell invocation intentionally use the host user's authority; see [core permissions](../../../../coding-agent/src/docs/permissions.md).
+Built-in approvals have no always-allow control. MCP follows session permissions and supports temporary live-session tool grants; temporary grants are never persisted. There is no durable approval audit, project-level default, or remote user-account permission system. The most recent approval outcome is retained in the live snapshot as compact metadata only. Full access and an approved shell invocation intentionally use the host user's authority; see [core permissions](../../../../coding-agent/src/docs/permissions.md).
 
 ## Source and tests
 

@@ -58,6 +58,7 @@ test("Settings opens General outside the mobile drawer and restores focus withou
       "General",
       "Models",
       "Appearance",
+      "Plugins",
       "Archived chats",
     ]);
     expect(view.getByRole("tablist", { name: "Archived" })).toBeTruthy();

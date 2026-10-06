@@ -16,7 +16,9 @@ const describe = (request: ApprovalRequest): string => {
           ? "One command and descendants; host filesystem, network and environment; no sandbox"
           : operation?.kind === "file-write"
             ? "One exact file replacement and required parent directories"
-            : "No managed execution scope supplied",
+            : operation?.kind === "mcp-tool"
+              ? "One external MCP tool call; the server owns its access scope"
+              : "No managed execution scope supplied",
       operation,
     },
     null,
@@ -44,22 +46,33 @@ export class InteractiveApprovals {
         this.write(`Approval ${event.result.request.requestId}: ${event.result.outcome}`);
     });
     this.detach = session.registerApprovalHandler((request) => {
+      const sessionOption = request.allowSession
+        ? "\n/approve-session " +
+          request.requestId +
+          " (this tool, any arguments, until this session ends or the server connection, settings or tools change)"
+        : "";
       this.write(
-        `Approval required\n${describe(request)}\n/approve ${request.requestId}\n/reject ${request.requestId}`,
+        `Approval required\n${describe(request)}\n/approve ${request.requestId}\n/reject ${request.requestId}${sessionOption}`,
       );
     });
   }
 
   handle(text: string): boolean {
-    if (!/^\/(approve|reject)(?:\s|$)/.test(text)) return false;
-    const match = /^\/(approve|reject) ([^\s]+)$/.exec(text);
-    if (!match) throw new Error("Use /approve REQUEST_ID or /reject REQUEST_ID");
+    if (!/^\/(approve-session|approve|reject)(?:\s|$)/.test(text)) return false;
+    const match = /^\/(approve-session|approve|reject) ([^\s]+)$/.exec(text);
+    if (!match)
+      throw new Error("Use /approve REQUEST_ID, /approve-session REQUEST_ID or /reject REQUEST_ID");
     if (
       !this.interactive ||
       !this.session?.respondToApproval({
         sessionId: this.session.sessionId,
         requestId: match[2]!,
-        decision: match[1] === "approve" ? "allowed-once" : "rejected",
+        decision:
+          match[1] === "approve-session"
+            ? "allowed-session"
+            : match[1] === "approve"
+              ? "allowed-once"
+              : "rejected",
       })
     )
       throw new Error("Approval is no longer pending in this session");

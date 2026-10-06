@@ -42,6 +42,7 @@ export const permissionsZh = {
   allowOnce: "仅允许一次",
   disconnected: "重新连接后可操作",
   outcomes: {
+    "allowed-session": "本会话已允许",
     "allowed-once": "已允许一次",
     rejected: "已拒绝",
     cancelled: "审批已取消",

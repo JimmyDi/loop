@@ -38,7 +38,7 @@ Replacing the default base replaces all of its guidance. The Web UI independentl
 
 Services canonicalize cwd and require a directory. Session creation loads context once. Prompting again rebuilds the lower-level Agent using the cached system prompt, without rereading changed instruction files. Runtime context records the initial permission policy and later changes after retained history, without changing earlier request content. Creating/replacing a session recreates resources for its cwd. Restart the Web process to reload changed default instructions for already-loaded sessions.
 
-There is no skills loader, MCP setup, prompt template expansion, plugin system, or project-trust approval mechanism. If a host does not want repository instructions sent to a model, disable discovery before creating the session.
+There is no skills loader, prompt template expansion, plugin system, or project-trust approval mechanism. [MCP servers](mcp.md) are managed separately from instruction discovery. If a host does not want repository instructions sent to a model, disable discovery before creating the session.
 
 ## Source
 

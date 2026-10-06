@@ -5,8 +5,12 @@ import type { ToolView } from "../../../shared/protocol";
 /** Summarize completed actions; failed calls never count as successful work. */
 export const toolActionSummary = (tools: readonly ToolView[], t: TFunction): string => {
   const counts = new Map<string, number>();
+  const displayNames = new Map<string, string>();
   for (const tool of tools) {
-    if (tool.status === "success") counts.set(tool.name, (counts.get(tool.name) ?? 0) + 1);
+    if (tool.status === "success") {
+      counts.set(tool.name, (counts.get(tool.name) ?? 0) + 1);
+      if (tool.displayName) displayNames.set(tool.name, tool.displayName);
+    }
   }
 
   const actions = [...counts].map(([name, count]) => {
@@ -15,7 +19,9 @@ export const toolActionSummary = (tools: readonly ToolView[], t: TFunction): str
         ? t(`toolCompletedCounts.${name}`, { count })
         : t(`toolCompletedActions.${name}`);
     }
-    return name ? t("toolCompletedActions.named", { name }) : t("toolCompletedActions.other");
+    return name
+      ? t("toolCompletedActions.named", { name: displayNames.get(name) ?? name })
+      : t("toolCompletedActions.other");
   });
   const failed = tools.filter((tool) => tool.status === "error").length;
   if (failed) actions.push(t("toolCompletedCounts.failed", { count: failed }));

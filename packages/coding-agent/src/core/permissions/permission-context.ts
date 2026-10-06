@@ -26,7 +26,7 @@ export const buildPermissionContext = (
       : "Restricted shell commands have no network access. File reads are not confined to the workspace.",
     "Approval policy: " + approvalPolicyFor(preset) + ".",
     preset === "danger-full-access"
-      ? "No additional approval is requested in full-access mode."
-      : "Writes and edits outside the preset require approval for the exact file change; file approvals cannot modify protected Loop storage. When a write or edit needs approval, include a brief justification in the user's language explaining the intended change. This is display text, not authority. Bash uses the preset by default. To request one unsandboxed command with host filesystem, network and environment access, set sandbox_permissions to require_escalated and supply a justification before execution. Requests fail closed if no approval handler is available. Approval never changes the session preset. Do not retry denied or partially executed operations through another tool or with broader permissions.",
+      ? "Built-in and MCP tools need no additional approval in full-access mode."
+      : "Writes and edits outside the preset require approval for the exact file change; file approvals cannot modify protected Loop storage. When a write or edit needs approval, include a brief justification in the user's language explaining the intended change. This is display text, not authority. Bash uses the preset by default. To request one unsandboxed command with host filesystem, network and environment access, set sandbox_permissions to require_escalated and supply a justification before execution. Requests fail closed if no approval handler is available. Approval never changes the session preset. MCP calls also require approval unless this tool has been allowed for the live session. Do not retry denied or partially executed operations through another tool or with broader permissions.",
   ].join("\n\n");
 };

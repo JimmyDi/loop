@@ -10,6 +10,9 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
+- Web UI and coding-agent: add background MCP discovery and tool calls over STDIO and Streamable HTTP, with persisted global connection configuration in a private file and write-only environment/header values in management views. Add Settings → Integrations → Plugins with searchable servers, enable switches, editing, deletion, retry, transport drafts, and compact inline forms. Overlay Save with connection status, preserve scroll and failed inputs, and return to the list on success. Allow two minutes for STDIO setup while keeping startup, enabling, Retry and HTTP discovery deadlines short. Refresh changed catalogs on the existing connection and snapshot ready tools per prompt without blocking startup or chat. MCP calls follow live session permissions: Full access allows automatically; restricted presets require approval or an exact memory-only tool/session grant. Configuration changes, reconnects, disablement and catalog refresh revoke stale calls and grants; display-name-only edits preserve grants. Submit only connection fields, ignore obsolete server/tool permission fields, and retain readable server/tool labels in chat and saved results. Server declarations never bypass approval; calls never automatically retry. See [MCP integration](packages/coding-agent/src/docs/mcp.md).
+
+
 - coding-agent, CLI and Web: check the complete context budget before every main model request, including tool continuations and text attachments, reserve response capacity, and reject overflow with full history preserved. Expose ContextBudgetExceededError, context_budget events and state.contextBudget; retain native provider usage in saved assistant messages. Web reports accepted over-budget attachment runs as settled errors and keeps request deduplication intact.
 
 - Web UI: show three dots waving in sequence in the Jump to latest button during connected generation. Show the down arrow on hover or keyboard focus and restore the animation when interaction ends. Restore the down arrow after generation or disconnection, preserve click-to-jump behavior, and use static dots for reduced motion.
@@ -27,6 +30,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 - Web UI: replace the Projects add flow with a Create project dialog, an optional custom name, an Add button that opens the system folder picker, and a removable source-folder row. Default blank names to the folder name and preserve inputs after failed creation. Match existing dialogs with a compact 480px width, 18px title and 13px controls.
 
 ### Fixed
+
+- Web UI: keep Settings at a consistent width and background across all sections, including Plugins and MCP forms, with shared compact navigation on narrow screens.
 
 - Web UI: remove stacked message and tool-group margins between consecutive tool batches in the flat conversation, keeping a compact gap without reserving space for hidden thinking.
 

@@ -1,7 +1,11 @@
 import { projectsEn } from "./projects-en";
 import { permissionsEn } from "./permissions-en";
+import { mcpEn } from "./mcp-en";
 
 export const en = {
+  integrations: "Integrations",
+  plugins: "Plugins",
+  mcp: mcpEn,
   ...projectsEn,
   permissions: permissionsEn,
   projects: "Projects",
@@ -172,8 +176,19 @@ export const en = {
   maxOutputTokens: "Maximum output tokens",
   addModel: "Add model",
   errors: {
+    invalid_mcp_config:
+      "Check the name, command or URL, unique keys, and valid environment variable names. Use an absolute working directory.",
+    mcp_secret_required:
+      "Re-enter saved environment/header values after changing the connection target.",
+    mcp_exists: "This MCP server already exists.",
+    mcp_not_found: "This MCP server no longer exists. Refresh the list.",
+    mcp_config_invalid: "The saved MCP configuration is invalid. Repair mcp.json and restart Loop.",
+    mcp_config_unreadable:
+      "Cannot read MCP configuration. Check file permissions and restart Loop.",
+    mcp_config_write_failed:
+      "Cannot save MCP configuration. Check disk space and file permissions.",
     invalid_permission_preset: "Choose a supported permission level.",
-    invalid_approval_decision: "Choose Allow once or Reject.",
+    invalid_approval_decision: "Choose an available approval option.",
     approval_not_pending:
       "This request has already ended or its approval interface disconnected. Refreshing the session.",
     invalid_text_files:

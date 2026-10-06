@@ -32,12 +32,15 @@ export const ApprovalCard = ({
           <strong>
             {mode
               ? t("permissions.allowWithPermissions", { mode })
-              : t("permissions.allowOperation")}
+              : t(operation?.kind === "mcp-tool" ? "mcp.reviewCall" : "permissions.allowOperation")}
             :{" "}
           </strong>
-          {request.reason}
+          {operation?.kind === "mcp-tool"
+            ? operation.serverName + " · " + operation.toolName
+            : request.reason}
         </p>
         {operation?.kind === "shell-unrestricted" && <p>{t("permissions.hostScope")}</p>}
+        {request.allowSession && <p>{t("mcp.sessionScope")}</p>}
         {!operation && <p>{t("permissions.unknownScope")}</p>}
         {operation && <ApprovalDetails key={request.requestId} operation={operation} />}
       </div>
@@ -53,6 +56,15 @@ export const ApprovalCard = ({
         >
           {t("permissions.allowOnce")}
         </ActionButton>
+        {request.allowSession && (
+          <ActionButton
+            className="approval-allow"
+            disabled={disabled}
+            onClick={() => void decision.respond("allowed-session")}
+          >
+            {t("mcp.allowSession")}
+          </ActionButton>
+        )}
       </footer>
       <ErrorNotice error={decision.error} />
     </section>

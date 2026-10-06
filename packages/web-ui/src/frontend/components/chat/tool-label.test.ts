@@ -3,6 +3,18 @@ import { expect, test } from "vitest";
 import { i18n } from "../../i18n/setup";
 import { toolLabel } from "./tool-label";
 
+test("MCP rows display server and full tool name while retaining the internal name", () => {
+  const tool = {
+    id: "call",
+    name: "mcp_internal_hash",
+    displayName: "Example · list_allowed_directories",
+    status: "success" as const,
+  };
+  expect(toolLabel(tool, i18n.getFixedT("en")).text).toBe(
+    "Used tool Example · list_allowed_directories",
+  );
+  expect(tool.name).toBe("mcp_internal_hash");
+});
 test("tool labels keep streamed targets literal and distinguish execution from success", () => {
   const t = i18n.getFixedT("en");
   expect(

@@ -20,7 +20,7 @@ Session lists include only the supported storage format. Files with other format
 | PUT /api/sessions/:id/permission | Persist a supported session preset while idle |
 | PUT /api/sessions/:id/read | Accept workspaceId and a nonnegative safe-integer messageCount; clear header unread only when the viewed count matches nonempty saved history and return { read: boolean } |
 | PUT /api/sessions/:id/pin | Accept workspaceId and boolean pinned; persist header pinnedAt and return { pinnedAt: string or null } |
-| POST /api/sessions/:id/approvals/:requestId | Answer a pending request with allowed-once or rejected |
+| POST /api/sessions/:id/approvals/:requestId | Answer with allowed-once, rejected, or allowed-session for eligible MCP requests |
 
 A complete snapshot contains model identity, supported efforts, selected effort, SDK state, operation, tool projection, optional runId/requestId and compact lastApproval outcome metadata. operation is idle, prompt, model, flush, title or permission; it does not indicate whether model text has started arriving.
 

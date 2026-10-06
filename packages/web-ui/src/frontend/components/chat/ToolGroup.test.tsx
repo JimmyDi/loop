@@ -6,6 +6,24 @@ import type { ToolView } from "../../../shared/protocol";
 import { i18n } from "../../i18n/setup";
 import { ToolGroup } from "./ToolGroup";
 
+test("MCP batch and call labels show friendly names without exposing internal hashes", () => {
+  const tools: ToolView[] = [
+    {
+      id: "call",
+      name: "mcp_internal_hash",
+      displayName: "Example MCP · list_directory",
+      args: { path: "test" },
+      status: "success",
+    },
+  ];
+  const html = renderToStaticMarkup(<ToolGroup tools={tools} />);
+  expect(html).toContain("Used Example MCP · list_directory");
+  expect(html).toContain("Used tool Example MCP · list_directory");
+  expect(html).not.toContain("mcp_internal_hash");
+  expect(
+    renderToStaticMarkup(<ToolGroup tools={[{ ...tools[0]!, status: "running" }]} />),
+  ).toContain("Using tool Example MCP · list_directory");
+});
 test("tool batches default to a single collapsed live row and finish with a summary", () => {
   const tools: ToolView[] = [
     { id: "one", name: "read", args: { path: "config.ts" }, status: "success" },

@@ -9,10 +9,16 @@ import type {
 /** Host-only execution context, passed separately from model-provided arguments. */
 export type ToolApprovalContext = {
   arguments: Record<string, unknown>;
-  request: (operation: ApprovalOperation, reason: string) => Promise<ApprovalResult>;
+  request: (
+    operation: ApprovalOperation,
+    reason: string,
+    signal?: AbortSignal,
+    options?: Pick<ApprovalRequestOptions, "mcp">,
+  ) => Promise<ApprovalResult>;
 };
 
 export type PermissionTool = Omit<AgentTool, "execute"> & {
+  displayName?: string;
   execute: (
     args: Record<string, unknown>,
     signal: AbortSignal,
@@ -50,13 +56,16 @@ export class ToolApprovals {
         try {
           return await tool.execute(parameters, signal, {
             arguments: structuredClone(parameters),
-            request: (operation, reason) => {
+            request: (operation, reason, operationSignal, options) => {
               signal.throwIfAborted();
               if (!active || requested) throw new Error("Approval call context has expired");
               requested = true;
               return this.request(
                 { toolCallId: call.id, toolName: call.name, reason, operation },
-                { signal },
+                {
+                  ...options,
+                  signal: operationSignal ? AbortSignal.any([signal, operationSignal]) : signal,
+                },
               );
             },
           });

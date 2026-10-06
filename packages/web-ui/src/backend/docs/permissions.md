@@ -10,7 +10,7 @@ Each SessionController owns an approval adapter and consumes the public coding-a
 | PUT /api/settings/general | JSON permissionPreset: read-only, workspace-write or danger-full-access. Persist and return the default for future Web sessions. |
 | PUT /api/sessions/:id/permission | JSON preset: read-only, workspace-write or danger-full-access. Persist before changing authority; return the session snapshot. |
 | GET /api/sessions/:id/events?approvals=1 | Opt into an interactive approval connection; optional cursor follows normal SSE rules. |
-| POST /api/sessions/:id/approvals/:requestId | JSON decision: allowed-once or rejected. Return the snapshot only when core accepts the decision. |
+| POST /api/sessions/:id/approvals/:requestId | JSON decision: allowed-once, rejected, or allowed-session for eligible MCP requests. Return the snapshot only when core accepts the decision. |
 
 Example bodies:
 
@@ -48,7 +48,7 @@ Disconnecting does not stop the model run. Closing the controller aborts the run
 
 ## Scope and limits
 
-File approval authorizes one exact replacement, with core path/content/identity rechecks. Shell approval authorizes one unsandboxed invocation and descendants with host filesystem, network and environment access. Neither changes the stored preset. There is no command-text risk classifier, automatic retry, always-allow decision or grant persistence. See [core approvals](../../../../coding-agent/src/docs/approvals.md) for enforcement.
+File approval authorizes one exact replacement, with core path/content/identity rechecks. Shell approval authorizes one unsandboxed invocation and descendants with host filesystem, network and environment access. Neither changes the stored preset. There is no command-text risk classifier or automatic retry. Built-in approvals are one-call only. MCP uses session permissions and memory-only exact tool grants; allowed-session is rejected unless the pending request advertises allowSession. Full access automatically allows MCP calls; restricted presets require approval or a tool/session grant. Disabled servers and service authentication/refusal remain enforced. See [core approvals](../../../../coding-agent/src/docs/approvals.md) for enforcement.
 
 ## Source and validation
 

@@ -1,7 +1,6 @@
 import type { Message, ToolView } from "../../../shared/protocol";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { MarkdownText } from "./MarkdownText";
-import { ThinkingBlock } from "./ThinkingBlock";
 import { groupAssistantContent } from "./assistant-content";
 import { ToolGroup } from "./ToolGroup";
 
@@ -9,22 +8,22 @@ export const AssistantContent = ({
   message,
   tools,
   streaming = false,
+  generating = false,
 }: {
   message: Extract<Message, { role: "assistant" }>;
   tools: Record<string, ToolView>;
   streaming?: boolean;
+  generating?: boolean;
 }) => (
   <>
-    {groupAssistantContent(message.content).map((part) => {
+    {groupAssistantContent(message.content).map((part, index, blocks) => {
       if (part.type === "text")
         return <MarkdownText key={part.key} text={part.text} streaming={streaming} />;
-
-      if (part.type === "thinking") return <ThinkingBlock key={part.key} text={part.thinking} />;
 
       return (
         <ToolGroup
           key={part.key}
-          hasPreamble={part.hasPreamble}
+          generating={generating && index === blocks.length - 1}
           tools={part.calls.map(
             (call) =>
               tools[call.id] ?? {

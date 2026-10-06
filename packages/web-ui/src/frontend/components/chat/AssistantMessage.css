@@ -1,8 +1,17 @@
 .assistant-message {
   width: 100%;
-  margin: 16px 0;
+  margin: 6px 0;
+}
+.assistant-message + .assistant-message {
+  margin-top: 0;
 }
 .assistant-body {
   min-width: 0;
   padding-top: 1px;
+}
+.assistant-body > .tool-group:first-child {
+  margin-top: 0;
+}
+.assistant-body > .tool-group:last-child {
+  margin-bottom: 0;
 }

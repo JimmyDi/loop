@@ -280,19 +280,26 @@ test("accepted requests deduplicate and drafts do not duplicate history", async 
     delta: "Check the result",
     partial: thought,
   });
-  await waitFor(() => controller.snapshot.draftPhase === "thinking");
+  await waitFor(() => controller.snapshot.state.draft?.content[0]?.type === "thinking");
   stream.push({
     type: "thinking_end",
     contentIndex: 0,
     content: "Check the result",
     partial: thought,
   });
-  await waitFor(() => controller.snapshot.draftPhase === "thinking-complete");
+  await waitFor(() =>
+    frames.some(
+      (frame) =>
+        frame.type === "loop.event" &&
+        frame.event.type === "message_update" &&
+        frame.event.assistantMessageEvent.type === "thinking_end",
+    ),
+  );
   const thinkingFrames: Frame[] = [];
   const stopThinkingFrames = controller.events.connect((frame) => thinkingFrames.push(frame));
   expect(thinkingFrames[0]).toMatchObject({
     type: "session.snapshot",
-    snapshot: { operation: "prompt", draftPhase: "thinking-complete" },
+    snapshot: { operation: "prompt", state: { draft: thought } },
   });
   stopThinkingFrames();
 
@@ -307,20 +314,21 @@ test("accepted requests deduplicate and drafts do not duplicate history", async 
     frames.filter((frame) => frame.type === "session.state" && frame.snapshot.operation === "idle"),
   ).toHaveLength(1);
   expect(controller.snapshot.state.draft).toBeUndefined();
-  expect(controller.snapshot.draftPhase).toBeUndefined();
   expect(calls).toBe(1);
-  expect(controller.snapshot.state.runTimings).toHaveLength(1);
-  const timing = controller.snapshot.state.runTimings![0]!;
-  expect(timing.userMessageIndex).toBe(0);
-  expect(timing.finishedAt).toBeGreaterThanOrEqual(timing.startedAt);
+  const timing = controller.snapshot.state.promptTimings?.[0];
+  expect(timing?.userMessageIndex).toBe(0);
+  expect(timing?.finishedAt).toBeGreaterThanOrEqual(timing!.startedAt);
   expect(
-    frames.filter((frame) => frame.type === "loop.event" && frame.event.type === "run_timing"),
+    frames.filter((frame) => frame.type === "loop.event" && frame.event.type === "prompt_timing"),
   ).toHaveLength(2);
   const reconnected: Frame[] = [];
   const disconnect = controller.events.connect((frame) => reconnected.push(frame));
   expect(reconnected[0]).toMatchObject({
     type: "session.snapshot",
-    snapshot: { state: { runTimings: [timing] } },
+    snapshot: {
+      operation: "idle",
+      state: { messages: session.state.messages, promptTimings: [timing] },
+    },
   });
   disconnect();
   await controller.close();

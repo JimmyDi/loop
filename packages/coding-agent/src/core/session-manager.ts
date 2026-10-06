@@ -6,8 +6,6 @@ import type { Message } from "@earendil-works/pi-ai";
 import { getSessionDir } from "../config";
 import { atomicWrite } from "../utils/atomic-write";
 import { validateMessages } from "./messages";
-import { validateRunTimings } from "./run-timing";
-import type { SessionRunTiming } from "./run-timing";
 import { isModelEffort } from "./models/model-effort";
 import { fallbackTitle, titleInputs, validTitle } from "./titles/title-text";
 import type { SessionTitle } from "./titles/types";
@@ -16,6 +14,9 @@ import { DEFAULT_PERMISSION_PRESET, isPermissionPreset } from "./permissions/typ
 import type { PermissionPreset } from "./permissions/types";
 import { validateRuntimeContexts } from "./runtime-context";
 import type { RuntimeContextSnapshot } from "./runtime-context";
+
+import { validatePromptTimings } from "./prompt-timing";
+import type { PromptTiming } from "./prompt-timing";
 
 class UnsupportedSessionFormatError extends Error {
   constructor() {
@@ -78,10 +79,15 @@ export class SessionManager {
 
   static async open(path: string): Promise<SessionManager> {
     const lines = (await readFile(path, "utf8")).trim().split("\n");
-    const header = JSON.parse(lines.shift() ?? "") as SessionHeader;
+    const storedHeader = JSON.parse(lines.shift() ?? "") as SessionHeader & {
+      runTimings?: unknown;
+    };
 
-    if (header?.format !== "loop-session" || header.version !== 2)
+    if (storedHeader?.format !== "loop-session" || storedHeader.version !== 2)
       throw new UnsupportedSessionFormatError();
+
+    // Discard obsolete section metadata without rewriting files on read.
+    const { runTimings: _obsoleteTimings, ...header } = storedHeader;
 
     if (
       typeof header.id !== "string" ||
@@ -112,8 +118,8 @@ export class SessionManager {
     const messages: unknown = lines.map((line) => JSON.parse(line));
 
     validateMessages(messages);
-    validateRunTimings(header.runTimings, messages);
     validateRuntimeContexts(header.runtimeContexts, messages);
+    validatePromptTimings(header.promptTimings, messages);
 
     return new SessionManager({ header, messages }, resolve(path), false, true);
   }
@@ -197,10 +203,6 @@ export class SessionManager {
     });
   }
 
-  getRunTimings(): SessionRunTiming[] {
-    return structuredClone((this.pending ?? this.data).header.runTimings ?? []);
-  }
-
   /** Persist pin metadata without changing conversation activity or pending history. */
   setPinned(pinned: boolean): Promise<string | undefined> {
     if (typeof pinned !== "boolean") return Promise.reject(new Error("Invalid pinned state"));
@@ -219,6 +221,10 @@ export class SessionManager {
       }
       return pinnedAt;
     });
+  }
+
+  getPromptTimings(): PromptTiming[] {
+    return structuredClone((this.pending ?? this.data).header.promptTimings ?? []);
   }
 
   getRuntimeContexts(): RuntimeContextSnapshot[] {
@@ -255,12 +261,12 @@ export class SessionManager {
 
   async commit(
     messages: readonly Message[],
-    runTimings: readonly SessionRunTiming[] = this.getRunTimings(),
     runtimeContexts: readonly RuntimeContextSnapshot[] = this.getRuntimeContexts(),
+    promptTimings: readonly PromptTiming[] = this.getPromptTimings(),
   ): Promise<void> {
     if (this.pending || this.writing) throw new Error("Pending session save; call flush first");
-    validateRunTimings(runTimings, messages);
     validateRuntimeContexts(runtimeContexts, messages);
+    validatePromptTimings(promptTimings, messages);
     const hasNewOutput = messages
       .slice(this.data.messages.length)
       .some((message) => message.role !== "user");
@@ -270,8 +276,8 @@ export class SessionManager {
         ...this.data.header,
         updatedAt: new Date().toISOString(),
         unread: hasNewOutput || this.unread,
-        runTimings: runTimings.length ? structuredClone([...runTimings]) : undefined,
         runtimeContexts: runtimeContexts.length ? structuredClone([...runtimeContexts]) : undefined,
+        promptTimings: promptTimings.length ? structuredClone([...promptTimings]) : undefined,
       },
       messages: structuredClone([...messages]),
     };

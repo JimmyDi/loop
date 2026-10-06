@@ -16,7 +16,6 @@ import type { ModelEffort } from "./models/model-effort";
 import { validateMessages } from "./messages";
 import { buildPermissionContext } from "./permissions/permission-context";
 import { prepareRuntimeContexts } from "./runtime-context";
-import type { SessionRunTiming } from "./run-timing";
 import { SessionTitleService } from "./titles/session-title";
 import type { PermissionPreset } from "./permissions/types";
 import { approvalPolicyFor, DEFAULT_PERMISSION_PRESET } from "./permissions/types";
@@ -26,6 +25,8 @@ import type {
   SessionOptions,
   SessionState,
 } from "./types/session";
+
+import type { PromptTiming } from "./prompt-timing";
 
 export class AgentSession {
   private listeners = new Set<SessionEventListener>();
@@ -42,10 +43,10 @@ export class AgentSession {
   private listenerErrors: string[] = [];
   private readonly titles: SessionTitleService;
   private titleError?: string;
-  private runTiming?: SessionRunTiming;
   private readonly approvals: ApprovalService;
   private readonly toolApprovals: ToolApprovals;
   private acceptingRunApprovals = false;
+  private promptTiming?: PromptTiming;
 
   constructor(private readonly options: SessionOptions) {
     this.toolApprovals = new ToolApprovals((input, options) =>
@@ -149,8 +150,7 @@ export class AgentSession {
   }
 
   get state(): SessionState {
-    const runTiming = this.runTiming;
-
+    const timing = this.promptTiming;
     return {
       messages: this.agent?.messages ?? this.sessionManager.messages,
       draft: this.draft ? structuredClone(this.draft) : undefined,
@@ -164,14 +164,14 @@ export class AgentSession {
       ...(this.permissionPreset ? { permissionPreset: this.permissionPreset } : {}),
       title: this.titles.title,
       titleError: this.titleError,
-      runTimings: runTiming
+      promptTimings: timing
         ? [
             ...this.sessionManager
-              .getRunTimings()
-              .filter((timing) => timing.userMessageIndex !== runTiming.userMessageIndex),
-            structuredClone(runTiming),
+              .getPromptTimings()
+              .filter((candidate) => candidate.userMessageIndex !== timing.userMessageIndex),
+            structuredClone(timing),
           ]
-        : this.sessionManager.getRunTimings(),
+        : this.sessionManager.getPromptTimings(),
     };
   }
 
@@ -203,7 +203,7 @@ export class AgentSession {
     this.outcome = "idle";
     this.controller = new AbortController();
     this.acceptingRunApprovals = true;
-    this.runTiming = {
+    this.promptTiming = {
       userMessageIndex: this.sessionManager.messages.length,
       startedAt: Date.now(),
     };
@@ -369,8 +369,8 @@ export class AgentSession {
 
   private onAgentEvent(event: AgentEvent): void {
     this.toolApprovals.onEvent(event);
-    if (event.type === "message_start" && event.message.role === "user" && this.runTiming)
-      this.emit({ type: "run_timing", timing: this.runTiming });
+    if (event.type === "message_start" && event.message.role === "user" && this.promptTiming)
+      this.emit({ type: "prompt_timing", timing: this.promptTiming });
     if (
       event.type === "message_end" &&
       event.message.role === "user" &&
@@ -432,17 +432,16 @@ export class AgentSession {
       try {
         if (this.agent) {
           const messages = this.agent.messages;
-          const timings = this.sessionManager.getRunTimings();
-
-          if (this.runTiming && messages[this.runTiming.userMessageIndex]?.role === "user") {
-            this.runTiming = {
-              ...this.runTiming,
-              finishedAt: Math.max(this.runTiming.startedAt, Date.now()),
+          const timings = this.sessionManager.getPromptTimings();
+          if (this.promptTiming && messages[this.promptTiming.userMessageIndex]?.role === "user") {
+            this.promptTiming = {
+              ...this.promptTiming,
+              finishedAt: Math.max(this.promptTiming.startedAt, Date.now()),
             };
-            timings.push(this.runTiming);
-            this.emit({ type: "run_timing", timing: this.runTiming });
+            timings.push(this.promptTiming);
+            this.emit({ type: "prompt_timing", timing: this.promptTiming });
           }
-          await this.sessionManager.commit(messages, timings, runtimeContexts);
+          await this.sessionManager.commit(messages, runtimeContexts, timings);
         }
       } catch (error) {
         failures.push(error);
@@ -451,7 +450,7 @@ export class AgentSession {
         this.agent = undefined;
         this.draft = undefined;
         this.controller = undefined;
-        this.runTiming = undefined;
+        this.promptTiming = undefined;
         this.busy = false;
         this.outcome = failures.length ? (signal.aborted ? "cancelled" : "error") : "success";
         this.failure = failures.length

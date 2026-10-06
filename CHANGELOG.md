@@ -4,19 +4,37 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- coding-agent and Web protocol: remove the obsolete execution-section timing APIs (`SessionRunTiming`, `run_timing`, `state.runTimings`, `SessionManager.getRunTimings()`) and Web draftPhase state. Update `SessionManager.commit(messages, runTimings?, runtimeContexts?)` calls to `commit(messages, runtimeContexts?, promptTimings?)` and remove timing/phase subscriptions. Existing version-2 sessions still open; old timing metadata is ignored and omitted on later saves. See [session storage](packages/coding-agent/src/docs/session-format.md).
+
 ### Added
+
+- Web UI: show three dots waving in sequence in the Jump to latest button during connected generation. Show the down arrow on hover or keyboard focus and restore the animation when interaction ends. Restore the down arrow after generation or disconnection, preserve click-to-jump behavior, and use static dots for reduced motion.
+
+- coding-agent and Web UI: record independent prompt duration metadata and prompt_timing events. Show Working for below the user message during generation, then Worked for above the final response with a thin divider. Display seconds below one minute and minutes with remaining seconds thereafter, such as 2m 5s. Preserve completed durations across refresh, reconnect, reopening and save retries; stop on errors/cancellation and exclude saving or background title work.
 
 - Web UI: show a project-only capsule in an inset, rounded gray strip attached to the new-session composer, with a rounded folder outline, a neutral hover/focus capsule and centered white cross in a gray circular removal button, searchable registered-project selection and Add folder through Create project. Focus search when opening the menu, filter names without case sensitivity, and keep search and Add folder visible while the project list scrolls. Block sending without a selected accessible project and preserve unsent input, attachments, model, effort and permissions when switching draft projects.
 
 ### Changed
 
+- Web UI: reduce the conversation header's minimum height from 64px to 48px and vertical padding from 10px to 5px on desktop and mobile.
+
+- coding-agent and Web UI: require a concise model-authored text plan before every tool batch in the same response, including continued work, retries and verification after earlier results; each plan covers its own batch. Display plans, collapsed tool batches and final replies in history order without relocating streamed text. During generation and execution, each batch shows its latest generated or currently running call with a soft light band sweeping left to right over stationary gray text in both themes, pausing briefly between passes; once all calls finish, show a localized completion summary with explicit failure counts. Expand batches to inspect calls and their parameters/results, preserving open disclosures across updates and reconnects. Batch summary and tool row labels use the primary text color on hover/focus and reveal a right-pointing chevron, which points down while the disclosure is open. Missing plans are not synthesized, and conversation messages are unchanged.
+
 - Web UI: replace the Projects add flow with a Create project dialog, an optional custom name, an Add button that opens the system folder picker, and a removable source-folder row. Default blank names to the folder name and preserve inputs after failed creation. Match existing dialogs with a compact 480px width, 18px title and 13px controls.
 
 ### Fixed
 
+- Web UI: remove stacked message and tool-group margins between consecutive tool batches in the flat conversation, keeping a compact gap without reserving space for hidden thinking.
+
 - Web UI: keep the Create project dialog and source-folder area at stable dimensions during folder selection, removal, saving and errors, with overflowing content scrolling inside the dialog.
 
 ### Removed
+
+- Web UI: remove resolved approval outcome labels above the chat input, including Allowed once; show approval cards only while requests are pending.
+
+- Web UI: remove the reasoning disclosure, nested execution timeline, elapsed-work header and internal reasoning scroll area, including their draft-phase tracking, timing events, persistence and shared status logic. Hide thinking in the conversation while retaining native events, stored messages and model replay; reopened history shows phase updates and collapsed tool completion summaries.
 
 - Web UI: remove typed project paths, browser directory navigation, picker capability discovery, and directory listing endpoints. Folder selection uses the local macOS system picker; unavailable pickers show a retryable error.
 

@@ -1,57 +1,62 @@
-import type {
-  DraftPhase,
-  SessionRunTiming,
-  SessionState,
-  ToolView,
-} from "../../../shared/protocol";
+import type { ToolView, PromptTiming } from "../../../shared/protocol";
+import { assistantTextPhase } from "../../../shared/assistant-text-phase";
 import { AssistantMessage } from "./AssistantMessage";
-import { RunActivityCard } from "./RunActivityCard";
-import { activityStatus, executionStatus } from "./activity-status";
 import { projectAssistantTurn } from "./timeline-turns";
 import type { TurnMessage } from "./timeline-turns";
+import { ToolCard } from "./ToolCard";
+import { PromptDuration } from "./PromptDuration";
 
 export const AssistantTurn = ({
   messages,
   tools,
   draftIndex,
-  draftPhase,
   running,
-  title,
-  outcome,
   timing,
 }: {
   messages: TurnMessage[];
   tools: Record<string, ToolView>;
   draftIndex?: number;
-  draftPhase?: DraftPhase;
   running: boolean;
-  title: string;
-  outcome?: SessionState["outcome"];
-  timing?: SessionRunTiming;
+  timing?: PromptTiming;
 }) => {
-  const { activity, answer } = projectAssistantTurn(messages, draftIndex);
+  const entries = projectAssistantTurn(messages);
+  const last = entries.at(-1);
+  const final =
+    last?.message.role === "assistant" &&
+    last.message.stopReason !== "toolUse" &&
+    !last.message.content.some((part) => part.type === "toolCall") &&
+    last.message.content.some(
+      (part) =>
+        part.type === "text" &&
+        part.text.trim() &&
+        assistantTextPhase(part.textSignature) !== "commentary",
+    )
+      ? last
+      : undefined;
+  const completed = timing?.finishedAt !== undefined ? timing : undefined;
 
   return (
     <>
-      {activity.length > 0 && (
-        <RunActivityCard
-          entries={activity}
-          tools={tools}
-          draftIndex={draftIndex}
-          status={activityStatus(messages, running, outcome)}
-          executionStatus={executionStatus(messages, tools, running, outcome, draftPhase)}
-          title={title}
-          timing={timing}
-        />
-      )}
-      {answer && (
-        <AssistantMessage
-          key={answer.index}
-          message={answer.message}
-          tools={tools}
-          streaming={running || answer.index === draftIndex}
-        />
-      )}
+      {entries.map((entry) => {
+        const { index, message } = entry;
+        if (message.role === "toolResult")
+          return tools[message.toolCallId] ? (
+            <ToolCard key={index} tool={tools[message.toolCallId]!} />
+          ) : null;
+
+        return (
+          <AssistantMessage
+            key={index}
+            message={message}
+            timing={entry === final ? completed : undefined}
+            tools={tools}
+            streaming={index === draftIndex || (running && entry === entries.at(-1))}
+            generating={index === draftIndex}
+            showFooter={entry === final}
+          />
+        );
+      })}
+      {completed && !final && <PromptDuration timing={completed} />}
     </>
   );
 };

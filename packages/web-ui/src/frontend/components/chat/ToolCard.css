@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
   cursor: pointer;
   padding: 5px 0;
@@ -25,7 +25,33 @@
   min-width: 0;
 }
 .tool-card-target {
-  color: var(--ink-muted);
+  color: inherit;
+}
+.tool-card > summary:hover,
+.tool-card > summary:focus-visible,
+.tool-card[open] > summary {
+  color: var(--ink);
+}
+.tool-card-chevron {
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+.tool-card > summary:hover .tool-card-chevron,
+.tool-card > summary:focus-visible .tool-card-chevron,
+.tool-card[open] > summary .tool-card-chevron {
+  opacity: 1;
+}
+.tool-card[open] > summary .tool-card-chevron {
+  transform: rotate(90deg);
 }
 .tool-card > summary:focus-visible {
   outline: 2px solid var(--focus-border);
@@ -69,5 +95,15 @@
 @media (max-width: 767px) {
   .tool-content {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (hover: none) {
+  .tool-card-chevron {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tool-card-chevron {
+    transition: none;
   }
 }

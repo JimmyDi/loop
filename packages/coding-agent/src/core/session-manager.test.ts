@@ -78,7 +78,7 @@ test("runtime snapshots persist with history, survive failed saves and validate 
     const messages = [{ role: "user" as const, content: "Task", timestamp: 1 }];
     const snapshots = [{ userTurn: 0, content: "Context", timestamp: 1 }];
     await writeFile(storage, "Block directory creation");
-    await expect(manager.commit(messages, [], snapshots)).rejects.toThrow();
+    await expect(manager.commit(messages, snapshots)).rejects.toThrow();
     snapshots[0]!.content = "Mutated by caller";
     expect(manager.getRuntimeContexts()[0]?.content).toBe("Context");
     manager.getRuntimeContexts()[0]!.content = "Mutated snapshot";
@@ -156,41 +156,25 @@ test("permission metadata uses version 2, serializes, and fails without publishi
   }
 });
 
-test("timing is saved with history, survives failed saves and supports optional timing metadata", async () => {
-  const root = await mkdtemp(join(import.meta.dirname, ".timing-storage-test-"));
+test("obsolete section metadata is ignored on restore and omitted from subsequent saves", async () => {
+  const root = await mkdtemp(join(import.meta.dirname, ".legacy-metadata-test-"));
   try {
-    const manager = SessionManager.draft(root, join(root, "history"));
+    const manager = await SessionManager.create(root, join(root, "history"));
     const messages = [{ role: "user" as const, content: "Request", timestamp: 1000 }];
-    const timings = [{ userMessageIndex: 0, startedAt: 1000, finishedAt: 2000 }];
-    await writeFile(join(root, "history"), "Block storage");
-    await expect(manager.commit(messages, timings)).rejects.toThrow();
-    expect(manager.getRunTimings()).toEqual(timings);
-    timings[0]!.finishedAt = 9999;
-    expect(manager.getRunTimings()[0]?.finishedAt).toBe(2000);
-    await rm(join(root, "history"));
-    await manager.flush();
+    await manager.commit(messages);
+    const contents =
+      [{ ...manager.getHeader(), runTimings: { obsolete: true } }, ...messages]
+        .map((value) => JSON.stringify(value))
+        .join("\n") + "\n";
+    await writeFile(manager.sessionFile!, contents);
     const restored = await SessionManager.open(manager.sessionFile!);
-    expect(restored.getRunTimings()[0]?.finishedAt).toBe(2000);
-    await restored.setTitle({ text: "Renamed", source: "user", messageIndices: [] });
-    await restored.setModel({ provider: "example", id: "example" });
-    expect((await SessionManager.open(manager.sessionFile!)).getRunTimings()).toEqual(
-      restored.getRunTimings(),
-    );
-    const header = restored.getHeader();
-    delete header.runTimings;
-    await writeFile(
-      manager.sessionFile!,
-      [header, ...messages].map((value) => JSON.stringify(value)).join("\n"),
-    );
-    expect((await SessionManager.open(manager.sessionFile!)).getRunTimings()).toEqual([]);
-    header.runTimings = [{ userMessageIndex: 2, startedAt: 1000, finishedAt: 2000 }];
-    await writeFile(
-      manager.sessionFile!,
-      [header, ...messages].map((value) => JSON.stringify(value)).join("\n"),
-    );
-    await expect(SessionManager.open(manager.sessionFile!)).rejects.toThrow(
-      "Invalid session run timings",
-    );
+    expect(restored.messages).toEqual(messages);
+    expect(restored.getHeader()).not.toHaveProperty("runTimings");
+    expect(await readFile(manager.sessionFile!, "utf8")).toBe(contents);
+    await restored.commit(messages);
+    expect(
+      JSON.parse((await readFile(manager.sessionFile!, "utf8")).split("\n")[0]!),
+    ).not.toHaveProperty("runTimings");
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -421,14 +405,11 @@ test("unread belongs to the header and stale receipts cannot clear newer complet
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
     },
   };
-  const firstTiming = { userMessageIndex: 0, startedAt: 0, finishedAt: 1 };
-  const secondTiming = { userMessageIndex: 2, startedAt: 2, finishedAt: 3 };
   try {
     const manager = SessionManager.draft(root, join(root, "history"));
     expect(manager.getHeader().unread).toBe(false);
     expect(await manager.markRead(2)).toBe(false);
     expect(await existsSync(manager.sessionFile!)).toBe(false);
-    // Unread and read requests work without execution timing metadata.
     await manager.commit([user, reply]);
     const original = await readFile(manager.sessionFile!, "utf8");
     expect(manager.unread).toBe(true);
@@ -445,9 +426,9 @@ test("unread belongs to the header and stale receipts cannot clear newer complet
       title: { text: "Renamed" },
       model: { id: "other" },
     });
-    await manager.commit([user, reply], [firstTiming]);
+    await manager.commit([user, reply]);
     expect(manager.unread).toBe(false);
-    await manager.commit([user, reply, user, reply], [firstTiming, secondTiming]);
+    await manager.commit([user, reply, user, reply]);
     expect(await manager.markRead(2)).toBe(false);
     expect(manager.unread).toBe(true);
     const beforeRead = manager.getHeader();
@@ -458,10 +439,7 @@ test("unread belongs to the header and stale receipts cannot clear newer complet
     expect(restored.unread).toBe(false);
     expect(restored.messages).toEqual([user, reply, user, reply]);
     // A new failed run containing only its user message must not create unread output.
-    await restored.commit(
-      [user, reply, user, reply, user],
-      [firstTiming, secondTiming, { userMessageIndex: 4, startedAt: 4, finishedAt: 5 }],
-    );
+    await restored.commit([user, reply, user, reply, user]);
     expect(restored.unread).toBe(false);
     const lines = original.trim().split("\n");
     for (const unread of ["true", 1, null]) {
@@ -499,27 +477,24 @@ test("read writes serialize with commits and failed saves retain unread for retr
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
     },
   };
-  const timings = [{ userMessageIndex: 0, startedAt: 0, finishedAt: 1 }];
   try {
     const manager = SessionManager.draft(root, storage);
-    await manager.commit([user, reply], timings);
+    await manager.commit([user, reply]);
     // Let the receipt start writing before a newer commit is prepared.
     const reading = manager.markRead(2);
     await Promise.resolve();
-    const nextTimings = [...timings, { userMessageIndex: 2, startedAt: 2, finishedAt: 3 }];
-    await Promise.all([reading, manager.commit([user, reply, user, reply], nextTimings)]);
+    await Promise.all([reading, manager.commit([user, reply, user, reply])]);
     expect(manager.unread).toBe(true);
     expect((await SessionManager.open(manager.sessionFile!)).unread).toBe(true);
     // Re-saving the same history must also preserve a concurrent successful read.
     const readingLatest = manager.markRead(4);
     await Promise.resolve();
-    await Promise.all([readingLatest, manager.commit(manager.messages, nextTimings)]);
+    await Promise.all([readingLatest, manager.commit(manager.messages)]);
     expect(manager.unread).toBe(false);
     expect((await SessionManager.open(manager.sessionFile!)).unread).toBe(false);
     await rm(storage, { recursive: true });
     await writeFile(storage, "Block writes");
-    const newest = [...nextTimings, { userMessageIndex: 4, startedAt: 4, finishedAt: 5 }];
-    await expect(manager.commit([user, reply, user, reply, user, reply], newest)).rejects.toThrow();
+    await expect(manager.commit([user, reply, user, reply, user, reply])).rejects.toThrow();
     expect(manager.unread).toBe(true);
     await expect(manager.markRead(6)).rejects.toThrow("Pending session save");
     await rm(storage);
@@ -660,3 +635,40 @@ const spawnProcess = (
     stdin: { write: (text: string) => child.stdin!.write(text), flush: async () => {} },
   };
 };
+
+test("prompt timings retain the original snapshot through save retry and validate on restore", async () => {
+  const root = await mkdtemp(join(import.meta.dirname, ".prompt-timings-test-"));
+  const storage = join(root, "history");
+  try {
+    const manager = SessionManager.draft(root, storage);
+    const messages = [{ role: "user" as const, content: "Request", timestamp: 1000 }];
+    const timings = [{ userMessageIndex: 0, startedAt: 1000, finishedAt: 30000 }];
+    await writeFile(storage, "Block storage");
+    await expect(manager.commit(messages, [], timings)).rejects.toThrow();
+    timings[0]!.finishedAt = 90000;
+    expect(manager.getPromptTimings()[0]?.finishedAt).toBe(30000);
+    manager.getPromptTimings()[0]!.finishedAt = 50000;
+    expect(manager.getPromptTimings()[0]?.finishedAt).toBe(30000);
+    await rm(storage);
+    await manager.flush();
+    const restored = await SessionManager.open(manager.sessionFile!);
+    expect(restored.getPromptTimings()).toEqual(manager.getPromptTimings());
+    await restored.commit(messages);
+    expect((await SessionManager.open(manager.sessionFile!)).getPromptTimings()).toEqual(
+      manager.getPromptTimings(),
+    );
+    const header = {
+      ...restored.getHeader(),
+      promptTimings: [{ ...timings[0], userMessageIndex: 2 }],
+    };
+    await writeFile(
+      manager.sessionFile!,
+      [header, ...messages].map((entry) => JSON.stringify(entry)).join("\n"),
+    );
+    await expect(SessionManager.open(manager.sessionFile!)).rejects.toThrow(
+      "Invalid prompt timings",
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

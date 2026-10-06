@@ -6,42 +6,32 @@ import type { ToolView } from "../../../shared/protocol";
 import { i18n } from "../../i18n/setup";
 import { ToolGroup } from "./ToolGroup";
 
-test("tool rows expose individual status without an intermediate accordion", () => {
+test("tool batches default to a single collapsed live row and finish with a summary", () => {
   const tools: ToolView[] = [
-    { id: "one", name: "read", status: "error" },
-    { id: "two", name: "read", status: "running" },
-    { id: "three", name: "read", status: "waiting" },
-    { id: "four", name: "bash", status: "success" },
+    { id: "one", name: "read", args: { path: "config.ts" }, status: "success" },
+    { id: "two", name: "bash", args: { command: "pnpm test" }, status: "running" },
+    { id: "three", name: "edit", args: { path: "src/app.ts" }, status: "waiting" },
   ];
-  const html = renderToStaticMarkup(<ToolGroup tools={tools} hasPreamble={false} />);
-  const summary = html.slice(html.indexOf("<summary>"), html.indexOf("</summary>"));
-
-  expect(summary).toContain('title="Read file"');
-  expect(summary).not.toContain("Used tool");
-  expect(summary).toContain('aria-label="Error"');
-  expect(html).not.toContain("tool-group-disclosure");
+  const html = renderToStaticMarkup(<ToolGroup tools={tools} />);
+  const summary = html.slice(html.indexOf("<summary"), html.indexOf("</summary>"));
+  expect(summary).toContain("Running pnpm test");
+  expect(summary).not.toContain("Read files");
+  expect(summary).not.toContain("tool-card");
+  expect(html).toContain('class="tool-group" data-active="true" aria-busy="true"');
   expect(html).not.toContain(" open=");
-  expect(html.match(/class="tool-card"/g)).toHaveLength(4);
-  expect(html.match(/<summary>/g)).toHaveLength(4);
-  expect(html).toContain("Read files and Run commands");
-  expect(html).not.toContain("Use tools");
+  expect(html.match(/class="tool-card"/g)).toHaveLength(3);
 
-  for (const [status, label, path] of [
-    ["running", "Running", "M12 3a9 9 0 1 1-9 9"],
-    ["success", "Completed", "m8 12 3 3 5-6"],
-    ["error", "Error", "m9 9 6 6m0-6-6 6"],
-  ] as const) {
-    const row = renderToStaticMarkup(
-      <ToolGroup
-        tools={[{ id: "one", name: "bash", args: { command: "pnpm test" }, status }]}
-        hasPreamble
-      />,
-    );
-    expect(row).toContain('title="Bash · pnpm test"');
-    expect(row).toContain(`class="tool-card" data-status="${status}"`);
-    expect(row).toContain(`aria-label="${label}"`);
-    expect(row).toContain(`d="${path}"`);
-  }
+  const generating = renderToStaticMarkup(<ToolGroup tools={tools} generating />);
+  expect(
+    generating.slice(generating.indexOf("<summary"), generating.indexOf("</summary>")),
+  ).toContain("Edit src/app.ts");
+
+  const completed = tools.map((tool) => ({ ...tool, status: "success" as const }));
+  const history = renderToStaticMarkup(<ToolGroup tools={completed} />);
+  expect(history).toContain('data-active="false" aria-busy="false"');
+  expect(history).toContain("Read files, Ran commands and Edited files");
+  expect(history).not.toContain(" open=");
+  expect(renderToStaticMarkup(<ToolGroup tools={[]} />)).toBe("");
 });
 
 test("fast tool icons settle independently while results, failures and open details update immediately", async () => {
@@ -52,22 +42,25 @@ test("fast tool icons settle independently while results, failures and open deta
   const first: ToolView = { id: "first", name: "bash", status: "running" };
   const second: ToolView = { id: "second", name: "bash", status: "waiting" };
   try {
-    const ui = render(<ToolGroup tools={[first, second]} hasPreamble />);
+    const ui = render(<ToolGroup tools={[first, second]} />);
+    const group = ui.container.querySelector<HTMLDetailsElement>(".tool-group")!;
+    expect(group.open).toBe(false);
+    expect(group.querySelector(".tool-group-label")?.textContent).toBe("Running command");
+    group.open = true;
     const cards = ui.container.querySelectorAll<HTMLDetailsElement>(".tool-card");
     cards[0]!.open = true;
-    expect(cards[0]!.querySelector(".tool-card-label")?.textContent).toBe("Bash · command");
-    ui.rerender(<ToolGroup tools={[{ ...first, args: { command: "bun" } }, second]} hasPreamble />);
-    expect(cards[0]!.querySelector(".tool-card-label")?.textContent).toBe("Bash · bun");
+    expect(cards[0]!.querySelector(".tool-card-label")?.textContent).toBe("Running command");
+    ui.rerender(<ToolGroup tools={[{ ...first, args: { command: "bun" } }, second]} />);
+    expect(cards[0]!.querySelector(".tool-card-label")?.textContent).toBe("Running bun");
     ui.rerender(
       <ToolGroup
         tools={[
           { ...first, args: { command: "pnpm test", description: "Check the project" } },
           second,
         ]}
-        hasPreamble
       />,
     );
-    expect(cards[0]!.querySelector(".tool-card-label")?.textContent).toBe("Bash · pnpm test");
+    expect(cards[0]!.querySelector(".tool-card-label")?.textContent).toBe("Running pnpm test");
     expect(cards[0]!.open).toBe(true);
     expect(cards[0]!.querySelector("pre")?.textContent).toContain("pnpm test");
     const completed: ToolView = {
@@ -83,30 +76,35 @@ test("fast tool icons settle independently while results, failures and open deta
         timestamp: 0,
       },
     };
-    ui.rerender(<ToolGroup tools={[completed, { ...second, status: "running" }]} hasPreamble />);
+    ui.rerender(<ToolGroup tools={[completed, { ...second, status: "running" }]} />);
+    expect(group.querySelector(".tool-group-label")?.textContent).toBe("Running command");
     expect(cards[0]!.dataset.status).toBe("success");
-    expect(cards[0]!.querySelector(".tool-card-label")?.textContent).toBe("Bash · pnpm test");
+    expect(cards[0]!.querySelector(".tool-card-label")?.textContent).toBe("Ran pnpm test");
     expect(cards[0]!.textContent).toContain("Example output");
-    expect(cards[0]!.querySelector(".activity-status-icon")?.getAttribute("data-status")).toBe(
+    expect(cards[0]!.querySelector(".tool-status-icon")?.getAttribute("data-status")).toBe(
       "running",
     );
-    expect(cards[0]!.querySelector(".activity-status-icon")?.getAttribute("aria-label")).toBe(
+    expect(cards[0]!.querySelector(".tool-status-icon")?.getAttribute("aria-label")).toBe(
       "Completed",
     );
-    expect(cards[1]!.querySelector(".activity-status-icon")?.getAttribute("data-status")).toBe(
+    expect(cards[1]!.querySelector(".tool-status-icon")?.getAttribute("data-status")).toBe(
       "running",
     );
-    ui.rerender(<ToolGroup tools={[completed, { ...second, status: "error" }]} hasPreamble />);
-    expect(cards[1]!.querySelector(".activity-status-icon")?.getAttribute("data-status")).toBe(
-      "error",
+    ui.rerender(<ToolGroup tools={[completed, { ...second, status: "error" }]} />);
+    expect(group.dataset.active).toBe("false");
+    expect(group.querySelector(".tool-group-label")?.textContent).toBe(
+      "Ran 1 command and 1 tool failed",
     );
+    expect(cards[1]!.querySelector(".tool-status-icon")?.getAttribute("data-status")).toBe("error");
     await waitFor(() =>
-      expect(cards[0]!.querySelector(".activity-status-icon")?.getAttribute("data-status")).toBe(
+      expect(cards[0]!.querySelector(".tool-status-icon")?.getAttribute("data-status")).toBe(
         "success",
       ),
     );
     expect(ui.container.querySelectorAll(".tool-card")).toHaveLength(2);
     expect(ui.container.querySelector(".tool-card")).toBe(cards[0]!);
+    expect(ui.container.querySelector(".tool-group")).toBe(group);
+    expect(group.open).toBe(true);
     expect(cards[0]!.open).toBe(true);
     ui.rerender(
       <ToolGroup
@@ -115,22 +113,21 @@ test("fast tool icons settle independently while results, failures and open deta
           { ...second, status: "error" },
           { id: "third", name: "read", status: "waiting" },
         ]}
-        hasPreamble={false}
       />,
     );
-    expect(ui.container.querySelector(".tool-group-preamble")?.textContent).toBe(
-      "Run commands and Read files",
-    );
+    expect(ui.container.querySelector(".tool-group-label")?.textContent).toBe("Read file");
+    expect(group.dataset.active).toBe("true");
     expect(ui.container.querySelector(".tool-card")).toBe(cards[0]!);
+    expect(ui.container.querySelector(".tool-group")).toBe(group);
+    expect(group.open).toBe(true);
     expect(cards[0]!.open).toBe(true);
     ui.unmount();
-    const history = render(<ToolGroup tools={[completed]} hasPreamble />);
-    expect(history.container.querySelector(".tool-card-label")?.textContent).toBe(
-      "Bash · pnpm test",
+    const history = render(<ToolGroup tools={[completed]} />);
+    expect(history.container.querySelector<HTMLDetailsElement>(".tool-group")?.open).toBe(false);
+    expect(history.container.querySelector(".tool-card-label")?.textContent).toBe("Ran pnpm test");
+    expect(history.container.querySelector(".tool-status-icon")?.getAttribute("data-status")).toBe(
+      "success",
     );
-    expect(
-      history.container.querySelector(".activity-status-icon")?.getAttribute("data-status"),
-    ).toBe("success");
   } finally {
     try {
       await act(async () => {
@@ -145,22 +142,28 @@ test("fast tool icons settle independently while results, failures and open deta
   }
 });
 
-test("fallback describes only the tool action, respects authored text and supports both languages", async () => {
+test("batch summaries describe completed actions and support both languages", async () => {
   const previous = i18n.language;
 
   try {
     for (const [language, labels, rowLabels, combined] of [
       [
         "en",
-        ["Read 1 file", "Write 1 file", "Edit 1 file", "Run 1 command", "Use unknown"],
-        ["Read", "Wrote", "Edited", "Bash ·", "Used tool"],
-        "Read files and Run commands",
+        ["Read 1 file", "Wrote 1 file", "Edited 1 file", "Ran 1 command", "Used unknown"],
+        ["Read", "Wrote", "Edited", "Ran", "Used tool"],
+        "2 tools failed",
       ],
       [
         "zh",
-        ["读取 1 个文件", "写入 1 个文件", "编辑 1 个文件", "执行 1 条命令", "调用 unknown"],
-        ["已读取", "已写入", "已编辑", "Bash ·", "已调用工具"],
-        "读取文件并执行命令",
+        [
+          "已读取 1 个文件",
+          "已写入 1 个文件",
+          "已编辑 1 个文件",
+          "已执行 1 条命令",
+          "已调用 unknown",
+        ],
+        ["已读取", "已写入", "已编辑", "已执行", "已调用工具"],
+        "2 次工具调用失败",
       ],
     ] as const) {
       await i18n.changeLanguage(language);
@@ -175,13 +178,10 @@ test("fallback describes only the tool action, respects authored text and suppor
             args: { path: "src/app.ts", command: "pnpm test" },
           },
         ];
-        const html = renderToStaticMarkup(<ToolGroup tools={tools} hasPreamble={false} />);
+        const html = renderToStaticMarkup(<ToolGroup tools={tools} />);
 
         expect(html).toContain(labels[index]!);
         expect(html).toContain(`title="${rowLabels[index]} ${target}"`);
-        expect(renderToStaticMarkup(<ToolGroup tools={tools} hasPreamble />)).not.toContain(
-          "tool-group-preamble",
-        );
       }
 
       expect(
@@ -191,7 +191,6 @@ test("fallback describes only the tool action, respects authored text and suppor
               { id: "one", name: "read", status: "error" },
               { id: "two", name: "bash", status: "error" },
             ]}
-            hasPreamble={false}
           />,
         ),
       ).toContain(combined);

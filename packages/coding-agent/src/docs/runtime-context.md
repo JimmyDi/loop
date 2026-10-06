@@ -45,7 +45,7 @@ An unchanged policy adds no new snapshot. Tool continuations reuse the same snap
 
 `RuntimeContextSnapshot` is exported with `userTurn`, `content` and `timestamp`. `userTurn` is the zero-based ordinal among actual user messages, not an index among all messages. This anchor remains valid when request normalization removes failed assistant messages or adapts history for another model. Snapshots are stored in the session header's optional `runtimeContexts` field, separate from conversation messages.
 
-`SessionManager.getRuntimeContexts()` returns a cloned snapshot, including pending save state. `commit(messages, runTimings?, runtimeContexts?)` accepts complete snapshots; omitted runtime context preserves the existing value. Invalid ordering, missing user turns, empty text or invalid timestamps reject. Hosts that replace or truncate history must supply matching context metadata.
+`SessionManager.getRuntimeContexts()` returns a cloned snapshot, including pending save state. `commit(messages, runtimeContexts?, promptTimings?)` accepts complete snapshots; omitted runtime context preserves the existing value. Invalid ordering, missing user turns, empty text or invalid timestamps reject. Hosts that replace or truncate history must supply matching context metadata.
 
 Only a run that reaches the model dispatch records a new snapshot. Preflight failures and cancellation before dispatch record none. Model failures and cancellation after dispatch retain the context supplied to that attempt. Context and conversation history are committed together; a failed save retains both for `flush()` without replaying tools or calling the model again. Process termination before that commit has the same recovery limits as ordinary history.
 
@@ -53,7 +53,7 @@ Restoring a session reuses the exact stored snapshot text, timestamp and positio
 
 ## Presentation and limits
 
-Runtime snapshots do not enter `session.state.messages`, user message events, title generation, conversation counts, or message timing indices. CLI and Web continue to display actual user and assistant messages. A custom `ModelRuntime.streamSimple` receives the projected model request, including runtime context; its message count can therefore differ from the session's conversation count. Title requests use their own context and do not receive permission snapshots.
+Runtime snapshots do not enter `session.state.messages`, user message events, title generation, conversation counts, or history positions. CLI and Web continue to display actual user and assistant messages. A custom `ModelRuntime.streamSimple` receives the projected model request, including runtime context; its message count can therefore differ from the session's conversation count. Title requests use their own context and do not receive permission snapshots.
 
 This is an internal permission-context path, not a plugin registration API, approval service or risk classifier. The user-role envelope does not grant authority; tool policy remains authoritative. Custom system-prompt replacement still replaces the base instructions only, as described in [context files](context-files.md).
 

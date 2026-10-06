@@ -26,7 +26,7 @@ test("AssistantMessage renders the session state without unsupported controls", 
   );
 
   expect(html).toContain('aria-busy="true"');
-  expect(html).toContain("Actual thinking");
+  expect(html).not.toContain("Actual thinking");
   client.clear();
 });
 
@@ -92,7 +92,10 @@ test("authored updates stay visible and opened tool rows survive growing drafts 
     );
     const group = ui.container.querySelector(".tool-group")!;
     expect(group.contains(ui.getByText("Read the configuration."))).toBe(false);
-    expect(ui.container.querySelector(".tool-group-preamble")).toBeNull();
+    expect(ui.container.querySelector(".tool-group-label")?.textContent).toBe("Read file");
+    const disclosure = ui.container.querySelector<HTMLDetailsElement>(".tool-group")!;
+    expect(disclosure.open).toBe(false);
+    disclosure.open = true;
     const card = ui.container.querySelector<HTMLDetailsElement>(".tool-card")!;
     expect(card.open).toBe(false);
     card.open = true;
@@ -138,10 +141,8 @@ test("authored updates stay visible and opened tool rows survive growing drafts 
     expect(ui.container.querySelector(".tool-group")).toBe(group);
     expect(ui.container.querySelector(".tool-card")).toBe(card);
     expect(card.open).toBe(true);
-    expect(card.querySelector(".activity-status-icon")?.getAttribute("data-status")).toBe(
-      "success",
-    );
-    expect(group.querySelectorAll('.activity-status-icon[data-status="error"]')).toHaveLength(1);
+    expect(card.querySelector(".tool-status-icon")?.getAttribute("data-status")).toBe("success");
+    expect(group.querySelectorAll('.tool-status-icon[data-status="error"]')).toHaveLength(1);
     expect(card.textContent).toContain("File contents");
     expect(group.textContent).toContain("Cancelled");
     expect(ui.container.querySelectorAll(".tool-card")).toHaveLength(2);

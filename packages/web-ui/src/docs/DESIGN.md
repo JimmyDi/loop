@@ -110,7 +110,7 @@ The backend registry owns independent AgentSession instances. Do not repeatedly 
 ### 3.2 Initial Features
 
 - Projects tree; add, rename, and remove projects; choose directories; list project history; create/open sessions from the sidebar.
-- Text input, streaming replies, Markdown, code copying, and collapsible thinking returned by the model.
+- Text input, streaming phase updates and final replies, Markdown and code copying; thinking remains in native messages but is hidden from the conversation.
 - `read`, `bash`, `edit`, and `write` calls with final results.
 - Model selection, stopping, history restoration on refresh, reconnection synchronization, and failed-save retry.
 - English/Chinese switching with persisted language preference.
@@ -148,7 +148,7 @@ Components, visuals, and interactions consume Loop sessions through the Web API.
 │   Session / New  │                                        │
 │ ▸ Project B      │                                        │
 │                  │ User messages                          │
-│                  │ Assistant / thinking / tool cards      │
+│                  │ Phase updates / tool cards / replies      │
 │                  │                                        │
 │ Settings         │              Floating composer         │
 └──────────────────┴────────────────────────────────────────┘
@@ -170,7 +170,7 @@ Components are maintained under `packages/web-ui/src/frontend`, with one primary
 | `ComposerInput` | Text input, IME, plain-text paste, caret, and newlines |
 | `MessageTimeline` | Message ordering, scroll area, and automatic following |
 | `UserMessage` | User bubble and text copying |
-| `AssistantMessage` | Markdown, streaming state, text copying, and collapsible thinking returned by the model |
+| `AssistantMessage` | Phase text and final replies in history order, Markdown, streaming state and final-response copying; thinking is hidden |
 | `MarkdownText` | Sanitized Markdown, highlighting, code copying, tables, math, and browser links |
 | `ToolCard` | Collapsible tool name, state, arguments, and final results |
 
@@ -184,7 +184,7 @@ Maintain theme variables, layout rules, responsive behavior, and component CSS w
 | --- | --- |
 | Theme | Inter/system fonts, Light/Dark/System appearance (System by default), fine borders, and semantic CSS color variables |
 | Colors | `--surface: #f6f7f9`, `--ink: #18181b`, `--ink-muted: #71717a`, `--line: #dfe4ea` |
-| Desktop layout | Sidebar initial/minimum 260px, maximum 420px; header minimum 64px with a folder icon and title, 16px horizontal padding and an 8px control gap |
+| Desktop layout | Sidebar initial/minimum 260px, maximum 420px; header minimum 48px with a folder icon and title, 5px vertical padding, 16px horizontal padding and no extra control gap |
 | Messages | Content max 1040px; pale blue-gray user bubbles, unboxed assistant text; 15px text and 1.65 line height |
 | Composer card | Max 860px, horizontal padding, 18px bottom gap, 16px radius; grows with content |
 | Input | Enter sends, Shift+Enter adds a newline, IME composition does not send, failure retains retryable text |

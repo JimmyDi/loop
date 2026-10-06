@@ -35,9 +35,9 @@ export const applyEvent = (
     );
   } else if (event.type === "permission_changed") {
     next.state.permissionPreset = event.permissionPreset;
-  } else if (event.type === "run_timing") {
-    next.state.runTimings = [
-      ...(next.state.runTimings ?? []).filter(
+  } else if (event.type === "prompt_timing") {
+    next.state.promptTimings = [
+      ...(next.state.promptTimings ?? []).filter(
         (timing) => timing.userMessageIndex !== event.timing.userMessageIndex,
       ),
       event.timing,
@@ -54,34 +54,10 @@ export const applyEvent = (
     if (event.message.role === "assistant") {
       next.state.draft = undefined;
       next.draftIndex = undefined;
-      next.draftPhase = undefined;
     }
   } else if ("message" in event && event.message.role === "assistant") {
     next.state.draft = event.message;
     next.draftIndex = messageIndex;
-
-    if (event.type === "message_start") next.draftPhase = undefined;
-    if (event.type === "message_update") {
-      switch (event.assistantMessageEvent.type) {
-        case "thinking_start":
-        case "thinking_delta":
-          next.draftPhase = "thinking";
-          break;
-        case "thinking_end":
-          next.draftPhase = "thinking-complete";
-          break;
-        case "text_start":
-        case "text_delta":
-        case "text_end":
-          next.draftPhase = "text";
-          break;
-        case "toolcall_start":
-        case "toolcall_delta":
-        case "toolcall_end":
-          next.draftPhase = "tool";
-          break;
-      }
-    }
   }
 
   return next;
@@ -99,7 +75,6 @@ export const applyFrame = (snapshot: SessionSnapshot | undefined, frame: Frame) 
       runId: frame.runId,
       requestId: frame.requestId,
       commandError: undefined,
-      draftPhase: undefined,
       state: { ...snapshot.state, isRunning: true, error: undefined, outcome: "idle" as const },
     };
   }

@@ -5,7 +5,7 @@ import type { SessionSnapshot } from "../../../shared/protocol";
 import { SessionApprovals } from "./SessionApprovals";
 import "../../i18n/setup";
 
-test("approval cards filter foreign sessions and show completion, timeout and cancellation outcomes", () => {
+test("approval cards show only pending requests for the current session", () => {
   const request = {
     sessionId: "first",
     requestId: "request",
@@ -21,22 +21,31 @@ test("approval cards filter foreign sessions and show completion, timeout and ca
     state: { pendingApprovals: [request] },
   } as SessionSnapshot;
   expect(renderToStaticMarkup(<SessionApprovals snapshot={snapshot} connected />)).toBe("");
-  const outcomes = {
-    "allowed-once": "Allowed once",
-    rejected: "Rejected",
-    cancelled: "Approval cancelled",
-    "timed-out": "Approval expired",
-    unavailable: "Approval interface unavailable",
-  } as const;
-  for (const [outcome, label] of Object.entries(outcomes)) {
+  const current = { ...snapshot, sessionId: "first" };
+  const pending = renderToStaticMarkup(<SessionApprovals snapshot={current} connected />);
+  expect(pending).toContain("Waiting for approval");
+  expect(pending).toContain(">Allow once</button>");
+  expect(pending).toContain(">Deny</button>");
+  for (const outcome of [
+    "allowed-once",
+    "rejected",
+    "cancelled",
+    "timed-out",
+    "unavailable",
+  ] as const) {
     const next = {
-      ...snapshot,
-      sessionId: "first",
+      ...current,
       state: { ...snapshot.state, pendingApprovals: [] },
-      lastApproval: { request, outcome: outcome as keyof typeof outcomes, resolvedAt: 1 },
+      lastApproval: { request, outcome, resolvedAt: 1 },
     };
-    const html = renderToStaticMarkup(<SessionApprovals snapshot={next} connected />);
-    expect(html).toContain(label);
-    expect(html).not.toContain("<button");
+    expect(renderToStaticMarkup(<SessionApprovals snapshot={next} connected />)).toBe("");
+    expect(
+      renderToStaticMarkup(
+        <SessionApprovals
+          snapshot={{ ...next, state: { ...next.state, pendingApprovals: [request] } }}
+          connected
+        />,
+      ),
+    ).toContain("Waiting for approval");
   }
 });

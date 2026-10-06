@@ -52,6 +52,8 @@ export type { ModelRuntime, ModelRuntimeOptions } from "./core/model-runtime";
 export type { SessionState, SessionEvent, SessionEventListener } from "./core/types/session";
 export type { SessionHeader, SessionInfo } from "./core/types/storage";
 export type { RuntimeContextSnapshot } from "./core/runtime-context";
+export { ContextBudgetExceededError } from "./core/context-budget";
+export type { ContextBudget } from "./core/context-budget";
 export type { SessionTitle, SessionTitleOptions } from "./core/titles/types";
 export { createReadTool, createBashTool, createEditTool, createWriteTool } from "./core/tools";
 export { messageText } from "./core/messages";

@@ -10,12 +10,14 @@ import type { PermissionPreset } from "../permissions/types";
 import type { ApprovalEvent, ApprovalRequest } from "../approvals/types";
 
 import type { PromptTiming } from "../prompt-timing";
+import type { ContextBudget } from "../context-budget";
 
 export type SessionEvent =
   | AgentEvent
   | ApprovalEvent
   | { type: "agent_settled" }
   | { type: "prompt_timing"; timing: PromptTiming }
+  | { type: "context_budget"; budget: ContextBudget }
   | { type: "permission_changed"; permissionPreset: PermissionPreset }
   | { type: "session_title"; title: SessionTitle; error?: string };
 
@@ -33,6 +35,7 @@ export type SessionState = {
   title?: SessionTitle;
   titleError?: string;
   promptTimings?: PromptTiming[];
+  contextBudget?: ContextBudget;
   permissionPreset?: PermissionPreset;
   pendingApprovals?: ApprovalRequest[];
 };

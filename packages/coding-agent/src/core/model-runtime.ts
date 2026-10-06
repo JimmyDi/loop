@@ -14,21 +14,30 @@ import type { StreamFn } from "@loop/agent";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../config";
 import type { ProviderCatalogEntry, ProviderRuntimeConfig } from "./models/provider-config";
 import type { ModelEffort } from "./models/model-effort";
-import { projectRuntimeContexts } from "./runtime-context";
+import { ContextBudgetExceededError } from "./context-budget";
+import type { ContextBudget } from "./context-budget";
+import { assembleModelRequest } from "./model-request";
 import type { RuntimeContextSnapshot } from "./runtime-context";
 
-/** Add host context only to main model requests, leaving Agent history and events untouched. */
+/** Assemble and check every main request, including sequential tool continuations. */
 export const createSessionStreamFn = (
   runtime: ModelRuntime,
   snapshots: readonly RuntimeContextSnapshot[],
   onRequest: () => void,
+  onBudget: (budget: ContextBudget) => void,
 ): StreamFn => {
   const retained = structuredClone([...snapshots]);
   return (model, context, options) => {
     options?.signal?.throwIfAborted();
-    const messages = projectRuntimeContexts(context.messages, retained);
+    const request = assembleModelRequest(model, context, retained);
+    onBudget(structuredClone(request.budget));
+    options?.signal?.throwIfAborted();
+    if (!request.budget.fits) throw new ContextBudgetExceededError(request.budget);
     onRequest();
-    return runtime.streamSimple(model, { ...context, messages }, options);
+    return runtime.streamSimple(model, request.context, {
+      ...options,
+      maxTokens: request.budget.reservedOutputTokens,
+    });
   };
 };
 

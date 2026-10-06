@@ -35,6 +35,8 @@ export const applyEvent = (
     );
   } else if (event.type === "permission_changed") {
     next.state.permissionPreset = event.permissionPreset;
+  } else if (event.type === "context_budget") {
+    next.state.contextBudget = event.budget;
   } else if (event.type === "prompt_timing") {
     next.state.promptTimings = [
       ...(next.state.promptTimings ?? []).filter(
@@ -75,7 +77,13 @@ export const applyFrame = (snapshot: SessionSnapshot | undefined, frame: Frame) 
       runId: frame.runId,
       requestId: frame.requestId,
       commandError: undefined,
-      state: { ...snapshot.state, isRunning: true, error: undefined, outcome: "idle" as const },
+      state: {
+        ...snapshot.state,
+        isRunning: true,
+        error: undefined,
+        contextBudget: undefined,
+        outcome: "idle" as const,
+      },
     };
   }
 

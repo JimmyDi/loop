@@ -1,5 +1,4 @@
-import { browseDirectory } from "../directories/browse";
-import { createNativePicker, directoryCapabilities } from "../directories/native-picker";
+import { createNativePicker } from "../directories/native-picker";
 import { readBody, requiredString } from "../http/input";
 import { HttpError } from "../http/errors";
 import { eventResponse } from "../http/sse";
@@ -65,16 +64,8 @@ export const projectRoutes = (registry: SessionRegistry) => {
       return new Response(null, { status: 204 });
     }
 
-    if (path === "/api/directories/capabilities" && method === "GET") {
-      return Response.json(directoryCapabilities());
-    }
-
     if (path === "/api/directories/pick" && method === "POST") {
       return Response.json({ path: await pick(request.signal) });
-    }
-
-    if (path === "/api/directories" && method === "GET") {
-      return Response.json(await browseDirectory(url.searchParams.get("path") ?? undefined));
     }
   };
 };

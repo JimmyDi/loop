@@ -21,7 +21,7 @@ export const useComposerMenu = (disabled: boolean, pending: boolean) => {
   useEffect(() => {
     if (!page) return;
     const target = panel.current?.querySelector<HTMLElement>(
-      'input, [aria-checked="true"], [role="menuitem"]',
+      'input, [aria-checked="true"], [role="menuitemradio"]:not(:disabled), [role="menuitem"]',
     );
     target?.focus();
     const dismiss = (event: PointerEvent) => {

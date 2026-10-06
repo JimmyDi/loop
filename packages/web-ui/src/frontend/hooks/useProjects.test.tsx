@@ -32,9 +32,9 @@ test("project mutation posts a directory and invalidates the project list", asyn
     );
     const { result } = renderHook(useProjects, { wrapper });
 
-    await act(() => result.current.add.mutateAsync("/example"));
+    await act(() => result.current.add.mutateAsync({ path: "/example", name: "Custom project" }));
     await waitFor(() => expect(result.current.add.isSuccess).toBe(true));
-    expect(bodies).toEqual([{ path: "/example" }]);
+    expect(bodies).toEqual([{ path: "/example", name: "Custom project" }]);
     cleanup();
     client.clear();
   } finally {

@@ -16,7 +16,7 @@ Configure a service in **Settings → Models**, then add a project and create a 
 
 | Feature | Documentation |
 | --- | --- |
-| Add projects, browse directories, and navigate sessions | [Projects and sessions](docs/projects.md) |
+| Create projects, select source folders, and navigate sessions | [Projects and sessions](docs/projects.md) |
 | Compose, send, cancel, and retry after failure | [Chat input](docs/chat.md) |
 | Markdown, Mermaid, thinking, tool results, and copying | [Message rendering](docs/messages.md) |
 | Custom providers and the current session's model | [Model settings](docs/models.md) |

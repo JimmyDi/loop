@@ -55,6 +55,7 @@ test("normal prompt delivery stays quiet and blocks duplicates while awaiting HT
   const client = new QueryClient({
     defaultOptions: { queries: { staleTime: Infinity, retry: false } },
   });
+  client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
   client.setQueryData(["models"], [snapshot.model]);
   const response = Promise.withResolvers<Response>();
   let submitted = 0;
@@ -143,6 +144,7 @@ test("new and switched composers focus drafts and restore focus after sending", 
   const client = new QueryClient({
     defaultOptions: { queries: { staleTime: Infinity, retry: false } },
   });
+  client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
   client.setQueryData(["models"], [snapshot.model]);
   let submitted = 0;
   globalThis.fetch = (async (_url) => {
@@ -226,6 +228,7 @@ test("attachment errors can be closed without losing drafts and reappear on the 
   const client = new QueryClient({
     defaultOptions: { queries: { staleTime: Infinity, retry: false } },
   });
+  client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
   client.setQueryData(["models"], [current.model]);
   const files = [{ name: "example.txt", text: "Keep attachment" }];
   const invalid = new File([new Uint8Array([0])], "binary.txt");
@@ -284,7 +287,7 @@ test("composer owns model controls, blocks send while switching and preserves dr
     model: { ...snapshot.model, efforts: ["default", "low", "high"] },
     effort: "low",
   };
-  client.setQueryData(["projects"], []);
+  client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
   client.setQueryData(["models"], [current.model]);
   let finish!: (response: Response) => void;
   const requests: string[] = [];
@@ -344,6 +347,79 @@ test("composer owns model controls, blocks send while switching and preserves dr
     client.clear();
     useWorkspace.setState(workspace, true);
     await i18n.changeLanguage(language);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("unselected project blocks button, form and Enter submission while retaining the draft", async () => {
+  const { Window } = await import("happy-dom");
+  const { useWorkspace } = await import("../../state/workspace-store");
+  const { useRequests } = await import("../../state/request-store");
+  const window = new Window();
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    fetch: globalThis.fetch,
+  };
+  const workspace = useWorkspace.getState();
+  const requests = useRequests.getState();
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, fireEvent, act, cleanup, waitFor } = await import("@testing-library/react/pure");
+  const client = new QueryClient({
+    defaultOptions: { queries: { staleTime: Infinity, retry: false } },
+  });
+  client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
+  client.setQueryData(["models"], [snapshot.model]);
+  const writes: string[] = [];
+  globalThis.fetch = (async (url) => {
+    writes.push(String(url));
+    return Response.json({ runId: "run" });
+  }) as typeof fetch;
+  try {
+    useWorkspace.setState({
+      drafts: { test: "Keep draft" },
+      images: {},
+      files: {},
+      unselectedProjects: {},
+    });
+    useRequests.setState({ pending: {}, delivery: {} });
+    const current = {
+      ...snapshot,
+      operation: "idle" as const,
+      state: { ...snapshot.state, isRunning: false },
+    };
+    const ui = render(
+      <QueryClientProvider client={client}>
+        <ChatComposer snapshot={current} connected />
+      </QueryClientProvider>,
+    );
+    expect((ui.getByRole("button", { name: "Send message" }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
+    fireEvent.click(ui.getByRole("button", { name: "Remove project Example" }));
+    expect((ui.getByRole("button", { name: "Send message" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+    fireEvent.submit(ui.container.querySelector("form")!);
+    fireEvent.keyDown(ui.getByRole("textbox"), { key: "Enter", keyCode: 13 });
+    expect(writes).toEqual([]);
+    expect(useWorkspace.getState().drafts.test).toBe("Keep draft");
+    fireEvent.click(ui.getByRole("button", { name: "Choose project" }));
+    await act(async () => fireEvent.click(ui.getByRole("menuitemradio", { name: "Example" })));
+    await waitFor(() =>
+      expect((ui.getByRole("button", { name: "Send message" }) as HTMLButtonElement).disabled).toBe(
+        false,
+      ),
+    );
+    expect(writes).toEqual([]);
+    await act(async () => fireEvent.click(ui.getByRole("button", { name: "Send message" })));
+    expect(writes).toEqual(["/api/sessions/test/prompt"]);
+  } finally {
+    cleanup();
+    client.clear();
+    useWorkspace.setState(workspace, true);
+    useRequests.setState(requests, true);
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

@@ -36,13 +36,19 @@ test("project HTTP lifecycle stays local and never accepts a session file path",
     const reader = response.body!.getReader();
     const read = async () => new TextDecoder().decode((await reader.read()).value);
     expect(await read()).toContain("lists.reset");
-    const created = await call("/api/workspaces", "POST", { path: root });
+    const created = await call("/api/workspaces", "POST", {
+      path: root,
+      name: "  Custom project  ",
+    });
     const project = await created.json();
     expect(await read()).toContain(
       JSON.stringify({ type: "projects.changed", workspaceId: project.id }).slice(0, -1),
     );
 
     expect(created.status).toBe(200);
+    expect(project.name).toBe("Custom project");
+    expect((await call("/api/directories")).status).toBe(404);
+    expect((await call("/api/directories/capabilities")).status).toBe(404);
     expect((await (await call("/api/workspaces")).json()).length).toBe(1);
     expect((await call("/api/sessions", "POST", { path: "/private/session.jsonl" })).status).toBe(
       400,

@@ -25,10 +25,12 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  testing.cleanup();
-  client.clear();
+  await testing.act(async () => {
+    testing.cleanup();
+    client.clear();
+    await i18n.changeLanguage(language);
+  });
   Object.assign(globalThis, previous);
-  await i18n.changeLanguage(language);
   await window.happyDOM.close();
 });
 
@@ -66,18 +68,24 @@ test.each(["", "   ", "  Custom project  "])(
     expect(ui.getByRole("dialog", { name: "Create project" })).toBeTruthy();
     expect(ui.queryByText("Browse folders")).toBeNull();
     expect(ui.getByRole("button", { name: "Create project" }).hasAttribute("disabled")).toBe(true);
-    testing.fireEvent.change(input, { target: { value: name } });
-    testing.fireEvent.click(ui.getByRole("button", { name: "Add" }));
+    await testing.act(async () => {
+      testing.fireEvent.change(input, { target: { value: name } });
+      testing.fireEvent.click(ui.getByRole("button", { name: "Add" }));
+    });
     await testing.waitFor(() => expect(ui.getByText("source-folder")).toBeTruthy());
     expect(ui.getByText("This computer")).toBeTruthy();
     expect(writes).toEqual([]);
-    testing.fireEvent.click(ui.getByRole("button", { name: "Remove folder source-folder" }));
+    await testing.act(async () =>
+      testing.fireEvent.click(ui.getByRole("button", { name: "Remove folder source-folder" })),
+    );
     expect(ui.queryByText("source-folder")).toBeNull();
     expect((input as HTMLInputElement).value).toBe(name);
     expect(ui.getByRole("button", { name: "Create project" }).hasAttribute("disabled")).toBe(true);
-    testing.fireEvent.click(ui.getByRole("button", { name: "Add" }));
+    await testing.act(async () => testing.fireEvent.click(ui.getByRole("button", { name: "Add" })));
     await testing.waitFor(() => expect(ui.getByText("source-folder")).toBeTruthy());
-    testing.fireEvent.click(ui.getByRole("button", { name: "Create project" }));
+    await testing.act(async () =>
+      testing.fireEvent.click(ui.getByRole("button", { name: "Create project" })),
+    );
     await testing.waitFor(() => expect(ui.onAdded).toHaveBeenCalledWith(project));
     expect(ui.onClose).toHaveBeenCalledOnce();
     expect(writes).toEqual([
@@ -95,16 +103,16 @@ test("cancelled and failed selection retain the dialog and allow another Add", a
     return Response.json({ path: "/example/folder" });
   }) as typeof fetch;
   const ui = showDialog();
-  testing.fireEvent.click(ui.getByRole("button", { name: "Add" }));
+  await testing.act(async () => testing.fireEvent.click(ui.getByRole("button", { name: "Add" })));
   await testing.waitFor(() =>
     expect(ui.getByRole("button", { name: "Add" }).hasAttribute("disabled")).toBe(false),
   );
   expect(ui.queryByRole("alert")).toBeNull();
   expect(ui.onAdded).not.toHaveBeenCalled();
-  testing.fireEvent.click(ui.getByRole("button", { name: "Add" }));
+  await testing.act(async () => testing.fireEvent.click(ui.getByRole("button", { name: "Add" })));
   await testing.waitFor(() => expect(ui.getByRole("alert")).toBeTruthy());
   expect(ui.queryByText("Browse folders")).toBeNull();
-  testing.fireEvent.click(ui.getByRole("button", { name: "Add" }));
+  await testing.act(async () => testing.fireEvent.click(ui.getByRole("button", { name: "Add" })));
   await testing.waitFor(() => expect(ui.getByText("folder")).toBeTruthy());
   expect(ui.queryByRole("alert")).toBeNull();
   expect(attempts).toBe(3);
@@ -127,28 +135,36 @@ test("failed creation preserves inputs for retry and pending creation blocks cha
   }) as typeof fetch;
   const ui = showDialog();
   const input = ui.getByRole("textbox", { name: "Project name" });
-  testing.fireEvent.change(input, { target: { value: "Custom" } });
-  testing.fireEvent.click(ui.getByRole("button", { name: "Add" }));
+  await testing.act(async () => {
+    testing.fireEvent.change(input, { target: { value: "Custom" } });
+    testing.fireEvent.click(ui.getByRole("button", { name: "Add" }));
+  });
   await testing.waitFor(() => expect(ui.getByText("folder")).toBeTruthy());
-  testing.fireEvent.click(ui.getByRole("button", { name: "Create project" }));
+  await testing.act(async () =>
+    testing.fireEvent.click(ui.getByRole("button", { name: "Create project" })),
+  );
   await testing.waitFor(() => expect(input.hasAttribute("disabled")).toBe(true));
   for (const name of ["Close", "Cancel", "Remove folder folder", "Saving…"]) {
     expect(ui.getByRole("button", { name }).hasAttribute("disabled")).toBe(true);
   }
-  finish(Response.json({ code: "directory_unreadable" }, { status: 400 }));
+  await testing.act(async () => {
+    finish(Response.json({ code: "directory_unreadable" }, { status: 400 }));
+  });
   await testing.waitFor(() => expect(ui.getByRole("alert")).toBeTruthy());
   expect((input as HTMLInputElement).value).toBe("Custom");
   expect(ui.getByText("folder")).toBeTruthy();
   expect(ui.onClose).not.toHaveBeenCalled();
-  testing.fireEvent.click(ui.getByRole("button", { name: "Create project" }));
+  await testing.act(async () =>
+    testing.fireEvent.click(ui.getByRole("button", { name: "Create project" })),
+  );
   await testing.waitFor(() => expect(ui.onAdded).toHaveBeenCalledOnce());
   expect(attempts).toBe(2);
 });
 
-test.each(["Cancel", "Close"])("%s closes without registering a project", (button) => {
+test.each(["Cancel", "Close"])("%s closes without registering a project", async (button) => {
   globalThis.fetch = vi.fn() as typeof fetch;
   const ui = showDialog();
-  testing.fireEvent.click(ui.getByRole("button", { name: button }));
+  await testing.act(async () => testing.fireEvent.click(ui.getByRole("button", { name: button })));
   expect(ui.onClose).toHaveBeenCalledOnce();
   expect(ui.onAdded).not.toHaveBeenCalled();
   expect(globalThis.fetch).not.toHaveBeenCalled();

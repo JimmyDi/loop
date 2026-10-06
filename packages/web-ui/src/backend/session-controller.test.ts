@@ -90,7 +90,7 @@ test("approval events keep snapshots current without requiring a prompt or enabl
   }
 });
 
-test("large files bypass local context estimates and accepted requests still deduplicate", async () => {
+test("over-budget files reject before dispatch, retain full history and deduplicate accepted requests", async () => {
   let calls = 0;
   const session = new AgentSession({
     model,
@@ -106,12 +106,39 @@ test("large files bypass local context estimates and accepted requests still ded
   });
   const controller = new SessionController(session, "project");
   const files = [{ name: "large.ts", text: "const value = 1;\n".repeat(12000) }];
+  const frames: Frame[] = [];
+  const disconnect = controller.events.connect((frame) => frames.push(frame));
   try {
     const runId = controller.prompt("retry", "Review", [], files);
     await waitFor(() => !controller.busy);
-    expect(calls).toBe(1);
+    expect(calls).toBe(0);
+    expect(controller.snapshot.operation).toBe("idle");
+    expect(controller.snapshot.state.outcome).toBe("error");
+    expect(controller.snapshot.state.error).toContain("Context budget exceeded");
+    expect(controller.snapshot.state.contextBudget?.fits).toBe(false);
+    expect(controller.snapshot.state.messages).toHaveLength(1);
+    expect(controller.snapshot.state.messages[0]?.content).toEqual([
+      { type: "text", text: "Review" },
+      { type: "text", text: fileContent(files[0]!) },
+    ]);
+    expect(session.sessionManager.messages).toEqual(controller.snapshot.state.messages);
+    expect(frames).toContainEqual(
+      expect.objectContaining({
+        type: "loop.event",
+        event: expect.objectContaining({
+          type: "context_budget",
+          budget: expect.objectContaining({ fits: false }),
+        }),
+      }),
+    );
+    expect(
+      frames.filter((frame) => frame.type === "loop.event" && frame.event.type === "agent_settled"),
+    ).toHaveLength(1);
     expect(controller.prompt("retry", "Review", [], files)).toBe(runId);
+    expect(calls).toBe(0);
+    expect(session.state.messages).toHaveLength(1);
   } finally {
+    disconnect();
     await controller.close();
   }
 });
@@ -130,7 +157,8 @@ test("text and image attachments larger than the former request cap arrive witho
   ];
   let received: unknown;
   const session = new AgentSession({
-    model: { ...model, input: ["text", "image"], contextWindow: 1000000 },
+    // Keep the transport/no-truncation scenario within the configured model budget.
+    model: { ...model, input: ["text", "image"], contextWindow: 4000000 },
     systemPrompt: "Test",
     tools: [],
     sessionManager: SessionManager.inMemory(),
@@ -161,6 +189,7 @@ test("text and image attachments larger than the former request cap arrive witho
       ...files.map((file) => ({ type: "text", text: fileContent(file) })),
     ]);
     expect(session.state.outcome).toBe("success");
+    expect(session.state.contextBudget?.fits).toBe(true);
   } finally {
     await controller.close();
   }
@@ -172,7 +201,7 @@ test("text files reach a text-only model, deduplicate by name and content, and s
   let calls = 0;
   let received: unknown;
   const session = new AgentSession({
-    model,
+    model: { ...model, contextWindow: 1000000 },
     sessionManager: manager,
     systemPrompt: "Test",
     tools: [],
@@ -225,6 +254,7 @@ test("text files reach a text-only model, deduplicate by name and content, and s
     await waitFor(() => !controller.busy);
     expect(calls).toBe(1);
     expect(session.state.outcome).toBe("success");
+    expect(session.state.contextBudget?.fits).toBe(true);
     expect(received).toEqual(session.state.messages[0]?.content);
     const record = (await SessionManager.list(root, root)).find(
       (entry) => entry.id === session.sessionId,

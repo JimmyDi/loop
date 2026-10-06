@@ -13,6 +13,8 @@ import { SettingsManager } from "./settings-manager";
 import { AgentSession } from "./agent-session";
 import { AgentSessionRuntime } from "./agent-session-runtime";
 import type { ApprovalRequest, ApprovalResult } from "./approvals/types";
+import { ContextBudgetExceededError } from "./context-budget";
+import type { ContextBudget } from "./context-budget";
 
 test("approval APIs expose pending snapshots, isolate listeners and preserve managed authority", async () => {
   const options = {
@@ -500,7 +502,7 @@ test("failed and cancelled prompts retain runtime context after model use, exclu
   }
 });
 
-test("large prompts reach the model without local context rejection and provider failures are retained", async () => {
+test("oversized prompts reject before dispatch and preserve full input without a host snapshot", async () => {
   let calls = 0;
   const content = "large".repeat(10000);
   const { session } = await setup(
@@ -511,12 +513,106 @@ test("large prompts reach the model without local context rejection and provider
     }),
   );
   try {
-    await expect(session.prompt(content)).rejects.toThrow("Provider context limit");
-    expect(calls).toBe(1);
-    expect(session.state.messages).toHaveLength(2);
+    await expect(session.prompt(content)).rejects.toBeInstanceOf(ContextBudgetExceededError);
+    expect(calls).toBe(0);
+    expect(session.state.messages).toHaveLength(1);
     expect(session.state.messages[0]?.content).toBe(content);
+    expect(session.sessionManager.getRuntimeContexts()).toEqual([]);
+    expect(session.state.contextBudget?.fits).toBe(false);
+    expect(session.state.error).toContain("Context budget exceeded");
     expect(session.state.outcome).toBe("error");
     expect(session.state.isRunning).toBe(false);
+  } finally {
+    session.dispose();
+  }
+});
+
+test("tool continuations check the complete request and recover with a larger model without replay", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "loop-budget-"));
+  const manager = await SessionManager.create(dir, join(dir, "sessions"));
+  const resultText = "large tool output ".repeat(2000);
+  const budgets: ContextBudget[] = [];
+  const contexts: Context[] = [];
+  let executions = 0;
+  const toolResponse = answer(
+    [
+      { type: "text", text: "Read the file." },
+      { type: "toolCall", id: "read-once", name: "read", arguments: {} },
+    ],
+    "toolUse",
+  );
+  toolResponse.usage = {
+    input: 120,
+    output: 40,
+    cacheRead: 80,
+    cacheWrite: 20,
+    totalTokens: 260,
+    reasoning: 10,
+    cost: { input: 1, output: 2, cacheRead: 3, cacheWrite: 4, total: 10 },
+  };
+  const session = new AgentSession({
+    model,
+    modelRuntime: runtime((_model, context, options) => {
+      contexts.push(structuredClone(context));
+      expect(options?.maxTokens).toBe(model.maxTokens);
+      return stream(contexts.length === 1 ? toolResponse : answer());
+    }),
+    sessionManager: manager,
+    systemPrompt: "Test",
+    tools: [
+      {
+        name: "read",
+        description: "Read",
+        parameters: { type: "object", properties: {} },
+        execute: async () => {
+          executions++;
+          return [{ type: "text", text: resultText }];
+        },
+      },
+    ],
+  });
+  session.subscribe((event) => {
+    if (event.type === "context_budget") budgets.push(event.budget);
+  });
+  try {
+    await expect(session.prompt("Read it")).rejects.toBeInstanceOf(ContextBudgetExceededError);
+    expect(contexts).toHaveLength(1);
+    expect(executions).toBe(1);
+    expect(budgets.map((budget) => budget.fits)).toEqual([true, false]);
+    expect(budgets[1]!.estimatedInputTokens).toBeGreaterThan(budgets[0]!.estimatedInputTokens);
+    expect(session.state.messages).toHaveLength(3);
+    const reopened = await SessionManager.open(manager.sessionFile!);
+    expect(reopened.messages).toEqual(session.state.messages);
+    expect(reopened.messages[1]).toEqual(toolResponse);
+    expect(reopened.messages[2]?.content).toEqual([{ type: "text", text: resultText }]);
+    await session.setModel({ ...model, contextWindow: 32000 });
+    expect(session.state.contextBudget).toBeUndefined();
+    await session.prompt("Continue from the saved result");
+    expect(contexts).toHaveLength(2);
+    expect(contexts[1]?.messages[2]?.content).toEqual([{ type: "text", text: resultText }]);
+    expect(executions).toBe(1);
+    expect(session.state.contextBudget?.fits).toBe(true);
+    const stateBudget = session.state.contextBudget!;
+    stateBudget.estimatedInputTokens = 0;
+    expect(session.state.contextBudget?.estimatedInputTokens).toBeGreaterThan(0);
+  } finally {
+    session.dispose();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("provider failures below the local estimate retain native actual usage and history", async () => {
+  const response = {
+    ...answer(undefined, "error"),
+    errorMessage: "Provider context limit",
+    usage: { ...answer().usage, input: 500, output: 20, cacheRead: 50, totalTokens: 570 },
+  };
+  const { session } = await setup(runtime(() => stream(response)));
+  try {
+    await expect(session.prompt("Short prompt")).rejects.toThrow("Provider context limit");
+    expect(session.state.contextBudget?.fits).toBe(true);
+    expect(session.state.messages[1]).toEqual(response);
+    expect(session.sessionManager.messages[1]).toEqual(response);
   } finally {
     session.dispose();
   }

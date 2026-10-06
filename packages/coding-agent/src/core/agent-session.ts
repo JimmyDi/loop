@@ -27,6 +27,7 @@ import type {
 } from "./types/session";
 
 import type { PromptTiming } from "./prompt-timing";
+import type { ContextBudget } from "./context-budget";
 
 export class AgentSession {
   private listeners = new Set<SessionEventListener>();
@@ -47,6 +48,7 @@ export class AgentSession {
   private readonly toolApprovals: ToolApprovals;
   private acceptingRunApprovals = false;
   private promptTiming?: PromptTiming;
+  private contextBudget?: ContextBudget;
 
   constructor(private readonly options: SessionOptions) {
     this.toolApprovals = new ToolApprovals((input, options) =>
@@ -160,6 +162,7 @@ export class AgentSession {
       outcome: this.outcome,
       error: this.failure,
       listenerErrors: [...this.listenerErrors],
+      contextBudget: this.contextBudget ? structuredClone(this.contextBudget) : undefined,
       pendingApprovals: this.approvals.pending,
       ...(this.permissionPreset ? { permissionPreset: this.permissionPreset } : {}),
       title: this.titles.title,
@@ -200,6 +203,7 @@ export class AgentSession {
 
     this.busy = true;
     this.failure = undefined;
+    this.contextBudget = undefined;
     this.outcome = "idle";
     this.controller = new AbortController();
     this.acceptingRunApprovals = true;
@@ -294,6 +298,7 @@ export class AgentSession {
           effort,
         });
         this.selected = selected;
+        this.contextBudget = undefined;
         this.selectedEffort = effort;
       } finally {
         this.busy = false;
@@ -411,9 +416,17 @@ export class AgentSession {
         tools: this.options.permissionPolicy
           ? this.toolApprovals.bind(this.options.tools)
           : this.options.tools,
-        streamFn: createSessionStreamFn(this.options.modelRuntime, preparedContexts, () => {
-          runtimeContexts = preparedContexts;
-        }),
+        streamFn: createSessionStreamFn(
+          this.options.modelRuntime,
+          preparedContexts,
+          () => {
+            runtimeContexts = preparedContexts;
+          },
+          (budget) => {
+            this.contextBudget = budget;
+            this.emit({ type: "context_budget", budget });
+          },
+        ),
         streamOptions: {
           reasoning:
             this.selectedEffort === "default" || this.selectedEffort === "off"

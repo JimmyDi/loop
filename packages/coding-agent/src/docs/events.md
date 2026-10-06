@@ -1,6 +1,6 @@
 # Session Events
 
-Coding sessions forward the five [Agent events](../../../agent/src/docs/events.md) and add prompt_timing, agent_settled, session_title, permission_changed, approval_requested and approval_resolved. Consumers send commands through instance methods and receive results through subscriptions.
+Coding sessions forward the five [Agent events](../../../agent/src/docs/events.md) and add context_budget, prompt_timing, agent_settled, session_title, permission_changed, approval_requested and approval_resolved. Consumers send commands through instance methods and receive results through subscriptions.
 
 ## Subscribe
 
@@ -36,6 +36,7 @@ See the full [SDK sample](../sdk.sample.ts) for construction and cleanup. It onl
 | `tool_execution_start` | Show the tool name/call ID and pending execution. |
 | `tool_execution_end` | Show the matching result and `isError`. |
 | prompt_timing | Carries timing: PromptTiming at prompt start and generation end; upsert by userMessageIndex. Completion precedes saving and does not imply success or a durable save. |
+| `context_budget` | Carries the complete estimated input and response reserve before every main request, including rejected requests and tool continuations. See [context budget](context-budget.md). |
 | `agent_settled` | An accepted prompt's execution and save attempt have finished. Inspect outcome and pending-save state. |
 | `session_title` | Title display changed or generation failed; carries title and optional error. May arrive after a run settles. |
 | permission_changed | Managed permission selection saved; carries permissionPreset. No prompt run ID is needed. |

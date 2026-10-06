@@ -10,7 +10,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
-- coding-agent, CLI and Web: check the complete context budget before every main model request, including tool continuations, reserve response capacity, and reject overflow with full history preserved. Expose ContextBudgetExceededError, context_budget events and state.contextBudget; retain native provider usage in saved assistant messages.
+- coding-agent, CLI and Web: check the complete context budget before every main model request, including tool continuations and text attachments, reserve response capacity, and reject overflow with full history preserved. Expose ContextBudgetExceededError, context_budget events and state.contextBudget; retain native provider usage in saved assistant messages. Web reports accepted over-budget attachment runs as settled errors and keeps request deduplication intact.
 
 - Web UI: show three dots waving in sequence in the Jump to latest button during connected generation. Show the down arrow on hover or keyboard focus and restore the animation when interaction ends. Restore the down arrow after generation or disconnection, preserve click-to-jump behavior, and use static dots for reduced motion.
 

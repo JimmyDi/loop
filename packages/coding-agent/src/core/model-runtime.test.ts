@@ -10,7 +10,69 @@ import {
 } from "@earendil-works/pi-ai";
 import type { AssistantMessage, Model } from "@earendil-works/pi-ai";
 
-import { createModelRuntime, createProviderRuntime, getModelEfforts } from "./model-runtime";
+import {
+  createModelRuntime,
+  createProviderRuntime,
+  createSessionStreamFn,
+  getModelEfforts,
+} from "./model-runtime";
+import type { ModelRuntime } from "./model-runtime";
+import { ContextBudgetExceededError } from "./context-budget";
+import type { ContextBudget } from "./context-budget";
+
+test("session dispatch emits budgets before the model, blocks overflow and respects cancellation", async () => {
+  const model: Model<"openai-completions"> = {
+    id: "test",
+    provider: "test",
+    api: "openai-completions",
+    name: "Test",
+    baseUrl: "https://example.invalid",
+    input: ["text"],
+    reasoning: false,
+    contextWindow: 4096,
+    maxTokens: 512,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+  };
+  const budgets: ContextBudget[] = [];
+  const order: string[] = [];
+  const nativeStream = createAssistantMessageEventStream();
+  const runtime: ModelRuntime = {
+    getModel: () => model,
+    getModels: () => [model],
+    checkModel: async () => {},
+    streamSimple: (_model, context, options) => {
+      order.push("model");
+      expect(options?.maxTokens).toBe(512);
+      expect(context.messages[1]?.content).toBe("Host context");
+      return nativeStream;
+    },
+  };
+  const dispatch = createSessionStreamFn(
+    runtime,
+    [{ userTurn: 0, content: "Host context", timestamp: 2 }],
+    () => order.push("used"),
+    (budget) => {
+      budgets.push(budget);
+      order.push("budget");
+    },
+  );
+  const context = { messages: [{ role: "user" as const, content: "hello", timestamp: 1 }] };
+  expect(await dispatch(model, context)).toBe(nativeStream);
+  expect(order).toEqual(["budget", "used", "model"]);
+  expect(budgets[0]?.reservedOutputTokens).toBe(512);
+  order.length = 0;
+  expect(() =>
+    dispatch(model, { messages: [{ ...context.messages[0]!, content: "x".repeat(20000) }] }),
+  ).toThrow(ContextBudgetExceededError);
+  expect(order).toEqual(["budget"]);
+  expect(budgets[1]?.fits).toBe(false);
+  order.length = 0;
+  const controller = new AbortController();
+  controller.abort(new Error("Cancelled"));
+  expect(() => dispatch(model, context, { signal: controller.signal })).toThrow("Cancelled");
+  expect(order).toEqual([]);
+  expect(context.messages).toHaveLength(1);
+});
 
 test("host model registry handles auth and requests without environment credentials", async () => {
   const model: Model<"openai-completions"> = {

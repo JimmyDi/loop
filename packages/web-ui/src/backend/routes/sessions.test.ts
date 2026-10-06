@@ -159,7 +159,8 @@ test("HTTP unread headers survive restart and reject stale receipts across brows
     baseUrl: "https://example.invalid",
     reasoning: false,
     input: ["text" as const],
-    contextWindow: 4096,
+    // Account for project instructions discovered by the real SDK bridge.
+    contextWindow: 128000,
     maxTokens: 128,
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
   };

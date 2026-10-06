@@ -45,6 +45,33 @@ test("cumulative drafts replace rather than append and full snapshots replace hi
   });
   expect(permitted.state.permissionPreset).toBe("read-only");
   expect(initial.state.permissionPreset).toBeUndefined();
+  const budget = {
+    provider: "test",
+    model: "test",
+    contextWindow: 4096,
+    systemTokens: 100,
+    messageTokens: 200,
+    toolTokens: 50,
+    estimatedInputTokens: 350,
+    reservedOutputTokens: 512,
+    safetyTokens: 205,
+    inputLimit: 3379,
+    remainingInputTokens: 3029,
+    fits: true,
+  };
+  const measured = applyEvent(initial, { type: "context_budget", budget });
+  expect(measured.state.contextBudget).toEqual(budget);
+  expect(initial.state.contextBudget).toBeUndefined();
+  expect(
+    applyFrame(measured, {
+      type: "run.accepted",
+      streamId: "stream",
+      seq: 1,
+      sessionId: "session",
+      runId: "next-run",
+      requestId: "next-request",
+    })?.state.contextBudget,
+  ).toBeUndefined();
   const request = {
     sessionId: "session",
     requestId: "approval",

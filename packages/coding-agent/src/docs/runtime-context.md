@@ -23,7 +23,7 @@ try {
 
 ## Request assembly
 
-The coding-agent layer renders permission guidance before each run. Its injected stream function projects retained snapshots into model-request messages after the associated user message. The snapshots use the user role and identify themselves as host-provided context. They are separate messages, not edits to user text or attachments. Agent continues to own only ordinary conversation history and the sequential tool loop.
+The coding-agent layer renders permission guidance before each run. Its injected stream function assembles each main request, projects retained snapshots after the associated user message, and then checks the complete [context budget](context-budget.md) before dispatch. The snapshots use the user role and identify themselves as host-provided context. They are separate messages, not edits to user text or attachments. Agent continues to own only ordinary conversation history and the sequential tool loop.
 
 For example, two runs under read-only followed by a workspace-write run produce this request order:
 
@@ -47,7 +47,7 @@ An unchanged policy adds no new snapshot. Tool continuations reuse the same snap
 
 `SessionManager.getRuntimeContexts()` returns a cloned snapshot, including pending save state. `commit(messages, runtimeContexts?, promptTimings?)` accepts complete snapshots; omitted runtime context preserves the existing value. Invalid ordering, missing user turns, empty text or invalid timestamps reject. Hosts that replace or truncate history must supply matching context metadata.
 
-Only a run that reaches the model dispatch records a new snapshot. Preflight failures and cancellation before dispatch record none. Model failures and cancellation after dispatch retain the context supplied to that attempt. Context and conversation history are committed together; a failed save retains both for `flush()` without replaying tools or calling the model again. Process termination before that commit has the same recovery limits as ordinary history.
+Only a run that reaches the model dispatch records a new snapshot. Preflight failures, context-budget rejection and cancellation before dispatch record none. Model failures and cancellation after dispatch retain the context supplied to that attempt. Context and conversation history are committed together; a failed save retains both for `flush()` without replaying tools or calling the model again. Process termination before that commit has the same recovery limits as ordinary history.
 
 Restoring a session reuses the exact stored snapshot text, timestamp and position. Sessions without snapshots add current context at the next request. Permission switches that occur before the next request collapse to the final effective selection. Sessions without a managed policy add no context; if restored history contains an earlier policy snapshot, one clearing snapshot marks it obsolete.
 

@@ -74,7 +74,7 @@ An explicit cwd must match the manager's canonical cwd. The factory resolves ser
 | `respondToApproval(response): boolean` | Submit an allowed-once or rejected decision for matching session/request IDs. |
 | `dispose(): void` | Cancel idle approval requests, remove listeners and forbid further use; rejects while busy or a save is pending. |
 
-Read `model`, `effort`, `sessionId`, `sessionFile`, `sessionManager`, `isRunning`, and `state`. State contains completed `messages`, optional `draft`, `isRunning`, `hasPendingSave`, `outcome`, `error`, and `listenerErrors`. Message/model snapshots can be inspected without mutating the underlying session.
+Read `model`, `effort`, `sessionId`, `sessionFile`, `sessionManager`, `isRunning`, and `state`. State contains completed `messages`, optional `draft`, `isRunning`, `hasPendingSave`, `outcome`, `error`, and `listenerErrors`. Message/model snapshots can be inspected without mutating the underlying session. The optional `state.contextBudget` and `context_budget` event expose the latest full-request estimate. `prompt()` can reject with exported `ContextBudgetExceededError` before model dispatch; complete history is retained. Actual provider usage remains in completed assistant messages. See [context budget](context-budget.md) for recovery and estimation limits.
 
 Managed sessions additionally expose permissionPreset directly and in state. Direct AgentSession construction with custom host tools has no managed preset and rejects permission changes. The managed factory's version-2 session metadata requires a current Loop reader.
 

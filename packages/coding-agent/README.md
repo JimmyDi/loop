@@ -34,6 +34,7 @@ The CLI is interactive by default. The SDK sample performs one request workflow 
 | Request, answer and cancel host approvals | [Approvals](src/docs/approvals.md) |
 | Discover project instructions | [Context files](src/docs/context-files.md) |
 | Keep permission context separate from the system prompt | [Runtime context](src/docs/runtime-context.md) |
+| Check complete model input and reserve response capacity | [Context budget](src/docs/context-budget.md) |
 
 Each page covers one feature, with usage first, API or configuration reference, current behavior and limits, and links to source/tests. The README is the entry point, keeping feature details in `docs/`.
 

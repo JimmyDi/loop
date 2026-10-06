@@ -180,7 +180,6 @@ export class SessionController {
       effort: this.session.effort,
       operation: "idle",
       draftIndex: undefined,
-      draftPhase: undefined,
       tools: projectTools(this.session.state.messages),
     };
     this.events.publish({ type: "session.state", snapshot: this.snapshot });

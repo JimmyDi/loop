@@ -12,7 +12,7 @@ const call = (id: string): Extract<Content[number], { type: "toolCall" }> => ({
   arguments: {},
 });
 
-test("consecutive calls share a stable group, with text and thinking preserved in order", () => {
+test("visible text separates stable tool batches while hidden thinking does not", () => {
   const content: Content = [
     { type: "text", text: "Read the configuration." },
     { type: "thinking", thinking: "Model thinking" },
@@ -26,25 +26,16 @@ test("consecutive calls share a stable group, with text and thinking preserved i
   const original = structuredClone(content);
   const blocks = groupAssistantContent(content);
 
-  expect(blocks.map((block) => block.type)).toEqual([
-    "text",
-    "thinking",
-    "tools",
-    "text",
-    "tools",
-    "thinking",
-    "tools",
-  ]);
+  expect(blocks.map((block) => block.type)).toEqual(["text", "tools", "text", "tools"]);
   expect(blocks.filter((block) => block.type === "tools")).toMatchObject([
-    { key: "tools:first", hasPreamble: true, calls: [{ id: "first" }, { id: "second" }] },
-    { key: "tools:third", hasPreamble: true, calls: [{ id: "third" }] },
-    { key: "tools:fourth", hasPreamble: false, calls: [{ id: "fourth" }] },
+    { key: "tools:first", calls: [{ id: "first" }, { id: "second" }] },
+    { key: "tools:third", calls: [{ id: "third" }, { id: "fourth" }] },
   ]);
   expect(content).toEqual(original);
-  expect(groupAssistantContent(content.slice(0, 3))[2]?.key).toBe(blocks[2]?.key);
+  expect(groupAssistantContent(content.slice(0, 3))[1]?.key).toBe(blocks[1]?.key);
 });
 
-test("thinking, empty text and previous messages do not replace a missing preamble", () => {
+test("thinking is omitted while whitespace text preserves content positions", () => {
   const blocks = groupAssistantContent([
     { type: "thinking", thinking: "Model thinking" },
     call("first"),
@@ -54,10 +45,11 @@ test("thinking, empty text and previous messages do not replace a missing preamb
   ]);
 
   expect(blocks.filter((block) => block.type === "tools")).toMatchObject([
-    { hasPreamble: false, calls: [{ id: "first" }] },
-    { hasPreamble: false, calls: [{ id: "second" }] },
+    { calls: [{ id: "first" }] },
+    { calls: [{ id: "second" }] },
   ]);
-  expect(groupAssistantContent([call("third")])[0]).toMatchObject({ hasPreamble: false });
+  expect(groupAssistantContent([call("third")])[0]).toMatchObject({ calls: [{ id: "third" }] });
+  expect(groupAssistantContent([{ type: "thinking", thinking: "Returned thinking" }])).toEqual([]);
   expect(groupAssistantContent([{ type: "text", text: "Answer" }])).toEqual([
     { type: "text", key: "text:0", text: "Answer" },
   ]);

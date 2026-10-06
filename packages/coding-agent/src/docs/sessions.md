@@ -38,17 +38,17 @@ The manager commits one full snapshot at the end of each prompt, including model
 
 New completed output also sets header unread to true; runs without output and repeated saves preserve it. Read session.state.unread or manager.unread for the current flag, and use manager.markRead(messageCount) after viewing completed output. It preserves timestamps and rejects pending saves; hosts can publish their own UI notifications after success. See [session format](session-format.md) for stale-receipt handling.
 
-[Runtime context](runtime-context.md) is saved as separate header metadata in the same commit. It is projected into model requests while leaving conversation messages, title inputs, counts and timing indices unchanged. Permission switches do not rewrite the system prompt or earlier runtime snapshots.
+[Runtime context](runtime-context.md) is saved as separate header metadata in the same commit. It is projected into model requests while leaving conversation messages, title inputs, counts and history positions unchanged. Permission switches do not rewrite the system prompt or earlier runtime snapshots.
 
 [Session titles](session-titles.md) are independent header metadata and may finish after a prompt. History/model/title writes serialize within one manager. Call `waitForTitle()` before disposal to retain generated titles, or `abort()` to cancel and drain both the main run and title work. Runtime replacement cancels and drains old title work before opening another writable session.
 
 [Approval requests](approvals.md) are session-owned, in-memory interaction state. Pending requests block new prompts, permission/model/title changes and session replacement until settled or cancelled. Abort cancels them, and run finalization drains outstanding requests before saving. Idle disposal cancels them before clearing observers. No approval request, decision or handler is restored from session storage; rebind the handler when replacing a session.
 
-## Execution timing
+## Prompt duration
 
-`session.state.runTimings` exposes per-prompt `SessionRunTiming` metadata, keyed by the zero-based position of the user message. `startedAt` records prompt acceptance before model preflight; `finishedAt` is added when model/tool execution ends, including failure or cancellation. Duration includes preflight and the complete model/tool loop, but excludes history saving, save retries and asynchronous title work. A rejected preflight that never appends a user message creates no historical timing.
+Each accepted prompt records wall time in optional state.promptTimings, using PromptTiming with the zero-based userMessageIndex, startedAt and optional finishedAt in Unix milliseconds. Measurement begins at acceptance and ends after model/tool generation, including failures, cancellation and approval waits. Saving, retries and background title generation are excluded. Preflight failures without a new user message leave no stored timing. This metadata never enters model requests.
 
-The session emits [run_timing events](events.md) at execution start and finish. Completed timings are saved with history and restored when reopening the session. An in-progress timing has no `finishedAt`; old sessions can lack timing metadata entirely. `SessionManager.getRunTimings()` includes pending timings after a save failure, so flushing retains the original duration. Timings do not modify conversation messages or enter model context.
+The prompt_timing event publishes start and finish snapshots. SessionManager.getPromptTimings() returns cloned completed timings, including pending state after a save failure. Reopening or flushing preserves the original duration. Earlier sessions without timings remain valid; no elapsed time is inferred from message timestamps.
 
 ## Save failure
 

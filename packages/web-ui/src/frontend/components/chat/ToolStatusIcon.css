@@ -1,4 +1,4 @@
-.activity-status-icon {
+.tool-status-icon {
   flex: 0 0 17px;
   width: 17px;
   height: 17px;
@@ -9,23 +9,23 @@
   stroke-linejoin: round;
   color: var(--ink-muted);
 }
-.activity-status-icon[data-status="success"] {
+.tool-status-icon[data-status="success"] {
   color: light-dark(#09865b, #4ccea0);
 }
-.activity-status-icon[data-status="error"] {
+.tool-status-icon[data-status="error"] {
   color: var(--error-ink);
 }
-.activity-status-icon[data-status="running"] {
+.tool-status-icon[data-status="running"] {
   color: var(--accent);
-  animation: activity-spin 1s linear infinite;
+  animation: tool-status-spin 1s linear infinite;
 }
-@keyframes activity-spin {
+@keyframes tool-status-spin {
   to {
     transform: rotate(360deg);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .activity-status-icon[data-status="running"] {
+  .tool-status-icon[data-status="running"] {
     animation: none;
   }
 }

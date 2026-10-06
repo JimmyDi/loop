@@ -435,7 +435,7 @@ test("an SSE burst preserves each tool's running indication while results and er
         });
       }
     });
-    const icon = (index: number) => cards[index]!.querySelector(".activity-status-icon");
+    const icon = (index: number) => cards[index]!.querySelector(".tool-status-icon");
     for (const index of [0, 1]) {
       expect(cards[index]!.dataset.status).toBe("success");
       expect(icon(index)?.getAttribute("data-status")).toBe("running");
@@ -463,7 +463,7 @@ test("an SSE burst preserves each tool's running indication while results and er
       }),
     );
     expect(
-      history.container.querySelector('.tool-card .activity-status-icon[data-status="running"]'),
+      history.container.querySelector('.tool-card .tool-status-icon[data-status="running"]'),
     ).toBeNull();
     expect(history.container.querySelectorAll('.tool-card[data-status="success"]')).toHaveLength(2);
   } finally {

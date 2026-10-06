@@ -8,7 +8,6 @@ import type { Api, AssistantMessage, Context, Model } from "@earendil-works/pi-a
 
 import { createAgentSession } from "./sdk";
 import type { ModelRuntime } from "./model-runtime";
-import type { SessionRunTiming } from "./run-timing";
 import { SessionManager } from "./session-manager";
 import { SettingsManager } from "./settings-manager";
 import { AgentSession } from "./agent-session";
@@ -458,51 +457,7 @@ async function setup(
   });
 }
 
-test("prompt timing measures execution, persists across restore and excludes later metadata work", async () => {
-  const dir = await mkdtemp(join(import.meta.dirname, ".timing-test-"));
-  const manager = await SessionManager.create(dir, dir);
-  let now = 1000;
-  const clock = vi.spyOn(Date, "now").mockImplementation(() => now);
-  const { session } = await setup(
-    runtime(() => {
-      now += 28000;
-      return stream();
-    }),
-    dir,
-    manager,
-  );
-  const timings: SessionRunTiming[] = [];
-  session.subscribe((event) => {
-    if (event.type === "run_timing") timings.push(event.timing);
-  });
-  try {
-    await session.prompt("First request");
-    expect(timings).toEqual([
-      { userMessageIndex: 0, startedAt: 1000 },
-      { userMessageIndex: 0, startedAt: 1000, finishedAt: 29000 },
-    ]);
-    now = 90000;
-    await session.renameTitle("Renamed");
-    await session.flush();
-    expect(manager.getRunTimings()).toEqual([timings[1]]);
-    await session.prompt("Second request");
-    const restored = await SessionManager.open(manager.sessionFile!);
-    expect(restored.getRunTimings()).toEqual([
-      { userMessageIndex: 0, startedAt: 1000, finishedAt: 29000 },
-      { userMessageIndex: 2, startedAt: 90000, finishedAt: 118000 },
-    ]);
-    expect(session.state.runTimings).toEqual(restored.getRunTimings());
-    expect(JSON.stringify(restored.messages)).not.toContain("finishedAt");
-  } finally {
-    clock.mockRestore();
-    session.dispose();
-    await rm(dir, { recursive: true, force: true });
-  }
-});
-
-test("failed and cancelled prompts stop timing and rejected preflight creates no historical timing", async () => {
-  let now = 1000;
-  const clock = vi.spyOn(Date, "now").mockImplementation(() => now);
+test("failed and cancelled prompts retain runtime context after model use, excluding preflight failures", async () => {
   let rejectPreflight = false;
   let started = () => {};
   const startedPromise = new Promise<void>((resolve) => {
@@ -513,7 +468,6 @@ test("failed and cancelled prompts stop timing and rejected preflight creates no
     runtime(
       () => {
         if (failModel) {
-          now = 6000;
           throw new Error("Model failed");
         }
         started();
@@ -527,30 +481,21 @@ test("failed and cancelled prompts stop timing and rejected preflight creates no
   try {
     rejectPreflight = true;
     await expect(session.prompt("Preflight")).rejects.toThrow("Preflight failed");
-    expect(session.state.runTimings).toEqual([]);
     expect(session.sessionManager.getRuntimeContexts()).toEqual([]);
+    expect(session.state.promptTimings).toEqual([]);
     rejectPreflight = false;
     await expect(session.prompt("Failure")).rejects.toThrow("Model failed");
+    expect(session.state.promptTimings?.[0]?.finishedAt).toBeTypeOf("number");
     expect(session.sessionManager.getRuntimeContexts()).toHaveLength(1);
-    expect(session.state.runTimings).toEqual([
-      { userMessageIndex: 0, startedAt: 1000, finishedAt: 6000 },
-    ]);
     failModel = false;
-    now = 9000;
     const pending = session.prompt("Cancel").catch(() => {});
     await startedPromise;
-    now = 12000;
     await session.abort();
     await pending;
     expect(session.sessionManager.getRuntimeContexts()).toHaveLength(1);
-    expect(session.state.runTimings?.at(-1)).toEqual({
-      userMessageIndex: 1,
-      startedAt: 9000,
-      finishedAt: 12000,
-    });
     expect(session.state.outcome).toBe("cancelled");
+    expect(session.state.promptTimings?.at(-1)?.finishedAt).toBeTypeOf("number");
   } finally {
-    clock.mockRestore();
     session.dispose();
   }
 });
@@ -973,6 +918,45 @@ test("effort persists with the session, reaches every model call and rejects uns
     );
     restored.dispose();
   } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("prompt wall time ends before saving, survives restore and is absent from model messages", async () => {
+  const dir = await mkdtemp(join(import.meta.dirname, ".prompt-duration-test-"));
+  const manager = await SessionManager.create(dir, dir);
+  let now = 1000;
+  const clock = vi.spyOn(Date, "now").mockImplementation(() => now);
+  const commit = vi.spyOn(manager, "commit").mockImplementation(async (...args) => {
+    now = 60000;
+    await SessionManager.prototype.commit.apply(manager, args);
+  });
+  const { session } = await setup(
+    runtime(() => {
+      now = 30000;
+      return stream();
+    }),
+    dir,
+    manager,
+  );
+  const events: unknown[] = [];
+  session.subscribe((event) => {
+    if (event.type === "prompt_timing") events.push(event.timing);
+  });
+  try {
+    await session.prompt("Request");
+    expect(events).toEqual([
+      { userMessageIndex: 0, startedAt: 1000 },
+      { userMessageIndex: 0, startedAt: 1000, finishedAt: 30000 },
+    ]);
+    const restored = await SessionManager.open(manager.sessionFile!);
+    expect(restored.getPromptTimings()).toEqual([events[1]]);
+    expect(session.state.promptTimings).toEqual(restored.getPromptTimings());
+    expect(JSON.stringify(restored.messages)).not.toContain("finishedAt");
+  } finally {
+    session.dispose();
+    clock.mockRestore();
+    commit.mockRestore();
     await rm(dir, { recursive: true, force: true });
   }
 });

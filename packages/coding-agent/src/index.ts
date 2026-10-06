@@ -51,9 +51,9 @@ export type {
 export type { ModelRuntime, ModelRuntimeOptions } from "./core/model-runtime";
 export type { SessionState, SessionEvent, SessionEventListener } from "./core/types/session";
 export type { SessionHeader, SessionInfo } from "./core/types/storage";
-export type { SessionRunTiming } from "./core/run-timing";
 export type { RuntimeContextSnapshot } from "./core/runtime-context";
 export type { SessionTitle, SessionTitleOptions } from "./core/titles/types";
 export { createReadTool, createBashTool, createEditTool, createWriteTool } from "./core/tools";
 export { messageText } from "./core/messages";
 export { DEFAULT_MODEL, DEFAULT_PROVIDER, getAgentDir, getSessionDir } from "./config";
+export type { PromptTiming } from "./core/prompt-timing";

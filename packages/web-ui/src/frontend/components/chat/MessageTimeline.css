@@ -23,19 +23,8 @@
   color: var(--ink-muted);
   margin-top: 15vh;
 }
-.user-message + :is(.assistant-message, .run-activity-card, .looping-indicator) {
+.user-message + :is(.assistant-message, .tool-group, .tool-card, .looping-indicator) {
   margin-top: 4px;
-}
-.action-button.jump-latest {
-  position: absolute;
-  left: 50%;
-  bottom: 10px;
-  width: 32px;
-  height: 32px;
-  padding: 6px;
-  border-radius: 50%;
-  transform: translateX(-50%);
-  box-shadow: 0 4px 16px var(--shadow-soft);
 }
 @media (max-width: 767px) {
   .message-timeline {

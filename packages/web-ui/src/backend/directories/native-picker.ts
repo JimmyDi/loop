@@ -1,17 +1,12 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { text } from "node:stream/consumers";
-import type { DirectoryCapabilities } from "../../shared/protocol";
 import { HttpError } from "../http/errors";
 
-export const directoryCapabilities = (
+export const nativePickerAvailable = (
   platform = process.platform,
   env: Record<string, string | undefined> = process.env,
-): DirectoryCapabilities => {
-  const native = platform === "darwin" && !env.SSH_CONNECTION && !env.SSH_TTY;
-
-  return { native, preferred: native ? "native" : "browse" };
-};
+): boolean => platform === "darwin" && !env.SSH_CONNECTION && !env.SSH_TTY;
 
 type PickerRunner = (
   signal: AbortSignal,
@@ -32,10 +27,7 @@ const runPicker: PickerRunner = async (signal) => {
   return { code, output, error };
 };
 
-export const createNativePicker = (
-  run = runPicker,
-  available = () => directoryCapabilities().native,
-) => {
+export const createNativePicker = (run = runPicker, available = () => nativePickerAvailable()) => {
   let busy = false;
 
   return async (signal: AbortSignal): Promise<string | null> => {

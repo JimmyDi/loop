@@ -17,7 +17,7 @@ The goal is to use Loop coding-agent in the browser through a project-based chat
 | Runtime | Keep Loop's unified Node.js project; Node.js serves HTTP, SSE, and frontend pages |
 | Startup target | Use `npx @loop-harness/loop web` to start the published local service and open the browser |
 | Project management | Add, rename, and remove projects in the frontend; the Projects tree groups sessions by project |
-| Directory selection | Prefer the system picker on local macOS; otherwise use browser directory navigation, with typed paths supported |
+| Directory selection | Create project dialog with an optional name and removable source folder; Add opens the local macOS system picker |
 | Language | English and Chinese, initially matching browser preferences and retaining a manual choice |
 | Interface | Provide a project sidebar, session layout, composer, and streaming message rendering |
 | Feature scope | Expose only existing Loop capabilities; omit unsupported controls and placeholders |
@@ -131,16 +131,9 @@ Use a project → session hierarchy. Users add working directories through the f
 
 ### 3.4 Directory Selection
 
-Support native folder selection and backend directory browsing. The frontend requests paths from the backend machine; this is neither upload nor a browser directory handle standing in for Agent cwd.
+The Projects **+** opens a Create project dialog with an optional display name and one source folder. Add opens the backend machine's system folder picker. A selection appears as a removable folder row; Create project registers it and defaults a blank name to the folder name. Removing a folder preserves the custom name. No typed-path input, capability endpoint, directory listing endpoint or browser directory navigator remains.
 
-| Environment | Default interaction |
-| --- | --- |
-| Local macOS, not started through SSH | Backend invokes a system folder picker through `osascript` and returns its path |
-| SSH, other platforms, or unavailable native picker | Browser directory navigator backed by server filesystem access |
-
-Browser navigation is always available manually and supports absolute paths, parent navigation, and selecting the current directory. The initial version has no Windows/Linux native picker, Electron dependency, or folder creation. Start at the home directory, list only immediate subdirectories, sort and limit results, and report truncation while retaining typed-path navigation.
-
-Launch native selection with an argument array, not shell string concatenation, and allow one window at a time. Cancellation returns an empty result without errors or registration; request cancellation terminates the picker process. The picker only returns a path. The add-project API still performs registration validation. Window and permission failures need understandable messages while preserving browser navigation and typed paths.
+Native selection supports local macOS outside SSH. Launch it with an argument array and allow one window at a time. Cancellation returns null without errors or registration; request cancellation terminates the picker process. The picker only returns a path; the add-project API performs registration validation. Unavailable pickers and execution failures display an error in the dialog and allow retry.
 
 ## 4. Interface Design
 
@@ -236,9 +229,7 @@ Merge concurrent session loads so one file is not opened through multiple writab
 | `POST /api/workspaces` | Accept `{ path, name? }`, validate/register the directory, or return an existing canonical-path match |
 | `PATCH /api/workspaces/:id` | Accept `{ name }` and update only the display name |
 | `DELETE /api/workspaces/:id` | Unregister when no operations or pending saves exist; keep files and sessions |
-| `GET /api/directories/capabilities` | Return preferred picker and native availability; browser navigation remains available |
 | `POST /api/directories/pick` | Open the macOS picker; return `{ path }`, with null on cancellation |
-| `GET /api/directories?path=…` | List immediate subdirectories and navigation metadata; default to home |
 | `GET /api/models` | Return only saved providers' models with provider display names and no credentials; empty before configuration |
 | `GET /api/settings/provider` | Return custom configuration and hasApiKey, never the key; null if unconfigured |
 | `PUT /api/settings/provider` | Validate/save the custom provider; return 409 while busy or awaiting save |
@@ -375,7 +366,7 @@ Keep Loop's JSONL format and atomic saving, with one authoritative source of cha
 The following stages cover implementation and integration. Code has been added along these boundaries. The [Web README](../../README.md) links to current feature contracts, startup requirements, and validation commands; the criteria below describe acceptance requirements rather than a record of completed checks.
 
 1. **Directory skeleton**: create the Web entry and server under packages/web-ui/src; use the public SDK for create, open, prompt, and abort; record missing external dependencies and root configuration.
-2. **Projects and directories**: registration, Projects tree, native selection/browsing, per-project history, and removal guards.
+2. **Projects and directories**: registration, Projects tree, system folder selection, per-project history, and removal guards.
 3. **State flow**: six Loop events, snapshots, request deduplication, tool-result merging, failed-save/flush recovery, and model switching.
 4. **Interface implementation**: theme, base components, full layout, text input, messages/Markdown/tool cards, and bilingual labels; omit unsupported controls and dependencies.
 5. **Local integration**: with dependencies available, verify startup, desktop/mobile visuals, input methods, streaming scroll, project/session switching, reconnection, and error cleanup.
@@ -386,7 +377,7 @@ Acceptance criteria:
 - Browser runtime excludes coding-agent, filesystem, and model-call code; all Agent operations enter Loop's public SDK.
 - Web implementation changes stay in packages/web-ui/src within the unified Node.js project; no unrelated directories change and existing core architecture checks still pass.
 - Projects can be added, renamed, and removed. Symlink paths deduplicate, sessions are grouped by project, removal keeps files, and re-adding exposes history. Busy or pending-save projects cannot be removed.
-- Cover native macOS selection, cancellation, request interruption, browser navigation, and typed paths. Missing or inaccessible directories report errors without registering incorrect projects.
+- Cover native macOS selection, cancellation, request interruption, optional names and removable folder selections. Missing or inaccessible directories report errors without registering incorrect projects.
 - Match browser language before a manual choice, with English fallback; language switching and preference restoration work. Settings opens General, the dropdown supports keyboard navigation, and closing restores focus. Translation keys are complete, execution/drafts remain intact, and original conversation content is not translated.
 - Verify sidebar, header, bubbles, Markdown, composer, and mobile layout against the style and interaction baseline in section 4.3.
 - Text submission, IME, and newlines work. Busy sessions reject duplicate submissions, network failures retain input, and switching views does not stop sessions.

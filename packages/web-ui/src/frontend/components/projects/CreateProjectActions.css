@@ -1,0 +1,35 @@
+.create-project-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.create-project-actions .action-button {
+  min-height: 38px;
+  padding: 8px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.create-project-actions .ghost {
+  color: var(--ink-muted);
+}
+
+.create-project-submit.action-button {
+  min-width: 122px;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface-raised);
+}
+
+.create-project-submit.action-button:hover:not(:disabled) {
+  background: var(--ink);
+  opacity: 0.88;
+}
+
+@media (max-width: 480px) {
+  .create-project-actions {
+    gap: 8px;
+  }
+}

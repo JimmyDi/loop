@@ -1,0 +1,39 @@
+.composer-project-search {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  margin: 0 8px 4px;
+  border-bottom: 1px solid var(--line-subtle);
+  color: var(--ink-muted);
+}
+.composer-project-search svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.composer-project-search input {
+  min-width: 0;
+  width: 100%;
+  padding: 8px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+.composer-project-search input::placeholder {
+  color: var(--ink-muted);
+}
+.composer-project-search:focus-within {
+  border-bottom-color: var(--focus-border);
+}
+.composer-project-search input:disabled {
+  opacity: 0.5;
+}

@@ -4,6 +4,22 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Added
+
+- Web UI: show a project-only capsule in an inset, rounded gray strip attached to the new-session composer, with a rounded folder outline, a neutral hover/focus capsule and centered white cross in a gray circular removal button, searchable registered-project selection and Add folder through Create project. Focus search when opening the menu, filter names without case sensitivity, and keep search and Add folder visible while the project list scrolls. Block sending without a selected accessible project and preserve unsent input, attachments, model, effort and permissions when switching draft projects.
+
+### Changed
+
+- Web UI: replace the Projects add flow with a Create project dialog, an optional custom name, an Add button that opens the system folder picker, and a removable source-folder row. Default blank names to the folder name and preserve inputs after failed creation. Match existing dialogs with a compact 480px width, 18px title and 13px controls.
+
+### Fixed
+
+- Web UI: keep the Create project dialog and source-folder area at stable dimensions during folder selection, removal, saving and errors, with overflowing content scrolling inside the dialog.
+
+### Removed
+
+- Web UI: remove typed project paths, browser directory navigation, picker capability discovery, and directory listing endpoints. Folder selection uses the local macOS system picker; unavailable pickers show a retryable error.
+
 ## [0.1.2] - 2026-10-05
 
 ### Changed

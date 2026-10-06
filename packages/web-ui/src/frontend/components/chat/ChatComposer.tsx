@@ -15,6 +15,8 @@ import { SessionPermissions } from "./SessionPermissions";
 import { ComposerAttachments } from "./ComposerAttachments";
 import { ComposerAddMenu } from "./ComposerAddMenu";
 import { useComposerAttachments } from "../../hooks/useComposerAttachments";
+import { useComposerProject } from "../../hooks/useComposerProject";
+import { ComposerProjectSelector } from "./ComposerProjectSelector";
 import { useModels } from "../../hooks/useModels";
 import { ApiError } from "../../lib/api";
 import "./ChatComposer.css";
@@ -28,7 +30,10 @@ export const ChatComposer = ({
 }) => {
   const { t } = useTranslation();
   const [focusRequest, setFocusRequest] = useState(0);
-  const prompt = usePrompt(snapshot);
+  const newSession =
+    snapshot.state.messages.length === 0 && !snapshot.state.draft && !snapshot.requestId;
+  const project = useComposerProject(snapshot, newSession);
+  const prompt = usePrompt(snapshot, project.hasProject);
   const stopping = useAsyncAction();
   const model = useModelSelection(snapshot);
   const permission = useSessionPermission(snapshot);
@@ -46,14 +51,16 @@ export const ChatComposer = ({
   const running = snapshot.operation === "prompt";
   const disabled =
     !connected ||
+    project.pending ||
     snapshot.operation !== "idle" ||
     snapshot.state.hasPendingSave ||
     !!snapshot.state.pendingApprovals?.length ||
     prompt.pending ||
     prompt.uncertain;
-  const blocked = disabled || model.pending || permission.pending || attachments.pending;
+  const blocked =
+    disabled || model.pending || permission.pending || attachments.pending || project.pending;
   const submit = () => {
-    if (blocked || unsupportedImages) return;
+    if (blocked || unsupportedImages || !project.hasProject) return;
     if (!prompt.text.trim() && !prompt.images.length && !prompt.files.length) return;
 
     setFocusRequest((request) => request + 1);
@@ -70,6 +77,7 @@ export const ChatComposer = ({
           model.error ??
           permission.error ??
           attachments.error ??
+          project.error ??
           imageError
         }
       />
@@ -84,6 +92,7 @@ export const ChatComposer = ({
           </ActionButton>
         </div>
       )}
+      {newSession && <ComposerProjectSelector selection={project} disabled={blocked} />}
       <form
         className="chat-composer"
         data-running={running}
@@ -148,6 +157,7 @@ export const ChatComposer = ({
               aria-label={t("send")}
               disabled={
                 blocked ||
+                !project.hasProject ||
                 unsupportedImages ||
                 (!prompt.text.trim() && !prompt.images.length && !prompt.files.length)
               }

@@ -1,0 +1,30 @@
+.project-source-folder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.project-source-folder > .project-source-icon {
+  color: var(--ink-muted);
+}
+
+.project-source-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.project-source-remove.action-button {
+  min-height: 28px;
+  padding: 4px;
+  color: var(--ink-muted);
+}
+
+.project-source-remove .project-source-icon {
+  width: 16px;
+  height: 16px;
+}

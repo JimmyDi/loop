@@ -19,10 +19,7 @@ test("native picker cancellation does not select a project", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     let selected = "";
 
-    globalThis.fetch = (async (url) =>
-      Response.json(
-        String(url).endsWith("/pick") ? { path: null } : { native: true, preferred: "native" },
-      )) as typeof fetch;
+    globalThis.fetch = (async () => Response.json({ path: null })) as typeof fetch;
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     );

@@ -3,15 +3,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Project } from "../../shared/protocol";
 import { api, command } from "../lib/api";
 
-export const useProjects = () => {
+export const useProjects = (enabled = true) => {
   const client = useQueryClient();
   const refresh = () => client.invalidateQueries({ queryKey: ["projects"] });
   const projects = useQuery({
     queryKey: ["projects"],
+    enabled,
     queryFn: ({ signal }) => api<Project[]>("/workspaces", { signal }),
   });
   const add = useMutation({
-    mutationFn: (path: string) => command<Project>("/workspaces", { path }),
+    mutationFn: ({ path, name }: { path: string; name?: string }) =>
+      command<Project>("/workspaces", { path, name }),
     onSuccess: async (project) => {
       await client.cancelQueries({ queryKey: ["projects"] });
       client.setQueryData<Project[]>(["projects"], (current = []) =>

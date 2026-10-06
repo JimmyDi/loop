@@ -142,3 +142,23 @@ const spawnProcessSync = (argv: string[], options: { cwd?: string } = {}) => {
   const result = spawnSync(argv[0]!, argv.slice(1), options);
   return { ...result, exitCode: result.status };
 };
+
+test("project selection transfers only the unsent draft and clears removed selection state", () => {
+  useWorkspace.setState({
+    drafts: { from: "Keep", other: "Other" },
+    images: {},
+    files: { from: [{ name: "example.txt", text: "Keep" }] },
+    draftProjects: { from: "p", other: "q" },
+    unselectedProjects: { from: true },
+  });
+  const state = useWorkspace.getState();
+  state.moveDraft("from", { id: "to", workspaceId: "q" });
+  expect(useWorkspace.getState().drafts).toEqual({ from: "", to: "Keep", other: "Other" });
+  expect(useWorkspace.getState().files.to).toEqual([{ name: "example.txt", text: "Keep" }]);
+  expect(useWorkspace.getState().unselectedProjects.to).toBe(false);
+  state.removeSessions(["from"]);
+  expect(useWorkspace.getState().unselectedProjects.from).toBeUndefined();
+  state.clearDraftProject("to");
+  state.removeProject("q");
+  expect(useWorkspace.getState().unselectedProjects.to).toBeUndefined();
+});

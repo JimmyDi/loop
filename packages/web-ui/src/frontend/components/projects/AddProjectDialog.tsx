@@ -1,13 +1,12 @@
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Project } from "../../../shared/protocol";
-import { useProjects } from "../../hooks/useProjects";
-import { useDirectoryPicker } from "../../hooks/useDirectoryPicker";
-import { ActionButton } from "../ui/ActionButton";
+import { useCreateProject } from "../../hooks/useCreateProject";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { Modal } from "../ui/Modal";
-import { DirectoryBrowser } from "./DirectoryBrowser";
+import { CreateProjectActions } from "./CreateProjectActions";
+import { ProjectNameInput } from "./ProjectNameInput";
+import { ProjectSourceFolders } from "./ProjectSourceFolders";
 import "./AddProjectDialog.css";
 
 export const AddProjectDialog = ({
@@ -18,65 +17,48 @@ export const AddProjectDialog = ({
   onClose(): void;
 }) => {
   const { t } = useTranslation();
-  const { add } = useProjects();
-  const [path, setPath] = useState("");
-  const { capability, browsing, setBrowsing, picking, error, pick } = useDirectoryPicker(setPath);
-
-  const save = async (path: string) => {
-    if (add.isPending || !path.trim()) return;
-
-    try {
-      const project = await add.mutateAsync(path);
-      onAdded(project);
-      onClose();
-    } catch {
-      /* Mutation exposes the error below. */
-    }
-  };
+  const project = useCreateProject((created) => {
+    onAdded(created);
+    onClose();
+  });
 
   return (
-    <Modal title={t("addProject")} onClose={onClose} closeDisabled={add.isPending}>
+    <Modal
+      title={t("createProject")}
+      className="create-project-dialog"
+      closeLabel={t("close")}
+      onClose={onClose}
+      closeDisabled={project.saving}
+    >
       <form
-        className="add-project-form"
+        className="create-project-form"
         onSubmit={(event) => {
           event.preventDefault();
-          void save(path);
+          void project.create();
         }}
       >
-        <label>
-          {t("directory")}
-          <input
-            value={path}
-            disabled={add.isPending}
-            onChange={(event) => setPath(event.target.value)}
-          />
-        </label>
-        <div className="project-dialog-actions">
-          {capability.data?.native && (
-            <ActionButton disabled={picking || add.isPending} onClick={() => void pick()}>
-              {t("nativePicker")}
-            </ActionButton>
-          )}
-          <ActionButton disabled={add.isPending} onClick={() => setBrowsing(!browsing)}>
-            {t("browse")}
-          </ActionButton>
-          <ActionButton type="submit" className="primary" disabled={!path.trim() || add.isPending}>
-            {t("addProject")}
-          </ActionButton>
-          <ActionButton disabled={add.isPending} onClick={onClose}>
-            {t("cancel")}
-          </ActionButton>
-        </div>
-      </form>
-      <ErrorNotice error={error ?? add.error} />
-      {browsing && (
-        <DirectoryBrowser
-          onSelect={(value) => {
-            setPath(value);
-            setBrowsing(false);
-          }}
+        <ProjectNameInput
+          ref={project.nameInput}
+          value={project.name}
+          disabled={project.saving}
+          onChange={project.changeName}
         />
-      )}
+        <div className="create-project-content">
+          <ProjectSourceFolders
+            path={project.path}
+            picking={project.picking}
+            disabled={project.saving}
+            onAdd={() => void project.pickFolder()}
+            onRemove={project.removeFolder}
+          />
+          <ErrorNotice error={project.error} />
+        </div>
+        <CreateProjectActions
+          saving={project.saving}
+          canCreate={project.canCreate}
+          onCancel={onClose}
+        />
+      </form>
     </Modal>
   );
 };

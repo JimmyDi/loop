@@ -48,7 +48,6 @@ test.each(["new", "existing", "failure"])(
     if (scenario === "existing") projects.push(project);
     client.setQueryData(["projects"], projects);
     client.setQueryData(["sessions", project.id], []);
-    client.setQueryData(["directory-capabilities"], { native: true, preferred: "native" });
     const writes: { url: string; body: unknown }[] = [];
     const scrolled: string[] = [];
     window.HTMLElement.prototype.scrollIntoView = function () {
@@ -85,13 +84,12 @@ test.each(["new", "existing", "failure"])(
       const group = ui.getByRole("button", { name: "Projects" });
       fireEvent.click(group);
       fireEvent.click(ui.getByRole("button", { name: "Add project" }));
-      const dialog = within(ui.getByRole("dialog", { name: "Add project" }));
-      await act(async () =>
-        fireEvent.click(dialog.getByRole("button", { name: "Choose folder…" })),
-      );
+      const dialog = within(ui.getByRole("dialog", { name: "Create project" }));
+      await act(async () => fireEvent.click(dialog.getByRole("button", { name: "Add" })));
       const input = dialog.getByRole("textbox") as HTMLInputElement;
-      expect(input.value).toBe(project.cwd);
-      fireEvent.click(dialog.getByRole("button", { name: "Add project" }));
+      expect(input.value).toBe("");
+      expect(dialog.getByText("example")).toBeTruthy();
+      fireEvent.click(dialog.getByRole("button", { name: "Create project" }));
       await waitFor(() => expect(writes).toHaveLength(1));
       await waitFor(() =>
         expect(dialog.getByRole("button", { name: "Cancel" }).hasAttribute("disabled")).toBe(true),
@@ -105,7 +103,8 @@ test.each(["new", "existing", "failure"])(
       });
       if (scenario === "failure") {
         await waitFor(() => expect(dialog.getByRole("alert")).toBeTruthy());
-        expect(input.value).toBe(project.cwd);
+        expect(input.value).toBe("");
+        expect(dialog.getByText("example")).toBeTruthy();
         expect(group.getAttribute("aria-expanded")).toBe("false");
         expect(scrolled).toEqual([]);
         expect(client.getQueryData<Project[]>(["projects"])).toEqual(projects);

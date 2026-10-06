@@ -11,7 +11,7 @@ import type { PromptFile } from "../../shared/prompt-files";
 const EMPTY_IMAGES: PromptImage[] = [];
 const EMPTY_FILES: PromptFile[] = [];
 
-export const usePrompt = (snapshot: SessionSnapshot) => {
+export const usePrompt = (snapshot: SessionSnapshot, hasProject = true) => {
   const id = snapshot.sessionId;
   const text = useWorkspace((state) => state.drafts[id] ?? "");
   const request = useRequests((state) => state.pending[id]);
@@ -70,7 +70,7 @@ export const usePrompt = (snapshot: SessionSnapshot) => {
   const submit = async (retry = false) => {
     const current = useRequests.getState();
     const request = current.pending[id];
-    if (snapshot.operation !== "idle" || snapshot.state.hasPendingSave) return;
+    if (!hasProject || snapshot.operation !== "idle" || snapshot.state.hasPendingSave) return;
     if (
       request &&
       (current.delivery[id] === "sending" ||

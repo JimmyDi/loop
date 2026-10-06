@@ -84,13 +84,3 @@ export type ListChange =
   | { type: "sessions.changed" | "projects.changed"; workspaceId: string };
 
 export type ListFrame = ListChange & Cursor;
-
-export type DirectoryListing = {
-  path: string;
-  parent: string;
-  home: string;
-  entries: { name: string; path: string; hidden: boolean }[];
-  truncated: boolean;
-};
-
-export type DirectoryCapabilities = { native: boolean; preferred: "native" | "browse" };

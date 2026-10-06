@@ -1,0 +1,90 @@
+.composer-project-pill {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  border-radius: 999px;
+  color: var(--ink);
+}
+.composer-project-trigger,
+.composer-project-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 10px;
+  min-height: 32px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.composer-project-trigger {
+  min-width: 0;
+  max-width: 100%;
+}
+.composer-project-pill[data-selected="true"] .composer-project-trigger {
+  padding-inline: 40px 12px;
+}
+.composer-project-pill[data-selected="true"] .composer-project-trigger > svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.composer-project-trigger span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.composer-project-pill[data-selected="false"] {
+  color: var(--ink-muted);
+}
+.composer-project-pill:hover,
+.composer-project-pill:focus-within {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.composer-project-remove {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  border-radius: 50%;
+  background: light-dark(#858789, #8c9097);
+  color: #fff;
+  opacity: 0;
+}
+.composer-project-remove > svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.7;
+}
+.composer-project-pill:hover .composer-project-remove,
+.composer-project-pill:focus-within .composer-project-remove {
+  opacity: 1;
+}
+.composer-project-pill[data-selected="true"]:hover .composer-project-trigger > svg,
+.composer-project-pill[data-selected="true"]:focus-within .composer-project-trigger > svg {
+  visibility: hidden;
+}
+.composer-project-trigger:focus-visible,
+.composer-project-remove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.composer-project-trigger:disabled,
+.composer-project-remove:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+@media (hover: none) {
+  .composer-project-remove { opacity: 1; }
+  .composer-project-pill[data-selected="true"] .composer-project-trigger > svg { visibility: hidden; }
+}

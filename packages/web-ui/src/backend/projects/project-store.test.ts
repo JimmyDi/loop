@@ -20,6 +20,7 @@ test("canonical projects deduplicate concurrent additions and survive rename/rem
     const [a, b] = await Promise.all([store.add(cwd), store.add(alias)]);
 
     expect(a.id).toBe(b.id);
+    expect(a.name).toBe("workspace");
     expect(await store.list()).toHaveLength(1);
     await store.rename(a.id, "Example");
     expect((await new ProjectStore(file).get(a.id)).name).toBe("Example");

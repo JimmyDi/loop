@@ -14,19 +14,22 @@ Session titles, inline rename text and the **No chats** placeholder align with t
 
 Project and session action menus use 13px text and 20px icons. Menu items are 28px tall with 4px vertical padding, 8px horizontal padding and an 8px icon-to-label gap. Both menus use 4px outer padding and 12px corners; the session menu is 208px wide. Keyboard navigation, hover highlights and disabled actions remain available in the compact layout.
 
-1. Click **Add project** and enter an absolute directory path or use the directory picker. After saving, the Projects group and the added project expand, and the project scrolls into view and receives keyboard focus. Empty projects show **No chats** without creating a session. Adding an already registered folder reveals its existing node without duplication. Failed saves retain the dialog and entered path for retry.
+1. Click the **+** beside **Projects** to open **Create project**. Enter an optional **Project name**, then click **Add** under **Source folders** to open the system folder picker. The selected folder appears as a row with its name, a full-path tooltip and an **×** button to remove it. Removing it preserves the custom name and allows another selection. **Create project** becomes available after selecting a folder; a blank or whitespace-only name uses the folder name. Saving expands Projects and the project, scrolls it into view and focuses it. Empty projects show **No chats** without creating a session. Re-adding a registered folder reveals its existing node without duplication or renaming. Failed saves retain the name and folder for retry. Cancel, Close and Escape discard the unsaved selection; closing while the picker is open cancels its request.
+
+New empty sessions show only a project capsule above the input. Hover or keyboard-focus it to reveal **×**; removing the selection preserves text and attachments and disables sending, including Enter. **Choose project** opens the registered-project menu and focuses **Search projects** at the top. Search filters project names immediately, ignores case and trims surrounding spaces; clearing search restores the full list, and reopening the menu starts with an empty search. Arrow keys move from search to the available choices; Escape closes the menu. Search and **Add folder…** remain visible while long project lists scroll. No matches shows a hint and still allows adding a folder; inaccessible folders cannot be selected. **Add folder…** opens the same Create project dialog, then selects the registered folder. Switching projects creates a new empty session under that folder and transfers unsent text and attachments, keeping the model, effort and permission preset. A failed switch keeps the existing draft for retry. Clearing is remembered across reloads during the server's draft lifetime. After the first submission, the session retains its project and the capsule disappears.
+
 2. Click the project row to expand or collapse its history; the folder icon opens and closes with it. Hover or keyboard focus highlights the row and reveals **…** and the compose pencil. Touch devices keep these actions visible. Click the pencil to open a new draft. It becomes a sidebar session only after its first user message is accepted into the conversation.
 3. Each project initially shows up to five history entries. If more exist, click **Show more** to reveal the next ten, or all remaining entries when fewer than ten remain. The button disappears when all entries are visible. Click a history entry to select it. Switch conversations through the sidebar; the folder button opens the project drawer on narrow screens.
 4. Hover or keyboard-focus a session row to highlight it and reveal its Pin and Archive icon buttons. Touch devices keep both visible. Pin moves the session into Pinned; its button then becomes Unpin, which returns it to its project's normal ordering. Click Archive to archive that chat immediately. Right-click the title, or press Shift+F10 while it has focus, to open Rename, Pin (or Unpin), Archive and Permanently delete without switching the selected chat.
 
-A local macOS service can open the system folder picker. Browser-based directory navigation is always available. If native selection fails, the UI shows the error and opens the browser-based alternative. Cancelling selection does not create a project. Directory navigation accesses the computer running the Web service.
+A local macOS service opens the system folder picker. If selection fails, the dialog shows a retryable error. Cancelling selection does not create a project. Folder selection accesses the computer running the Web service.
 
 ## State and Interfaces
 
 | Operation | Request and state |
 | --- | --- |
 | Query, add, rename, or remove a project | useProjects calls `/api/workspaces` and refreshes the project cache on success |
-| Browse or select a directory | useDirectoryPicker queries capabilities and calls the directory API |
+| Select a source folder | useDirectoryPicker calls the system folder picker API |
 | Query history | useProjectSessions and PinnedSessions share queries by workspaceId; all accessible registered projects load independently of expansion so saved pins can be discovered |
 | Reveal more history | SessionList displays five unpinned summaries initially and adds up to ten per click, independently for each project; Pinned displays all pins |
 | Pin or unpin | useSessionActions sends PUT /api/sessions/:id/pin with workspaceId and pinned; the server saves header pinnedAt and refreshes project summaries |
@@ -69,10 +72,17 @@ The archive page groups chats into rounded project cards, with folder icons, cha
 
 **Remove project** requires confirmation explaining that local files and saved chats will remain. If drafts or unconfirmed requests exist, the dialog additionally warns that unsent data will be discarded. After the backend succeeds, the frontend clears that project's drafts, attachments and unconfirmed requests. If its session is selected, the main area returns to the welcome screen. Busy sessions, pending creation/loading or pending saves prevent archive, restore and removal; failures retain frontend state and display an error in the dialog. Cancel, Escape and the close button do not submit changes; closing and repeat submissions are disabled during the request.
 
-There is no file-tree editor, history search, or session transfer between projects. See [project registration](../../backend/docs/projects.md) for backend path normalization and persistence.
+The Create project dialog uses a compact 480px width and 360px height, an 18px title, and 13px inputs, folder labels and actions to match existing dialogs. It keeps the same dimensions while selecting or removing a folder, saving and displaying errors. Longer content scrolls within its content area; the footer remains visible. Its size adapts to the viewport.
+
+Each project has one source folder. System folder selection requires local macOS; unavailable pickers show an error in the dialog. There is no typed-path input or browser directory navigator. There is no file-tree editor, history search, or session transfer between projects. See [project registration](../../backend/docs/projects.md) for backend path normalization and persistence.
 
 ## Source and Tests
 
+- [Composer project selector](../components/chat/ComposerProjectSelector.tsx) / [tests](../components/chat/ComposerProjectSelector.test.tsx).
+- [Draft project selection](../hooks/useComposerProject.ts) / [tests](../hooks/useComposerProject.test.tsx).
+- [Create project dialog](../components/projects/AddProjectDialog.tsx) / [tests](../components/projects/AddProjectDialog.test.tsx).
+- [Create project state](../hooks/useCreateProject.ts) / [tests](../hooks/useCreateProject.test.tsx).
+- [Source-folder selection](../components/projects/ProjectSourceFolders.tsx) and [folder row](../components/projects/ProjectSourceFolder.tsx).
 - [Sidebar](../components/layout/Sidebar.tsx) / [tests](../components/layout/Sidebar.test.tsx).
 - [SessionItem](../components/projects/SessionItem.tsx) / [tests](../components/projects/SessionItem.test.tsx).
 - [Unread row indicators](../components/projects/SessionList.test.tsx), [read receipts](../hooks/useReadReceipt.ts) / [tests](../hooks/useReadReceipt.test.tsx).

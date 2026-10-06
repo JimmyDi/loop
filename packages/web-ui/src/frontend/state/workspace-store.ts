@@ -19,6 +19,10 @@ type WorkspaceState = {
   removeProject(id: string): void;
   removeSessions(ids: string[]): void;
   draftProjects: Record<string, string>;
+  unselectedProjects: Record<string, boolean>;
+  clearDraftProject(id: string): void;
+  selectDraftProject(id: string): void;
+  moveDraft(from: string, to: SessionSelection): void;
   expanded: Record<string, boolean>;
   expand(id: string, expanded: boolean): void;
   toggleSidebar(open: boolean): void;
@@ -54,6 +58,19 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
       images: { ...state.images, [id]: images },
     })),
   draftProjects: readPreference<Record<string, string>>("draftProjects", {}),
+  unselectedProjects: readPreference<Record<string, boolean>>("unselectedProjects", {}),
+  clearDraftProject: (id) =>
+    set((state) => ({ unselectedProjects: { ...state.unselectedProjects, [id]: true } })),
+  selectDraftProject: (id) =>
+    set((state) => ({ unselectedProjects: { ...state.unselectedProjects, [id]: false } })),
+  moveDraft: (from, to) =>
+    set((state) => ({
+      drafts: { ...state.drafts, [from]: "", [to.id]: state.drafts[from] ?? "" },
+      images: { ...state.images, [from]: [], [to.id]: state.images[from] ?? [] },
+      files: { ...state.files, [from]: [], [to.id]: state.files[from] ?? [] },
+      draftProjects: { ...state.draftProjects, [to.id]: to.workspaceId },
+      unselectedProjects: { ...state.unselectedProjects, [to.id]: false },
+    })),
   expanded: readPreference<Record<string, boolean>>("expanded", {}),
   expand: (id, expanded) => set((state) => ({ expanded: { ...state.expanded, [id]: expanded } })),
   sidebar: false,
@@ -88,6 +105,9 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
         draftProjects: Object.fromEntries(
           Object.entries(state.draftProjects).filter(([id]) => !removed.includes(id)),
         ),
+        unselectedProjects: Object.fromEntries(
+          Object.entries(state.unselectedProjects).filter(([id]) => !removed.includes(id)),
+        ),
       };
     }),
   removeSessions: (ids) =>
@@ -98,6 +118,9 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
       files: Object.fromEntries(Object.entries(state.files).filter(([id]) => !ids.includes(id))),
       draftProjects: Object.fromEntries(
         Object.entries(state.draftProjects).filter(([id]) => !ids.includes(id)),
+      ),
+      unselectedProjects: Object.fromEntries(
+        Object.entries(state.unselectedProjects).filter(([id]) => !ids.includes(id)),
       ),
     })),
   toggleSidebar: (sidebar) => set({ sidebar }),
@@ -110,6 +133,9 @@ useWorkspace.subscribe((state, previous) => {
 
   if (state.draftProjects !== previous.draftProjects)
     writePreference("draftProjects", state.draftProjects);
+
+  if (state.unselectedProjects !== previous.unselectedProjects)
+    writePreference("unselectedProjects", state.unselectedProjects);
 
   if (state.expanded !== previous.expanded) writePreference("expanded", state.expanded);
 });

@@ -34,22 +34,17 @@ Single-chat deletion uses the same lifecycle guard and staging operation as arch
 
 | Endpoint | Behavior |
 | --- | --- |
-| GET /api/directories/capabilities | Return native and preferred |
-| GET /api/directories?path=… | Return canonical path, parent, home, immediate subdirectories, and truncated |
 | POST /api/directories/pick | Return the system-selected path, or null on cancellation |
 
-Browsing starts at the home directory if no path is supplied. Entries are sorted by name and include directories or symlinks to directories. At most 1000 candidates are inspected; larger listings set truncated. Missing or unreadable paths report directory_unreadable.
-
-Native selection supports only non-SSH macOS environments, with one window at a time. Request cancellation reaches the picker process; user cancellation is not an error. Other environments use browser-based directory navigation.
+Selection opens a system folder picker on non-SSH macOS environments, with one window at a time. Request cancellation reaches the picker process; user cancellation returns null without registering a project. Unavailable pickers return native_unavailable (409); picker execution failures return native_unavailable (500). No directory capability or browsing endpoint remains. The picker only selects a folder; POST /api/workspaces registers it with an optional custom name after validation.
 
 ## Boundaries
 
-Directory browsing accesses the server's local filesystem; it is not file upload or remote file management. A registered directory supplies the working directory and the managed session's workspace-write boundary; the [core permission policy](../../../../coding-agent/src/docs/permissions.md) enforces file and Bash restrictions. Directory browsing itself remains a host operation. Session APIs accept project/session IDs, not arbitrary session file paths. Storage has no cross-process write lock; CLI and Web should not write the same session simultaneously.
+Folder selection accesses the server's local filesystem; it is not file upload or remote file management. A registered directory supplies the working directory and the managed session's workspace-write boundary; the [core permission policy](../../../../coding-agent/src/docs/permissions.md) enforces file and Bash restrictions. Folder selection itself remains a host operation. Session APIs accept project/session IDs, not arbitrary session file paths. Storage has no cross-process write lock; CLI and Web should not write the same session simultaneously.
 
 ## Source and Tests
 
 - [Project routes](../routes/projects.ts) / [HTTP tests](../router.test.ts).
 - [ProjectStore](../projects/project-store.ts) / [tests](../projects/project-store.test.ts).
 - [SessionRegistry](../session-registry.ts) / [removal and load-race tests](../session-registry.test.ts).
-- [Directory browsing](../directories/browse.ts) / [tests](../directories/browse.test.ts).
 - [Native picker](../directories/native-picker.ts) / [tests](../directories/native-picker.test.ts).

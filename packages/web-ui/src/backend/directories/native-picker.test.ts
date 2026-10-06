@@ -1,12 +1,13 @@
 import { expect, test } from "vitest";
 
-import { createNativePicker, directoryCapabilities } from "./native-picker";
+import { createNativePicker, nativePickerAvailable } from "./native-picker";
 
-test("native picker is restricted to local macOS; SSH and other systems browse", () => {
-  expect(directoryCapabilities("darwin", {})).toEqual({ native: true, preferred: "native" });
-  expect(directoryCapabilities("darwin", { SSH_TTY: "session" }).preferred).toBe("browse");
-  expect(directoryCapabilities("linux", {}).native).toBe(false);
-  expect(directoryCapabilities("win32", {}).native).toBe(false);
+test("native picker is available only on local macOS", () => {
+  expect(nativePickerAvailable("darwin", {})).toBe(true);
+  expect(nativePickerAvailable("darwin", { SSH_TTY: "session" })).toBe(false);
+  expect(nativePickerAvailable("darwin", { SSH_CONNECTION: "connection" })).toBe(false);
+  expect(nativePickerAvailable("linux", {})).toBe(false);
+  expect(nativePickerAvailable("win32", {})).toBe(false);
 });
 
 test("native picker treats cancellation as no selection and rejects concurrent windows", async () => {

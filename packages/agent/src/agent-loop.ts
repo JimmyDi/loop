@@ -213,7 +213,20 @@ async function executeTool(
 
     const tool = tools.find((item) => item.name === call.name);
 
-    if (!tool) throw new Error("Tool not found: " + call.name);
+    if (!tool) {
+      const names = tools.slice(0, 20).map((item) => item.name);
+      throw new Error(
+        "Tool not found: " +
+          call.name +
+          ". No tool was executed. " +
+          (names.length
+            ? "Available tools: " +
+              names.join(", ") +
+              (tools.length > names.length ? " (first 20)" : "") +
+              ". Use exact names from the current tool declarations."
+            : "No tools are currently available."),
+      );
+    }
 
     const parameters = validateToolArguments(tool, call);
 

@@ -31,6 +31,7 @@ The CLI is interactive by default. The SDK sample performs one request workflow 
 | Stream output and observe run completion | [Events](src/docs/events.md) |
 | Read, bash, edit, and write | [Tools](src/docs/tools.md) |
 | Configure MCP servers and discover external tools in the background | [MCP servers](src/docs/mcp.md) |
+| Discover and call tools through isolated JavaScript | [Codemode](src/docs/codemode.md) |
 | Install, discover, select and load task workflows | [Skills](src/docs/skills.md) |
 | Session permission presets and native file sandboxing | [Permissions](src/docs/permissions.md) |
 | Request, answer and cancel host approvals | [Approvals](src/docs/approvals.md) |

@@ -1,6 +1,6 @@
 # Context Budget
 
-Every main model request is assembled and checked in coding-agent before dispatch, including requests after tool results. The check counts the system prompt with project instructions, projected host runtime context, conversation content, tool calls/results, and enabled tool schemas. Agent keeps ordinary message history and its sequential tool loop.
+Every main model request is assembled and checked in coding-agent before dispatch, including requests after tool results. The check counts the system prompt with project instructions, projected host runtime context, conversation content, tool calls/results, and declared tool schemas. MCP schemas stay outside initial declarations and are counted as message content when emitted through Codemode. Agent keeps ordinary message history and its sequential tool loop.
 
 ## Usage
 

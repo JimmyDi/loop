@@ -18,6 +18,8 @@ test("instructions load parent-first, honor per-directory priority and can be di
     const prompt = await loadResources(nested, { systemPrompt: "CUSTOM_BASE" });
 
     expect(prompt).toContain("CUSTOM_BASE");
+    expect(prompt).toContain("<project_context>");
+    expect(prompt).toContain('<project_instructions path="' + join(dir, "AGENTS.md") + '">');
     expect(prompt.indexOf("PARENT_INSTRUCTION")).toBeLessThan(prompt.indexOf("CHILD_INSTRUCTION"));
     expect(prompt).not.toContain("IGNORED_INSTRUCTION");
     expect(await loadResources(nested, { noContextFiles: true })).not.toContain(

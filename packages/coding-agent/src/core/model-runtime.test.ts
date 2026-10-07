@@ -8,7 +8,7 @@ import {
   createProvider,
   createAssistantMessageEventStream,
 } from "@earendil-works/pi-ai";
-import type { AssistantMessage, Model } from "@earendil-works/pi-ai";
+import type { AssistantMessage, Context, Model } from "@earendil-works/pi-ai";
 
 import {
   createModelRuntime,
@@ -35,6 +35,7 @@ test("session dispatch emits budgets before the model, blocks overflow and respe
   };
   const budgets: ContextBudget[] = [];
   const order: string[] = [];
+  const captured: Context[] = [];
   const nativeStream = createAssistantMessageEventStream();
   const runtime: ModelRuntime = {
     getModel: () => model,
@@ -42,6 +43,7 @@ test("session dispatch emits budgets before the model, blocks overflow and respe
     checkModel: async () => {},
     streamSimple: (_model, context, options) => {
       order.push("model");
+      captured.push(structuredClone(context));
       expect(options?.maxTokens).toBe(512);
       expect(context.messages[1]?.content).toBe("Host context");
       return nativeStream;
@@ -59,6 +61,7 @@ test("session dispatch emits budgets before the model, blocks overflow and respe
   const context = { messages: [{ role: "user" as const, content: "hello", timestamp: 1 }] };
   expect(await dispatch(model, context)).toBe(nativeStream);
   expect(order).toEqual(["budget", "used", "model"]);
+  expect(captured[0]?.messages[1]?.content).toBe("Host context");
   expect(budgets[0]?.reservedOutputTokens).toBe(512);
   order.length = 0;
   expect(() =>
@@ -71,6 +74,7 @@ test("session dispatch emits budgets before the model, blocks overflow and respe
   controller.abort(new Error("Cancelled"));
   expect(() => dispatch(model, context, { signal: controller.signal })).toThrow("Cancelled");
   expect(order).toEqual([]);
+  expect(captured).toHaveLength(1);
   expect(context.messages).toHaveLength(1);
 });
 
@@ -229,6 +233,7 @@ test("custom protocols use native model streams with isolated endpoint credentia
     async fetch(request) {
       const body = await request.json();
       const path = new URL(request.url).pathname;
+      expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual(["read", "codemode"]);
       requests.push({
         path,
         key: request.headers.get("authorization") ?? request.headers.get("x-api-key"),
@@ -332,6 +337,10 @@ test("custom protocols use native model streams with isolated endpoint credentia
       await runtime.checkModel(model);
       const stream = await runtime.streamSimple(model, {
         messages: [{ role: "user", content: "test", timestamp: 1 }],
+        tools: [
+          { name: "read", description: "Read fixture", parameters: { type: "object" } },
+          { name: "codemode", description: "Run fixture script", parameters: { type: "object" } },
+        ],
       });
       const events: string[] = [];
       for await (const event of stream) events.push(event.type);
@@ -364,6 +373,11 @@ test("custom openai identity keeps its gateway and sends extended effort levels 
     port: 0,
     async fetch(request) {
       const body = await request.json();
+      if (body.tools) {
+        expect(
+          body.tools.map((tool: { function: { name: string } }) => tool.function.name),
+        ).toEqual(["read", "codemode"]);
+      }
       requests.push({
         path: new URL(request.url).pathname,
         auth: request.headers.get("authorization"),
@@ -392,6 +406,10 @@ test("custom openai identity keeps its gateway and sends extended effort levels 
     await runtime.checkModel(model);
     const stream = await runtime.streamSimple(model, {
       messages: [{ role: "user", content: "Test", timestamp: 1 }],
+      tools: [
+        { name: "read", description: "Read fixture", parameters: { type: "object" } },
+        { name: "codemode", description: "Run fixture script", parameters: { type: "object" } },
+      ],
     });
     expect((await stream.result()).stopReason).toBe("stop");
     for (const [id, reasoning] of [

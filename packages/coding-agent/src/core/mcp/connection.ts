@@ -18,6 +18,7 @@ import type { McpFailureCode, McpServerConfig } from "./types";
 
 export type McpConnection = {
   tools: Tool[];
+  instructions?: string;
   refresh(signal: AbortSignal): Promise<Tool[]>;
   call(
     name: string,
@@ -102,6 +103,7 @@ export const connectMcp: McpConnector = async (
     signal.throwIfAborted();
     return {
       tools,
+      instructions: client.getInstructions(),
       refresh: (refreshSignal) => readMcpToolCatalog(client, refreshSignal),
       close,
       call: async (name, args, callSignal) => {

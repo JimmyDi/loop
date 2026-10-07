@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { getAgentDir, McpManager } from "@loop/coding-agent";
+import { getAgentDir, McpManager, SkillManager } from "@loop/coding-agent";
 
 import { createLoopBridge } from "./loop";
 import { ProjectStore } from "./projects/project-store";
@@ -19,11 +19,13 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
   const providers = new ProviderSettings(join(agentDir, "web-ui", "provider.json"));
   const settings = new WebSettings(agentDir);
   const mcp = new McpManager(join(agentDir, "mcp.json"));
+  const skills = new SkillManager(agentDir);
+  skills.view(agentDir);
   const registry = new SessionRegistry(
     projects,
-    createLoopBridge(agentDir, providers, settings, mcp),
+    createLoopBridge(agentDir, providers, settings, mcp, skills),
   );
-  const route = createRouter(registry, providers, settings, mcp);
+  const route = createRouter(registry, providers, settings, mcp, skills);
   const assetsDir = options.assetsDir ?? fileURLToPath(new URL("./web/", import.meta.url));
   const server = createHttpServer((request) =>
     new URL(request.url).pathname.startsWith("/api/")
@@ -55,6 +57,7 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
           await registry.close();
         } finally {
           await mcp.close();
+          await skills.close();
           await vite?.close();
           await new Promise<void>((resolve, reject) => {
             server.close((error) => (error ? reject(error) : resolve()));
@@ -65,6 +68,7 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
     };
   } catch (error) {
     await mcp.close();
+    await skills.close();
     await vite?.close();
     await registry.close();
     server.closeAllConnections();

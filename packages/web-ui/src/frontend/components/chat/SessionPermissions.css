@@ -17,6 +17,9 @@
 }
 .permission-trigger[data-full-access="true"] {
   color: var(--permission-warning);
+}
+.permission-trigger.action-button:focus-visible {
+  outline: none;
   background: var(--surface-hover);
 }
 .permission-popover {

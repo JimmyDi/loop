@@ -6,10 +6,12 @@ import "./MessageFooter.css";
 export const MessageFooter = ({
   timestamp,
   text,
+  html,
   messageRole,
 }: {
   timestamp: number;
   text: string;
+  html?: string;
   messageRole: "user" | "assistant";
 }) => {
   const { t, i18n } = useTranslation();
@@ -25,6 +27,7 @@ export const MessageFooter = ({
       {text && (
         <CopyButton
           text={text}
+          html={html}
           label={t(messageRole === "user" ? "copyMessage" : "copyResponse")}
         />
       )}

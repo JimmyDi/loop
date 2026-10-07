@@ -3,10 +3,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Window } from "happy-dom";
 
 import { i18n } from "../../i18n/setup";
-import { PluginsSettings } from "./PluginsSettings";
+import { McpSettings } from "./McpSettings";
 import type { McpServerView } from "../../../shared/mcp";
 
-test("Plugins supports search, Add dropdown, persisted toggles, editing and deletion", async () => {
+test("MCPs supports search, Add dropdown, persisted toggles, editing and deletion", async () => {
   const window = new Window();
   const previous = {
     window: globalThis.window,
@@ -63,7 +63,7 @@ test("Plugins supports search, Add dropdown, persisted toggles, editing and dele
     const view = render(
       <QueryClientProvider client={client}>
         <div className="settings-content">
-          <PluginsSettings />
+          <McpSettings />
         </div>
       </QueryClientProvider>,
     );
@@ -76,7 +76,7 @@ test("Plugins supports search, Add dropdown, persisted toggles, editing and dele
     expect(requests[0]).toMatchObject({ method: "PATCH", body: { enabled: true } });
     expect(view.getByRole("switch").getAttribute("aria-checked")).toBe("true");
     expect(view.getByText("STDIO")).toBeTruthy();
-    expect(view.getByText(/Connected tools are available on your next message/)).toBeTruthy();
+    expect(view.container.querySelector(".mcp-server-list .plugin-list-hint")).toBeNull();
     for (const [status, label] of [
       ["queued", "Waiting for a connection slot…"],
       ["refreshing", "Refreshing tools…"],
@@ -102,7 +102,7 @@ test("Plugins supports search, Add dropdown, persisted toggles, editing and dele
     expect(view.getByText("No MCP servers yet. Add a server to get started.")).toBeTruthy();
     fireEvent.click(view.getByRole("button", { name: /Add/ }));
     expect(view.getByRole("menuitem", { name: "Add MCP server" })).toBeTruthy();
-    fireEvent.keyDown(view.getByRole("menuitem"), { key: "Escape" });
+    fireEvent.keyDown(view.getByRole("menuitem", { name: "Add MCP server" }), { key: "Escape" });
     expect(view.queryByRole("menu")).toBeNull();
     expect(document.activeElement).toBe(view.getByRole("button", { name: "Add" }));
     fireEvent.click(view.getByRole("button", { name: "Add" }));
@@ -111,7 +111,7 @@ test("Plugins supports search, Add dropdown, persisted toggles, editing and dele
     fireEvent.blur(addOption, { relatedTarget: document.body });
     fireEvent.click(addOption);
     expect(view.getByLabelText("Name")).toBeTruthy();
-    expect(view.getByRole("heading", { name: "Plugins" })).toBeTruthy();
+    expect(view.getByRole("heading", { name: "MCPs" })).toBeTruthy();
     expect(view.getByText("Manage MCPs")).toBeTruthy();
     expect((view.getByRole("searchbox") as HTMLInputElement).value).toBe("EXAMPLE");
     expect(view.getByRole("button", { name: "Add" }).hasAttribute("disabled")).toBe(true);

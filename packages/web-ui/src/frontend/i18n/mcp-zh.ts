@@ -13,7 +13,6 @@ export const mcpZh = {
   configure: "配置 {{name}}",
   enable: "启用 {{name}}",
   toolCount: "{{count}} 个工具",
-  availability: "连接在后台进行。已连接的工具将在发送下一条消息时可用。",
   status: {
     disabled: "已禁用",
     queued: "等待连接名额…",

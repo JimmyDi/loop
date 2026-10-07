@@ -38,94 +38,131 @@ test("ChatComposer renders the session state without unsupported controls", () =
   client.clear();
 });
 
-test("normal prompt delivery stays quiet and blocks duplicates while awaiting HTTP and SSE", async () => {
-  const { Window } = await import("happy-dom");
-  const { useWorkspace } = await import("../../state/workspace-store");
-  const { useRequests } = await import("../../state/request-store");
-  const window = new Window();
-  const previous = {
-    window: globalThis.window,
-    document: globalThis.document,
-    fetch: globalThis.fetch,
-  };
-  const workspace = useWorkspace.getState();
-  const requests = useRequests.getState();
-  Object.assign(globalThis, { window, document: window.document });
-  const { render, fireEvent, act, cleanup } = await import("@testing-library/react/pure");
-  const client = new QueryClient({
-    defaultOptions: { queries: { staleTime: Infinity, retry: false } },
-  });
-  client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
-  client.setQueryData(["models"], [snapshot.model]);
-  const response = Promise.withResolvers<Response>();
-  let submitted = 0;
-  globalThis.fetch = (async () => {
-    submitted++;
-    return response.promise;
-  }) as typeof fetch;
-  const composer = (current: SessionSnapshot, key: string) => (
-    <QueryClientProvider client={client}>
-      <ChatComposer key={key} snapshot={current} connected />
-    </QueryClientProvider>
-  );
-
-  try {
-    useWorkspace.setState({ drafts: { test: "Hello" }, images: {}, files: {} });
-    useRequests.setState({ pending: {} });
-    const current = {
-      ...snapshot,
-      operation: "idle" as const,
-      state: { ...snapshot.state, isRunning: false },
+test.each(["success", "error", "cancelled"] as const)(
+  "prompt delivery hides submitted skills during generation and settles on %s",
+  async (outcome) => {
+    const { Window } = await import("happy-dom");
+    const { useWorkspace } = await import("../../state/workspace-store");
+    const { useRequests } = await import("../../state/request-store");
+    const window = new Window();
+    const previous = {
+      window: globalThis.window,
+      document: globalThis.document,
+      fetch: globalThis.fetch,
     };
-    const ui = render(composer(current, "initial"));
-    fireEvent.click(ui.getByRole("button", { name: "Send message" }));
-    const expectWaiting = () => {
-      expect(ui.queryByText(/Delivery could not be confirmed/)).toBeNull();
-      expect(ui.queryByRole("button", { name: "Check and retry same request" })).toBeNull();
-      expect((ui.getByRole("button", { name: "Send message" }) as HTMLButtonElement).disabled).toBe(
-        true,
+    const workspace = useWorkspace.getState();
+    const requests = useRequests.getState();
+    Object.assign(globalThis, { window, document: window.document });
+    const { render, fireEvent, act, cleanup } = await import("@testing-library/react/pure");
+    const client = new QueryClient({
+      defaultOptions: { queries: { staleTime: Infinity, retry: false } },
+    });
+    client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
+    client.setQueryData(["models"], [snapshot.model]);
+    const response = Promise.withResolvers<Response>();
+    let submitted = 0;
+    globalThis.fetch = (async () => {
+      submitted++;
+      return response.promise;
+    }) as typeof fetch;
+    const composer = (current: SessionSnapshot, key: string) => (
+      <QueryClientProvider client={client}>
+        <ChatComposer key={key} snapshot={current} connected />
+      </QueryClientProvider>
+    );
+
+    try {
+      useWorkspace.setState({
+        drafts: { test: "Hello" },
+        images: {},
+        files: {},
+        skills: { test: [{ id: "exact-review-source", name: "Review" }] },
+      });
+      useRequests.setState({ pending: {} });
+      const current = {
+        ...snapshot,
+        operation: "idle" as const,
+        state: { ...snapshot.state, isRunning: false },
+      };
+      const ui = render(composer(current, "initial"));
+      expect(ui.getByText("Review").closest(".composer-skill-token")!.parentElement).toBe(
+        ui.getByRole("textbox").parentElement,
       );
-      expect(ui.getByRole("textbox").getAttribute("contenteditable")).toBe("false");
-      fireEvent.submit(ui.container.querySelector("form")!);
-      expect(submitted).toBe(1);
-    };
-    expectWaiting();
-    ui.rerender(composer(current, "switched-during-send"));
-    expectWaiting();
-    await act(async () => response.resolve(Response.json({ runId: "run" }, { status: 202 })));
-    expectWaiting();
-    ui.rerender(composer(current, "switched-after-acceptance"));
-    expectWaiting();
+      expect(ui.getByRole("textbox").textContent).toBe("Hello");
+      fireEvent.click(ui.getByRole("button", { name: "Send message" }));
+      expect(useRequests.getState().pending.test).toMatchObject({
+        text: "Hello",
+        skills: ["exact-review-source"],
+      });
+      const expectWaiting = () => {
+        expect(ui.getByText("Review").closest(".composer-skill-token")!).toBeTruthy();
+        expect(ui.getByRole("textbox").textContent).toBe("Hello");
+        expect(ui.queryByText(/Delivery could not be confirmed/)).toBeNull();
+        expect(ui.queryByRole("button", { name: "Check and retry same request" })).toBeNull();
+        expect(
+          (ui.getByRole("button", { name: "Send message" }) as HTMLButtonElement).disabled,
+        ).toBe(true);
+        expect(ui.getByRole("textbox").getAttribute("contenteditable")).toBe("false");
+        fireEvent.submit(ui.container.querySelector("form")!);
+        expect(submitted).toBe(1);
+      };
+      expectWaiting();
+      ui.rerender(composer(current, "switched-during-send"));
+      expectWaiting();
+      await act(async () => response.resolve(Response.json({ runId: "run" }, { status: 202 })));
+      expectWaiting();
+      ui.rerender(composer(current, "switched-after-acceptance"));
+      expectWaiting();
 
-    const request = useRequests.getState().pending.test!;
-    ui.rerender(composer({ ...snapshot, requestId: request.requestId }, "accepted"));
-    expect(ui.queryByText(/Delivery could not be confirmed/)).toBeNull();
-    expect(ui.getByRole("button", { name: "Stop generating" })).toBeTruthy();
-    ui.rerender(
-      composer(
-        {
-          ...current,
-          requestId: request.requestId,
-          state: { ...current.state, outcome: "success" },
+      const request = useRequests.getState().pending.test!;
+      const accepted = {
+        ...snapshot,
+        requestId: request.requestId,
+        state: {
+          ...snapshot.state,
+          messages: [{ role: "user" as const, content: "Hello", timestamp: 0 }],
         },
-        "accepted",
-      ),
-    );
-    expect(useRequests.getState().pending.test).toBeUndefined();
-    expect(ui.getByRole("textbox").textContent).toBe("");
-    act(() => useWorkspace.getState().draft("test", "Next message"));
-    expect((ui.getByRole("button", { name: "Send message" }) as HTMLButtonElement).disabled).toBe(
-      false,
-    );
-  } finally {
-    cleanup();
-    client.clear();
-    useWorkspace.setState(workspace, true);
-    useRequests.setState(requests, true);
-    Object.assign(globalThis, previous);
-    await window.happyDOM.close();
-  }
-});
+      };
+      ui.rerender(composer(accepted, "accepted"));
+      expect(ui.queryByText(/Delivery could not be confirmed/)).toBeNull();
+      expect(ui.getByRole("button", { name: "Stop generating" })).toBeTruthy();
+      expect(ui.queryByText("Review")).toBeNull();
+      expect(ui.getByRole("textbox").textContent).toBe("");
+      expect(ui.getByRole("textbox").getAttribute("data-empty")).toBe("true");
+      expect(useWorkspace.getState().skills.test).toEqual([
+        { id: "exact-review-source", name: "Review" },
+      ]);
+      expect(useRequests.getState().pending.test?.skills).toEqual(["exact-review-source"]);
+      ui.rerender(composer(accepted, "switched-during-generation"));
+      expect(ui.queryByText("Review")).toBeNull();
+      expect(ui.getByRole("textbox").textContent).toBe("");
+      ui.rerender(
+        composer(
+          {
+            ...current,
+            requestId: request.requestId,
+            state: { ...current.state, outcome },
+          },
+          "accepted",
+        ),
+      );
+      expect(useRequests.getState().pending.test).toBeUndefined();
+      expect(!!ui.queryByText("Review")).toBe(outcome !== "success");
+      expect(ui.getByRole("textbox").textContent).toBe(outcome === "success" ? "" : "Hello");
+      act(() => useWorkspace.getState().draft("test", "Next message"));
+      expect((ui.getByRole("button", { name: "Send message" }) as HTMLButtonElement).disabled).toBe(
+        false,
+      );
+    } finally {
+      cleanup();
+      client.clear();
+      useWorkspace.setState(workspace, true);
+      useRequests.setState(requests, true);
+      Object.assign(globalThis, previous);
+      await window.happyDOM.close();
+    }
+  },
+);
 
 test("new and switched composers focus drafts and restore focus after sending", async () => {
   const { Window } = await import("happy-dom");

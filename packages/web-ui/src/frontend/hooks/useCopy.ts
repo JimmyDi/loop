@@ -6,11 +6,22 @@ export const useCopy = () => {
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
-  const copy = async (text: string) => {
+  const copy = async (text: string, html?: string) => {
     clearTimeout(timer.current);
 
     try {
-      await navigator.clipboard.writeText(text);
+      if (html && typeof ClipboardItem !== "undefined" && navigator.clipboard.write) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              "text/plain": new Blob([text], { type: "text/plain" }),
+              "text/html": new Blob([html], { type: "text/html" }),
+            }),
+          ]);
+        } catch {
+          await navigator.clipboard.writeText(text);
+        }
+      } else await navigator.clipboard.writeText(text);
       setStatus("copied");
     } catch {
       setStatus("copyFailed");

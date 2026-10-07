@@ -21,9 +21,9 @@ export const McpServerRow = ({
 }: McpServerActions & { server: McpServerView }) => {
   const { t } = useTranslation();
   return (
-    <div className="mcp-server-row">
-      <div className="mcp-server-identity">
-        <span className="mcp-server-icon" aria-hidden="true">
+    <div className="mcp-server-row plugin-row">
+      <div className="mcp-server-identity plugin-row-identity">
+        <span className="plugin-row-icon" aria-hidden="true">
           <svg
             viewBox="0 0 24 24"
             width="24"
@@ -49,8 +49,18 @@ export const McpServerRow = ({
           </svg>
         </span>
         <div>
-          <strong>{server.name}</strong>
-          <div className="mcp-server-meta">
+          <strong title={server.name}>{server.name}</strong>
+          <div
+            className="mcp-server-meta plugin-row-meta"
+            title={
+              (server.transport === "stdio" ? "STDIO" : "Streamable HTTP") +
+              " · " +
+              t("mcp.status." + server.status) +
+              (server.status === "ready"
+                ? " · " + t("mcp.toolCount", { count: server.toolCount })
+                : "")
+            }
+          >
             <span className="mcp-server-transport">
               {server.transport === "stdio" ? "STDIO" : "Streamable HTTP"}
             </span>
@@ -63,7 +73,7 @@ export const McpServerRow = ({
           {server.error && <p className="mcp-server-error">{t("mcp.failure." + server.error)}</p>}
         </div>
       </div>
-      <div className="mcp-server-actions">
+      <div className="mcp-server-actions plugin-row-actions">
         {server.status === "error" && (
           <ActionButton className="ghost" disabled={pending} onClick={() => onRetry(server.id)}>
             {t("retry")}
@@ -79,7 +89,7 @@ export const McpServerRow = ({
         </ActionButton>
         <button
           type="button"
-          className="mcp-switch"
+          className="plugin-switch"
           role="switch"
           aria-label={t("mcp.enable", { name: server.name })}
           aria-checked={server.enabled}

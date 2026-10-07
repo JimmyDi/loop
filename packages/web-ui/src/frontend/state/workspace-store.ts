@@ -11,6 +11,9 @@ type WorkspaceState = {
   drafts: Record<string, string>;
   images: Record<string, PromptImage[]>;
   files: Record<string, PromptFile[]>;
+  skills: Record<string, Array<{ id: string; name: string }>>;
+  selectSkill(id: string, skill: { id: string; name: string }): void;
+  removeSkill(id: string, skillId?: string): void;
   attachFiles(id: string, files: PromptFile[]): void;
   attach(id: string, images: PromptImage[]): void;
   sidebar: boolean;
@@ -51,6 +54,34 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
   active,
   drafts,
   images: {},
+  skills: Object.fromEntries(
+    Object.entries(readPreference<Record<string, unknown>>("draftSkills", {}) ?? {}).filter(
+      (entry): entry is [string, Array<{ id: string; name: string }>] =>
+        Array.isArray(entry[1]) &&
+        entry[1].length <= 8 &&
+        entry[1].every(
+          (row) =>
+            row &&
+            typeof row.name === "string" &&
+            typeof row.id === "string" &&
+            /^[a-f0-9]{24}$/.test(row.id),
+        ),
+    ),
+  ),
+  selectSkill: (id, skill) =>
+    set((state) => ({
+      skills: {
+        ...state.skills,
+        [id]: [...(state.skills[id] ?? []).filter((row) => row.id !== skill.id), skill].slice(0, 8),
+      },
+    })),
+  removeSkill: (id, skillId) =>
+    set((state) => ({
+      skills: {
+        ...state.skills,
+        [id]: skillId ? (state.skills[id] ?? []).filter((row) => row.id !== skillId) : [],
+      },
+    })),
   files: {},
   attachFiles: (id, files) => set((state) => ({ files: { ...state.files, [id]: files } })),
   attach: (id, images) =>
@@ -68,6 +99,7 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
       drafts: { ...state.drafts, [from]: "", [to.id]: state.drafts[from] ?? "" },
       images: { ...state.images, [from]: [], [to.id]: state.images[from] ?? [] },
       files: { ...state.files, [from]: [], [to.id]: state.files[from] ?? [] },
+      skills: { ...state.skills, [from]: [], [to.id]: [] },
       draftProjects: { ...state.draftProjects, [to.id]: to.workspaceId },
       unselectedProjects: { ...state.unselectedProjects, [to.id]: false },
     })),
@@ -102,6 +134,9 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
         files: Object.fromEntries(
           Object.entries(state.files).filter(([key]) => !removed.includes(key)),
         ),
+        skills: Object.fromEntries(
+          Object.entries(state.skills).filter(([key]) => !removed.includes(key)),
+        ),
         draftProjects: Object.fromEntries(
           Object.entries(state.draftProjects).filter(([id]) => !removed.includes(id)),
         ),
@@ -116,6 +151,7 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
       drafts: Object.fromEntries(Object.entries(state.drafts).filter(([id]) => !ids.includes(id))),
       images: Object.fromEntries(Object.entries(state.images).filter(([id]) => !ids.includes(id))),
       files: Object.fromEntries(Object.entries(state.files).filter(([id]) => !ids.includes(id))),
+      skills: Object.fromEntries(Object.entries(state.skills).filter(([id]) => !ids.includes(id))),
       draftProjects: Object.fromEntries(
         Object.entries(state.draftProjects).filter(([id]) => !ids.includes(id)),
       ),
@@ -130,6 +166,7 @@ useWorkspace.subscribe((state, previous) => {
   if (state.active !== previous.active) writePreference("activeSession", state.active ?? null);
 
   if (state.drafts !== previous.drafts) writePreference("drafts", state.drafts);
+  if (state.skills !== previous.skills) writePreference("draftSkills", state.skills);
 
   if (state.draftProjects !== previous.draftProjects)
     writePreference("draftProjects", state.draftProjects);

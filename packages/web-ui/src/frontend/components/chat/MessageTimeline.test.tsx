@@ -298,3 +298,63 @@ test("reopened history shows phase updates, tools and final replies without exec
     await window.happyDOM.close();
   }
 });
+
+test("saved skill selections appear only in their associated user message", async () => {
+  const window = new Window();
+  const messages: Message[] = [
+    { role: "user", content: "First request", timestamp: 0 },
+    {
+      role: "toolResult",
+      toolName: "read",
+      toolCallId: "example",
+      content: [{ type: "text", text: "Example result" }],
+      isError: false,
+      timestamp: 0,
+    },
+    { role: "user", content: "Second request", timestamp: 1 },
+    { role: "user", content: "Review is plain text", timestamp: 2 },
+  ];
+  const skill = {
+    id: "review-personal",
+    name: "Review",
+    path: "skills/review/SKILL.md",
+    revision: "saved-revision",
+    content: "Saved review instructions",
+  };
+  const historical: SessionSnapshot = {
+    ...snapshot,
+    operation: "idle",
+    state: {
+      ...snapshot.state,
+      isRunning: false,
+      messages,
+      skillLoads: [
+        { userTurn: 0, skills: [skill] },
+        { userTurn: 1, skills: [{ ...skill, id: "review-project" }, skill] },
+      ],
+    },
+  };
+  try {
+    for (const state of [historical, structuredClone(historical)]) {
+      window.document.body.innerHTML = renderToStaticMarkup(
+        <MessageTimeline snapshot={state} connected />,
+      );
+      const bubbles = window.document.querySelectorAll(".user-message-text");
+      expect(bubbles).toHaveLength(3);
+      expect(bubbles[0]?.querySelectorAll(".user-message-skill")).toHaveLength(1);
+      expect(bubbles[1]?.querySelectorAll(".user-message-skill")).toHaveLength(2);
+      expect(bubbles[2]?.querySelectorAll(".user-message-skill")).toHaveLength(0);
+      expect(bubbles[0]?.lastChild?.textContent).toBe("First request");
+      expect(bubbles[1]?.lastChild?.textContent).toBe("Second request");
+      expect(bubbles[2]?.textContent).toBe("Review is plain text");
+      expect(window.document.querySelectorAll("details")).toHaveLength(0);
+      expect(window.document.body.textContent).not.toContain("Loaded skill");
+      expect(window.document.body.textContent).not.toContain(skill.path);
+      expect(window.document.body.textContent).not.toContain(skill.content);
+      expect(window.document.body.textContent).not.toContain(skill.revision);
+    }
+    expect(historical.state.messages).toEqual(messages);
+  } finally {
+    await window.happyDOM.close();
+  }
+});

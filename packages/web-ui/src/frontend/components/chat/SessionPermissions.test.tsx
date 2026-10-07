@@ -133,7 +133,23 @@ test("permission menu requires modal confirmation and keeps the saved preset aft
     ui.rerender(<Editor current={full} />);
     const fullTrigger = ui.getByRole("button", { name: "Session permissions: Full access" });
     expect(fullTrigger.getAttribute("data-full-access")).toBe("true");
+    fullTrigger.focus();
     fireEvent.click(fullTrigger);
+    expect(document.activeElement).toBe(fullTrigger);
+    expect(ui.getByRole("menu").contains(document.activeElement)).toBe(false);
+    expect(ui.getByRole("menuitemradio", { name: /^Read only/ }).getAttribute("aria-checked")).toBe(
+      "false",
+    );
+    expect(
+      ui.getByRole("menuitemradio", { name: /^Full access/ }).getAttribute("aria-checked"),
+    ).toBe("true");
+    fireEvent.keyDown(fullTrigger, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(ui.getByRole("menuitemradio", { name: /^Read only/ }));
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    expect(ui.queryByRole("menu")).toBeNull();
+    expect(document.activeElement).toBe(fullTrigger);
+    fireEvent.click(fullTrigger);
+    expect(document.activeElement).toBe(fullTrigger);
     fireEvent.click(ui.getByRole("menuitemradio", { name: /^Workspace write/ }));
     expect(ui.queryByRole("dialog")).toBeNull();
     await act(async () => {

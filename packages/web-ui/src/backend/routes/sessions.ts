@@ -107,11 +107,19 @@ export const sessionRoutes =
 
       const images = body.images ?? [];
       const files = body.files ?? [];
+      const skills = body.skills ?? [];
+      if (
+        !Array.isArray(skills) ||
+        skills.length > 8 ||
+        skills.some((id) => typeof id !== "string" || !/^[a-f0-9]{24}$/.test(id))
+      )
+        throw new HttpError(400, "invalid_skill_selection");
       if (!validImages(images)) throw new HttpError(400, "invalid_images");
       if (!validTextFiles(files)) throw new HttpError(400, "invalid_text_files");
       if (typeof body.text !== "string" || (!body.text.trim() && !images.length && !files.length))
         throw new HttpError(400, "invalid_text");
-      const runId = controller.prompt(requestId, body.text, images, files);
+      await controller.prepareSkills(requestId, skills as string[], request.signal);
+      const runId = controller.prompt(requestId, body.text, images, files, skills as string[]);
 
       return Response.json({ runId }, { status: 202 });
     }

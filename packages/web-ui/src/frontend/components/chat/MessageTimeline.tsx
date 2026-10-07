@@ -58,11 +58,20 @@ export const MessageTimeline = ({
             );
             const key = `${snapshot.sessionId}:${turn.index}`;
 
-            if (turn.type === "user")
+            if (turn.type === "user") {
+              const skills =
+                snapshot.state.skillLoads?.find(
+                  (row) =>
+                    row.userTurn ===
+                    messages.slice(0, turn.index).filter((message) => message.role === "user")
+                      .length,
+                )?.skills ?? [];
               return (
                 <Fragment key={key}>
                   <UserMessage
                     message={turn.message}
+                    skills={skills}
+                    workspaceId={snapshot.workspaceId}
                     ref={turn.index === userMessageIndex ? scroll.userMessageRef : undefined}
                   />
                   {snapshot.operation === "prompt" &&
@@ -73,6 +82,7 @@ export const MessageTimeline = ({
                     turns[position + 1]?.type !== "assistant" && <PromptDuration timing={timing} />}
                 </Fragment>
               );
+            }
 
             return (
               <AssistantTurn

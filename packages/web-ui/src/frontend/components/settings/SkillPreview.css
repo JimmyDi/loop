@@ -1,0 +1,6 @@
+.skill-preview { display: grid; gap: 12px; }
+.skill-preview > div { border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.skill-preview label { display: flex; align-items: center; gap: 8px; }
+.skill-preview p { color: var(--ink-muted); }
+.skill-preview pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; font: inherit; }
+.skill-preview details { margin-top: 8px; }

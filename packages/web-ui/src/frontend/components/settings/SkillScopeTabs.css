@@ -1,0 +1,11 @@
+.skill-scope-control { position: relative; display: flex; align-items: center; flex: 1; min-width: 0; gap: 4px; }
+.skill-scope-tabs { display: flex; align-items: center; min-width: 0; gap: 4px; }
+.skill-scope-measurements { position: absolute; display: flex; gap: 4px; width: 0; overflow: hidden; visibility: hidden; pointer-events: none; contain: layout; }
+.skill-scope-tab, .skill-scope-more { display: block; flex-shrink: 0; box-sizing: border-box; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px 14px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-muted); font: inherit; font-size: 13px; line-height: 20px; }
+.skill-scope-tab { cursor: pointer; }
+.skill-scope-more { display: grid; place-items: center; width: 36px; padding-inline: 0; cursor: pointer; }
+.skill-scope-tabs .skill-scope-tab:first-child { flex-shrink: 1; min-width: 0; }
+.skill-scope-tab[aria-selected="true"], .skill-scope-more[data-selected="true"], button.skill-scope-tab:hover:not(:disabled), button.skill-scope-more:hover:not(:disabled) { background: var(--surface-subtle); color: var(--ink); }
+.skill-scope-control button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.skill-scope-control button:disabled { opacity: 0.5; cursor: not-allowed; }
+@container (max-width: 400px) { .skill-scope-tab { max-width: 160px; padding-inline: 12px; } }

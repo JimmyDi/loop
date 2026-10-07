@@ -12,6 +12,8 @@ import type { ApprovalEvent, ApprovalRequest } from "../approvals/types";
 import type { PromptTiming } from "../prompt-timing";
 import type { ContextBudget } from "../context-budget";
 import type { McpManager } from "../mcp/mcp-manager";
+import type { SkillManager } from "../skills/skill-manager";
+import type { LoadedSkill } from "../skills/types";
 
 export type SessionEvent =
   | (AgentEvent & { toolDisplayName?: string })
@@ -19,6 +21,7 @@ export type SessionEvent =
   | { type: "agent_settled" }
   | { type: "prompt_timing"; timing: PromptTiming }
   | { type: "context_budget"; budget: ContextBudget }
+  | { type: "skills_loaded"; userTurn: number; skills: LoadedSkill[] }
   | { type: "permission_changed"; permissionPreset: PermissionPreset }
   | { type: "session_title"; title: SessionTitle; error?: string };
 
@@ -39,6 +42,7 @@ export type SessionState = {
   contextBudget?: ContextBudget;
   permissionPreset?: PermissionPreset;
   pendingApprovals?: ApprovalRequest[];
+  skillLoads?: Array<{ userTurn: number; skills: LoadedSkill[] }>;
 };
 
 export type SessionOptions = {
@@ -48,6 +52,8 @@ export type SessionOptions = {
   systemPrompt: string;
   tools: AgentTool[];
   mcpManager?: McpManager;
+  skillManager?: SkillManager;
+  ownsSkillManager?: boolean;
   maxTurns?: number;
   effort?: ModelEffort;
   title?: SessionTitleOptions;

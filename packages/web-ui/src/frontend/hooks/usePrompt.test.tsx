@@ -39,9 +39,10 @@ test("large attachments are submitted intact and API failures preserve drafts fo
       drafts: { context: "Review" },
       files: { context: files },
       images: { context: images },
+      skills: { context: [{ id: "a".repeat(24), name: "Review" }] },
     });
     useRequests.setState({ pending: {} });
-    const bodies: { requestId: string; files: typeof files }[] = [];
+    const bodies: { requestId: string; files: typeof files; skills: string[] }[] = [];
     globalThis.fetch = (async (_url, init) => {
       bodies.push(JSON.parse(String(init?.body)));
       return bodies.length === 1
@@ -51,6 +52,10 @@ test("large attachments are submitted intact and API failures preserve drafts fo
     const { result } = renderHook(() => usePrompt(snapshot));
     await act(() => result.current.submit());
     expect(bodies[0]?.files).toEqual(files);
+    expect(bodies[0]?.skills).toEqual(["a".repeat(24)]);
+    expect(useWorkspace.getState().skills.context).toEqual([
+      { id: "a".repeat(24), name: "Review" },
+    ]);
     expect(result.current.error).toMatchObject({ code: "session_busy" });
     expect(result.current.text).toBe("Review");
     expect(result.current.files).toEqual(files);
@@ -107,6 +112,8 @@ test("lost prompt response preserves draft and retries the same identity", async
 
     useRequests.setState({ pending: {} });
     useWorkspace.getState().draft("s", "hello");
+    const skill = { id: "b".repeat(24), name: "Review" };
+    useWorkspace.getState().selectSkill("s", skill);
     const images = [{ type: "image" as const, mimeType: "image/png", data: "AAAA" }];
     useWorkspace.getState().attach("s", images);
     const files = [{ name: "example.ts", text: "const x = 1;" }];
@@ -131,6 +138,7 @@ test("lost prompt response preserves draft and retries the same identity", async
     expect(result.current.text).toBe("hello");
     expect(result.current.images).toEqual(images);
     expect(result.current.files).toEqual(files);
+    expect(useWorkspace.getState().skills.s).toEqual([skill]);
     act(() => useWorkspace.getState().attachFiles("s", []));
     expect(result.current.files).toEqual(files);
     await act(() => result.current.submit(true));
@@ -140,6 +148,7 @@ test("lost prompt response preserves draft and retries the same identity", async
     const request = JSON.parse(requests[0]!);
     expect(request.images).toEqual(images);
     expect(request.files).toEqual(files);
+    expect(request.skills).toEqual([skill.id]);
 
     rerender({
       value: {

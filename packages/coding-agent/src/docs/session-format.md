@@ -27,7 +27,7 @@ The exported `SessionHeader` contains:
 | `title` | Optional `SessionTitle`: text, source, source message indices, and optional model identity. See [session titles](session-titles.md). |
 | permissionPreset | Required: read-only, workspace-write or danger-full-access. Invalid values reject. |
 | promptTimings | Optional completed PromptTiming[] with ordered userMessageIndex, startedAt and finishedAt in Unix milliseconds. Invalid indices or timestamps reject. See [prompt duration](sessions.md#prompt-duration). |
-| runtimeContexts | Optional RuntimeContextSnapshot[]: zero-based userTurn ordinal, rendered content and timestamp in Unix milliseconds. See [runtime context](runtime-context.md). |
+| runtimeContexts | Optional RuntimeContextSnapshot[]: zero-based userTurn ordinal, rendered content, timestamp in Unix milliseconds and optional skills with loaded identities, source paths, instruction texts, revisions and optional descriptions. See [runtime context](runtime-context.md). |
 
 Omitted effort uses Default. Unknown effort values reject; supported levels depend on model metadata. The header stores no API key or endpoint. Reconfigure those through [model runtime](models.md) when restoring a session.
 

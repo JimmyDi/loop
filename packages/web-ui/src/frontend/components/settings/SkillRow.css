@@ -1,0 +1,6 @@
+@import "./PluginRow.css";
+
+.skill-row-info { min-width: 0; flex: 1; display: flex; gap: 10px; align-items: center; padding: 0; text-align: left; border: 0; background: transparent; color: var(--ink); cursor: pointer; font: inherit; }
+.skill-row-text { min-width: 0; flex: 1; }
+.skill-row-description { display: block; margin-top: 2px; color: var(--ink-muted); font-size: 12px; line-height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.skill-row-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 8px; }

@@ -87,8 +87,10 @@ export const SettingsNavigation = ({
                         <circle cx="17" cy="17" r="3" />
                         <path d="M17 12v2m0 6v2m-5-5h2m6 0h2m-8.5-3.5 1.4 1.4m4.2 4.2 1.4 1.4m-7 0 1.4-1.4m4.2-4.2 1.4-1.4" />
                       </>
-                    ) : item === "plugins" ? (
-                      <path d="M9 6c-1-4 7-4 6 0h4a1 1 0 0 1 1 1v3c4-1 4 7 0 6v3a1 1 0 0 1-1 1h-5c1-4-7-4-6 0H5a1 1 0 0 1-1-1v-5c4 1 4-7 0-6V7a1 1 0 0 1 1-1h4Z" />
+                    ) : item === "mcps" ? (
+                      <path d="M9 7V2m6 5V2M6 7h12M7 7v5a5 5 0 0 0 10 0V7m-5 10v5" />
+                    ) : item === "skills" ? (
+                      <path d="M14 3H5v18h14V8l-5-5Z M14 3v5h5M8 12h8M8 16h6" />
                     ) : item === "appearance" ? (
                       <>
                         <circle cx="12" cy="12" r="4" />
@@ -99,7 +101,7 @@ export const SettingsNavigation = ({
                     )}
                   </svg>
                 )}
-                {t(item)}
+                {t(item === "skills" ? "skills.title" : item)}
               </ActionButton>
             ))}
           </div>

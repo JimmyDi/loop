@@ -1,10 +1,12 @@
 import { projectsZh } from "./projects-zh";
+import { skillsZh } from "./skills-zh";
 import { permissionsZh } from "./permissions-zh";
 
 export const zh = {
   integrations: "集成",
-  plugins: "插件",
+  mcps: "MCPs",
   mcp: mcpZh,
+  skills: skillsZh,
   ...projectsZh,
   permissions: permissionsZh,
   projects: "项目",

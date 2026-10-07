@@ -1,0 +1,6 @@
+.installed-skills { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.installed-skills > h4 { margin: 0; padding: 0 12px 14px; border-bottom: 1px solid var(--line); font-size: 14px; font-weight: 500; line-height: 20px; }
+.installed-skills-more { justify-self: start; margin: 4px 12px 0; padding: 4px 0; border: 0; border-radius: 4px; background: transparent; color: var(--ink-muted); font: inherit; font-size: 12px; cursor: pointer; }
+.installed-skills-more:hover { color: var(--ink); }
+.installed-skills-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+@container (max-width: 400px) { .installed-skills > h4 { padding-inline: 4px; } .installed-skills-more { margin-inline: 4px; } }

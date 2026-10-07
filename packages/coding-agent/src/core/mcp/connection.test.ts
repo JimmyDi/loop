@@ -22,7 +22,7 @@ lines.on("line", (line) => {
   const request = JSON.parse(line);
   if (request.id === undefined) return;
   let result;
-  if (request.method === "initialize") result = { protocolVersion: request.params.protocolVersion, capabilities: { tools: {} }, serverInfo: { name: "fixture", version: "1" } };
+  if (request.method === "initialize") result = { protocolVersion: request.params.protocolVersion, capabilities: { tools: {} }, serverInfo: { name: "fixture", version: "1" }, instructions: "Read synthetic fixture files." };
   else if (request.method === "tools/list") result = { tools: [{ name: "example", description: "Catalog " + (++catalogs), inputSchema: { type: "object", properties: { value: { type: "string" } }, required: ["value"] } }] };
   else if (request.method === "tools/call") result = { content: [{ type: "text", text: JSON.stringify({ value: request.params.arguments.value, env: process.env.LOOP_MCP_SYNTHETIC, cwd: process.cwd() }) }] };
   process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: request.id, result }) + String.fromCharCode(10));
@@ -52,6 +52,7 @@ lines.on("line", (line) => {
   try {
     expect(initialize.mock.calls[0]![1]).toMatchObject({ timeout: 120_000 });
     expect(connection.tools[0]!.name).toBe("example");
+    expect(connection.instructions).toBe("Read synthetic fixture files.");
     const result = await connection.call("example", { value: "input" }, controller.signal);
     expect(result[0]).toMatchObject({ type: "text" });
     if (result[0]?.type !== "text") throw new Error();

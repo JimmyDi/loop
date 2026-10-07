@@ -3,6 +3,7 @@ import {
   createProvider,
   envApiKeyAuth,
   getSupportedThinkingLevels,
+  validateToolArguments,
 } from "@earendil-works/pi-ai";
 import type { Api, Model, Models } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completions.lazy";
@@ -10,7 +11,7 @@ import { openAIResponsesApi } from "@earendil-works/pi-ai/api/openai-responses.l
 import { anthropicMessagesApi } from "@earendil-works/pi-ai/api/anthropic-messages.lazy";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 
-import type { StreamFn } from "@loop/agent";
+import type { AgentTool, StreamFn } from "@loop/agent";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../config";
 import type { ProviderCatalogEntry, ProviderRuntimeConfig } from "./models/provider-config";
 import type { ModelEffort } from "./models/model-effort";
@@ -18,6 +19,14 @@ import { ContextBudgetExceededError } from "./context-budget";
 import type { ContextBudget } from "./context-budget";
 import { assembleModelRequest } from "./model-request";
 import type { RuntimeContextSnapshot } from "./runtime-context";
+
+/** Nested tool calls use the same runtime validation as direct Agent calls. */
+export const validateSessionToolArguments = (
+  tool: AgentTool,
+  args: Record<string, unknown>,
+  id: string,
+): Record<string, unknown> =>
+  validateToolArguments(tool, { type: "toolCall", id, name: tool.name, arguments: args });
 
 /** Assemble and check every main request, including sequential tool continuations. */
 export const createSessionStreamFn = (

@@ -603,7 +603,8 @@ test("late title updates publish outside a run, replay on reconnect, and support
     tools: [],
     title: { mode: "first-prompt" },
     modelRuntime: runtime((_model, context) => {
-      if (context.systemPrompt !== "Main" && !generated) {
+      const isMainRequest = context.systemPrompt?.startsWith("Main") === true;
+      if (!isMainRequest && !generated) {
         generated = true;
         return titleStream;
       }
@@ -611,7 +612,7 @@ test("late title updates publish outside a run, replay on reconnect, and support
       stream.push({
         type: "done",
         reason: "stop",
-        message: answer(context.systemPrompt === "Main" ? "Main answer" : "Generated title"),
+        message: answer(isMainRequest ? "Main answer" : "Generated title"),
       });
       return stream;
     }),
@@ -627,6 +628,10 @@ test("late title updates publish outside a run, replay on reconnect, and support
     controller.prompt("title-request", "Example task");
     await waitFor(() => !controller.busy && generated);
     expect(controller.snapshot.state.messages).toHaveLength(2);
+    expect(controller.snapshot.state.messages[1]).toMatchObject({
+      role: "assistant",
+      content: [{ type: "text", text: "Main answer" }],
+    });
     const beforeTitle = changes.length;
     titleStream.push({ type: "done", reason: "stop", message: answer("Generated title") });
     await session.waitForTitle();

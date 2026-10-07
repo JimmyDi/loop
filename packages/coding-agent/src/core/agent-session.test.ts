@@ -102,7 +102,7 @@ test("MCP discovery cannot block prompts; ready tools join the next prompt and e
     permissionPreset: "danger-full-access",
     modelRuntime: runtime((_model, context) => {
       requests.push(structuredClone(context));
-      const external = context.tools?.find((tool) => tool.name.startsWith("mcp_"));
+      const external = context.tools?.find((tool) => tool.name === "codemode");
       return stream(
         requests.length === 2 && external
           ? answer(
@@ -112,7 +112,9 @@ test("MCP discovery cannot block prompts; ready tools join the next prompt and e
                   type: "toolCall",
                   id: "mcp-call",
                   name: external.name,
-                  arguments: { value: "input" },
+                  arguments: {
+                    code: 'const found = await searchTools("example", {namespace: "fixture"}); const result = await tools[found[0].name]({value: "input"}); text(result.content);',
+                  },
                 },
               ],
               "toolUse",
@@ -147,13 +149,20 @@ test("MCP discovery cannot block prompts; ready tools join the next prompt and e
     );
     await session.prompt("First prompt while MCP is connecting");
     expect(requests[0]!.tools?.map((tool) => tool.name)).toEqual(["read", "load_skill"]);
+    expect(requests[0]!.systemPrompt).toContain("<tool_usage>");
+    expect(requests[0]!.systemPrompt).toContain('["read","load_skill"]');
+    expect(requests[0]!.systemPrompt).not.toContain("- mcp_");
+    expect(requests[0]!.systemPrompt).not.toContain("<mcp_servers>");
     ready.resolve({
+      instructions: "Read synthetic fixture data.\nAdditional instructions stay on the server.",
       tools: [
         {
           name: "example",
           inputSchema: {
             type: "object",
-            properties: { value: { type: "string" } },
+            properties: {
+              value: { type: "string", description: "deferred-schema-fixture ".repeat(1000) },
+            },
             required: ["value"],
           },
         },
@@ -165,30 +174,65 @@ test("MCP discovery cannot block prompts; ready tools join the next prompt and e
     await vi.waitFor(() => expect(manager.tools(directory)).toHaveLength(1));
     await session.prompt("Use the newly ready MCP");
     expect(requests[1]!.tools).toHaveLength(3);
+    expect(requests[1]!.tools?.map((tool) => tool.name)).toEqual([
+      "read",
+      "load_skill",
+      "codemode",
+    ]);
+    expect(requests[1]!.systemPrompt).not.toContain("Complete direct-call tool names");
+    expect(requests[1]!.systemPrompt).not.toContain("- read:");
+    expect(requests[1]!.systemPrompt).toContain('["read","load_skill","codemode"]');
+    expect(requests[1]!.systemPrompt).toContain(
+      "exact literal name field of each tool declaration (tools[].name)",
+    );
+    expect(requests[1]!.systemPrompt).toContain(
+      "Never add, remove or rewrite namespaces or prefixes such as functions.",
+    );
+    expect(requests[1]!.tools?.find((tool) => tool.name === "read")).toMatchObject({
+      description: expect.any(String),
+      parameters: expect.objectContaining({ type: "object" }),
+    });
+    expect(requests[1]!.systemPrompt).toContain(
+      "multi_tool_use.parallel is NOT a registered tool in this run",
+    );
+    expect(requests[1]!.tools!.some((tool) => tool.name.startsWith("mcp_"))).toBe(false);
+    expect(JSON.stringify(requests[1])).not.toContain("deferred-schema-fixture");
+    const external = manager.tools(directory)[0]!;
+    expect(requests[1]!.systemPrompt).toContain(
+      "- fixture (Fixture; codemode): Read synthetic fixture data.",
+    );
+    expect(requests[1]!.systemPrompt).toContain("<mcp_servers>");
+    expect(requests[1]!.systemPrompt).not.toContain(external.name);
+    expect(requests[1]!.systemPrompt).not.toContain("Additional instructions");
+    expect(requests[2]!.systemPrompt).toBe(requests[1]!.systemPrompt);
     expect(dispatched).toHaveBeenCalledWith("example", { value: "input" }, expect.any(AbortSignal));
     expect(
       session.state.messages.some(
         (message) =>
           message.role === "toolResult" &&
           message.content.some(
-            (item) => item.type === "text" && item.text === "synthetic MCP result",
+            (item) => item.type === "text" && item.text.includes("synthetic MCP result"),
           ),
       ),
     ).toBe(true);
     expect(session.state.contextBudget?.fits).not.toBe(false);
-    expect(labels).toEqual(["Fixture · example"]);
+    expect(labels).toEqual(["Codemode"]);
     const result = session.sessionManager.messages.find((message) => message.role === "toolResult");
-    expect(result).toMatchObject({ details: { loopDisplayName: "Fixture · example" } });
+    expect(result).toMatchObject({ details: { loopDisplayName: "Codemode" } });
     const restored = await SessionManager.open(storage.sessionFile!);
     expect(restored.messages.find((message) => message.role === "toolResult")).toMatchObject({
       toolName: result?.role === "toolResult" ? result.toolName : undefined,
-      details: { loopDisplayName: "Fixture · example" },
+      details: { loopDisplayName: "Codemode" },
     });
     await manager.setEnabled("fixture", false);
     await session.prompt("Next prompt with MCP disabled");
     expect(requests.at(-1)!.tools?.map((tool) => tool.name)).toEqual(["read", "load_skill"]);
+    expect(requests.at(-1)!.systemPrompt).not.toContain("- " + external.name);
+    expect(requests.at(-1)!.systemPrompt).not.toContain("<mcp_servers>");
+    expect(requests.at(-1)!.systemPrompt).not.toContain("Complete direct-call tool names");
+    expect(requests.at(-1)!.systemPrompt).not.toContain("codemode");
     expect(session.state.messages.find((message) => message.role === "toolResult")).toMatchObject({
-      details: { loopDisplayName: "Fixture · example" },
+      details: { loopDisplayName: "Codemode" },
     });
   } finally {
     await session.abort();
@@ -1205,11 +1249,20 @@ test("MCP calls follow live session permissions across preset changes", async ()
       mcpManager: manager,
       permissionPreset: preset,
       modelRuntime: runtime((_model, context) => {
-        const external = context.tools?.find((tool) => tool.name.startsWith("mcp_"));
+        const external = context.tools?.find((tool) => tool.name === "codemode");
         return stream(
           context.messages.at(-1)?.role === "user" && external
             ? answer(
-                [{ type: "toolCall", id: "call", name: external.name, arguments: {} }],
+                [
+                  {
+                    type: "toolCall",
+                    id: "call",
+                    name: external.name,
+                    arguments: {
+                      code: 'const found = await searchTools("example"); text(await tools[found[0].name]({}));',
+                    },
+                  },
+                ],
                 "toolUse",
               )
             : answer(),
@@ -1296,7 +1349,20 @@ test("explicit and automatic skills preserve instructions in durable history wit
       systemPrompt: "Base",
     });
     session = result.session;
+    await skills.refresh(session.sessionManager.getCwd());
     await session.prompt("Review the source");
+    expect(requests[0]?.systemPrompt).toContain("Base\n\n<cwd>");
+    expect(requests[0]?.systemPrompt).toContain("<tool_usage>");
+    expect(requests[0]?.systemPrompt).toContain('["load_skill"]');
+    expect(requests[0]?.systemPrompt).not.toContain("- load_skill:");
+    expect(requests[0]?.tools?.map((tool) => tool.name)).toEqual(["load_skill"]);
+    expect(requests[0]?.systemPrompt).toContain("<skills>\nSkills provide task-specific");
+    expect(requests[0]?.systemPrompt).toContain(
+      "- " + skill.handle + " (example, project): Review source",
+    );
+    expect(requests[0]?.systemPrompt).toContain("</skills>");
+    expect(JSON.stringify(requests[0]?.messages)).not.toContain("Available skills (host-provided)");
+    expect(requests[1]?.systemPrompt).toBe(requests[0]?.systemPrompt);
     expect(JSON.stringify(requests[0])).not.toContain("Unique original instructions");
     expect(JSON.stringify(requests[1])).toContain("Unique original instructions");
     expect(session.state.messages.some((message) => message.role === "toolResult")).toBe(true);
@@ -1306,15 +1372,26 @@ test("explicit and automatic skills preserve instructions in durable history wit
     expect(loaded.map((row) => row.userTurn)).toEqual([1, 2]);
     await writeFile(
       path,
-      "---\nname: example\ndescription: Review source\n---\nUpdated instructions.",
+      "---\nname: example\ndescription: Review updated source\n---\nUpdated instructions.",
     );
     const restored = await SessionManager.open(storage.sessionFile!);
     expect(restored.getRuntimeContexts().filter((row) => row.skills?.length)).toHaveLength(2);
     expect(JSON.stringify(restored.getRuntimeContexts())).toContain("Unique original instructions");
     expect(JSON.stringify(restored.getRuntimeContexts())).not.toContain("Updated instructions");
+    expect(JSON.stringify(restored.getRuntimeContexts())).not.toContain(
+      "Available skills (host-provided)",
+    );
+    await skills.refresh(session.sessionManager.getCwd());
+    await session.prompt("Use the latest catalog");
+    expect(requests.at(-1)?.systemPrompt).toContain("Review updated source");
+    expect(requests.at(-1)?.systemPrompt).not.toContain("Updated instructions.");
+    expect(JSON.stringify(requests.at(-1)?.messages)).toContain("Unique original instructions");
     await skills.toggle(root, skill.id, false);
     await expect(session.validateSkillSelection([skill.id])).rejects.toThrow("unavailable");
-    expect(session.state.messages).toEqual(restored.messages);
+    await session.prompt("Check disabled availability");
+    expect(requests.at(-1)?.systemPrompt).not.toContain("- " + skill.handle + " (");
+    expect(requests.at(-1)?.systemPrompt).toContain("No skills are currently available");
+    expect(JSON.stringify(requests.at(-1)?.messages)).toContain("Unique original instructions");
   } finally {
     session?.dispose();
     await skills.close();

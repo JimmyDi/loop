@@ -97,6 +97,7 @@ test("discovery is nonblocking, bounded and rejects stale results after disable/
   const close = vi.fn(async () => {});
   const connection: McpConnection = {
     tools: [{ name: "example", inputSchema: { type: "object", properties: {} } }],
+    instructions: "Synthetic service summary",
     close,
     refresh: async () => [],
     call: async () => [],
@@ -111,6 +112,7 @@ test("discovery is nonblocking, bounded and rejects stale results after disable/
       "queued",
     ]);
     expect(manager.tools(directory)).toEqual([]);
+    expect(manager.snapshot(directory)).toEqual({ tools: [], servers: [] });
     await manager.setEnabled("one", false);
     expect(attempts[0]!.signal.aborted).toBe(true);
     await vi.waitFor(() => expect(attempts).toHaveLength(4));
@@ -118,8 +120,22 @@ test("discovery is nonblocking, bounded and rejects stale results after disable/
     await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
     attempts[1]!.ready.resolve({ ...connection, close: async () => {} });
     await vi.waitFor(() => expect(manager.tools(directory)).toHaveLength(1));
+    const snapshot = manager.snapshot(directory);
+    expect(snapshot.servers).toEqual([
+      {
+        id: "two",
+        name: "two",
+        instructions: "Synthetic service summary",
+        toolNames: snapshot.tools.map((tool) => tool.name),
+      },
+    ]);
+    snapshot.servers[0]!.name = "Mutated view";
+    snapshot.servers[0]!.toolNames.length = 0;
+    expect(manager.snapshot(directory).servers[0]!.name).toBe("two");
+    expect(manager.snapshot(directory).servers[0]!.toolNames).toHaveLength(1);
     const oldTool = manager.tools(directory)[0]!;
     await manager.setEnabled("two", false);
+    expect(manager.snapshot(directory)).toEqual({ tools: [], servers: [] });
     await expect(oldTool.execute({}, new AbortController().signal)).rejects.toThrow();
     await manager.close();
     expect(attempts.every((attempt) => attempt.signal.aborted)).toBe(true);
@@ -206,11 +222,15 @@ test("catalog changes automatically refresh while invalidating old tool snapshot
     const tool = manager.tools(directory)[0]!;
     notifications[0]!("catalog");
     expect(manager.tools(directory)).toEqual([]);
+    expect(manager.snapshot(directory).servers).toEqual([]);
     await vi.waitFor(async () =>
       expect((await manager.list())[0]).toMatchObject({ status: "ready", toolCount: 1 }),
     );
     await expect(tool.execute({}, new AbortController().signal)).rejects.toThrow();
     expect(manager.tools(directory)[0]!.description).toContain("updated");
+    expect(manager.snapshot(directory).servers[0]!.toolNames).toEqual(
+      manager.tools(directory).map((tool) => tool.name),
+    );
     expect(notifications).toHaveLength(1);
     manager.retry("example");
     await vi.waitFor(() => expect(manager.tools(directory)).toHaveLength(1));

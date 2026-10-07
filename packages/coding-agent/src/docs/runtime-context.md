@@ -39,7 +39,7 @@ runtime context: workspace-write
 assistant/tool history 3
 ```
 
-Without explicit skill selections, unchanged rendered permission and skill-catalog text adds no new snapshot. Tool continuations reuse the same snapshot at the same position; permission changes append after earlier history. Earlier snapshots remain intact to preserve the request prefix and the policy described during previous work. This improves cache stability but does not guarantee a provider cache hit. Context text still consumes tokens, and distinct changes accumulate until history is discarded; Loop has no compaction.
+Without explicit skill selections, unchanged rendered permission text adds no new snapshot. Tool continuations reuse the same snapshot at the same position; permission changes append after earlier history. Earlier snapshots remain intact to preserve the message prefix and the policy described during previous work. This improves cache stability but does not guarantee a provider cache hit. Tool and Skill catalog changes can separately change the system prompt on the next run. Context text still consumes tokens, and distinct changes accumulate until history is discarded; Loop has no compaction.
 
 ## Storage and lifecycle
 
@@ -55,7 +55,7 @@ Restoring a session reuses the exact stored snapshot text, timestamp and positio
 
 Runtime snapshots do not enter `session.state.messages`, user message events, title generation, conversation counts, or history positions. CLI and Web continue to display actual user and assistant messages. A custom `ModelRuntime.streamSimple` receives the projected model request, including runtime context; its message count can therefore differ from the session's conversation count. Title requests use their own context and do not receive permission snapshots.
 
-The same path carries the budgeted [skill catalog and explicit instruction snapshots](skills.md). The user-role envelope does not grant authority; tool policy remains authoritative. Custom system-prompt replacement still replaces the base instructions only, as described in [context files](context-files.md).
+The same path carries [explicit Skill instruction snapshots](skills.md). New runs place the budgeted metadata catalog in the system prompt's `<skills>` section instead of runtime messages. Older saved catalog text is retained for replay; the current system catalog explicitly governs new loads. The user-role envelope does not grant authority; tool policy remains authoritative. Custom system-prompt replacement still replaces the base instructions only, as described in [context files](context-files.md).
 
 ## Source
 

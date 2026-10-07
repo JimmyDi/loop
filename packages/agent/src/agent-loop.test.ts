@@ -264,6 +264,77 @@ test("missing tools, invalid arguments and thrown tool errors become model-visib
   expect(requests).toBe(2);
 });
 
+test("an undeclared parallel wrapper cannot dispatch nested calls and reports current tool names", async () => {
+  const history: Message[] = [];
+  const executions: string[] = [];
+  let requests = 0;
+
+  await runAgentLoop("Use the available tool", history, {
+    model,
+    tools: [
+      tool((args) => {
+        executions.push(String(args.text));
+        return [{ type: "text", text: String(args.text) }];
+      }),
+    ],
+    streamFn: (_model, context) => {
+      expect(context.tools?.map((item) => item.name)).toEqual(["echo"]);
+      requests++;
+      if (requests === 1) {
+        return stream(
+          answer([
+            call("wrapper", "multi_tool_use.parallel", {
+              tool_uses: [{ recipient_name: "echo", parameters: { text: "blocked" } }],
+            }),
+          ]),
+        );
+      }
+      if (requests === 2) {
+        const result = context.messages.at(-1)!;
+        expect(result).toMatchObject({
+          role: "toolResult",
+          toolCallId: "wrapper",
+          toolName: "multi_tool_use.parallel",
+          isError: true,
+        });
+        expect(JSON.stringify(result.content)).toContain("No tool was executed");
+        expect(JSON.stringify(result.content)).toContain("Available tools: echo");
+        expect(executions).toEqual([]);
+        return stream(answer([call("corrected", "echo", { text: "allowed" })]));
+      }
+      return stream(answer());
+    },
+  });
+
+  expect(requests).toBe(3);
+  expect(executions).toEqual(["allowed"]);
+  expect(history.filter((item) => item.role === "toolResult")).toHaveLength(2);
+});
+
+test("unknown tool errors keep a large registry bounded and describe empty registries", async () => {
+  for (const count of [0, 25]) {
+    let requests = 0;
+    await runAgentLoop("Try an unavailable tool", [], {
+      model,
+      tools: Array.from({ length: count }, (_, index) => ({
+        ...tool(() => {
+          throw new Error("An unknown tool must not execute");
+        }),
+        name: "fixture_" + index,
+      })),
+      streamFn: (_model, context) => {
+        if (++requests === 1) return stream(answer([call("unknown", "missing")]));
+        const text = JSON.stringify(context.messages.at(-1)!.content);
+        expect(text).toContain(
+          count ? "fixture_19 (first 20)" : "No tools are currently available",
+        );
+        expect(text).not.toContain("fixture_20");
+        return stream(answer());
+      },
+    });
+  }
+});
+
 test("passes validated/coerced parameters to tools and preserves image content", async () => {
   const history: Message[] = [];
   let requests = 0;

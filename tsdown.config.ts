@@ -11,5 +11,8 @@ export default defineConfig({
   outputOptions: { comments: { legal: true, annotation: false, jsdoc: false } },
   fixedExtension: false,
   clean: true,
-  deps: { alwaysBundle: [/^@loop\//], neverBundle: ["vite", "@hono/node-server", "which"] },
+  deps: {
+    alwaysBundle: [/^@loop\//],
+    neverBundle: ["vite", "@hono/node-server", "which", "@earendil-works/pi-codemode"],
+  },
 });

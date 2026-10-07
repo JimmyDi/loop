@@ -31,9 +31,10 @@ import type { ContextBudget } from "./context-budget";
 import { withToolDisplayName } from "./tool-display";
 import type { PermissionTool } from "./approvals/tool-approvals";
 import { createSkillTool } from "./skills/skill-tool";
-import { renderSkillCatalog, SKILL_USAGE_RULES } from "./skills/catalog-context";
 import type { LoadedSkill } from "./skills/types";
 import { resolveSkillSelection } from "./skills/selection";
+import { buildCapabilityPrompt } from "./capability-prompt";
+import { createCodemodeTool } from "./codemode/tool";
 
 export class AgentSession {
   private listeners = new Set<SessionEventListener>();
@@ -480,15 +481,12 @@ export class AgentSession {
         if (!manager) throw new Error("Skills are unavailable in this session");
         loaded.push(await manager.load(cwd, id, signal, true));
       }
-      const catalog = manager
-        ? renderSkillCatalog(manager.view(cwd).skills, this.selected.contextWindow).content
-        : "";
+      const skills = manager?.view(cwd).skills;
       const userTurn = messages.filter((message) => message.role === "user").length;
       const preparedContexts = prepareRuntimeContexts(
         runtimeContexts,
         [
           buildPermissionContext(this.permissionPreset, cwd),
-          catalog,
           ...loaded.map((skill) => skill.content),
         ]
           .filter(Boolean)
@@ -496,11 +494,16 @@ export class AgentSession {
         userTurn,
         loaded,
       );
-      const tools = [
+      const mcp = this.options.mcpManager?.snapshot(cwd);
+      const ordinaryTools = [
         ...this.options.tools,
-        ...(this.options.mcpManager?.tools(this.sessionManager.getCwd()) ?? []),
         ...(manager ? [createSkillTool(manager, cwd)] : []),
       ];
+      if (mcp?.tools.length && ordinaryTools.some((tool) => tool.name === "codemode"))
+        throw new Error("The codemode tool name is reserved while MCP tools are available");
+      const tools = mcp?.tools.length
+        ? [...ordinaryTools, createCodemodeTool([...ordinaryTools, ...mcp.tools], mcp.servers)]
+        : ordinaryTools;
       this.toolDisplayNames = new Map(
         tools.flatMap((tool: PermissionTool) =>
           tool.displayName ? [[tool.name, tool.displayName] as const] : [],
@@ -509,7 +512,13 @@ export class AgentSession {
       this.agent = new Agent({
         model: this.selected,
         messages,
-        systemPrompt: this.options.systemPrompt + (manager ? "\n\n" + SKILL_USAGE_RULES : ""),
+        systemPrompt: buildCapabilityPrompt({
+          systemPrompt: this.options.systemPrompt,
+          tools,
+          skills,
+          mcpServers: mcp?.servers,
+          contextWindow: this.selected.contextWindow,
+        }),
         tools:
           this.options.permissionPolicy || this.options.mcpManager
             ? this.toolApprovals.bind(tools)

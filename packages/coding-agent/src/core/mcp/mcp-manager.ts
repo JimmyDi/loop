@@ -21,6 +21,18 @@ type Entry = {
   setup?: boolean;
 };
 
+export type McpPromptServer = {
+  id: string;
+  name: string;
+  instructions?: string;
+  toolNames: string[];
+};
+
+export type McpToolSnapshot = {
+  tools: AgentTool[];
+  servers: McpPromptServer[];
+};
+
 /** Shared application resource owner. Starting discovery never waits for a server. */
 export class McpManager {
   private entries = new Map<string, Entry>();
@@ -92,20 +104,32 @@ export class McpManager {
   }
 
   tools(workspaceRoot: string): AgentTool[] {
-    return [...this.entries.values()].flatMap((entry) =>
-      entry.status === "ready" && entry.connection
-        ? createMcpTools(
-            entry.config,
-            entry.connection,
-            entry.catalog.signal,
-            () =>
-              this.entries.get(entry.config.id) === entry &&
-              entry.status === "ready" &&
-              !this.disposed,
-            workspaceRoot,
-          )
-        : [],
-    );
+    return this.snapshot(workspaceRoot).tools;
+  }
+
+  /** Capture ready service summaries and their callable tools together without waiting. */
+  snapshot(workspaceRoot: string): McpToolSnapshot {
+    const snapshot: McpToolSnapshot = { tools: [], servers: [] };
+    for (const entry of this.entries.values()) {
+      if (entry.status !== "ready" || !entry.connection) continue;
+      const tools = createMcpTools(
+        entry.config,
+        entry.connection,
+        entry.catalog.signal,
+        () =>
+          this.entries.get(entry.config.id) === entry && entry.status === "ready" && !this.disposed,
+        workspaceRoot,
+      );
+      if (!tools.length) continue;
+      snapshot.tools.push(...tools);
+      snapshot.servers.push({
+        id: entry.config.id,
+        name: entry.config.name,
+        instructions: entry.connection.instructions,
+        toolNames: tools.map((tool) => tool.name),
+      });
+    }
+    return snapshot;
   }
 
   async close(): Promise<void> {

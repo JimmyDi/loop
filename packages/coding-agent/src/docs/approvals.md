@@ -61,6 +61,8 @@ Public exports include `ApprovalInput`, `ApprovalOperation`, `ApprovalRequestOpt
 
 The core observes each sequential tool-start event to bind the actual tool call ID, then captures the validated arguments before execution. The execution context allows one approval request and expires when that call ends. Neither a model-supplied request ID nor an allowed-once result passed as a tool argument can create authority. The lower Agent loop remains unchanged.
 
+[Codemode](codemode.md) calls use a host-only nested bridge. Each child gets an independent context with its actual tool name, validated arguments and a child ID derived from the parent call. Approvals remain per operation, including exact MCP tool/session grants. Scripts cannot access approval contexts. The bridge expires with the parent; script lifetime cancellation also cancels pending child approvals and calls.
+
 | Operation kind | Review data and approved scope |
 | --- | --- |
 | `file-write` | Validated write/edit arguments, canonical workspace and target path, and before/after SHA-256 digests. Allows one exact replacement, including required parent-directory creation and a temporary sibling for atomic replacement. A null before digest means the target did not exist. |

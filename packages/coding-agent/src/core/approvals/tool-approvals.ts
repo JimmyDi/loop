@@ -9,6 +9,12 @@ import type {
 /** Host-only execution context, passed separately from model-provided arguments. */
 export type ToolApprovalContext = {
   arguments: Record<string, unknown>;
+  /** Host-only bridge; scripts receive results, never this context or tool executors. */
+  executeNested?: (
+    tool: AgentTool,
+    args: Record<string, unknown>,
+    signal: AbortSignal,
+  ) => Promise<Awaited<ReturnType<AgentTool["execute"]>>>;
   request: (
     operation: ApprovalOperation,
     reason: string,
@@ -50,29 +56,50 @@ export class ToolApprovals {
         const call = this.call;
         this.call = undefined;
         if (!call || call.name !== tool.name) throw new Error("Tool call context is unavailable");
-        const parameters = structuredClone(args);
-        let active = true;
-        let requested = false;
-        try {
-          return await tool.execute(parameters, signal, {
-            arguments: structuredClone(parameters),
-            request: (operation, reason, operationSignal, options) => {
-              signal.throwIfAborted();
-              if (!active || requested) throw new Error("Approval call context has expired");
-              requested = true;
-              return this.request(
-                { toolCallId: call.id, toolName: call.name, reason, operation },
-                {
-                  ...options,
-                  signal: operationSignal ? AbortSignal.any([signal, operationSignal]) : signal,
-                },
-              );
-            },
-          });
-        } finally {
-          active = false;
-        }
+        return this.execute(tool, args, signal, call.id);
       },
     }));
+  }
+
+  private async execute(
+    tool: PermissionTool,
+    args: Record<string, unknown>,
+    signal: AbortSignal,
+    id: string,
+  ): Promise<Awaited<ReturnType<AgentTool["execute"]>>> {
+    const parameters = structuredClone(args);
+    let active = true;
+    let requested = false;
+    let nested = 0;
+    try {
+      signal.throwIfAborted();
+      return await tool.execute(parameters, signal, {
+        arguments: structuredClone(parameters),
+        executeNested: (child, childArgs, childSignal) => {
+          signal.throwIfAborted();
+          if (!active) throw new Error("Approval call context has expired");
+          return this.execute(
+            child,
+            childArgs,
+            AbortSignal.any([signal, childSignal]),
+            id + "/" + ++nested,
+          );
+        },
+        request: (operation, reason, operationSignal, options) => {
+          signal.throwIfAborted();
+          if (!active || requested) throw new Error("Approval call context has expired");
+          requested = true;
+          return this.request(
+            { toolCallId: id, toolName: tool.name, reason, operation },
+            {
+              ...options,
+              signal: operationSignal ? AbortSignal.any([signal, operationSignal]) : signal,
+            },
+          );
+        },
+      });
+    } finally {
+      active = false;
+    }
   }
 }

@@ -33,7 +33,7 @@ Only declarations enter the model request. Each returned tool call is matched by
 
 Calls execute sequentially in the order returned by the assistant. Each result retains its `toolCallId` and `toolName`. After the batch, the model receives both the assistant tool calls and their results.
 
-Unknown tools, invalid arguments, and execution exceptions become `isError: true` results. The model may then recover in another turn. Cancellation takes priority and prevents a new request.
+Unknown tools, invalid arguments, and execution exceptions become `isError: true` results. Unknown calls dispatch nothing; their error lists up to 20 currently registered names (or states that none are available) and directs the model to current declarations. Wrapper-shaped arguments never authorize or dispatch child calls. The model may then recover in another turn. Cancellation takes priority and prevents a new request.
 
 ## Boundaries
 

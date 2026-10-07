@@ -48,13 +48,13 @@
 }
 .composer-project-remove {
   position: absolute;
-  left: 10px;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 1;
-  width: 20px;
-  height: 20px;
-  min-height: 20px;
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
   padding: 0;
   border-radius: 50%;
   background: light-dark(#858789, #8c9097);
@@ -62,8 +62,8 @@
   opacity: 0;
 }
 .composer-project-remove > svg {
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   stroke-width: 1.7;
 }
 .composer-project-pill:hover .composer-project-remove,

@@ -37,6 +37,11 @@ export const applyEvent = (
     next.state.permissionPreset = event.permissionPreset;
   } else if (event.type === "context_budget") {
     next.state.contextBudget = event.budget;
+  } else if (event.type === "skills_loaded") {
+    next.state.skillLoads = [
+      ...(next.state.skillLoads ?? []).filter((row) => row.userTurn !== event.userTurn),
+      { userTurn: event.userTurn, skills: event.skills },
+    ];
   } else if (event.type === "prompt_timing") {
     next.state.promptTimings = [
       ...(next.state.promptTimings ?? []).filter(

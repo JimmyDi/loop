@@ -1,11 +1,13 @@
 import { projectsEn } from "./projects-en";
 import { permissionsEn } from "./permissions-en";
 import { mcpEn } from "./mcp-en";
+import { skillsEn } from "./skills-en";
 
 export const en = {
   integrations: "Integrations",
-  plugins: "Plugins",
+  mcps: "MCPs",
   mcp: mcpEn,
+  skills: skillsEn,
   ...projectsEn,
   permissions: permissionsEn,
   projects: "Projects",

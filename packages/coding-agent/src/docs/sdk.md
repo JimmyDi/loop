@@ -4,7 +4,7 @@ The SDK embeds Loop in a Node.js 24+ application. Installed consumers import fro
 
 ## Minimal call
 
-Run this TypeScript example from the project root with [model credentials](models.md) configured. It makes a real model request, disables tools, and keeps messages in memory.
+Run this TypeScript example from the project root with [model credentials](models.md) configured. It makes a real model request, disables built-in tools, and keeps messages in memory.
 
 ```typescript
 import { createAgentSession, messageText, SessionManager } from "@loop/coding-agent";
@@ -44,6 +44,7 @@ That sample enables coding tools and runs once before exiting. Without an argume
 | `model` | Explicit model configuration, overriding a saved/default selection. |
 | `tools` | Array of built-in tool names; defaults to read, bash, edit, write. Empty disables built-ins. |
 | `mcpManager` | Optional shared MCP manager; snapshots its ready tools at each prompt. The host owns cleanup. |
+| `skillManager` | Optional shared skill manager owned by the host; otherwise the SDK creates one. See [skills](skills.md). |
 | permissionPreset | Trusted-host choice of read-only, workspace-write or danger-full-access. Overrides saved/default selection; see [permissions](permissions.md). |
 | `sessionManager` | Existing, restored, or in-memory history. Without one, create a persistent session. |
 | `systemPrompt` | Replace base instructions while retaining cwd and discovered context files. |
@@ -59,7 +60,8 @@ An explicit cwd must match the manager's canonical cwd. The factory resolves ser
 
 | Method | Behavior |
 | --- | --- |
-| `prompt(content: PromptContent): Promise<void>` | Complete the Agent loop and attempt history persistence. Returns no assistant value. |
+| `prompt(content: PromptContent, options?: { skills?: string[] }): Promise<void>` | Complete the Agent loop and attempt history persistence, optionally loading exact skill identities. Returns no assistant value. |
+| `validateSkillSelection(ids, signal?): Promise<void>` | Validate explicit selections without making a model request. |
 | `subscribe(listener)` | Receive [session events](events.md); returns unsubscribe. |
 | `abort(): Promise<void>` | Signal the run and wait for execution/save finalization. |
 | `waitForIdle(): Promise<void>` | Wait without cancelling. Swallows activity failures; not a success check. |
@@ -93,7 +95,7 @@ The public messageText helper concatenates text blocks in order, excludes thinki
 
 Use [sessions](sessions.md) for storage and replacement through `AgentSessionRuntime`. On a failed save, retain the live session, repair storage, and call `flush()` before disposing it. The in-memory example above has no disk-save recovery requirement.
 
-Hosts can supply a shared `mcpManager` to add ready external tools to each prompt; see [MCP servers](mcp.md) for lifecycle, session permission enforcement and memory-only session tool grants. Loop does not expose `session.agent`, steering, follow-up, queues, compaction, extensions, skills, or RPC.
+Hosts can supply a shared `mcpManager` to add ready external tools to each prompt; see [MCP servers](mcp.md) for lifecycle, session permission enforcement and memory-only session tool grants. [Skills](skills.md) add workflows through background metadata discovery and on-demand loading. Loop does not expose `session.agent`, steering, follow-up, queues, compaction, extensions, or RPC.
 
 ## Source
 

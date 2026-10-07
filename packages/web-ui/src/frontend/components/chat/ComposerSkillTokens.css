@@ -1,0 +1,5 @@
+.composer-skill-token { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 0; color: light-dark(#2984d6, #8ab4ff); font: inherit; font-size: 14px; line-height: 1.6; cursor: default; }
+.composer-skill-token svg { width: 18px; height: 18px; flex-shrink: 0; }
+.composer-skill-token span { min-width: 0; overflow-wrap: anywhere; text-align: left; }
+.composer-skill-token[data-disabled="true"] { opacity: 0.6; }
+@media (max-width: 767px) { .composer-skill-token { font-size: 16px; } }

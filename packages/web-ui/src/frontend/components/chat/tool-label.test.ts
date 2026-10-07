@@ -15,6 +15,18 @@ test("MCP rows display server and full tool name while retaining the internal na
   );
   expect(tool.name).toBe("mcp_internal_hash");
 });
+
+test("skill loads display workflow names and do not claim failed calls succeeded", () => {
+  const tool = {
+    id: "load",
+    name: "load_skill",
+    args: { handle: "example-" + "a".repeat(24) },
+    status: "success" as const,
+  };
+  const t = i18n.getFixedT("en");
+  expect(toolLabel(tool, t).text).toBe("Loaded skill · example");
+  expect(toolLabel({ ...tool, status: "error" }, t).text).toBe("Load skill · example");
+});
 test("tool labels keep streamed targets literal and distinguish execution from success", () => {
   const t = i18n.getFixedT("en");
   expect(

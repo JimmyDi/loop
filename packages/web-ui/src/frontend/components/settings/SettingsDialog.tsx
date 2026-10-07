@@ -6,7 +6,8 @@ import { Modal } from "../ui/Modal";
 import { GeneralSettings } from "./GeneralSettings";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { ModelsSettings } from "./ModelsSettings";
-import { PluginsSettings } from "./PluginsSettings";
+import { McpSettings } from "./McpSettings";
+import { SkillsSettings } from "./SkillsSettings";
 import { ArchivedChats } from "./ArchivedChats";
 import { SettingsNavigation } from "./SettingsNavigation";
 import { settingsGroups } from "./settings-sections";
@@ -44,8 +45,10 @@ export const SettingsDialog = ({ onClose }: { onClose(): void }) => {
                   <ModelsSettings />
                 ) : item === "appearance" ? (
                   <AppearanceSettings />
-                ) : item === "plugins" ? (
-                  <PluginsSettings />
+                ) : item === "mcps" ? (
+                  <McpSettings />
+                ) : item === "skills" ? (
+                  <SkillsSettings onUse={onClose} />
                 ) : (
                   <ArchivedChats onOpen={onClose} />
                 ))}

@@ -1,0 +1,7 @@
+@import "./PluginList.css";
+@import "./IntegrationSettings.css";
+
+.skills-settings { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; padding: 6px 8px 12px; font-size: 13px; }
+.skill-filters { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+.skill-refresh { flex-shrink: 0; }
+@container (max-width: 400px) { .skills-settings { padding-inline: 0; gap: 24px; } }

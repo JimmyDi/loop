@@ -21,6 +21,7 @@ export const usePrompt = (snapshot: SessionSnapshot, hasProject = true) => {
   const draftFiles = useWorkspace((state) => state.files[id] ?? EMPTY_FILES);
   const files = request ? (request.files ?? EMPTY_FILES) : draftFiles;
   const [error, setError] = useState<unknown>();
+  const draftSkills = useWorkspace((state) => state.skills[id]);
   const unconfirmed = !!request && request.requestId !== snapshot.requestId;
   const pending =
     !!request &&
@@ -51,6 +52,7 @@ export const usePrompt = (snapshot: SessionSnapshot, hasProject = true) => {
     }
 
     useRequests.getState().put(id);
+    if (snapshot.state.outcome === "success") useWorkspace.getState().removeSkill(id);
     if (
       snapshot.state.outcome === "success" &&
       JSON.stringify(draftImages) === JSON.stringify(request.images ?? [])
@@ -87,6 +89,7 @@ export const usePrompt = (snapshot: SessionSnapshot, hasProject = true) => {
       streamId: snapshot.streamId,
       ...(images.length ? { images } : {}),
       ...(files.length ? { files } : {}),
+      ...(draftSkills?.length ? { skills: draftSkills.map((skill) => skill.id) } : {}),
     };
 
     useRequests.getState().put(id, next, "sending");
@@ -114,6 +117,7 @@ export const usePrompt = (snapshot: SessionSnapshot, hasProject = true) => {
         text: next.text,
         images: next.images,
         files: next.files,
+        skills: next.skills,
       });
       useRequests.getState().markDelivery(id, next.requestId, "accepted");
     } catch (error) {
@@ -134,6 +138,7 @@ export const usePrompt = (snapshot: SessionSnapshot, hasProject = true) => {
   };
 
   return {
+    submitted: completedText,
     text: completedText ? "" : text,
     images: completedText ? EMPTY_IMAGES : images,
     files: completedText ? EMPTY_FILES : files,

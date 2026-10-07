@@ -1,0 +1,31 @@
+.plugin-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; }
+.plugin-list > .plugin-list-hint, .plugin-list > .plugin-list-empty { grid-column: 1 / -1; }
+
+.plugin-list-controls { padding-inline: 12px; }
+
+.plugin-list-empty {
+  margin: 28px 0;
+  padding: 32px 20px;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+  color: var(--ink-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.plugin-list-hint {
+  margin: 18px 12px 0;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@container (max-width: 400px) {
+  .plugin-list-controls { padding-inline: 4px; }
+  .plugin-list-hint { margin-inline: 4px; }
+}
+
+@container (max-width: 480px) {
+  .plugin-list { grid-template-columns: minmax(0, 1fr); }
+}

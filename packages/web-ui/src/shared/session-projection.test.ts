@@ -45,6 +45,18 @@ test("cumulative drafts replace rather than append and full snapshots replace hi
   });
   expect(permitted.state.permissionPreset).toBe("read-only");
   expect(initial.state.permissionPreset).toBeUndefined();
+  const skills = [
+    {
+      id: "example",
+      name: "example",
+      path: "skills/example/SKILL.md",
+      content: "Historical instructions",
+      revision: "first",
+    },
+  ];
+  const loaded = applyEvent(initial, { type: "skills_loaded", userTurn: 0, skills });
+  expect(loaded.state.skillLoads).toEqual([{ userTurn: 0, skills }]);
+  expect(initial.state.skillLoads).toBeUndefined();
   const budget = {
     provider: "test",
     model: "test",

@@ -1,6 +1,6 @@
 export const settingsGroups = [
   { label: "personal", items: ["general", "models", "appearance"] },
-  { label: "integrations", items: ["plugins"] },
+  { label: "integrations", items: ["mcps", "skills"] },
   { label: "archived", items: ["archivedChats"] },
 ] as const;
 

@@ -4,7 +4,15 @@ import { useCopy } from "../../hooks/useCopy";
 import { ActionButton } from "./ActionButton";
 import "./CopyButton.css";
 
-export const CopyButton = ({ text, label }: { text: string; label?: string }) => {
+export const CopyButton = ({
+  text,
+  html,
+  label,
+}: {
+  text: string;
+  html?: string;
+  label?: string;
+}) => {
   const { t } = useTranslation();
   const { status, copy } = useCopy();
   const description = status === "copy" ? (label ?? t("copy")) : t(status);
@@ -12,7 +20,7 @@ export const CopyButton = ({ text, label }: { text: string; label?: string }) =>
   return (
     <ActionButton
       className="copy-button ghost"
-      onClick={() => void copy(text)}
+      onClick={() => void copy(text, html)}
       aria-label={description}
       title={description}
     >

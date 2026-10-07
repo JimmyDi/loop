@@ -41,6 +41,10 @@ test("mixed saved attachments show filename pills, extensions and safely escaped
   const image = { type: "image" as const, mimeType: "image/png", data: "AAAA" };
   const html = renderToStaticMarkup(
     <UserMessage
+      skills={[
+        { id: "review-source", name: "Review" },
+        { id: "escaped-source", name: "<script>skill</script>" },
+      ]}
       message={{ role: "user", timestamp: 0, content: promptContent("Review", [image], files) }}
     />,
   );
@@ -61,8 +65,28 @@ test("mixed saved attachments show filename pills, extensions and safely escaped
       [...pills].map((pill) => pill.querySelector(".text-file-extension")?.textContent),
     ).toEqual([".html", ".md", ".py"]);
     expect(window.document.querySelectorAll(".user-images img")).toHaveLength(1);
-    expect(window.document.querySelector(".user-message-text")?.textContent).toBe("Review");
+    const bubble = window.document.querySelector(".user-message-text")!;
+    const skills = bubble.querySelectorAll(".user-message-skill");
+    expect([...skills].map((skill) => skill.textContent)).toEqual([
+      "Review",
+      "<script>skill</script>",
+    ]);
+    expect(skills[0]?.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+    expect(bubble.lastChild?.textContent).toBe("Review");
+    expect(bubble.querySelectorAll("button")).toHaveLength(2);
   } finally {
     await window.happyDOM.close();
   }
+});
+
+test("skill-only user messages retain a bubble and copy action", () => {
+  const message = { role: "user" as const, content: "", timestamp: 0 };
+  const html = renderToStaticMarkup(
+    <UserMessage message={message} skills={[{ id: "review", name: "Review" }]} />,
+  );
+  expect(html).toContain('class="user-message-text"');
+  expect(html).toContain('class="user-message-skill"');
+  expect(html).toContain("Review");
+  expect(html).toContain("Copy");
+  expect(message.content).toBe("");
 });

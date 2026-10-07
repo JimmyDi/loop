@@ -30,6 +30,10 @@ import type { PromptTiming } from "./prompt-timing";
 import type { ContextBudget } from "./context-budget";
 import { withToolDisplayName } from "./tool-display";
 import type { PermissionTool } from "./approvals/tool-approvals";
+import { createSkillTool } from "./skills/skill-tool";
+import { renderSkillCatalog, SKILL_USAGE_RULES } from "./skills/catalog-context";
+import type { LoadedSkill } from "./skills/types";
+import { resolveSkillSelection } from "./skills/selection";
 
 export class AgentSession {
   private listeners = new Set<SessionEventListener>();
@@ -52,8 +56,15 @@ export class AgentSession {
   private promptTiming?: PromptTiming;
   private contextBudget?: ContextBudget;
   private toolDisplayNames = new Map<string, string>();
+  private skillLoads: Array<{ userTurn: number; skills: LoadedSkill[] }> = [];
 
   constructor(private readonly options: SessionOptions) {
+    this.skillLoads = options.sessionManager
+      .getRuntimeContexts()
+      .flatMap((row) =>
+        row.skills?.length ? [{ userTurn: row.userTurn, skills: row.skills }] : [],
+      );
+    options.skillManager?.view(options.sessionManager.getCwd());
     this.toolApprovals = new ToolApprovals((input, options) =>
       this.requestApproval(input, options),
     );
@@ -174,6 +185,7 @@ export class AgentSession {
       error: this.failure,
       listenerErrors: [...this.listenerErrors],
       contextBudget: this.contextBudget ? structuredClone(this.contextBudget) : undefined,
+      skillLoads: structuredClone(this.skillLoads),
       pendingApprovals: this.approvals.pending,
       ...(this.permissionPreset ? { permissionPreset: this.permissionPreset } : {}),
       title: this.titles.title,
@@ -199,9 +211,29 @@ export class AgentSession {
     };
   }
 
-  prompt(content: PromptContent, options: Record<string, never> = {}): Promise<void> {
+  async validateSkillSelection(ids: string[], signal?: AbortSignal): Promise<void> {
+    if (
+      !Array.isArray(ids) ||
+      ids.length > 8 ||
+      ids.some((id) => typeof id !== "string" || !/^[a-f0-9]{24}$/.test(id))
+    )
+      throw new Error("Invalid skill selection");
+    if (!this.options.skillManager) throw new Error("Skills are unavailable in this session");
+    for (const id of new Set(ids))
+      await this.options.skillManager.load(this.sessionManager.getCwd(), id, signal, true);
+  }
+
+  prompt(content: PromptContent, options: { skills?: string[] } = {}): Promise<void> {
     try {
-      if (Object.keys(options).length) throw new Error("Prompt options are not supported");
+      if (Object.keys(options).some((key) => key !== "skills"))
+        throw new Error("Prompt options are not supported");
+      if (
+        options.skills &&
+        (!Array.isArray(options.skills) ||
+          options.skills.length > 8 ||
+          options.skills.some((id) => typeof id !== "string" || !/^[a-f0-9]{24}$/.test(id)))
+      )
+        throw new Error("Invalid skill selection");
 
       if (typeof content === "string" ? !content.trim() : !content.length)
         throw new Error("Prompt is required");
@@ -222,7 +254,7 @@ export class AgentSession {
       userMessageIndex: this.sessionManager.messages.length,
       startedAt: Date.now(),
     };
-    this.active = this.run(structuredClone(content), this.controller.signal);
+    this.active = this.run(structuredClone(content), this.controller.signal, options.skills ?? []);
 
     return this.active;
   }
@@ -352,6 +384,7 @@ export class AgentSession {
     this.disposed = true;
     this.approvals.dispose();
     this.titles.dispose();
+    if (this.options.ownsSkillManager) void this.options.skillManager?.close();
     this.listeners.clear();
   }
 
@@ -423,7 +456,11 @@ export class AgentSession {
     } else this.emit(event);
   }
 
-  private async run(content: PromptContent, signal: AbortSignal): Promise<void> {
+  private async run(
+    content: PromptContent,
+    signal: AbortSignal,
+    selectedSkills: string[],
+  ): Promise<void> {
     let unsubscribe = () => {};
     const failures: unknown[] = [];
     let runtimeContexts = this.sessionManager.getRuntimeContexts();
@@ -433,14 +470,36 @@ export class AgentSession {
       signal.throwIfAborted();
 
       const messages = this.sessionManager.messages;
+      const cwd = this.sessionManager.getCwd();
+      const manager = this.options.skillManager;
+      const loaded: LoadedSkill[] = [];
+      const selection = manager
+        ? await resolveSkillSelection(manager, cwd, content, selectedSkills)
+        : selectedSkills;
+      for (const id of new Set(selection)) {
+        if (!manager) throw new Error("Skills are unavailable in this session");
+        loaded.push(await manager.load(cwd, id, signal, true));
+      }
+      const catalog = manager
+        ? renderSkillCatalog(manager.view(cwd).skills, this.selected.contextWindow).content
+        : "";
+      const userTurn = messages.filter((message) => message.role === "user").length;
       const preparedContexts = prepareRuntimeContexts(
         runtimeContexts,
-        buildPermissionContext(this.permissionPreset, this.sessionManager.getCwd()),
-        messages.filter((message) => message.role === "user").length,
+        [
+          buildPermissionContext(this.permissionPreset, cwd),
+          catalog,
+          ...loaded.map((skill) => skill.content),
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+        userTurn,
+        loaded,
       );
       const tools = [
         ...this.options.tools,
         ...(this.options.mcpManager?.tools(this.sessionManager.getCwd()) ?? []),
+        ...(manager ? [createSkillTool(manager, cwd)] : []),
       ];
       this.toolDisplayNames = new Map(
         tools.flatMap((tool: PermissionTool) =>
@@ -450,7 +509,7 @@ export class AgentSession {
       this.agent = new Agent({
         model: this.selected,
         messages,
-        systemPrompt: this.options.systemPrompt,
+        systemPrompt: this.options.systemPrompt + (manager ? "\n\n" + SKILL_USAGE_RULES : ""),
         tools:
           this.options.permissionPolicy || this.options.mcpManager
             ? this.toolApprovals.bind(tools)
@@ -460,6 +519,10 @@ export class AgentSession {
           preparedContexts,
           () => {
             runtimeContexts = preparedContexts;
+            if (loaded.length && !this.skillLoads.some((row) => row.userTurn === userTurn)) {
+              this.skillLoads.push({ userTurn, skills: loaded });
+              this.emit({ type: "skills_loaded", userTurn, skills: loaded });
+            }
           },
           (budget) => {
             this.contextBudget = budget;

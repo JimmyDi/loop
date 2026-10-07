@@ -156,9 +156,13 @@ test("project selection transfers only the unsent draft and clears removed selec
   expect(useWorkspace.getState().drafts).toEqual({ from: "", to: "Keep", other: "Other" });
   expect(useWorkspace.getState().files.to).toEqual([{ name: "example.txt", text: "Keep" }]);
   expect(useWorkspace.getState().unselectedProjects.to).toBe(false);
+  state.selectSkill("to", { id: "a".repeat(24), name: "example" });
+  state.selectSkill("to", { id: "a".repeat(24), name: "example" });
+  expect(useWorkspace.getState().skills.to).toHaveLength(1);
   state.removeSessions(["from"]);
   expect(useWorkspace.getState().unselectedProjects.from).toBeUndefined();
   state.clearDraftProject("to");
   state.removeProject("q");
+  expect(useWorkspace.getState().skills.to).toBeUndefined();
   expect(useWorkspace.getState().unselectedProjects.to).toBeUndefined();
 });

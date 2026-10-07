@@ -12,6 +12,7 @@ export type PendingRequest = {
   streamId: string;
   images?: PromptImage[];
   files?: PromptFile[];
+  skills?: string[];
 };
 
 type Delivery = "sending" | "accepted";
@@ -32,7 +33,11 @@ const pending = Object.fromEntries(
       typeof value.text === "string" &&
       typeof value.streamId === "string" &&
       (value.images === undefined || validImages(value.images)) &&
-      (value.files === undefined || validTextFiles(value.files)),
+      (value.files === undefined || validTextFiles(value.files)) &&
+      (value.skills === undefined ||
+        (Array.isArray(value.skills) &&
+          value.skills.length <= 8 &&
+          value.skills.every((id) => typeof id === "string" && /^[a-f0-9]{24}$/.test(id)))),
   ),
 );
 

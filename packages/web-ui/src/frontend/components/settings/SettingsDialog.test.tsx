@@ -6,6 +6,7 @@ import { i18n } from "../../i18n/setup";
 import { useWorkspace } from "../../state/workspace-store";
 import { useTheme } from "../../state/theme-store";
 import { AppShell } from "../layout/AppShell";
+import { SettingsDialog } from "./SettingsDialog";
 
 test("Settings opens General outside the mobile drawer and restores focus without closing the drawer", async () => {
   const window = new Window({ width: 390 });
@@ -58,7 +59,8 @@ test("Settings opens General outside the mobile drawer and restores focus withou
       "General",
       "Models",
       "Appearance",
-      "Plugins",
+      "MCPs",
+      "Skills",
       "Archived chats",
     ]);
     expect(view.getByRole("tablist", { name: "Archived" })).toBeTruthy();
@@ -154,6 +156,77 @@ test("Settings opens General outside the mobile drawer and restores focus withou
     client.clear();
     useWorkspace.setState(state, true);
     useTheme.setState({ theme });
+    await i18n.changeLanguage(language);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("Integrations Add menus keep their actions and forms within each section", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, fireEvent, cleanup, act } = await import("@testing-library/react/pure");
+  const language = i18n.language;
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+  });
+  client.setQueryData(["projects"], []);
+  client.setQueryData(["general-settings"], { permissionPreset: "read-only" });
+  client.setQueryData(["mcp-settings"], { servers: [] });
+  client.setQueryData(["skills", "personal"], { skills: [], discovering: false });
+  try {
+    await i18n.changeLanguage("en");
+    const view = render(
+      <QueryClientProvider client={client}>
+        <SettingsDialog onClose={() => {}} />
+      </QueryClientProvider>,
+    );
+    expect(view.queryByRole("tab", { name: "Plugins" })).toBeNull();
+    fireEvent.click(view.getByRole("tab", { name: "MCPs" }));
+    expect(view.getByRole("tabpanel", { name: "MCPs" })).toBeTruthy();
+    expect(view.getByRole("heading", { name: "MCPs" })).toBeTruthy();
+    expect(view.queryByRole("tablist", { name: "Plugins" })).toBeNull();
+    const menuLabels = [
+      "Add MCP server",
+      "Create skill",
+      "Install from GitHub",
+      "Add local folder",
+    ];
+    fireEvent.click(view.getByRole("button", { name: "Add" }));
+    expect(view.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+      "Add MCP server",
+    ]);
+    fireEvent.keyDown(view.getByRole("menuitem", { name: "Add MCP server" }), { key: "Escape" });
+    fireEvent.click(view.getByRole("tab", { name: "Skills" }));
+    expect(view.getByRole("heading", { name: "Skills" })).toBeTruthy();
+    for (const name of menuLabels.slice(1)) {
+      fireEvent.click(view.getByRole("button", { name: "Add" }));
+      expect(view.queryByRole("menuitem", { name: "Add MCP server" })).toBeNull();
+      expect(view.getAllByRole("menuitem").map((item) => item.textContent)).toEqual(
+        menuLabels.slice(1),
+      );
+      fireEvent.click(view.getByRole("menuitem", { name }));
+      expect(view.getByRole("tab", { name: "Skills" }).getAttribute("aria-selected")).toBe("true");
+      expect(view.getByRole("heading", { name })).toBeTruthy();
+      await act(async () => fireEvent.click(view.getByRole("button", { name: /Cancel/ })));
+    }
+    fireEvent.click(view.getByRole("tab", { name: "MCPs" }));
+    fireEvent.click(view.getByRole("button", { name: "Add" }));
+    fireEvent.click(view.getByRole("menuitem", { name: "Add MCP server" }));
+    expect(view.getByRole("tab", { name: "MCPs" }).getAttribute("aria-selected")).toBe("true");
+    expect(view.getByLabelText("Command to launch")).toBeTruthy();
+    fireEvent.click(view.getByRole("button", { name: /Back/ }));
+    fireEvent.click(view.getByRole("tab", { name: "Skills" }));
+    fireEvent.click(view.getByRole("tab", { name: "MCPs" }));
+    expect(view.queryByLabelText("Command to launch")).toBeNull();
+    expect(view.getAllByRole("dialog")).toHaveLength(1);
+  } finally {
+    await act(async () => {
+      cleanup();
+      client.clear();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
     await i18n.changeLanguage(language);
     Object.assign(globalThis, previous);
     await window.happyDOM.close();

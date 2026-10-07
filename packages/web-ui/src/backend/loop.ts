@@ -6,7 +6,7 @@ import {
   SessionManager,
   SettingsManager,
 } from "@loop/coding-agent";
-import type { AgentSession, ModelRuntime, McpManager } from "@loop/coding-agent";
+import type { AgentSession, ModelRuntime, McpManager, SkillManager } from "@loop/coding-agent";
 
 import type { ModelChoice, ModelSelection, Project, SessionSummary } from "../shared/protocol";
 import { ProviderSettings } from "./providers/provider-settings";
@@ -32,7 +32,8 @@ export type SessionPort = Pick<
   | "setPermissionPreset"
   | "registerApprovalHandler"
   | "respondToApproval"
->;
+> &
+  Partial<Pick<AgentSession, "validateSkillSelection">>;
 
 export type LoopBridge = {
   models(): Promise<ModelChoice[]>;
@@ -48,6 +49,7 @@ export const createLoopBridge = (
   providers = new ProviderSettings(join(agentDir, "web-ui", "provider.json")),
   settings = new WebSettings(agentDir),
   mcpManager?: McpManager,
+  skillManager?: SkillManager,
 ): LoopBridge => {
   let runtime: Promise<ModelRuntime> | undefined;
   const archives = new Map<string, SessionArchive>();
@@ -117,6 +119,7 @@ export const createLoopBridge = (
       const settingsManager = await SettingsManager.create(agentDir);
       const { session } = await createAgentSession({
         mcpManager,
+        skillManager,
         cwd: project.cwd,
         agentDir,
         sessionManager,

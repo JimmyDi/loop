@@ -15,8 +15,6 @@ export const mcpEn = {
   enable: "Enable {{name}}",
   toolCount_one: "{{count}} tool",
   toolCount_other: "{{count}} tools",
-  availability:
-    "Connections run in the background. Connected tools are available on your next message.",
   status: {
     disabled: "Disabled",
     queued: "Waiting for a connection slot…",

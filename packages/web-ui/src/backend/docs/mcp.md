@@ -15,6 +15,6 @@ Successful commands return `{ servers: McpServerView[] }` immediately after loca
 
 Configuration is global for the Web backend, shared across projects. It is stored through core in `<agentDir>/mcp.json`, independently of model/provider files and chat histories. Mutations do not take the session/model configuration lock. Connection configuration changes and disabling a server revoke its catalog lifetime, session grants and pending approvals/calls; display-name-only changes preserve that lifetime. MCP authorization uses live session permissions and temporary exact tool/session grants. Configuration contains no separate approval defaults or tool overrides; legacy permission fields are ignored and omitted on the next write. Ready tool snapshots are selected at each prompt; discovery never restarts a user's prompt.
 
-See the public [core contracts](../../../../coding-agent/src/docs/mcp.md) for transport fields, write-only values, background limits, tool approvals and error behavior. The browser workflow is documented in [Plugins](../../frontend/docs/plugins.md).
+See the public [core contracts](../../../../coding-agent/src/docs/mcp.md) for transport fields, write-only values, background limits, tool approvals and error behavior. The browser workflow is documented in [Integrations](../../frontend/docs/integrations.md).
 
 Source: [routes](../routes/mcp.ts), [route tests](../routes/mcp.test.ts), [server](../server.ts), [session bridge](../loop.ts).

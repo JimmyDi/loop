@@ -4,7 +4,7 @@ McpManager owns saved MCP configurations, background discovery, connections and 
 
 ## Minimal usage
 
-Web users open **Settings → Integrations → Plugins → Add → Add MCP server**. Save a STDIO executable/arguments or Streamable HTTP URL. The form preserves its scroll position while showing the saved configuration’s background connection status, returns to the server list on success and stays open on failure. Back returns to the list while discovery continues. The next prompt can use connected tools.
+Web users open **Settings → Integrations → MCPs → Add → Add MCP server**. Save a STDIO executable/arguments or Streamable HTTP URL. The form preserves its scroll position while showing the saved configuration’s background connection status, returns to the server list on success and stays open on failure. Back returns to the list while discovery continues. The next prompt can use connected tools.
 
 SDK hosts create a manager, pass it to createAgentSession with `mcpManager`, register a session approval handler, and close the manager after shutting down their sessions. The SDK does not own or dispose a supplied manager. Import McpManager, McpServerConfig and createAgentSession from the public package entry. CLI does not automatically load this configuration.
 

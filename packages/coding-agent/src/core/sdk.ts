@@ -17,10 +17,12 @@ import { PermissionPolicy } from "./permissions/policy";
 import { isPermissionPreset } from "./permissions/types";
 import type { PermissionPreset } from "./permissions/types";
 import type { McpManager } from "./mcp/mcp-manager";
+import { SkillManager } from "./skills/skill-manager";
 
 export type CreateAgentSessionOptions = ServiceOptions & {
   model?: Model<Api>;
   mcpManager?: McpManager;
+  skillManager?: SkillManager;
   tools?: readonly string[];
   sessionManager?: SessionManager;
   maxTurns?: number;
@@ -49,6 +51,7 @@ export async function createAgentSession(
     "title",
     "permissionPreset",
     "mcpManager",
+    "skillManager",
   ]);
 
   for (const key of Object.keys(options)) {
@@ -139,6 +142,8 @@ export async function createAgentSession(
     title: options.title,
     permissionPolicy,
     mcpManager: options.mcpManager,
+    skillManager: options.skillManager ?? new SkillManager(services.agentDir),
+    ownsSkillManager: !options.skillManager,
   });
 
   return { session };

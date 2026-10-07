@@ -17,6 +17,12 @@ export const toolLabel = (
       : "other";
   const state = tool.status === "running" || tool.status === "success" ? tool.status : "idle";
   const argument = tool.args?.[action === "bash" ? "command" : "path"];
+  if (tool.name === "load_skill") {
+    const handle = typeof tool.args?.handle === "string" ? tool.args.handle : "";
+    const target = handle.replace(/-[a-f0-9]{24}$/, "") || "skill";
+    const label = tool.status === "success" ? t("skills.loaded") : t("skills.loading");
+    return { action, label, target, text: `${label} · ${target}` };
+  }
   const target =
     action === "other"
       ? (tool.displayName ?? tool.name)

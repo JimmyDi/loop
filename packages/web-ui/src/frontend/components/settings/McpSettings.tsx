@@ -7,19 +7,29 @@ import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { McpForm } from "./McpForm";
-import { McpAddMenu } from "./McpAddMenu";
-import { McpToolbar } from "./McpToolbar";
+import { PluginAddMenu } from "./PluginAddMenu";
+import { PluginSearch } from "./PluginSearch";
 import { McpServerList } from "./McpServerList";
-import "./PluginsSettings.css";
+import "./McpSettings.css";
 
-export const PluginsSettings = () => {
+const createDraft = (): McpServerConfig => ({
+  id: crypto.randomUUID(),
+  name: "",
+  enabled: true,
+  transport: "stdio",
+  command: "",
+  args: [],
+  env: [],
+  envVars: [],
+  cwd: "",
+});
+
+export const McpSettings = () => {
   const { t } = useTranslation();
   const { query, save, remove, toggle, retry } = useMcpSettings();
-  const [editing, setEditing] = useState<{
-    value: McpServerConfig;
-    existing: boolean;
-    saved?: boolean;
-  }>();
+  const [editing, setEditing] = useState<
+    { value: McpServerConfig; existing: boolean; saved?: boolean } | undefined
+  >();
   const page = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (page.current?.parentElement) page.current.parentElement.scrollTop = 0;
@@ -38,29 +48,19 @@ export const PluginsSettings = () => {
     action.clearError();
     setEditing({
       existing: false,
-      value: {
-        id: crypto.randomUUID(),
-        name: "",
-        enabled: true,
-        transport: "stdio",
-        command: "",
-        args: [],
-        env: [],
-        envVars: [],
-        cwd: "",
-      },
+      value: createDraft(),
     });
   };
   return (
-    <div className="plugins-settings" ref={page}>
-      <div className="plugins-heading">
-        <div>
-          <h3>{t("plugins")}</h3>
-          <p>{t("mcp.description")}</p>
+    <div className="mcp-settings" ref={page}>
+      <div className="integration-heading">
+        <h3>{t("mcps")}</h3>
+        <div className="integration-actions">
+          <PluginSearch label={t("mcp.search")} value={search} onChange={setSearch} />
+          <PluginAddMenu section="mcps" onSelect={add} disabled={Boolean(editing)} />
         </div>
-        <McpAddMenu onAdd={add} disabled={Boolean(editing)} />
+        <p>{t("mcp.description")}</p>
       </div>
-      <McpToolbar count={servers.length} search={search} onSearch={setSearch} />
       <ErrorNotice error={query.error ?? action.error} />
       {query.isError && (
         <ActionButton onClick={() => void query.refetch()}>{t("retry")}</ActionButton>

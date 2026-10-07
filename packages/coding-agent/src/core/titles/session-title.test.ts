@@ -24,6 +24,9 @@ const model: Model<Api> = {
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 };
 
+const isMainContext = (context: Context): boolean =>
+  context.systemPrompt?.startsWith("Main conversation") === true;
+
 function response(text: string, stopReason: AssistantMessage["stopReason"] = "stop") {
   const message: AssistantMessage = {
     role: "assistant",
@@ -85,7 +88,7 @@ test("first-prompt titles run independently, persist, and never enter conversati
   const { session } = setup(
     (_model, context) => {
       contexts.push(structuredClone(context));
-      if (context.systemPrompt !== "Main conversation") {
+      if (!isMainContext(context)) {
         titleRequests++;
         return new Promise((resolve) => {
           complete = resolve;
@@ -112,11 +115,17 @@ test("first-prompt titles run independently, persist, and never enter conversati
     await session.prompt("补充回归测试");
     await session.waitForTitle();
     expect(titleRequests).toBe(1);
-    const main = contexts.filter((context) => context.systemPrompt === "Main conversation");
+    const main = contexts.filter(isMainContext);
     expect(main.map((context) => context.messages.length)).toEqual([1, 3]);
+    for (const context of main) {
+      expect(context.systemPrompt).toContain("<tools>");
+      expect(context.systemPrompt).toContain("<tool_usage>");
+    }
     expect(JSON.stringify(main)).not.toContain("设置语言切换修复");
-    const titleContext = contexts.find((context) => context.systemPrompt !== "Main conversation")!;
+    const titleContext = contexts.find((context) => !isMainContext(context))!;
     expect(titleContext.tools).toEqual([]);
+    expect(titleContext.systemPrompt).not.toContain("<tools>");
+    expect(titleContext.systemPrompt).not.toContain("<tool_usage>");
     expect(titleContext.messages).toHaveLength(1);
     expect(JSON.stringify(titleContext.messages)).not.toContain("main answer");
     const restored = await SessionManager.open(manager.sessionFile!);
@@ -138,7 +147,7 @@ test("all-prompts supersedes stale work, manual rename pins, refresh unpins", as
   }[] = [];
   const { session } = setup(
     (_model, context, options) => {
-      if (context.systemPrompt === "Main conversation") return response("answer");
+      if (isMainContext(context)) return response("answer");
       return new Promise((resolve) => pending.push({ resolve, signal: options!.signal!, context }));
     },
     { mode: "all-prompts" },
@@ -182,7 +191,7 @@ test.each(["error", "length", "deferred"] as const)(
     let calls = 0;
     const { session } = setup(
       (_model, context) =>
-        context.systemPrompt === "Main conversation"
+        isMainContext(context)
           ? response("answer")
           : response(++calls === 1 ? "invalid" : "Recovered", calls === 1 ? reason : "stop"),
       { mode: "first-prompt" },
@@ -210,7 +219,7 @@ test("images do not reach titles, image-only input waits, and explicit model use
   const calls: { id: string; context: Context; maxTokens?: number }[] = [];
   const { session } = setup(
     (chosen, context, options) => {
-      if (context.systemPrompt !== "Main conversation")
+      if (!isMainContext(context))
         calls.push({ id: chosen.id, context, maxTokens: options?.maxTokens });
       return response("Image task");
     },
@@ -253,8 +262,7 @@ test("title input overflow retains fallback without requesting a model", async (
 
 test("timeout bounds stalled streams and authentication; cancellation cannot publish late output", async () => {
   const { session, runtime, manager } = setup(
-    (_model, context) =>
-      context.systemPrompt === "Main conversation" ? response("answer") : new Promise(() => {}),
+    (_model, context) => (isMainContext(context) ? response("answer") : new Promise(() => {})),
     { mode: "first-prompt", timeoutMs: 20 },
   );
   await session.prompt("Task");

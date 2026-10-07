@@ -57,3 +57,33 @@ test("runtime context storage rejects invalid anchors and incomplete snapshots",
     );
   }
 });
+
+test("repeated explicit skill loads preserve each turn and immutable revisions", () => {
+  const skill = {
+    id: "example",
+    name: "example",
+    path: "skills/example/SKILL.md",
+    content: "Original body",
+    revision: "first",
+  };
+  const first = prepareRuntimeContexts([], "Same context", 0, [skill]);
+  const second = prepareRuntimeContexts(first, "Same context", 1, [skill]);
+  const messages: Message[] = [
+    { role: "user", content: "First", timestamp: 1 },
+    { role: "user", content: "Second", timestamp: 2 },
+  ];
+  expect(() => validateRuntimeContexts(second, messages)).not.toThrow();
+  const described = prepareRuntimeContexts([], "Context", 0, [
+    { ...skill, description: "Review source" },
+  ]);
+  expect(() => validateRuntimeContexts(described, messages)).not.toThrow();
+  expect(() =>
+    validateRuntimeContexts(
+      [{ ...described[0], skills: [{ ...skill, description: 12 }] }],
+      messages,
+    ),
+  ).toThrow("Invalid session skill context");
+  skill.content = "Updated body";
+  expect(second).toHaveLength(2);
+  expect(second.map((row) => row.skills?.[0]?.content)).toEqual(["Original body", "Original body"]);
+});

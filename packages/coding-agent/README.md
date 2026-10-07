@@ -31,6 +31,7 @@ The CLI is interactive by default. The SDK sample performs one request workflow 
 | Stream output and observe run completion | [Events](src/docs/events.md) |
 | Read, bash, edit, and write | [Tools](src/docs/tools.md) |
 | Configure MCP servers and discover external tools in the background | [MCP servers](src/docs/mcp.md) |
+| Install, discover, select and load task workflows | [Skills](src/docs/skills.md) |
 | Session permission presets and native file sandboxing | [Permissions](src/docs/permissions.md) |
 | Request, answer and cancel host approvals | [Approvals](src/docs/approvals.md) |
 | Discover project instructions | [Context files](src/docs/context-files.md) |
@@ -52,4 +53,4 @@ pnpm run typecheck
 pnpm run check
 ```
 
-Coding-agent supports Loop's minimal API and JSONL format. It does not implement queues, steering, compaction, extensions, skills, or RPC.
+Coding-agent supports Loop's minimal API and JSONL format. It does not implement queues, steering, compaction, extensions, or RPC.

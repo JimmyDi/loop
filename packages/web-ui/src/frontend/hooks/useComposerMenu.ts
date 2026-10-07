@@ -1,12 +1,17 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 
-export const useComposerMenu = (disabled: boolean, pending: boolean) => {
+export const useComposerMenu = (disabled: boolean, pending: boolean, autoFocus = true) => {
   const [page, setPage] = useState<"main" | "model" | "effort" | undefined>();
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const restoreFocus = useRef(false);
+  const focusOnOpen = useRef(autoFocus);
+  const open = (next: "main" | "model" | "effort", focus = autoFocus) => {
+    focusOnOpen.current = focus;
+    setPage(next);
+  };
   const close = (restore = true) => {
     restoreFocus.current = restore;
     setPage(undefined);
@@ -23,7 +28,7 @@ export const useComposerMenu = (disabled: boolean, pending: boolean) => {
     const target = panel.current?.querySelector<HTMLElement>(
       'input, [aria-checked="true"], [role="menuitemradio"]:not(:disabled), [role="menuitem"]',
     );
-    target?.focus();
+    if (focusOnOpen.current) target?.focus();
     const dismiss = (event: PointerEvent) => {
       if (!root.current?.contains(event.target as Node)) setPage(undefined);
     };
@@ -33,7 +38,7 @@ export const useComposerMenu = (disabled: boolean, pending: boolean) => {
   useEffect(() => {
     if (disabled && !pending) setPage(undefined);
   }, [disabled, pending]);
-  const navigate = (event: KeyboardEvent<HTMLDivElement>) => {
+  const navigate = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === "ArrowRight" && page === "main") {
       const target = document.activeElement as HTMLElement | null;
       if (target?.getAttribute("aria-haspopup") === "menu") {
@@ -76,5 +81,5 @@ export const useComposerMenu = (disabled: boolean, pending: boolean) => {
               : (current + options.length - 1) % options.length;
     options[next]?.focus();
   };
-  return { page, setPage, root, trigger, panel, close, navigate };
+  return { page, setPage, root, trigger, panel, close, open, navigate };
 };

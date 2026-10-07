@@ -1,0 +1,51 @@
+.user-message-skill {
+  display: inline;
+  margin-inline-end: 6px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: light-dark(#2984d6, #8ab4ff);
+  font: inherit;
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: baseline;
+  cursor: pointer;
+}
+.user-message-skill:is(:hover, :focus-visible) span {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.user-message-skill:focus-visible {
+  outline: 2px solid var(--focus-border);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+.user-message-skill svg {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-inline-end: 6px;
+  vertical-align: -0.2em;
+}
+.user-skill-tooltip {
+  position: fixed;
+  z-index: 50;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 24px));
+  max-height: min(320px, calc(100dvh - 24px));
+  overflow-y: auto;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  box-shadow: 0 6px 24px var(--shadow);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: start;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

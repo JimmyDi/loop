@@ -20,16 +20,15 @@ export const McpServerList = ({
     server.name.toLowerCase().includes(search.toLowerCase()),
   );
   return (
-    <div className="mcp-server-list">
+    <div className="mcp-server-list plugin-list">
       <h4>{t("mcp.servers")}</h4>
-      {loaded && !servers.length && <p className="mcp-server-list-empty">{t("mcp.empty")}</p>}
+      {loaded && !servers.length && <p className="plugin-list-empty">{t("mcp.empty")}</p>}
       {visible.map((server) => (
         <McpServerRow key={server.id} server={server} {...actions} />
       ))}
       {!!servers.length && !visible.length && (
-        <p className="mcp-server-list-empty">{t("mcp.noResults")}</p>
+        <p className="plugin-list-empty">{t("mcp.noResults")}</p>
       )}
-      {!!servers.length && <p className="mcp-server-list-hint">{t("mcp.availability")}</p>}
     </div>
   );
 };

@@ -54,9 +54,12 @@ export class SessionController {
     text: string,
     images: PromptImage[] = [],
     files: PromptFile[] = [],
+    skills: string[] = [],
   ): string {
     const content = structuredClone(promptContent(text, images, files));
-    const signature = createHash("sha256").update(JSON.stringify(content)).digest("hex");
+    const signature = createHash("sha256")
+      .update(JSON.stringify({ content, skills }))
+      .digest("hex");
     const existing = this.requests.get(requestId);
 
     if (existing) {
@@ -86,7 +89,7 @@ export class SessionController {
     };
     this.events.publish({ type: "run.accepted", requestId, runId });
     this.active = Promise.resolve()
-      .then(() => this.session.prompt(content))
+      .then(() => this.session.prompt(content, skills.length ? { skills } : {}))
       .catch((error) => {
         if (this.snapshot.runId === runId && !this.settled)
           this.snapshot.commandError = errorText(error);
@@ -96,6 +99,18 @@ export class SessionController {
       });
 
     return runId;
+  }
+
+  async prepareSkills(requestId: string, skills: string[], signal: AbortSignal): Promise<void> {
+    if (!skills.length || this.requests.has(requestId)) return;
+    this.assertIdle();
+    if (!this.session.validateSkillSelection) throw new HttpError(400, "skills_unavailable");
+    try {
+      await this.session.validateSkillSelection(skills, signal);
+    } catch (error) {
+      throw new HttpError(400, "skill_selection_unavailable", errorText(error));
+    }
+    signal.throwIfAborted();
   }
 
   async abort(): Promise<void> {

@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { vi, expect, test } from "vitest";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
@@ -17,6 +17,7 @@ import { ContextBudgetExceededError } from "./context-budget";
 import type { ContextBudget } from "./context-budget";
 import { McpManager } from "./mcp/mcp-manager";
 import type { McpConnection } from "./mcp/connection";
+import { SkillManager } from "./skills/skill-manager";
 
 test("approval APIs expose pending snapshots, isolate listeners and preserve managed authority", async () => {
   const options = {
@@ -145,7 +146,7 @@ test("MCP discovery cannot block prompts; ready tools join the next prompt and e
       true,
     );
     await session.prompt("First prompt while MCP is connecting");
-    expect(requests[0]!.tools?.map((tool) => tool.name)).toEqual(["read"]);
+    expect(requests[0]!.tools?.map((tool) => tool.name)).toEqual(["read", "load_skill"]);
     ready.resolve({
       tools: [
         {
@@ -163,7 +164,7 @@ test("MCP discovery cannot block prompts; ready tools join the next prompt and e
     });
     await vi.waitFor(() => expect(manager.tools(directory)).toHaveLength(1));
     await session.prompt("Use the newly ready MCP");
-    expect(requests[1]!.tools).toHaveLength(2);
+    expect(requests[1]!.tools).toHaveLength(3);
     expect(dispatched).toHaveBeenCalledWith("example", { value: "input" }, expect.any(AbortSignal));
     expect(
       session.state.messages.some(
@@ -185,7 +186,7 @@ test("MCP discovery cannot block prompts; ready tools join the next prompt and e
     });
     await manager.setEnabled("fixture", false);
     await session.prompt("Next prompt with MCP disabled");
-    expect(requests.at(-1)!.tools?.map((tool) => tool.name)).toEqual(["read"]);
+    expect(requests.at(-1)!.tools?.map((tool) => tool.name)).toEqual(["read", "load_skill"]);
     expect(session.state.messages.find((message) => message.role === "toolResult")).toMatchObject({
       details: { loopDisplayName: "Fixture · example" },
     });
@@ -309,8 +310,10 @@ test("disposing an idle session cancels pending approvals before clearing observ
 });
 
 test("session presets enforce built-in tools, persist, reject busy changes and restore saved permissions", async () => {
-  const root = await mkdtemp(join(import.meta.dirname, ".session-permission-test-"));
+  const root = await mkdtemp(join(tmpdir(), "loop-session-permission-test-"));
   const manager = await SessionManager.create(root, join(root, "storage"));
+  const skills = new SkillManager(join(root, "agent-data"), join(root, "shared"));
+  await skills.refresh(root);
   let calls = 0;
   const policies: string[] = [];
   const contexts: Context[] = [];
@@ -339,6 +342,7 @@ test("session presets enforce built-in tools, persist, reject busy changes and r
     noContextFiles: true,
     sessionManager: manager,
     agentDir: join(root, "agent-data"),
+    skillManager: skills,
     settingsManager: SettingsManager.inMemory(),
   };
   try {
@@ -395,6 +399,7 @@ test("session presets enforce built-in tools, persist, reject busy changes and r
     expect(policies[4]).toBe(policies[0]);
     reopened.dispose();
   } finally {
+    await skills.close();
     await rm(root, { recursive: true, force: true });
   }
 });
@@ -798,7 +803,7 @@ test("two prompts create fresh Agents, preserve complete tool history and commit
     expect(
       contexts.every(
         (context) =>
-          context.tools?.length === 4 && context.systemPrompt === contexts[0].systemPrompt,
+          context.tools?.length === 5 && context.systemPrompt === contexts[0].systemPrompt,
       ),
     ).toBe(true);
     expect(signals[0]).toBe(signals[1]);
@@ -1241,5 +1246,78 @@ test("MCP calls follow live session permissions across preset changes", async ()
       await manager.close();
       await rm(directory, { recursive: true, force: true });
     }
+  }
+});
+
+test("explicit and automatic skills preserve instructions in durable history without eager body injection", async () => {
+  const root = await mkdtemp(join(tmpdir(), "loop-skill-session-"));
+  const skills = new SkillManager(join(root, "personal"), join(root, "shared"));
+  let session: AgentSession | undefined;
+  const requests: Context[] = [];
+  try {
+    const directory = join(root, ".agents/skills/example");
+    await mkdir(directory, { recursive: true });
+    const path = join(directory, "SKILL.md");
+    await writeFile(
+      path,
+      "---\nname: example\ndescription: Review source\n---\nUnique original instructions.",
+    );
+    await skills.refresh(root);
+    const skill = skills.view(root).skills[0]!;
+    const storage = await SessionManager.create(root, join(root, "sessions"));
+    const selected = { ...model, contextWindow: 32000 };
+    const result = await createAgentSession({
+      cwd: root,
+      agentDir: join(root, "personal"),
+      model: selected,
+      modelRuntime: runtime((_model, context) => {
+        requests.push(structuredClone(context));
+        if (requests.length === 1)
+          return stream(
+            answer(
+              [
+                {
+                  type: "toolCall",
+                  id: "load",
+                  name: "load_skill",
+                  arguments: { handle: skill.handle },
+                },
+              ],
+              "toolUse",
+            ),
+          );
+        return stream();
+      }),
+      skillManager: skills,
+      sessionManager: storage,
+      settingsManager: SettingsManager.inMemory(),
+      noContextFiles: true,
+      tools: [],
+      systemPrompt: "Base",
+    });
+    session = result.session;
+    await session.prompt("Review the source");
+    expect(JSON.stringify(requests[0])).not.toContain("Unique original instructions");
+    expect(JSON.stringify(requests[1])).toContain("Unique original instructions");
+    expect(session.state.messages.some((message) => message.role === "toolResult")).toBe(true);
+    await session.prompt("Use this skill", { skills: [skill.id] });
+    await session.prompt("Use this skill again", { skills: [skill.id] });
+    const loaded = session.state.skillLoads!;
+    expect(loaded.map((row) => row.userTurn)).toEqual([1, 2]);
+    await writeFile(
+      path,
+      "---\nname: example\ndescription: Review source\n---\nUpdated instructions.",
+    );
+    const restored = await SessionManager.open(storage.sessionFile!);
+    expect(restored.getRuntimeContexts().filter((row) => row.skills?.length)).toHaveLength(2);
+    expect(JSON.stringify(restored.getRuntimeContexts())).toContain("Unique original instructions");
+    expect(JSON.stringify(restored.getRuntimeContexts())).not.toContain("Updated instructions");
+    await skills.toggle(root, skill.id, false);
+    await expect(session.validateSkillSelection([skill.id])).rejects.toThrow("unavailable");
+    expect(session.state.messages).toEqual(restored.messages);
+  } finally {
+    session?.dispose();
+    await skills.close();
+    await rm(root, { recursive: true, force: true });
   }
 });

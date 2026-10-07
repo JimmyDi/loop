@@ -25,7 +25,7 @@ export const SessionPermissions = ({
   select(preset: PermissionPreset): Promise<boolean>;
 }) => {
   const { t } = useTranslation();
-  const menu = useComposerMenu(disabled, pending);
+  const menu = useComposerMenu(disabled, pending, false);
   const id = useId();
   const [confirmFull, setConfirmFull] = useState(false);
   const preset = snapshot.state.permissionPreset;
@@ -59,11 +59,15 @@ export const SessionPermissions = ({
           aria-haspopup="menu"
           aria-expanded={!!menu.page}
           aria-controls={menu.page ? id : undefined}
-          onClick={() => (menu.page ? menu.close() : menu.setPage("main"))}
+          onClick={() => (menu.page ? menu.close() : menu.open("main"))}
           onKeyDown={(event) => {
+            if (menu.page) {
+              menu.navigate(event);
+              return;
+            }
             if (["ArrowUp", "ArrowDown"].includes(event.key)) {
               event.preventDefault();
-              menu.setPage("main");
+              menu.open("main", true);
             }
           }}
         >

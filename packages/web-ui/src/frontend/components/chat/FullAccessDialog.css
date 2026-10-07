@@ -56,6 +56,13 @@
 .full-access-dialog .full-access-confirm.action-button:hover:not(:disabled) {
   background: var(--error-line);
 }
+.full-access-dialog footer .action-button:focus-visible {
+  outline: none;
+  background: var(--surface-selected);
+}
+.full-access-dialog footer .full-access-confirm.action-button:focus-visible {
+  background: var(--error-line);
+}
 @media (max-width: 480px) {
   .full-access-dialog {
     padding: 20px;

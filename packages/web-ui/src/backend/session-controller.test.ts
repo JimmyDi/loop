@@ -294,6 +294,9 @@ test("accepted requests deduplicate and drafts do not duplicate history", async 
 
   expect(controller.prompt("request", "hello")).toBe(run);
   expect(() => controller.prompt("request", "different")).toThrow("request_conflict");
+  expect(() => controller.prompt("request", "hello", [], [], ["a".repeat(24)])).toThrow(
+    "request_conflict",
+  );
   expect(() => controller.prompt("second", "hello")).toThrow("session_busy");
   expect(frames[1]?.type).toBe("run.accepted");
   await waitFor(() => calls === 1);

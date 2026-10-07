@@ -10,6 +10,7 @@ import { command } from "../../lib/api";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { ComposerInput } from "./ComposerInput";
+import { ComposerSkills } from "./ComposerSkills";
 import { ComposerModelSettings } from "./ComposerModelSettings";
 import { SessionPermissions } from "./SessionPermissions";
 import { ComposerAttachments } from "./ComposerAttachments";
@@ -109,6 +110,8 @@ export const ChatComposer = ({
           removeFile={attachments.removeFile}
         />
         <ComposerInput
+          sessionId={snapshot.sessionId}
+          hideSkills={prompt.submitted}
           focusRequest={focusRequest}
           value={prompt.text}
           onChange={prompt.setText}
@@ -116,6 +119,13 @@ export const ChatComposer = ({
           disabled={disabled || model.pending || permission.pending}
           onFiles={(files) => void attachments.add(files)}
           placeholder={t("placeholder")}
+        />
+        <ComposerSkills
+          sessionId={snapshot.sessionId}
+          workspaceId={snapshot.workspaceId}
+          text={prompt.text}
+          onText={prompt.setText}
+          disabled={blocked}
         />
         <div className="composer-toolbar">
           <ComposerAddMenu

@@ -41,6 +41,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Web development: use a separate `tsx watch` process to restart the backend when its loaded source files change without Node watch mode, preventing dependency-tracking messages from breaking the Codemode worker protocol. Keep frontend Vite HMR and exclude frontend source from backend restarts.
+
 - Web UI: mount tool parameters and results only while both their row and containing batch are expanded, and release detail DOM on collapse. Preserve expanded rows and live execution status across streaming updates and reconnects without truncating saved output.
 
 - coding-agent, CLI and Web: keep quotes literal in system-prompt section bodies, including the canonical tool-name array and usage rules, while escaping XML delimiters and source-path attribute quotes.

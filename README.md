@@ -22,7 +22,7 @@ pnpm dev
 ```
 The browser opens when the loopback service is ready. Configure providers in Settings → Models.
 
-Development serves React through Vite middleware on the same port as the API; frontend changes use HMR and backend changes restart the process.
+Development serves React through Vite middleware on the same port as the API; frontend changes use HMR. A separate `tsx watch` process restarts the Node backend when its loaded source files change.
 
 For the CLI, configure LOOP_AI_PROVIDER, LOOP_MODEL and LOOP_AI_API_KEY in the environment or a local .env, then run pnpm coding-agent. See [models](packages/coding-agent/src/docs/models.md) for compatible gateways and configuration.
 

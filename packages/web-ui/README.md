@@ -6,7 +6,7 @@ Browser application over the public coding-agent SDK. All implementation, styles
 
 Web is a private pnpm workspace package. Frontend and backend share its package.json and the root pnpm-lock.yaml. Install from the repository root with pnpm install.
 
-Run pnpm dev from the root for development. Vite middleware serves React/CSS with HMR on the same loopback port as the Node HTTP API. Node watch mode restarts backend changes. Arguments are forwarded: pnpm dev --port 3081 --no-open.
+Run pnpm dev from the root for development. Vite middleware serves React/CSS with HMR on the same loopback port as the Node HTTP API. A separate `tsx watch` process restarts the Node backend when its loaded source files change; frontend source is excluded from backend watching. Arguments are forwarded: pnpm dev --port 3081 --no-open.
 
 For production, run pnpm build and node dist/bin.js web from the root. The compiled package serves prebuilt assets without Vite or a source checkout. Help works without opening a server: node dist/bin.js web --help.
 

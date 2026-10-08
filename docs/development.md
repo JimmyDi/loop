@@ -9,7 +9,7 @@ pnpm install
 pnpm dev
 ```
 
-The browser opens when the local service is ready. Configure a provider in Settings → Models before creating a conversation. Development uses Vite middleware for frontend HMR and Node watch mode for backend changes, on the same loopback port.
+The browser opens when the local service is ready. Configure a provider in Settings → Models before creating a conversation. Development uses Vite middleware for frontend HMR on the same loopback port as the API. A separate `tsx watch` process restarts the Node backend when its loaded source files change; frontend source is excluded from backend watching. The backend runs without Node's `--watch`, keeping its Worker channels free of Node dependency-tracking messages.
 
 For the terminal, configure the environment described in [models](../packages/coding-agent/src/docs/models.md), then run pnpm coding-agent. The application entry loads the working directory's .env; inherited environment variables take precedence. SDK imports do not load environment files.
 

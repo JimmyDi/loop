@@ -45,7 +45,7 @@ The implementation lives under packages/agent/src, packages/coding-agent/src and
 
 Use one pnpm workspace with independent agent, coding-agent and web-ui packages. The root manifest distributes the combined loop CLI/SDK/Web build. Web frontend and backend remain in one private package. Install at the root with pnpm install and share pnpm-lock.yaml. Public exports and AST checks enforce downward package dependencies.
 
-Web's package.json owns its dependencies and scripts. Root dev launches the Web source through Node watch mode, and root typecheck covers all workspace source and build configuration. Architecture tests permit internal Web imports and the public coding-agent entry while rejecting reverse calls, browser imports of backend code, and direct Web calls to model APIs. The root build produces the unified CLI, SDK and Web distribution.
+Web's package.json owns its dependencies and scripts. Root dev uses a separate `tsx watch` process to launch and restart the Web source without Node watch mode, and root typecheck covers all workspace source and build configuration. Architecture tests permit internal Web imports and the public coding-agent entry while rejecting reverse calls, browser imports of backend code, and direct Web calls to model APIs. The root build produces the unified CLI, SDK and Web distribution.
 
 The backend imports capabilities only through the [public coding-agent entry](../../../coding-agent/src/index.ts). For example, from `packages/web-ui/src/backend/loop.ts`:
 
@@ -78,7 +78,7 @@ pnpm install
 pnpm dev
 ```
 
-`pnpm dev` runs from the repository root. React/CSS use Vite HMR; backend changes restart under Node watch mode. Web's `build` produces `dist/web`, which is copied into the root distribution by the root build.
+`pnpm dev` runs from the repository root. React/CSS use Vite HMR; a separate `tsx watch` process restarts the backend when its loaded source files change, excluding frontend source. Web's `build` produces `dist/web`, which is copied into the root distribution by the root build.
 
 Web defaults to `127.0.0.1:3080` and accepts `--port <port>` (including `0` for a system-assigned port), `--no-open`, and `--help`. An occupied port fails instead of silently changing ports. Port `0` prints the assigned port. Print the URL and open the browser only after pages and APIs are ready. SSH startup prints the URL without opening a browser. A browser-opening failure keeps the service running and provides manual access instructions. The initial version has no public-interface listening option.
 

@@ -26,7 +26,7 @@ startServer asynchronously creates project storage, provider settings, a session
 
 Safari can retain icons from a previous application hosted at the same address, separately from ordinary page caching. A correct icon response does not prove that an existing Safari tab or bookmark has refreshed. After changing icon routes, restart the service and reload the page. Use a private window to compare before clearing browser data; clearing website storage can also remove local drafts and preferences. Existing pinned tabs or bookmarks may retain their own icon until recreated.
 
-Development mode enables Vite React/CSS HMR. `pnpm dev` explicitly uses development mode. Node watch mode restarts the backend after imported service files change. A newly updated frontend connected to an old backend may receive 404 for new APIs.
+Development mode enables Vite React/CSS HMR. `pnpm dev` runs a separate `tsx watch` process that restarts the Node backend when its loaded source files change. Frontend source is excluded from backend watching and continues to use Vite HMR. The backend runs without Node's `--watch`, avoiding dependency-tracking messages on the Codemode Worker channel. The watcher sends SIGTERM and waits for the old backend to exit before starting the next one; a backend that does not exit within five seconds is forcibly stopped. Ctrl+C stops the watcher and backend. A newly updated frontend connected to an old backend may receive 404 for new APIs.
 
 Saving model settings uses the running API and requires no restart. This differs from updating backend source. See [provider configuration](providers.md).
 
@@ -43,6 +43,7 @@ This is a local single-user service with no public listening, login system or ba
 ## Source and Tests
 
 - [server.ts](../server.ts), [main.ts](../../main.ts) / [startup tests](../../main.test.ts).
+- [Development watcher regression](../../../../../scripts/dev.test.ts) covers backend restarts, frontend exclusions, Codemode calls and shutdown.
 - [Argument parsing](../startup/arguments.ts) / [tests](../startup/arguments.test.ts).
 - [Browser opening](../startup/open-browser.ts) / [tests](../startup/open-browser.test.ts).
 - [Session registry](../session-registry.ts) / [tests](../session-registry.test.ts).

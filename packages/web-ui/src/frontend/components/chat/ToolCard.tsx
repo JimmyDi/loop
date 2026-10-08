@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ToolView } from "../../../shared/protocol";
@@ -8,14 +9,26 @@ import { ToolActionIcon } from "./ToolActionIcon";
 import { toolLabel } from "./tool-label";
 import "./ToolCard.css";
 
-export const ToolCard = ({ tool }: { tool: ToolView }) => {
+export const ToolCard = ({
+  tool,
+  detailsVisible = true,
+}: {
+  tool: ToolView;
+  detailsVisible?: boolean;
+}) => {
   const { t } = useTranslation();
-  const output = tool.result ? messageText(tool.result) : "";
+  const [expanded, setExpanded] = useState(false);
   const iconStatus = useToolStatus(tool.id, tool.status);
   const { action, label, target, text } = toolLabel(tool, t);
 
   return (
-    <details className="tool-card" data-status={tool.status}>
+    <details
+      className="tool-card"
+      data-status={tool.status}
+      onToggle={(event) => {
+        if (event.target === event.currentTarget) setExpanded(event.currentTarget.open);
+      }}
+    >
       <summary>
         <ToolActionIcon action={action} />
         <span className="tool-card-label" title={text}>
@@ -26,18 +39,20 @@ export const ToolCard = ({ tool }: { tool: ToolView }) => {
           <path d="m9 6 6 6-6 6" />
         </svg>
       </summary>
-      <div className="tool-content">
-        <div className="tool-value">
-          <strong>{t("parameters")}</strong>
-          <pre>{JSON.stringify(tool.args ?? {}, null, 2)}</pre>
-        </div>
-        {tool.result && (
+      {expanded && detailsVisible && (
+        <div className="tool-content">
           <div className="tool-value">
-            <strong>{t("result")}</strong>
-            <pre>{output}</pre>
+            <strong>{t("parameters")}</strong>
+            <pre>{JSON.stringify(tool.args ?? {}, null, 2)}</pre>
           </div>
-        )}
-      </div>
+          {tool.result && (
+            <div className="tool-value">
+              <strong>{t("result")}</strong>
+              <pre>{messageText(tool.result)}</pre>
+            </div>
+          )}
+        </div>
+      )}
     </details>
   );
 };

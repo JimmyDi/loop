@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ToolView } from "../../../shared/protocol";
@@ -15,6 +16,7 @@ export const ToolGroup = ({
   generating?: boolean;
 }) => {
   const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
   const active =
     generating || tools.some((tool) => tool.status === "running" || tool.status === "waiting");
   const current =
@@ -27,7 +29,14 @@ export const ToolGroup = ({
   const label = active ? latest.text : toolActionSummary(tools, t);
 
   return (
-    <details className="tool-group" data-active={active} aria-busy={active}>
+    <details
+      className="tool-group"
+      data-active={active}
+      aria-busy={active}
+      onToggle={(event) => {
+        if (event.target === event.currentTarget) setExpanded(event.currentTarget.open);
+      }}
+    >
       <summary className="tool-group-summary" title={label}>
         <ToolActionIcon action={active ? latest.action : toolLabel(tools[0]!, t).action} />
         <span className="tool-group-label">{label}</span>
@@ -37,7 +46,7 @@ export const ToolGroup = ({
       </summary>
       <div className="tool-group-calls">
         {tools.map((tool) => (
-          <ToolCard key={tool.id} tool={tool} />
+          <ToolCard key={tool.id} tool={tool} detailsVisible={expanded} />
         ))}
       </div>
     </details>

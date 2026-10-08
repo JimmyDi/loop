@@ -64,7 +64,7 @@ test("authored updates stay visible and opened tool rows survive growing drafts 
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, { window, document: window.document });
-  const { render, cleanup } = await import("@testing-library/react/pure");
+  const { render, cleanup, act, fireEvent } = await import("@testing-library/react/pure");
   const message: Extract<Message, { role: "assistant" }> = {
     role: "assistant",
     content: [
@@ -144,6 +144,12 @@ test("authored updates stay visible and opened tool rows survive growing drafts 
     expect(card.querySelector(".tool-status-icon")?.getAttribute("data-status")).toBe("success");
     expect(group.querySelectorAll('.tool-status-icon[data-status="error"]')).toHaveLength(1);
     expect(card.textContent).toContain("File contents");
+    expect(group.textContent).not.toContain("Cancelled");
+    const failed = group.querySelectorAll<HTMLDetailsElement>(".tool-card")[1]!;
+    act(() => {
+      failed.open = true;
+      fireEvent(failed, new globalThis.window.Event("toggle"));
+    });
     expect(group.textContent).toContain("Cancelled");
     expect(ui.container.querySelectorAll(".tool-card")).toHaveLength(2);
   } finally {

@@ -41,6 +41,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Web UI: mount tool parameters and results only while both their row and containing batch are expanded, and release detail DOM on collapse. Preserve expanded rows and live execution status across streaming updates and reconnects without truncating saved output.
+
 - coding-agent, CLI and Web: keep quotes literal in system-prompt section bodies, including the canonical tool-name array and usage rules, while escaping XML delimiters and source-path attribute quotes.
 
 - Agent and coding-agent: use literal current `tools[].name` values for capability reports and direct calls without inventing or stripping namespace prefixes, explicitly identify an unregistered parallel wrapper despite stale assistant claims, and describe sequential execution. Availability replies are instructed to omit unavailable tools; saved messages and response text remain unchanged. Unknown calls return bounded current-tool guidance without dispatching nested arguments; provider request tests cover exact declarations across Chat Completions, Responses and Messages.

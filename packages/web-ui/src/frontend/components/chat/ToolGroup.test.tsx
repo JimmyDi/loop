@@ -56,7 +56,7 @@ test("fast tool icons settle independently while results, failures and open deta
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, { window, document: window.document });
-  const { render, cleanup, waitFor, act } = await import("@testing-library/react/pure");
+  const { render, cleanup, waitFor, act, fireEvent } = await import("@testing-library/react/pure");
   const first: ToolView = { id: "first", name: "bash", status: "running" };
   const second: ToolView = { id: "second", name: "bash", status: "waiting" };
   try {
@@ -64,9 +64,15 @@ test("fast tool icons settle independently while results, failures and open deta
     const group = ui.container.querySelector<HTMLDetailsElement>(".tool-group")!;
     expect(group.open).toBe(false);
     expect(group.querySelector(".tool-group-label")?.textContent).toBe("Running command");
-    group.open = true;
+    act(() => {
+      group.open = true;
+      fireEvent(group, new globalThis.window.Event("toggle"));
+    });
     const cards = ui.container.querySelectorAll<HTMLDetailsElement>(".tool-card");
-    cards[0]!.open = true;
+    act(() => {
+      cards[0]!.open = true;
+      fireEvent(cards[0]!, new globalThis.window.Event("toggle"));
+    });
     expect(cards[0]!.querySelector(".tool-card-label")?.textContent).toBe("Running command");
     ui.rerender(<ToolGroup tools={[{ ...first, args: { command: "bun" } }, second]} />);
     expect(cards[0]!.querySelector(".tool-card-label")?.textContent).toBe("Running bun");
@@ -124,6 +130,17 @@ test("fast tool icons settle independently while results, failures and open deta
     expect(ui.container.querySelector(".tool-group")).toBe(group);
     expect(group.open).toBe(true);
     expect(cards[0]!.open).toBe(true);
+    act(() => {
+      group.open = false;
+      fireEvent(group, new globalThis.window.Event("toggle"));
+    });
+    expect(group.querySelector(".tool-content")).toBeNull();
+    expect(cards[0]!.open).toBe(true);
+    act(() => {
+      group.open = true;
+      fireEvent(group, new globalThis.window.Event("toggle"));
+    });
+    expect(cards[0]!.textContent).toContain("Example output");
     ui.rerender(
       <ToolGroup
         tools={[
@@ -143,6 +160,7 @@ test("fast tool icons settle independently while results, failures and open deta
     const history = render(<ToolGroup tools={[completed]} />);
     expect(history.container.querySelector<HTMLDetailsElement>(".tool-group")?.open).toBe(false);
     expect(history.container.querySelector(".tool-card-label")?.textContent).toBe("Ran pnpm test");
+    expect(history.container.querySelector(".tool-content")).toBeNull();
     expect(history.container.querySelector(".tool-status-icon")?.getAttribute("data-status")).toBe(
       "success",
     );

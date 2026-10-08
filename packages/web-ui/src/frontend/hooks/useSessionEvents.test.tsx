@@ -440,8 +440,14 @@ test("an SSE burst preserves each tool's running indication while results and er
       expect(cards[index]!.dataset.status).toBe("success");
       expect(icon(index)?.getAttribute("data-status")).toBe("running");
       expect(icon(index)?.getAttribute("aria-label")).toBe("Completed");
-      expect(cards[index]!.textContent).toContain(`Output ${calls[index]!.id}`);
+      expect(cards[index]!.textContent).not.toContain(`Output ${calls[index]!.id}`);
     }
+    expect(useSessions.getState().views.s!.snapshot!.tools.first?.result?.content).toEqual([
+      { type: "text", text: "Output first" },
+    ]);
+    expect(useSessions.getState().views.s!.snapshot!.tools.second?.result?.content).toEqual([
+      { type: "text", text: "Output second" },
+    ]);
     expect(icon(2)?.getAttribute("data-status")).toBe("error");
     expect(cards[0]!.open).toBe(true);
     expect(ui.container.querySelector(".tool-card")).toBe(cards[0]!);

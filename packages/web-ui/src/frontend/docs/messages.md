@@ -40,6 +40,8 @@ Each tool row starts with a muted category icon: an open book for read, a file w
 
 Tool batches use the first call ID for stable identity and each tool row uses its own call ID. Streaming arguments, added calls, completion and reconnect snapshots preserve the open batch disclosure and individual tool details while the timeline stays mounted. Reopening a session shows completed text and batch summaries, with both batches and individual tool details collapsed again. Different user requests and sessions never share a turn.
 
+Parameter and result panels mount only when a tool row and its containing batch are both expanded. Collapsing either disclosure removes the detail DOM and avoids formatting hidden arguments or joining hidden output. Lightweight row headers remain mounted to track execution status and preserve individual expansion choices; reopening a batch restores previously expanded rows with current arguments and results. Standalone tool rows follow the same on-demand detail behavior. Original output remains in session state and history without truncation, so this reduces rendering allocations rather than the size of the retained session data.
+
 ## Markdown and Copying
 
 marked and KaTeX convert Markdown, then DOMPurify sanitizes it. Interactive elements such as form controls are removed from model content. Links retain only HTTP(S) targets and use noopener/noreferrer when opening a new window. highlight.js highlights code blocks with recognized languages.

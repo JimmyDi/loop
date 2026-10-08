@@ -346,7 +346,7 @@ test("tool-only turns and standalone results do not invent replies, and partial 
     };
     const error = { ...draft, stopReason: "error" as const, errorMessage: "Connection failed" };
     const messages = [...initial.state.messages, toolOnly, orphan, error];
-    const html = renderToStaticMarkup(
+    const view = (
       <MessageTimeline
         snapshot={{
           ...initial,
@@ -355,12 +355,30 @@ test("tool-only turns and standalone results do not invent replies, and partial 
           state: { ...initial.state, messages, isRunning: false },
         }}
         connected
-      />,
+      />
     );
+    const html = renderToStaticMarkup(view);
     expect(html.match(/class="tool-card"/g)).toHaveLength(2);
-    expect(html).toContain("Operation cancelled");
+    expect(html).not.toContain("Operation cancelled");
     expect(html).toContain("Connection failed");
     expect(html).not.toContain("Copy response");
+    const { render, cleanup, act, fireEvent } = await import("@testing-library/react/pure");
+    try {
+      const ui = render(view);
+      const standalone = ui.container.querySelector<HTMLDetailsElement>(
+        '.tool-card[data-status="error"]',
+      )!;
+      act(() => {
+        standalone.open = true;
+        fireEvent(standalone, new globalThis.window.Event("toggle"));
+      });
+      expect(standalone.textContent).toContain("Operation cancelled");
+    } finally {
+      await act(async () => {
+        cleanup();
+        await new Promise<void>((resolve) => setImmediate(resolve));
+      });
+    }
   } finally {
     Object.assign(globalThis, previous);
     await window.happyDOM.close();

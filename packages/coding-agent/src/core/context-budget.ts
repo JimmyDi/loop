@@ -10,6 +10,8 @@ export type ContextBudget = {
   toolTokens: number;
   estimatedInputTokens: number;
   reservedOutputTokens: number;
+  /** Output limit observed in the provider payload, not generated or billed tokens. */
+  requestOutputTokenLimit?: number;
   safetyTokens: number;
   inputLimit: number;
   remainingInputTokens: number;
@@ -30,7 +32,7 @@ export const estimateTextTokens = (text: string): number => {
   return Math.ceil(tokens);
 };
 
-const estimateMessageTokens = (message: Message): number => {
+export const estimateMessageTokens = (message: Message): number => {
   let tokens = MESSAGE_OVERHEAD;
   if (typeof message.content === "string") return tokens + estimateTextTokens(message.content);
 
@@ -50,7 +52,11 @@ const estimateMessageTokens = (message: Message): number => {
   return tokens;
 };
 
-export const measureContextBudget = (model: Model<Api>, context: Context): ContextBudget => {
+export const measureContextBudget = (
+  model: Model<Api>,
+  context: Context,
+  reservedOutputTokens = model.maxTokens,
+): ContextBudget => {
   if (
     !Number.isSafeInteger(model.contextWindow) ||
     model.contextWindow <= 0 ||
@@ -58,6 +64,12 @@ export const measureContextBudget = (model: Model<Api>, context: Context): Conte
     model.maxTokens <= 0
   )
     throw new Error("Model contextWindow and maxTokens must be positive integers");
+  if (
+    !Number.isSafeInteger(reservedOutputTokens) ||
+    reservedOutputTokens <= 0 ||
+    reservedOutputTokens > model.maxTokens
+  )
+    throw new Error("Reserved output tokens must be a positive integer within model maxTokens");
 
   const systemTokens = context.systemPrompt ? estimateTextTokens(context.systemPrompt) + 16 : 0;
   const messageTokens = context.messages.reduce(
@@ -68,9 +80,6 @@ export const measureContextBudget = (model: Model<Api>, context: Context): Conte
     ? estimateTextTokens(JSON.stringify(context.tools)) + 16
     : 0;
   const estimatedInputTokens = systemTokens + messageTokens + toolTokens;
-  // Reserve the full response ceiling, including thinking tokens. Native model
-  // adapters can increase a smaller caller cap when reasoning is enabled.
-  const reservedOutputTokens = model.maxTokens;
   const safetyTokens = Math.min(4096, Math.ceil(model.contextWindow * 0.05));
   const inputLimit = Math.max(0, model.contextWindow - reservedOutputTokens - safetyTokens);
   const remainingInputTokens =

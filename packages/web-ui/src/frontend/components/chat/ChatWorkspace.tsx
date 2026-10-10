@@ -68,7 +68,7 @@ export const ChatWorkspace = ({ id }: { id: string }) => {
           <div className="chat-workspace-input">
             <SessionStatus snapshot={snapshot} connected={connected} />
             <SessionApprovals snapshot={snapshot} connected={connected} />
-            <ChatComposer snapshot={snapshot} connected={connected} />
+            <ChatComposer key={snapshot.sessionId} snapshot={snapshot} connected={connected} />
           </div>
         </div>
       )}

@@ -1,5 +1,7 @@
 # Session Commands
 
+`POST /api/sessions/:id/compact` holds the existing idle command lock, publishes operation `compact` with `compactionStartedAt` (epoch milliseconds), invokes `session.compact()` and returns the settled snapshot. The start is stable across live snapshot fetches and SSE reconnects and clears when the operation settles; it is not stored in session history. Short contexts return HTTP 400 with `nothing_to_compact` without authentication, model calls or storage writes; they settle with idle outcome and no session or command error, leaving the initiating UI responsible for a transient notice. `/abort` cancels generation. Pending saves and approvals block compaction. Persisted checkpoints survive reopening; snapshots contain only lightweight `state.compaction` metadata for the latest checkpoint, including the history count used to position the completed marker. See [core compaction](../../../../coding-agent/src/docs/compaction.md).
+
 Each sessionId has one writable AgentSession in the current Web process. Web manages commands and event connections; the coding-agent SDK owns model loops, tools, and JSONL history storage.
 
 Session lists include only the supported storage format. Files with other formats or versions remain untouched and do not block listing, opening supported conversations or creating new sessions. Looking up an excluded session returns session_not_found (404). Malformed current-format files and storage failures still report errors.
@@ -14,6 +16,7 @@ Session lists include only the supported storage format. Files with other format
 | POST /api/sessions/:id/prompt | Accept requestId, text and optional images/files; return runId with 202 |
 | POST /api/sessions/:id/abort | Wait for cancellation and cleanup, then return a snapshot |
 | POST /api/sessions/:id/flush | Retry saving existing results and return a snapshot |
+| POST /api/sessions/:id/compact | Summarize older context and return the settled snapshot; originals remain saved |
 | PUT /api/sessions/:id/model | Accept provider and id; return a snapshot after switching |
 | PUT /api/sessions/:id/title | Accept nonempty title; normalize, save and pin it against automatic generation |
 | POST /api/sessions/:id/title | Regenerate from saved user text; return the snapshot on completion |
@@ -22,7 +25,7 @@ Session lists include only the supported storage format. Files with other format
 | PUT /api/sessions/:id/pin | Accept workspaceId and boolean pinned; persist header pinnedAt and return { pinnedAt: string or null } |
 | POST /api/sessions/:id/approvals/:requestId | Answer with allowed-once, rejected, or allowed-session for eligible MCP requests |
 
-A complete snapshot contains model identity, supported efforts, selected effort, SDK state, operation, tool projection, optional runId/requestId and compact lastApproval outcome metadata. operation is idle, prompt, model, flush, title or permission; it does not indicate whether model text has started arriving.
+A complete snapshot contains model identity, supported efforts, selected effort, SDK state, operation, tool projection, optional runId/requestId and compact lastApproval outcome metadata. operation is idle, prompt, compact, model, flush, title or permission; it does not indicate whether model text has started arriving.
 
 Session list summaries include userMessageCount and isGenerating, derived from saved history and the current Web process's live session state. Drafts with no user messages are omitted from the default list. Unloaded historical sessions return isGenerating: false. The first completed user-message event publishes a sessions.changed notification on the [list stream](events.md#list-change-notifications), so the sidebar item appears while the response is still streaming, even on pages viewing another session. Archived listings continue to include older empty archived records for management.
 

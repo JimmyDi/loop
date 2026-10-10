@@ -13,7 +13,7 @@ import { SessionManager } from "./core/session-manager";
 
 test("real CLI print calls the model runtime, restores history and reports failure and cancellation", async () => {
   const dir = await mkdtemp(join(tmpdir(), "loop-print-"));
-  const requests: Array<{ messages: Array<{ role: string }> }> = [];
+  const requests: Array<{ messages: Array<{ role: string; content: unknown }> }> = [];
   let reason = "stop";
   let stalled = false;
   let started!: () => void;
@@ -107,14 +107,18 @@ test("real CLI print calls the model runtime, restores history and reports failu
       JSON.stringify({ permissionPreset: "danger-full-access" }),
     );
     expect((await read(start(["-c"]))).code).toBe(0);
-    expect(requests[1].messages.filter((item) => item.role !== "system")).toHaveLength(4);
-    expect((await SessionManager.continueRecent(dir, join(dir, "sessions"))).messages).toHaveLength(
-      4,
-    );
-    expect(
-      (await SessionManager.continueRecent(dir, join(dir, "sessions"))).getHeader()
-        .permissionPreset,
-    ).toBe("workspace-write");
+    expect(requests[1].messages.filter((item) => item.role !== "system")).toMatchObject([
+      { role: "user", content: "hello" },
+      { role: "assistant", content: "hello" },
+      { role: "user", content: "hello" },
+    ]);
+    const instructions = requests[1].messages.find((item) => item.role === "system")?.content;
+    expect(instructions).toContain("<permissions>");
+    expect(instructions).toContain("Current permission preset: workspace-write");
+    const restored = await SessionManager.continueRecent(dir, join(dir, "sessions"));
+    expect(restored.messages).toHaveLength(4);
+    expect(restored.getRuntimeContexts()).toEqual([]);
+    expect(restored.getHeader().permissionPreset).toBe("workspace-write");
 
     reason = "length";
 

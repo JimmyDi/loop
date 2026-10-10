@@ -111,6 +111,23 @@ test("new user turns align at the top without following response growth or manua
     expect(scroll!.contentRef.current?.style.minHeight).toBe("2250px");
     expect(scroll!.atBottom).toBe(true);
 
+    // An approval card shrinks the viewport. Removing it clamps scrollTop
+    // before the reserved height catches up, even without a user scroll.
+    for (const scrollEventFirst of [false, true]) {
+      viewportHeight = 200;
+      act(() => {
+        for (const callback of resizeCallbacks) callback();
+      });
+      viewportHeight = 500;
+      scrollTop = 1500;
+      act(() => {
+        if (scrollEventFirst) scroll!.onScroll();
+        for (const callback of resizeCallbacks) callback();
+      });
+      expect(scrollTop).toBe(1800);
+      expect(scroll!.userMessageRef.current?.getBoundingClientRect().top).toBe(20);
+    }
+
     // Programmatic alignment also emits a scroll event. It must not enable following.
     act(() => scroll!.onScroll());
     contentHeight = 2100;
@@ -135,6 +152,16 @@ test("new user turns align at the top without following response growth or manua
     scrollTop = 1000;
     act(() => scroll!.onScroll());
     ui.rerender(<Harness {...props} running={false} revision={4} />);
+    expect(scrollTop).toBe(1000);
+    viewportHeight = 300;
+    act(() => {
+      for (const callback of resizeCallbacks) callback();
+    });
+    expect(scrollTop).toBe(1000);
+    viewportHeight = 500;
+    act(() => {
+      for (const callback of resizeCallbacks) callback();
+    });
     expect(scrollTop).toBe(1000);
     ui.rerender(<Harness {...props} running={false} revision={5} />);
     expect(scrollTop).toBe(1000);
@@ -161,6 +188,16 @@ test("new user turns align at the top without following response growth or manua
     ui.rerender(<Harness {...props} running={false} revision={7} />);
     expect(scrollTop).toBe(2900);
     expect(scroll!.contentRef.current?.style.minHeight).toBe("3450px");
+
+    // Starting compaction reveals its timeline status once; later updates keep reading position.
+    scrollTop = 1000;
+    ui.rerender(<Harness {...props} running={false} activityKey={100} revision={8} />);
+    expect(scrollTop).toBe(2500);
+    scrollTop = 1000;
+    ui.rerender(<Harness {...props} running={false} activityKey={100} revision={9} />);
+    expect(scrollTop).toBe(1000);
+    ui.rerender(<Harness {...props} running={false} revision={10} />);
+    expect(scrollTop).toBe(1000);
 
     // Completed history clears reserved space; active history opens at its user turn.
     ui.rerender(<Harness {...props} sessionId="history" running={false} />);

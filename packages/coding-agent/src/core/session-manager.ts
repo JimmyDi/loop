@@ -14,6 +14,10 @@ import { DEFAULT_PERMISSION_PRESET, isPermissionPreset } from "./permissions/typ
 import type { PermissionPreset } from "./permissions/types";
 import { validateRuntimeContexts } from "./runtime-context";
 import type { RuntimeContextSnapshot } from "./runtime-context";
+import { validateCompactions } from "./context/compaction-checkpoint";
+import type { CompactionCheckpoint } from "./context/compaction-checkpoint";
+import { validateSystemPromptState } from "./context/system-prompt-state";
+import type { SystemPromptCheckpoint } from "./context/system-prompt-state";
 
 import { validatePromptTimings } from "./prompt-timing";
 import type { PromptTiming } from "./prompt-timing";
@@ -120,6 +124,8 @@ export class SessionManager {
     validateMessages(messages);
     validateRuntimeContexts(header.runtimeContexts, messages);
     validatePromptTimings(header.promptTimings, messages);
+    validateCompactions(header.compactions, messages);
+    validateSystemPromptState(header.systemPromptCheckpoints, messages);
 
     return new SessionManager({ header, messages }, resolve(path), false, true);
   }
@@ -231,6 +237,14 @@ export class SessionManager {
     return structuredClone((this.pending ?? this.data).header.runtimeContexts ?? []);
   }
 
+  getCompactions(): CompactionCheckpoint[] {
+    return structuredClone((this.pending ?? this.data).header.compactions ?? []);
+  }
+
+  getSystemPromptCheckpoints(): SystemPromptCheckpoint[] {
+    return structuredClone((this.pending ?? this.data).header.systemPromptCheckpoints ?? []);
+  }
+
   getHeader(): SessionHeader {
     const header = structuredClone(this.data.header);
 
@@ -263,10 +277,19 @@ export class SessionManager {
     messages: readonly Message[],
     runtimeContexts: readonly RuntimeContextSnapshot[] = this.getRuntimeContexts(),
     promptTimings: readonly PromptTiming[] = this.getPromptTimings(),
+    context: {
+      compactions?: readonly CompactionCheckpoint[];
+      systemPromptCheckpoints?: readonly SystemPromptCheckpoint[];
+    } = {},
   ): Promise<void> {
     if (this.pending || this.writing) throw new Error("Pending session save; call flush first");
     validateRuntimeContexts(runtimeContexts, messages);
     validatePromptTimings(promptTimings, messages);
+    const compactions = context.compactions ?? this.getCompactions();
+    const systemPromptCheckpoints =
+      context.systemPromptCheckpoints ?? this.getSystemPromptCheckpoints();
+    validateCompactions(compactions, messages);
+    validateSystemPromptState(systemPromptCheckpoints, messages);
     const hasNewOutput = messages
       .slice(this.data.messages.length)
       .some((message) => message.role !== "user");
@@ -278,6 +301,10 @@ export class SessionManager {
         unread: hasNewOutput || this.unread,
         runtimeContexts: runtimeContexts.length ? structuredClone([...runtimeContexts]) : undefined,
         promptTimings: promptTimings.length ? structuredClone([...promptTimings]) : undefined,
+        compactions: compactions.length ? structuredClone([...compactions]) : undefined,
+        systemPromptCheckpoints: systemPromptCheckpoints.length
+          ? structuredClone([...systemPromptCheckpoints])
+          : undefined,
       },
       messages: structuredClone([...messages]),
     };

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { SessionSnapshot } from "../../../shared/protocol";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { command } from "../../lib/api";
+import { isNothingToCompact } from "../../lib/compaction-notice";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import "./SessionStatus.css";
@@ -16,7 +17,9 @@ export const SessionStatus = ({
 }) => {
   const { t } = useTranslation();
   const action = useAsyncAction();
-  const error = snapshot.commandError ?? snapshot.state.error ?? action.error;
+  const error = [snapshot.commandError, snapshot.state.error, action.error].find(
+    (candidate) => candidate && !isNothingToCompact(candidate),
+  );
 
   if (connected && !error && !snapshot.state.hasPendingSave) return null;
 

@@ -60,7 +60,7 @@ The common model tool `load_skill({ handle })` loads an enabled, model-invocable
 
 The automatic metadata catalog targets two percent of the model context window, clamped to a 64-to-2000-token allowance; escaped metadata and its XML wrapper count toward that allowance, while fixed usage rules are counted by the complete request budget. Excess entries are omitted with a count. Explicit loading remains possible. Every full request, including summaries and loaded bodies, passes the existing context-budget check.
 
-Loaded snapshots include an optional description captured from the current metadata for host display. Existing snapshots without it remain valid. Explicit instructions and their revisions are saved in `runtimeContexts[].skills`; automatic loads remain ordinary tool results with the loaded body and revision. Restoring history reuses those exact texts rather than rereading updated sources. Disabling a skill prevents new loads; it does not erase instructions already present in history.
+Loaded snapshots include an optional description for display. Explicit instructions use `<skill name="..." location="...">` blocks prepended to the corresponding model user message; original user text is unchanged. Revisions remain saved in `runtimeContexts[].skills` with `placement: "user"`; automatic loads remain tool results. Legacy snapshots remain valid. Reopening uses saved text without rereading updated sources. Disabling prevents new loads, not replay of existing instructions.
 
 ## Installation and management
 

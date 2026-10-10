@@ -43,4 +43,4 @@ Tools must observe the signal. Cancellation cannot undo a completed external eff
 
 ## Source
 
-[types.ts](../types.ts), [agent-loop.ts](../agent-loop.ts), and [agent-loop.test.ts](../agent-loop.test.ts).
+[types.ts](../types.ts), [tool execution](../execute-tool.ts), [tool tests](../execute-tool.test.ts), [agent-loop.ts](../agent-loop.ts), and [loop integration tests](../agent-loop.test.ts).

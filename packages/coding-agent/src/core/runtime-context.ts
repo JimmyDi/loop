@@ -7,6 +7,8 @@ export type RuntimeContextSnapshot = {
   content: string;
   timestamp: number;
   skills?: LoadedSkill[];
+  /** Absent for legacy snapshots, which remain separate user messages. */
+  placement?: "user";
 };
 
 const CLEARED_CONTEXT =
@@ -17,6 +19,7 @@ export const prepareRuntimeContexts = (
   content: string,
   userTurn: number,
   skills?: LoadedSkill[],
+  placement?: "user",
 ): RuntimeContextSnapshot[] => {
   const snapshots = structuredClone([...retained]);
   if (!content && !snapshots.length) return snapshots;
@@ -28,35 +31,10 @@ export const prepareRuntimeContexts = (
     userTurn,
     content: current,
     timestamp: Date.now(),
+    ...(placement ? { placement } : {}),
     ...(skills?.length ? { skills: structuredClone(skills) } : {}),
   });
   return snapshots;
-};
-
-/** User-turn ordinals survive failed-assistant filtering and model changes. */
-export const projectRuntimeContexts = (
-  messages: readonly Message[],
-  snapshots: readonly RuntimeContextSnapshot[],
-): Message[] => {
-  const contexts = new Map(snapshots.map((snapshot) => [snapshot.userTurn, snapshot]));
-  const projected: Message[] = [];
-  let userTurn = 0;
-
-  for (const message of messages) {
-    projected.push(message);
-    if (message.role !== "user") continue;
-
-    const snapshot = contexts.get(userTurn++);
-    if (snapshot) {
-      projected.push({
-        role: "user",
-        content: snapshot.content,
-        timestamp: snapshot.timestamp,
-      });
-    }
-  }
-
-  return projected;
 };
 
 export const validateRuntimeContexts = (value: unknown, messages: readonly Message[]): void => {
@@ -73,6 +51,7 @@ export const validateRuntimeContexts = (value: unknown, messages: readonly Messa
       snapshot.userTurn >= userTurns ||
       typeof snapshot.content !== "string" ||
       !snapshot.content.trim() ||
+      (snapshot.placement !== undefined && snapshot.placement !== "user") ||
       !Number.isSafeInteger(snapshot.timestamp) ||
       snapshot.timestamp < 0
     )

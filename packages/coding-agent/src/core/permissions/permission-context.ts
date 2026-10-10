@@ -18,7 +18,7 @@ export const buildPermissionContext = (
   };
 
   return [
-    "Loop runtime context (host-provided). This snapshot supersedes earlier runtime context.",
+    "Current host permission policy. These rules supersede earlier permission guidance.",
     "Current permission preset: " + preset + ".",
     filePolicy[preset],
     preset === "danger-full-access"

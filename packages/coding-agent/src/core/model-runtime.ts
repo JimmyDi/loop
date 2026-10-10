@@ -5,20 +5,24 @@ import {
   getSupportedThinkingLevels,
   validateToolArguments,
 } from "@earendil-works/pi-ai";
-import type { Api, Model, Models } from "@earendil-works/pi-ai";
+import type { Api, Context, Model, Models, SimpleStreamOptions } from "@earendil-works/pi-ai";
+import { adjustMaxTokensForThinking } from "@earendil-works/pi-ai/api/simple-options";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completions.lazy";
 import { openAIResponsesApi } from "@earendil-works/pi-ai/api/openai-responses.lazy";
 import { anthropicMessagesApi } from "@earendil-works/pi-ai/api/anthropic-messages.lazy";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 
-import type { AgentTool, StreamFn } from "@loop/agent";
+import type { AgentTool, ModelInputMetadata, StreamFn } from "@loop/agent";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../config";
 import type { ProviderCatalogEntry, ProviderRuntimeConfig } from "./models/provider-config";
 import type { ModelEffort } from "./models/model-effort";
+import { resolveOutputBudget, withOutputBudget } from "./models/output-budget";
 import { ContextBudgetExceededError } from "./context-budget";
 import type { ContextBudget } from "./context-budget";
 import { assembleModelRequest } from "./model-request";
+import type { ModelInputProjection } from "./model-input-projection";
 import type { RuntimeContextSnapshot } from "./runtime-context";
+import type { CompactionCheckpoint } from "./context/compaction-checkpoint";
 
 /** Nested tool calls use the same runtime validation as direct Agent calls. */
 export const validateSessionToolArguments = (
@@ -32,23 +36,72 @@ export const validateSessionToolArguments = (
 export const createSessionStreamFn = (
   runtime: ModelRuntime,
   snapshots: readonly RuntimeContextSnapshot[],
-  onRequest: () => void,
+  onRequest: (projection: ModelInputProjection) => void,
   onBudget: (budget: ContextBudget) => void,
+  checkpoint?: CompactionCheckpoint,
+  prepare?: (input: {
+    model: Model<Api>;
+    context: Context;
+    metadata: ModelInputMetadata;
+    request: ReturnType<typeof assembleModelRequest>;
+    signal: AbortSignal;
+  }) => Promise<CompactionCheckpoint | undefined>,
 ): StreamFn => {
   const retained = structuredClone([...snapshots]);
-  return (model, context, options) => {
+  let activeCheckpoint = checkpoint;
+  return (model, context, options, metadata) => {
     options?.signal?.throwIfAborted();
-    const request = assembleModelRequest(model, context, retained);
+    if (!metadata) throw new Error("Model input origins are required for session dispatch");
+    const reservedOutputTokens = resolveModelOutputTokens(model, options);
+    const request = assembleModelRequest(
+      model,
+      context,
+      retained,
+      metadata,
+      activeCheckpoint,
+      reservedOutputTokens,
+    );
     onBudget(structuredClone(request.budget));
     options?.signal?.throwIfAborted();
-    if (!request.budget.fits) throw new ContextBudgetExceededError(request.budget);
-    onRequest();
-    return runtime.streamSimple(model, request.context, {
-      ...options,
-      maxTokens: request.budget.reservedOutputTokens,
+    const dispatch = (selected: typeof request) => {
+      options?.signal?.throwIfAborted();
+      if (!selected.budget.fits) throw new ContextBudgetExceededError(selected.budget);
+      onRequest(selected.projection);
+      return runtime.streamSimple(
+        model,
+        selected.context,
+        withOutputBudget(options, selected.budget, onBudget),
+      );
+    };
+    if (!prepare) return dispatch(request);
+    return prepare({
+      model,
+      context,
+      metadata,
+      request,
+      signal: options?.signal ?? new AbortController().signal,
+    }).then((next) => {
+      if (next?.id === activeCheckpoint?.id) return dispatch(request);
+      activeCheckpoint = next;
+      const selected = assembleModelRequest(
+        model,
+        context,
+        retained,
+        metadata,
+        activeCheckpoint,
+        reservedOutputTokens,
+      );
+      onBudget(structuredClone(selected.budget));
+      return dispatch(selected);
     });
   };
 };
+
+/** Keep native adapter calculations at the model-runtime boundary. */
+export const resolveModelOutputTokens = (
+  model: Model<Api>,
+  options?: SimpleStreamOptions,
+): number => resolveOutputBudget(model, options, adjustMaxTokensForThinking);
 
 export function getModelEfforts(model: Model<Api>): ModelEffort[] {
   return model.reasoning ? ["default", ...getSupportedThinkingLevels(model)] : [];

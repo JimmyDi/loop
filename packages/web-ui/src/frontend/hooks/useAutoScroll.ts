@@ -1,11 +1,12 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
-type TimelinePosition = { sessionId: string; userMessageIndex: number };
+type TimelinePosition = { sessionId: string; userMessageIndex: number; activityKey?: number };
 
 export const useAutoScroll = ({
   sessionId,
   userMessageIndex,
   running,
+  activityKey,
   revision,
 }: TimelinePosition & { running: boolean; revision: unknown }) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -14,11 +15,24 @@ export const useAutoScroll = ({
   const endRef = useRef<HTMLDivElement>(null);
   const previous = useRef<TimelinePosition | undefined>(undefined);
   const anchored = useRef(false);
+  const followingUser = useRef(false);
+  const lastScroll = useRef({ top: 0, width: 0, height: 0 });
   const [atBottom, setAtBottom] = useState(true);
   const onScroll = () => {
     const element = ref.current;
     const end = endRef.current;
     if (!element || !end) return;
+
+    const last = lastScroll.current;
+    const resized = last.width !== element.clientWidth || last.height !== element.clientHeight;
+    // Resizing can clamp scrollTop before ResizeObserver restores reserved space.
+    // Only a scroll within the same viewport releases the user-message anchor.
+    if (!resized && Math.abs(element.scrollTop - last.top) > 1) followingUser.current = false;
+    lastScroll.current = {
+      top: element.scrollTop,
+      width: element.clientWidth,
+      height: element.clientHeight,
+    };
 
     const paddingBottom =
       Number.parseFloat(
@@ -36,6 +50,7 @@ export const useAutoScroll = ({
     const end = endRef.current;
     if (!element || !end) return;
 
+    followingUser.current = false;
     const paddingBottom =
       Number.parseFloat(
         element.ownerDocument.defaultView?.getComputedStyle(element).paddingBottom ?? "",
@@ -50,6 +65,17 @@ export const useAutoScroll = ({
         element.clientHeight,
     );
     onScroll();
+  };
+  const alignUserMessage = () => {
+    const element = ref.current;
+    const user = userMessageRef.current;
+    if (!element || !user) return;
+
+    const style = element.ownerDocument.defaultView?.getComputedStyle(element);
+    const paddingTop = Number.parseFloat(style?.paddingTop ?? "") || 0;
+    element.scrollTop +=
+      user.getBoundingClientRect().top - element.getBoundingClientRect().top - paddingTop;
+    lastScroll.current.top = element.scrollTop;
   };
   const updateMinHeight = () => {
     const element = ref.current;
@@ -78,29 +104,34 @@ export const useAutoScroll = ({
       userMessageIndex >= 0 && previous.current?.userMessageIndex !== userMessageIndex;
     const alignUser = userMessageIndex >= 0 && (opening ? running : newUser);
 
-    if (opening) anchored.current = false;
-    if (alignUser) anchored.current = true;
+    if (opening) {
+      anchored.current = false;
+      followingUser.current = false;
+    }
+    if (alignUser) {
+      anchored.current = true;
+      followingUser.current = true;
+    }
     updateMinHeight();
 
-    const element = ref.current;
-    const user = userMessageRef.current;
-    if (alignUser && element && user) {
-      const style = element.ownerDocument.defaultView?.getComputedStyle(element);
-      const paddingTop = Number.parseFloat(style?.paddingTop ?? "") || 0;
-      element.scrollTop +=
-        user.getBoundingClientRect().top - element.getBoundingClientRect().top - paddingTop;
-    } else if (opening) {
+    if (
+      !alignUser &&
+      (opening || (activityKey !== undefined && previous.current?.activityKey !== activityKey))
+    ) {
       jump();
+    } else if (followingUser.current) {
+      alignUserMessage();
     }
     onScroll();
-    previous.current = { sessionId, userMessageIndex };
-  }, [sessionId, userMessageIndex, running, revision]);
+    previous.current = { sessionId, userMessageIndex, activityKey };
+  }, [sessionId, userMessageIndex, running, revision, activityKey]);
 
   useLayoutEffect(() => {
     if (!ref.current || !contentRef.current || typeof ResizeObserver === "undefined") return;
 
     const observer = new ResizeObserver(() => {
       updateMinHeight();
+      if (followingUser.current) alignUserMessage();
       onScroll();
     });
     observer.observe(ref.current);

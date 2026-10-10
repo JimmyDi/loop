@@ -136,3 +136,14 @@ test("invalid capacities fail explicitly and response capacity is never silently
     measureContextBudget({ ...model, contextWindow: 200000 }, { messages: [] }).safetyTokens,
   ).toBe(4096);
 });
+
+test("request reserves can be smaller than model capacity without altering model metadata", () => {
+  const context: Context = { messages: [{ role: "user", content: "Hello", timestamp: 0 }] };
+  const budget = measureContextBudget(model, context, 40);
+  expect(budget.reservedOutputTokens).toBe(40);
+  expect(budget.inputLimit).toBe(910);
+  expect(model.maxTokens).toBe(100);
+  for (const reserve of [0, -1, 1.5, NaN, 101]) {
+    expect(() => measureContextBudget(model, context, reserve)).toThrow("Reserved output");
+  }
+});

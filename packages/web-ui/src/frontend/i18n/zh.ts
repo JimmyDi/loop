@@ -3,6 +3,16 @@ import { skillsZh } from "./skills-zh";
 import { permissionsZh } from "./permissions-zh";
 
 export const zh = {
+  compaction: {
+    running: "正在压缩上下文",
+    completed: "上下文已压缩",
+    waitHint: "可能需要几分钟",
+    commands: "聊天命令",
+    command: "Compact",
+    description: "压缩此会话的上下文",
+    percentage: "（已用 {{percent}}% · 估算）",
+    noMatch: "没有匹配的命令",
+  },
   integrations: "集成",
   mcps: "MCPs",
   mcp: mcpZh,
@@ -174,6 +184,7 @@ export const zh = {
   maxOutputTokens: "最大输出 Token 数",
   addModel: "添加模型",
   errors: {
+    nothing_to_compact: "暂无需要压缩的内容。",
     invalid_mcp_config: "请检查名称、命令或 URL、重复的键和环境变量名。工作目录需填写绝对路径。",
     mcp_secret_required: "更换连接目标后，请重新填写已保存的环境变量或请求头值。",
     mcp_exists: "此 MCP 服务器已存在。",

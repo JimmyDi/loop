@@ -13,7 +13,11 @@ export class InteractiveOutput {
   }
 
   handle(event: SessionEvent): void {
-    if (event.type === "message_start" && event.message.role === "assistant") {
+    if (event.type === "compaction_start") {
+      this.showStatus("Compacting context… (/abort to cancel)");
+    } else if (event.type === "compaction_end") {
+      this.showStatus(event.checkpoint ? "Context compacted" : "Context compaction finished");
+    } else if (event.type === "message_start" && event.message.role === "assistant") {
       this.streamed.clear();
       this.showStatus("Waiting for model… (/abort to cancel)");
     } else if (event.type === "message_update") {

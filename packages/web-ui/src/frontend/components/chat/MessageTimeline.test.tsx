@@ -1,7 +1,6 @@
 import { expect, test } from "vitest";
 import { Window } from "happy-dom";
 import { renderToStaticMarkup } from "react-dom/server";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import type { SessionSnapshot } from "../../../shared/protocol";
 import type { Message } from "../../../shared/protocol";
@@ -26,16 +25,12 @@ const snapshot: SessionSnapshot = {
 };
 
 test("MessageTimeline renders the session state without unsupported controls", () => {
-  const client = new QueryClient();
   const html = renderToStaticMarkup(
-    <QueryClientProvider client={client}>
-      <MessageTimeline snapshot={{ ...snapshot, operation: "idle" }} connected />
-    </QueryClientProvider>,
+    <MessageTimeline snapshot={{ ...snapshot, operation: "idle" }} connected />,
   );
 
   expect(html).toContain("Ask a question");
   expect(html).toContain("message-timeline");
-  client.clear();
 });
 
 test("sending aligns the actual user message and keeps it steady through snapshot updates", async () => {
@@ -45,6 +40,7 @@ test("sending aligns the actual user message and keeps it steady through snapsho
   const { render, cleanup, fireEvent } = await import("@testing-library/react/pure");
   let userTop = 800;
   let contentHeight = 950;
+  let viewportHeight = 500;
   let scrollTop = 0;
   const originalRect = window.HTMLElement.prototype.getBoundingClientRect;
   window.HTMLElement.prototype.getBoundingClientRect = function () {
@@ -67,14 +63,14 @@ test("sending aligns the actual user message and keeps it steady through snapsho
     const timeline = ui.container.querySelector<HTMLDivElement>(".message-timeline")!;
     const content = ui.container.querySelector<HTMLDivElement>(".timeline-content")!;
     Object.defineProperties(timeline, {
-      clientHeight: { value: 500 },
+      clientHeight: { get: () => viewportHeight },
       scrollHeight: {
         get: () => Math.max(contentHeight, Number.parseFloat(content.style.minHeight) || 0),
       },
       scrollTop: {
         get: () => scrollTop,
         set: (value: number) => {
-          scrollTop = Math.max(0, Math.min(value, timeline.scrollHeight - 500));
+          scrollTop = Math.max(0, Math.min(value, timeline.scrollHeight - viewportHeight));
         },
       },
     });
@@ -89,6 +85,18 @@ test("sending aligns the actual user message and keeps it steady through snapsho
     expect(scrollTop).toBe(800);
     expect(ui.container.querySelector(".user-message")?.getBoundingClientRect().top).toBe(0);
     fireEvent.scroll(timeline);
+    const codemode: SessionSnapshot = {
+      ...sent,
+      tools: { example: { id: "example", name: "codemode", status: "running" } },
+    };
+    viewportHeight = 200;
+    ui.rerender(<MessageTimeline snapshot={codemode} connected />);
+    viewportHeight = 500;
+    scrollTop = 500;
+    fireEvent.scroll(timeline);
+    ui.rerender(<MessageTimeline snapshot={structuredClone(codemode)} connected />);
+    expect(scrollTop).toBe(800);
+    expect(ui.container.querySelector(".user-message")?.getBoundingClientRect().top).toBe(0);
     contentHeight = 1900;
     ui.rerender(<MessageTimeline snapshot={structuredClone(sent)} connected />);
     expect(scrollTop).toBe(800);
@@ -355,6 +363,150 @@ test("saved skill selections appear only in their associated user message", asyn
     }
     expect(historical.state.messages).toEqual(messages);
   } finally {
+    await window.happyDOM.close();
+  }
+});
+
+test.each([false, true])(
+  "compaction restores its marker after user or assistant turns (assistant=%s)",
+  (withResult) => {
+    const messages: Message[] = [
+      { role: "user", content: "First task", timestamp: 1 },
+      { role: "user", content: "Latest task", timestamp: 2 },
+    ];
+    if (withResult) {
+      messages.push({
+        role: "toolResult",
+        toolName: "read",
+        toolCallId: "example",
+        content: [{ type: "text", text: "Example result" }],
+        isError: false,
+        timestamp: 3,
+      });
+    }
+    const active: SessionSnapshot = {
+      ...snapshot,
+      operation: "compact",
+      compactionStartedAt: Date.now() - 5000,
+      state: { ...snapshot.state, messages },
+    };
+    const render = (current: SessionSnapshot) =>
+      renderToStaticMarkup(<MessageTimeline snapshot={current} connected />);
+    const running = render(active);
+    expect(running).toContain("Working for 5s");
+    expect(running).toContain("Compacting context");
+    expect(running).not.toContain("Looping...");
+    expect(running).not.toContain("Context compacted");
+    expect(running.indexOf("Compacting context")).toBeGreaterThan(running.indexOf("Latest task"));
+    const finished: SessionSnapshot = {
+      ...active,
+      operation: "idle",
+      compactionStartedAt: undefined,
+      state: {
+        ...active.state,
+        isRunning: false,
+        compaction: {
+          id: "example",
+          firstKeptMessageIndex: 1,
+          historyMessageCount: messages.length,
+          timestamp: 1,
+        },
+      },
+    };
+    const completed = render(finished);
+    expect(completed).toContain("Context compacted");
+    expect(completed).not.toContain("Working for");
+    expect(completed).not.toContain("Compacting context");
+    const reopened = render({
+      ...finished,
+      state: {
+        ...finished.state,
+        messages: [...messages, { role: "user", content: "Continue working", timestamp: 3 }],
+      },
+    });
+    expect(reopened.indexOf("Context compacted")).toBeLessThan(
+      reopened.indexOf("Continue working"),
+    );
+    expect(reopened.match(/Context compacted/g)).toHaveLength(1);
+    expect(
+      render({ ...finished, state: { ...finished.state, hasPendingSave: true } }),
+    ).not.toContain("Context compacted");
+    for (const error of ["Compaction cancelled", "Summary unavailable", "Nothing to compact"]) {
+      const failed = render({
+        ...active,
+        operation: "idle",
+        compactionStartedAt: undefined,
+        commandError: error,
+      });
+      expect(failed).not.toContain("Context compacted");
+      expect(failed).not.toContain("Compacting context");
+    }
+  },
+);
+
+test("automatic compaction replaces looping status during a prompt and anchors its marker before continuation", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  try {
+    const messages: Message[] = [
+      { role: "user", content: "Previous task", timestamp: 1 },
+      { role: "user", content: "Current task", timestamp: 2 },
+      {
+        role: "assistant",
+        api: "openai-completions",
+        provider: "fixture",
+        model: "fixture",
+        timestamp: 3,
+        stopReason: "stop",
+        content: [{ type: "text", text: "Before compaction" }],
+        usage: {
+          input: 1,
+          output: 1,
+          cacheRead: 0,
+          cacheWrite: 0,
+          totalTokens: 2,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+        },
+      },
+    ];
+    const active: SessionSnapshot = {
+      ...snapshot,
+      state: {
+        ...snapshot.state,
+        messages,
+        activeCompaction: { startedAt: Date.now() - 5000, historyMessageCount: 3 },
+      },
+    };
+    const render = (value: SessionSnapshot) =>
+      renderToStaticMarkup(<MessageTimeline snapshot={value} connected />);
+    expect(render(active)).toContain("Compacting context");
+    expect(render(active)).not.toContain("Looping...");
+    const finished: SessionSnapshot = {
+      ...active,
+      state: {
+        ...active.state,
+        activeCompaction: undefined,
+        promptTimings: [{ userMessageIndex: 1, startedAt: 1, finishedAt: 2001 }],
+        compaction: {
+          id: "fixture",
+          firstKeptMessageIndex: 1,
+          historyMessageCount: 3,
+          timestamp: 4,
+        },
+        messages: [
+          ...messages,
+          { ...messages[2]!, content: [{ type: "text", text: "After compaction" }] } as Message,
+        ],
+      },
+    };
+    const html = render(finished);
+    expect(html).toContain("Looping...");
+    expect(html.indexOf("Context compacted")).toBeGreaterThan(html.indexOf("Before compaction"));
+    expect(html.indexOf("Context compacted")).toBeLessThan(html.indexOf("After compaction"));
+    expect(html.match(/Worked for/g)).toHaveLength(1);
+  } finally {
+    Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }
 });

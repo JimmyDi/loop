@@ -10,6 +10,7 @@ import { UserMessage } from "./UserMessage";
 import { LoopingIndicator } from "./LoopingIndicator";
 import { PromptDuration } from "./PromptDuration";
 import { JumpToLatestButton } from "./JumpToLatestButton";
+import { CompactionStatus } from "./CompactionStatus";
 import "./MessageTimeline.css";
 
 export const MessageTimeline = ({
@@ -28,16 +29,24 @@ export const MessageTimeline = ({
     sessionId: snapshot.sessionId,
     userMessageIndex,
     running: snapshot.operation === "prompt",
+    activityKey: snapshot.operation === "compact" ? snapshot.compactionStartedAt : undefined,
     revision: snapshot,
   });
-  const looping = connected && snapshot.operation === "prompt";
+  const automatic = snapshot.state.activeCompaction;
+  const compacting = snapshot.operation === "compact" || !!automatic;
+  const compactStartedAt = automatic?.startedAt ?? snapshot.compactionStartedAt;
+  const looping = connected && snapshot.operation === "prompt" && !compacting;
   useReadReceipt(snapshot, connected, scroll.ref, scroll.endRef);
   const messages = [...snapshot.state.messages];
   const draftIndex = snapshot.state.draft ? (snapshot.draftIndex ?? messages.length) : undefined;
 
   if (snapshot.state.draft && draftIndex !== undefined) messages[draftIndex] = snapshot.state.draft;
 
-  const turns = groupTimelineTurns(messages);
+  const checkpoint = snapshot.state.hasPendingSave ? undefined : snapshot.state.compaction;
+  const turns = groupTimelineTurns(messages, checkpoint?.historyMessageCount);
+  const compactedPosition = checkpoint
+    ? turns.findLastIndex((turn) => turn.index < checkpoint.historyMessageCount)
+    : -1;
 
   return (
     <div className="timeline-region">
@@ -80,22 +89,33 @@ export const MessageTimeline = ({
                     timing.finishedAt === undefined && <PromptDuration timing={timing} />}
                   {timing?.finishedAt !== undefined &&
                     turns[position + 1]?.type !== "assistant" && <PromptDuration timing={timing} />}
+                  {position === compactedPosition && <CompactionStatus key={checkpoint?.id} />}
                 </Fragment>
               );
             }
 
             return (
-              <AssistantTurn
-                key={key}
-                messages={turn.messages}
-                tools={snapshot.tools}
-                timing={timing}
-                draftIndex={draftIndex}
-                running={snapshot.operation === "prompt" && turn === turns.at(-1)}
-              />
+              <Fragment key={key}>
+                <AssistantTurn
+                  messages={turn.messages}
+                  tools={snapshot.tools}
+                  timing={turns[position + 1]?.type === "assistant" ? undefined : timing}
+                  draftIndex={draftIndex}
+                  running={snapshot.operation === "prompt" && turn === turns.at(-1)}
+                />
+                {position === compactedPosition && <CompactionStatus key={checkpoint?.id} />}
+              </Fragment>
             );
           })}
           {looping && <LoopingIndicator />}
+          {compacting && (
+            <CompactionStatus
+              key={`${snapshot.sessionId}:${compactStartedAt}`}
+              running
+              connected={connected}
+              startedAt={compactStartedAt}
+            />
+          )}
           <div ref={scroll.endRef} aria-hidden="true" />
         </div>
       </div>

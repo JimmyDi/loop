@@ -65,6 +65,10 @@ export async function runInteractiveMode(
         throw new Error("Use read-only, workspace-write or danger-full-access");
       await runtime.session.setPermissionPreset(preset);
       console.log("Permissions: " + runtime.session.permissionPreset);
+    } else if (text === "/compact") {
+      console.log("Compacting context…");
+      await runtime.session.compact();
+      console.log("Context compacted; original history preserved.");
     } else if (text === "/flush") await runtime.session.flush();
     else if (text === "/new") await runtime.newSession();
     else if (text === "/resume") {
@@ -124,7 +128,7 @@ export async function runInteractiveMode(
   const terminate = () => input.close();
 
   process.on("SIGTERM", terminate);
-  console.log("Loop · /abort /model /permissions /new /resume /quit");
+  console.log("Loop · /abort /compact /model /permissions /new /resume /quit");
   console.log("Model: " + runtime.session.model.provider + "/" + runtime.session.model.id);
   console.log("Permissions: " + runtime.session.permissionPreset);
   input.prompt();

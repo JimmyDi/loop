@@ -30,19 +30,6 @@
   padding: 4px var(--composer-content-inset) 10px;
   min-height: 48px;
 }
-.composer-send {
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
-  border-radius: 50%;
-  font-size: 22px;
-  padding: 0;
-}
-.composer-send.stop {
-  font-size: 12px;
-  background: var(--surface-selected);
-  color: var(--ink);
-}
 .composer-uncertain {
   font-size: 12px;
   padding: 8px 0;

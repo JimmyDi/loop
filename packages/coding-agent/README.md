@@ -6,6 +6,8 @@ Import from [index.ts](src/index.ts). This private pnpm workspace package owns i
 
 ## Start
 
+Manual context compaction is available through interactive `/compact`, Web composer `/` → **Compact**, or SDK `session.compact()`. Originals remain saved while the next request uses a summary and recent turns. See [compaction](src/docs/compaction.md) for cancellation and recovery.
+
 From the project root, install with `pnpm install` and configure [a model](src/docs/models.md). Then choose a consumer:
 
 ```bash
@@ -36,8 +38,10 @@ The CLI is interactive by default. The SDK sample performs one request workflow 
 | Session permission presets and native file sandboxing | [Permissions](src/docs/permissions.md) |
 | Request, answer and cancel host approvals | [Approvals](src/docs/approvals.md) |
 | Discover project instructions | [Context files](src/docs/context-files.md) |
-| Keep permission context separate from the system prompt | [Runtime context](src/docs/runtime-context.md) |
+| Track system permissions and expand selected Skill instructions | [Runtime context](src/docs/runtime-context.md) |
+| Trace model messages to complete history and runtime snapshots | [Model input projection](src/docs/model-input-projection.md) |
 | Check complete model input and reserve response capacity | [Context budget](src/docs/context-budget.md) |
+| Summarize older model input while preserving original history | [Compaction](src/docs/compaction.md) |
 
 Each page covers one feature, with usage first, API or configuration reference, current behavior and limits, and links to source/tests. The README is the entry point, keeping feature details in `docs/`.
 
@@ -54,4 +58,4 @@ pnpm run typecheck
 pnpm run check
 ```
 
-Coding-agent supports Loop's minimal API and JSONL format. It does not implement queues, steering, compaction, extensions, or RPC.
+Coding-agent supports Loop's minimal API and JSONL format, including manual and automatic [context compaction](src/docs/compaction.md). It does not implement queues, steering, extensions, or RPC.

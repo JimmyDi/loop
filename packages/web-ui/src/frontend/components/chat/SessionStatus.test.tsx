@@ -88,3 +88,27 @@ test("a failed model connection leaves the running state and shows configuration
   expect(html).toContain("Open Settings → Models");
   expect(html).not.toContain("Looping...");
 });
+
+test("legacy no-work state does not duplicate the local notice or hide real errors", () => {
+  const current: SessionSnapshot = {
+    ...snapshot,
+    operation: "idle",
+    commandError: "Nothing to compact",
+    state: { ...snapshot.state, error: "Nothing to compact", outcome: "error" },
+  };
+  expect(renderToStaticMarkup(<SessionStatus snapshot={current} connected />)).toBe("");
+  expect(
+    renderToStaticMarkup(
+      <SessionStatus
+        snapshot={{
+          ...current,
+          state: {
+            ...current.state,
+            error: "Disk full",
+          },
+        }}
+        connected
+      />,
+    ),
+  ).toContain("Disk full");
+});

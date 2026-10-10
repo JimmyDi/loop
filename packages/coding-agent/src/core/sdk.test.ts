@@ -65,6 +65,76 @@ test("new sessions use settings defaults and restored sessions retain their save
   }
 });
 
+test("SDK request maxTokens reaches main requests and idle budget without changing model metadata", async () => {
+  const model = {
+    ...createModelRuntime().getModel("anthropic", "claude-opus-4-5")!,
+    api: "anthropic-messages" as const,
+    maxTokens: 128000,
+    contextWindow: 200000,
+    compat: { forceAdaptiveThinking: false },
+  };
+  const manager = SessionManager.inMemory();
+  await manager.commit([{ role: "user", content: "Previous task", timestamp: 0 }]);
+  let calls = 0;
+  const modelRuntime: ModelRuntime = {
+    getModel: () => model,
+    getModels: () => [model],
+    checkModel: async () => {},
+    streamSimple: (_selected, _context, options) => {
+      calls++;
+      expect(options?.maxTokens).toBe(16000);
+      const stream = createAssistantMessageEventStream();
+      const message = {
+        role: "assistant" as const,
+        content: [{ type: "text" as const, text: "Complete" }],
+        api: model.api,
+        provider: model.provider,
+        model: model.id,
+        timestamp: 1,
+        stopReason: "stop" as const,
+        usage: {
+          input: 10,
+          output: 1,
+          cacheRead: 0,
+          cacheWrite: 0,
+          totalTokens: 11,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+        },
+      };
+      stream.push({ type: "done", reason: "stop", message });
+      stream.end();
+      return stream;
+    },
+  };
+  const { session } = await createAgentSession({
+    model,
+    modelRuntime,
+    sessionManager: manager,
+    settingsManager: SettingsManager.inMemory(),
+    noContextFiles: true,
+    tools: [],
+    maxTokens: 16000,
+    effort: "medium",
+  });
+  try {
+    expect(session.state.contextBudget?.reservedOutputTokens).toBe(24192);
+    await session.prompt("Continue");
+    expect(calls).toBe(1);
+    expect(session.state.contextBudget?.reservedOutputTokens).toBe(24192);
+    await session.setModel(model, { effort: "off" });
+    expect(session.state.contextBudget?.reservedOutputTokens).toBe(16000);
+    await session.prompt("Continue again");
+    expect(calls).toBe(2);
+    expect(session.model.maxTokens).toBe(128000);
+    expect(manager.getHeader()).not.toHaveProperty("maxTokens");
+  } finally {
+    session.dispose();
+  }
+  for (const maxTokens of [0, -1, NaN, Infinity, 1.5]) {
+    await expect(createAgentSession({ maxTokens })).rejects.toThrow("positive safe integer");
+  }
+});
+
 test("factory restores saved model, rejects unavailable models and never silently replaces them", async () => {
   const dir = await mkdtemp(join(tmpdir(), "loop-sdk-"));
   const registry = createModelRuntime();

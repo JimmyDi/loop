@@ -25,7 +25,17 @@ test("production packages enforce downward public boundaries, declared dependenc
       (file) => file.endsWith(".ts") && !file.endsWith(".test.ts") && !file.endsWith(".sample.ts"),
     )
     .sort();
-  expect(agent).toEqual(["agent-loop.ts", "agent.ts", "index.ts", "types.ts"]);
+  expect(agent).toEqual([
+    "abortable-promise.ts",
+    "agent-loop.ts",
+    "agent.ts",
+    "execute-tool.ts",
+    "index.ts",
+    "normalize-model-input.ts",
+    "stream-model-response.ts",
+    "types.ts",
+    "validate-loop-input.ts",
+  ]);
 });
 
 test.each([

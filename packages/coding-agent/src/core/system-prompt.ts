@@ -24,7 +24,7 @@ const escapeXmlAttribute = (text: string): string =>
 
 /** Render a text section; supplied text cannot close its XML wrapper. */
 export const renderSystemPromptSection = (
-  name: "rules" | "cwd" | "tools" | "tool_usage" | "skills" | "mcp_servers",
+  name: "rules" | "cwd" | "tools" | "tool_usage" | "skills" | "mcp_servers" | "permissions",
   content: string,
 ): string => `<${name}>\n${escapeXmlText(content)}\n</${name}>`;
 

@@ -14,6 +14,7 @@ import type { ContextBudget } from "../context-budget";
 import type { McpManager } from "../mcp/mcp-manager";
 import type { SkillManager } from "../skills/skill-manager";
 import type { LoadedSkill } from "../skills/types";
+import type { CompactionCheckpoint } from "../context/compaction-checkpoint";
 
 export type SessionEvent =
   | (AgentEvent & { toolDisplayName?: string })
@@ -21,6 +22,15 @@ export type SessionEvent =
   | { type: "agent_settled" }
   | { type: "prompt_timing"; timing: PromptTiming }
   | { type: "context_budget"; budget: ContextBudget }
+  | { type: "compaction_start"; startedAt: number; historyMessageCount: number }
+  | {
+      type: "compaction_end";
+      checkpoint?: Pick<
+        CompactionCheckpoint,
+        "id" | "firstKeptMessageIndex" | "historyMessageCount" | "timestamp"
+      >;
+      error?: string;
+    }
   | { type: "skills_loaded"; userTurn: number; skills: LoadedSkill[] }
   | { type: "permission_changed"; permissionPreset: PermissionPreset }
   | { type: "session_title"; title: SessionTitle; error?: string };
@@ -40,6 +50,14 @@ export type SessionState = {
   titleError?: string;
   promptTimings?: PromptTiming[];
   contextBudget?: ContextBudget;
+  /** Whether the local retention planner has an older complete turn to summarize. */
+  compactionAvailable?: boolean;
+  /** Transient automatic-compaction activity; the prompt remains running. */
+  activeCompaction?: { startedAt: number; historyMessageCount: number };
+  compaction?: Pick<
+    CompactionCheckpoint,
+    "id" | "firstKeptMessageIndex" | "historyMessageCount" | "timestamp"
+  >;
   permissionPreset?: PermissionPreset;
   pendingApprovals?: ApprovalRequest[];
   skillLoads?: Array<{ userTurn: number; skills: LoadedSkill[] }>;
@@ -55,6 +73,8 @@ export type SessionOptions = {
   skillManager?: SkillManager;
   ownsSkillManager?: boolean;
   maxTurns?: number;
+  /** Per-request caller output cap; native reasoning adjustments are reserved separately. */
+  maxTokens?: number;
   effort?: ModelEffort;
   title?: SessionTitleOptions;
   permissionPolicy?: PermissionPolicy;

@@ -132,12 +132,16 @@
   agent-session-runtime.ts, session-manager.ts, and model-runtime.ts. Split helpers and
   types into focused subfolders. Keep terminal entry points and modes inside coding-agent;
   do not recreate a separate top-level cli directory.
-- Keep exactly four implementation files in packages/agent/src: types.ts, agent-loop.ts, agent.ts
-  and index.ts, with colocated tests. Keep the API usage sample in agent.sample.ts beside them;
-  it is not part of the public exports. Do not add a separate examples directory, helper
-  directories or placeholder modules. Feature documentation in `packages/agent/src/docs` is allowed.
-- Keep the minimal sequential loop in agent/agent-loop.ts. It owns history writes, consumes
-  model streams and result(), validates tool arguments with the model runtime, and executes tools sequentially.
+- Keep Agent implementation files flat under packages/agent/src, with clear responsibility-based
+  names and colocated tests. Keep agent.ts, agent-loop.ts, types.ts and index.ts as the state,
+  orchestration, contract and public-entry boundaries. Internal modules handle model-input
+  normalization, model-stream consumption, tool execution, input validation and cancellation waits.
+  Keep these modules internal to the package. Keep the API usage sample in agent.sample.ts;
+  do not add a separate examples directory, generic helper directories or placeholder modules.
+  Feature documentation in `packages/agent/src/docs` is allowed.
+- Keep the minimal sequential loop in agent/agent-loop.ts. It owns history writes and sequential
+  scheduling, delegating stream consumption and result(), argument validation and tool execution
+  to focused internal modules without changing event order or cancellation semantics.
   Agent owns in-memory history, subscriptions, running state and cancellation.
 - Keep streamFn explicit and return the final AssistantMessage from prompt(). Reject concurrent
   prompts, model errors, cancellation, truncation, deferred responses and exhausted maxTurns.

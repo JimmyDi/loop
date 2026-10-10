@@ -43,6 +43,23 @@ test("MCP display labels survive execution updates and restored messages without
   ).toBeUndefined();
 });
 
+test.each([null, false, 1, "synthetic details", ["synthetic details"]])(
+  "non-object JSON details do not supply display labels (%j)",
+  (details) => {
+    const result: Extract<Message, { role: "toolResult" }> = {
+      role: "toolResult",
+      toolCallId: "call",
+      toolName: "example",
+      content: [],
+      timestamp: 0,
+      isError: false,
+      details,
+    };
+    expect(projectTools([result]).call).toMatchObject({ name: "example", status: "success" });
+    expect(projectTools([result]).call?.displayName).toBeUndefined();
+  },
+);
+
 test("streamed arguments keep updating without resetting execution state or losing results", () => {
   const message = {
     role: "assistant",

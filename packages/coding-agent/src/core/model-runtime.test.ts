@@ -15,6 +15,7 @@ import {
   createProviderRuntime,
   createSessionStreamFn,
   getModelEfforts,
+  resolveModelOutputTokens,
 } from "./model-runtime";
 import type { ModelRuntime } from "./model-runtime";
 import { ContextBudgetExceededError } from "./context-budget";
@@ -41,7 +42,8 @@ test("session dispatch emits budgets before the model, blocks overflow and respe
     getModel: () => model,
     getModels: () => [model],
     checkModel: async () => {},
-    streamSimple: (_model, context, options) => {
+    streamSimple: (_model, context, options, metadata) => {
+      expect(metadata).toBeUndefined();
       order.push("model");
       captured.push(structuredClone(context));
       expect(options?.maxTokens).toBe(512);
@@ -52,20 +54,35 @@ test("session dispatch emits budgets before the model, blocks overflow and respe
   const dispatch = createSessionStreamFn(
     runtime,
     [{ userTurn: 0, content: "Host context", timestamp: 2 }],
-    () => order.push("used"),
+    (projection) => {
+      expect(projection.sources).toEqual([
+        { type: "history", messageIndex: 0 },
+        { type: "runtime-context", snapshotIndex: 0, userTurn: 0, messageIndex: 0, skills: [] },
+      ]);
+      order.push("used");
+    },
     (budget) => {
       budgets.push(budget);
       order.push("budget");
     },
   );
   const context = { messages: [{ role: "user" as const, content: "hello", timestamp: 1 }] };
-  expect(await dispatch(model, context)).toBe(nativeStream);
+  const metadata = {
+    historyMessageCount: 1,
+    sources: [{ type: "history" as const, messageIndex: 0 }],
+  };
+  expect(await dispatch(model, context, undefined, metadata)).toBe(nativeStream);
   expect(order).toEqual(["budget", "used", "model"]);
   expect(captured[0]?.messages[1]?.content).toBe("Host context");
   expect(budgets[0]?.reservedOutputTokens).toBe(512);
   order.length = 0;
   expect(() =>
-    dispatch(model, { messages: [{ ...context.messages[0]!, content: "x".repeat(20000) }] }),
+    dispatch(
+      model,
+      { messages: [{ ...context.messages[0]!, content: "x".repeat(20000) }] },
+      undefined,
+      metadata,
+    ),
   ).toThrow(ContextBudgetExceededError);
   expect(order).toEqual(["budget"]);
   expect(budgets[1]?.fits).toBe(false);
@@ -76,6 +93,117 @@ test("session dispatch emits budgets before the model, blocks overflow and respe
   expect(order).toEqual([]);
   expect(captured).toHaveLength(1);
   expect(context.messages).toHaveLength(1);
+});
+
+test("native adapters report payload caps while retaining preflight reasoning capacity", async () => {
+  for (const [api, adaptive, expected] of [
+    ["openai-completions", false, 16000],
+    ["openai-responses", false, 16000],
+    ["anthropic-messages", false, 24192],
+    ["anthropic-messages", true, 16000],
+  ] as const) {
+    const runtime = createProviderRuntime({
+      id: "fixture",
+      name: "Fixture",
+      kind: "custom",
+      api,
+      baseUrl: "https://example.invalid/v1",
+      authentication: "none",
+      models: [{ id: "fixture", contextWindow: 200000, maxTokens: 128000 }],
+    });
+    const model = runtime.getModel("fixture", "fixture")!;
+    model.compat = { ...model.compat, forceAdaptiveThinking: adaptive };
+    const context = { messages: [{ role: "user" as const, content: "Hello", timestamp: 0 }] };
+    const metadata = {
+      historyMessageCount: 1,
+      sources: [{ type: "history" as const, messageIndex: 0 }],
+    };
+    const budgets: ContextBudget[] = [];
+    const dispatch = createSessionStreamFn(
+      runtime,
+      [],
+      () => {},
+      (budget) => budgets.push(budget),
+    );
+    let transportCalls = 0;
+    const stream = await dispatch(
+      model,
+      context,
+      {
+        maxTokens: 16000,
+        reasoning: "medium",
+        maxRetries: 0,
+        fetch: async () => {
+          transportCalls++;
+          throw new Error("Fixture transport stopped");
+        },
+      },
+      metadata,
+    );
+    expect((await stream.result()).stopReason).toBe("error");
+    expect(transportCalls).toBeGreaterThan(0);
+    expect(budgets[0]?.reservedOutputTokens).toBe(expected);
+    expect(budgets.at(-1)?.requestOutputTokenLimit).toBe(expected);
+    expect(model.maxTokens).toBe(128000);
+
+    transportCalls = 0;
+    const blocked = await dispatch(
+      model,
+      context,
+      {
+        maxTokens: 16000,
+        reasoning: "medium",
+        maxRetries: 0,
+        onPayload: (payload) => ({
+          ...(payload as Record<string, unknown>),
+          [api === "openai-responses"
+            ? "max_output_tokens"
+            : api === "anthropic-messages"
+              ? "max_tokens"
+              : "max_completion_tokens"]: expected + 1,
+        }),
+        fetch: async () => {
+          transportCalls++;
+          throw new Error("Must not reach transport");
+        },
+      },
+      metadata,
+    );
+    const result = await blocked.result();
+    expect(result.stopReason).toBe("error");
+    expect(result.errorMessage).toContain("reserved output budget");
+    expect(transportCalls).toBe(0);
+  }
+});
+
+test("preflight does not shrink desired output capacity to accommodate oversized input", () => {
+  const runtime = createProviderRuntime({
+    id: "fixture",
+    name: "Fixture",
+    kind: "custom",
+    api: "anthropic-messages",
+    baseUrl: "https://example.invalid/v1",
+    authentication: "none",
+    models: [{ id: "fixture", contextWindow: 32000, maxTokens: 28000 }],
+  });
+  const model = runtime.getModel("fixture", "fixture")!;
+  const budgets: ContextBudget[] = [];
+  const dispatch = createSessionStreamFn(
+    runtime,
+    [],
+    () => {},
+    (budget) => budgets.push(budget),
+  );
+  expect(resolveModelOutputTokens(model, { maxTokens: 16000, reasoning: "medium" })).toBe(24192);
+  expect(() =>
+    dispatch(
+      model,
+      { messages: [{ role: "user", content: "x".repeat(30000), timestamp: 0 }] },
+      { maxTokens: 16000, reasoning: "medium" },
+      { historyMessageCount: 1, sources: [{ type: "history", messageIndex: 0 }] },
+    ),
+  ).toThrow(ContextBudgetExceededError);
+  expect(budgets[0]?.reservedOutputTokens).toBe(24192);
 });
 
 test("host model registry handles auth and requests without environment credentials", async () => {

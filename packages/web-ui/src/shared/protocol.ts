@@ -57,7 +57,8 @@ export type SessionSnapshot = {
   state: SessionState;
   model: ModelChoice;
   effort?: ModelEffort;
-  operation: "idle" | "prompt" | "model" | "flush" | "title" | "permission";
+  operation: "idle" | "prompt" | "model" | "flush" | "title" | "permission" | "compact";
+  compactionStartedAt?: number;
   lastApproval?: Pick<ApprovalResult, "outcome" | "resolvedAt"> & {
     request: Pick<ApprovalRequest, "sessionId" | "requestId" | "toolName">;
   };

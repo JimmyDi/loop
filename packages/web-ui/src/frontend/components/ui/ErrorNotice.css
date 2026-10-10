@@ -12,6 +12,10 @@
 .error-notice[data-dismissible] {
   padding-right: 48px;
 }
+.error-notice[data-informational] {
+  background: var(--surface-raised);
+  color: var(--ink-muted);
+}
 .error-notice-close {
   position: absolute;
   top: 6px;

@@ -4,6 +4,16 @@ import { mcpEn } from "./mcp-en";
 import { skillsEn } from "./skills-en";
 
 export const en = {
+  compaction: {
+    running: "Compacting context",
+    completed: "Context compacted",
+    waitHint: "This can take a few minutes",
+    commands: "Chat commands",
+    command: "Compact",
+    description: "Compact this chat’s context",
+    percentage: "({{percent}}% full · estimated)",
+    noMatch: "No matching commands",
+  },
   integrations: "Integrations",
   mcps: "MCPs",
   mcp: mcpEn,
@@ -178,6 +188,7 @@ export const en = {
   maxOutputTokens: "Maximum output tokens",
   addModel: "Add model",
   errors: {
+    nothing_to_compact: "Nothing to compact.",
     invalid_mcp_config:
       "Check the name, command or URL, unique keys, and valid environment variable names. Use an absolute working directory.",
     mcp_secret_required:

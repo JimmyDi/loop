@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../../lib/api";
+import { isNothingToCompact } from "../../lib/compaction-notice";
 import "./ErrorNotice.css";
 
 export const ErrorNotice = ({
@@ -13,13 +14,20 @@ export const ErrorNotice = ({
 }) => {
   const { t } = useTranslation();
   const [dismissedError, setDismissedError] = useState<unknown>();
+  const informational = isNothingToCompact(error);
 
   useEffect(() => setDismissedError(undefined), [error]);
+  useEffect(() => {
+    if (!informational || !dismissible) return;
+    const timer = window.setTimeout(() => setDismissedError(() => error), 5000);
+    return () => window.clearTimeout(timer);
+  }, [error, informational, dismissible]);
 
   if (!error || (dismissible && dismissedError === error)) return null;
 
-  const message =
-    error instanceof ApiError
+  const message = informational
+    ? t("errors.nothing_to_compact")
+    : error instanceof ApiError
       ? error.code === "operation_failed" && error.message
         ? error.message
         : t("errors." + error.code, { defaultValue: error.message })
@@ -28,8 +36,13 @@ export const ErrorNotice = ({
         : String(error);
 
   return (
-    <div className="error-notice" role="alert" data-dismissible={dismissible || undefined}>
-      <strong>{t("failed")}</strong>
+    <div
+      className="error-notice"
+      role={informational ? "status" : "alert"}
+      data-informational={informational || undefined}
+      data-dismissible={dismissible || undefined}
+    >
+      {!informational && <strong>{t("failed")}</strong>}
       <span>{message}</span>
       {/connection error|connection timed out|request timed out/i.test(message) && (
         <span>{t("modelConnectionHint")}</span>

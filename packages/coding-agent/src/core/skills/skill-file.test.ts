@@ -1,6 +1,18 @@
 import { expect, test } from "vitest";
 
-import { parseSkill, MAX_SKILL_BYTES } from "./skill-file";
+import { parseSkill, MAX_SKILL_BYTES, renderLoadedSkill } from "./skill-file";
+
+test("wraps instructions with escaped source attributes and preserves Markdown body", () => {
+  const result = renderLoadedSkill({
+    name: "review",
+    path: 'skills/a"&b/SKILL.md',
+    content: "Compare a < b and `code`.",
+  });
+  expect(result).toContain('<skill name="review" location="skills/a&quot;&amp;b/SKILL.md">');
+  expect(result).toContain("Compare a < b and `code`.");
+  expect(result).toContain("do not grant tool permissions");
+  expect(result.endsWith("</skill>")).toBe(true);
+});
 
 test("requires bounded, unambiguous metadata and explicit invocation policy", () => {
   const main =

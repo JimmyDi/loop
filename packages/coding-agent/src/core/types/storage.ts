@@ -3,6 +3,8 @@ import type { ModelEffort } from "../models/model-effort";
 import type { SessionTitle } from "../titles/types";
 import type { PermissionPreset } from "../permissions/types";
 import type { RuntimeContextSnapshot } from "../runtime-context";
+import type { CompactionCheckpoint } from "../context/compaction-checkpoint";
+import type { SystemPromptCheckpoint } from "../context/system-prompt-state";
 
 import type { PromptTiming } from "../prompt-timing";
 
@@ -21,6 +23,8 @@ export type SessionHeader = {
   title?: SessionTitle;
   permissionPreset: PermissionPreset;
   runtimeContexts?: RuntimeContextSnapshot[];
+  compactions?: CompactionCheckpoint[];
+  systemPromptCheckpoints?: SystemPromptCheckpoint[];
   promptTimings?: PromptTiming[];
 };
 

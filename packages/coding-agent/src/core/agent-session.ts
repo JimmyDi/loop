@@ -13,8 +13,8 @@ import type {
 } from "./approvals/types";
 import { createSessionStreamFn, getModelEfforts } from "./model-runtime";
 import type { ModelEffort } from "./models/model-effort";
+import { validateRequestMaxTokens } from "./models/output-budget";
 import { validateMessages } from "./messages";
-import { buildPermissionContext } from "./permissions/permission-context";
 import { prepareRuntimeContexts } from "./runtime-context";
 import { SessionTitleService } from "./titles/session-title";
 import type { PermissionPreset } from "./permissions/types";
@@ -28,13 +28,18 @@ import type {
 
 import type { PromptTiming } from "./prompt-timing";
 import type { ContextBudget } from "./context-budget";
+import type { ModelInputProjection } from "./model-input-projection";
 import { withToolDisplayName } from "./tool-display";
 import type { PermissionTool } from "./approvals/tool-approvals";
-import { createSkillTool } from "./skills/skill-tool";
 import type { LoadedSkill } from "./skills/types";
 import { resolveSkillSelection } from "./skills/selection";
-import { buildCapabilityPrompt } from "./capability-prompt";
-import { createCodemodeTool } from "./codemode/tool";
+import { buildSessionModelContext } from "./context/session-model-context";
+import { estimateSessionContextBudget } from "./context/session-context-budget";
+import { prepareSystemPromptState } from "./context/system-prompt-state";
+import { compactSession } from "./context/compact-session";
+import { NothingToCompactError } from "./context/compaction-error";
+import { canCompactSession } from "./context/session-compaction-plan";
+import { AutomaticCompaction } from "./context/automatic-compaction";
 
 export class AgentSession {
   private listeners = new Set<SessionEventListener>();
@@ -56,10 +61,14 @@ export class AgentSession {
   private acceptingRunApprovals = false;
   private promptTiming?: PromptTiming;
   private contextBudget?: ContextBudget;
+  private compactionAvailable = false;
+  private activeCompaction?: SessionState["activeCompaction"];
+  private inputProjection?: ModelInputProjection;
   private toolDisplayNames = new Map<string, string>();
   private skillLoads: Array<{ userTurn: number; skills: LoadedSkill[] }> = [];
 
   constructor(private readonly options: SessionOptions) {
+    validateRequestMaxTokens(options.maxTokens);
     this.skillLoads = options.sessionManager
       .getRuntimeContexts()
       .flatMap((row) =>
@@ -76,9 +85,16 @@ export class AgentSession {
       () => this.permissionPreset === "danger-full-access",
     );
     this.selected = structuredClone(options.model);
+    this.compactionAvailable = canCompactSession(this.sessionManager, this.selected);
     const effort = options.effort ?? options.sessionManager.getHeader().model?.effort;
     this.selectedEffort =
       effort && getModelEfforts(this.selected).includes(effort) ? effort : "default";
+    this.contextBudget = estimateSessionContextBudget(
+      options,
+      this.selected,
+      this.permissionPreset,
+      this.selectedEffort,
+    );
     this.titles = new SessionTitleService(
       options.sessionManager,
       options.modelRuntime,
@@ -108,6 +124,11 @@ export class AgentSession {
 
   get isRunning(): boolean {
     return this.busy;
+  }
+
+  /** Latest dispatched main input's sources, without storing another copy of message bodies. */
+  get modelInputProjection(): ModelInputProjection | undefined {
+    return this.inputProjection ? structuredClone(this.inputProjection) : undefined;
   }
 
   get effort(): ModelEffort {
@@ -159,6 +180,12 @@ export class AgentSession {
     this.active = this.sessionManager
       .setPermissionPreset(preset)
       .then(() => {
+        this.contextBudget = estimateSessionContextBudget(
+          this.options,
+          this.selected,
+          this.permissionPreset,
+          this.selectedEffort,
+        );
         this.emit({ type: "permission_changed", permissionPreset: preset });
       })
       .finally(() => {
@@ -169,6 +196,7 @@ export class AgentSession {
 
   get state(): SessionState {
     const timing = this.promptTiming;
+    const checkpoint = this.sessionManager.getCompactions().at(-1);
     const names = new Map(this.toolDisplayNames);
     for (const tool of this.options.mcpManager?.tools(this.sessionManager.getCwd()) ?? []) {
       const displayName = (tool as PermissionTool).displayName;
@@ -186,6 +214,18 @@ export class AgentSession {
       error: this.failure,
       listenerErrors: [...this.listenerErrors],
       contextBudget: this.contextBudget ? structuredClone(this.contextBudget) : undefined,
+      compactionAvailable: this.compactionAvailable,
+      activeCompaction: this.activeCompaction ? { ...this.activeCompaction } : undefined,
+      ...(checkpoint
+        ? {
+            compaction: {
+              id: checkpoint.id,
+              firstKeptMessageIndex: checkpoint.firstKeptMessageIndex,
+              historyMessageCount: checkpoint.historyMessageCount,
+              timestamp: checkpoint.timestamp,
+            },
+          }
+        : {}),
       skillLoads: structuredClone(this.skillLoads),
       pendingApprovals: this.approvals.pending,
       ...(this.permissionPreset ? { permissionPreset: this.permissionPreset } : {}),
@@ -248,6 +288,7 @@ export class AgentSession {
     this.busy = true;
     this.failure = undefined;
     this.contextBudget = undefined;
+    this.inputProjection = undefined;
     this.outcome = "idle";
     this.controller = new AbortController();
     this.acceptingRunApprovals = true;
@@ -257,6 +298,52 @@ export class AgentSession {
     };
     this.active = this.run(structuredClone(content), this.controller.signal, options.skills ?? []);
 
+    return this.active;
+  }
+
+  compact(): Promise<void> {
+    try {
+      this.assertIdle();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    this.titles.cancel();
+    this.busy = true;
+    this.failure = undefined;
+    this.outcome = "idle";
+    this.controller = new AbortController();
+    const signal = this.controller.signal;
+    this.active = compactSession(
+      this.sessionManager,
+      this.options.modelRuntime,
+      this.selected,
+      signal,
+    )
+      .then(() => {
+        this.contextBudget = estimateSessionContextBudget(
+          this.options,
+          this.selected,
+          this.permissionPreset,
+          this.selectedEffort,
+        );
+        this.inputProjection = undefined;
+        this.outcome = "success";
+      })
+      .catch((error) => {
+        if (error instanceof NothingToCompactError && !signal.aborted) {
+          this.outcome = "idle";
+          throw error;
+        }
+        this.outcome = signal.aborted ? "cancelled" : "error";
+        this.failure = error instanceof Error ? error.message : String(error);
+        throw error;
+      })
+      .finally(() => {
+        this.controller = undefined;
+        this.busy = false;
+        this.compactionAvailable = canCompactSession(this.sessionManager, this.selected);
+        this.emit({ type: "agent_settled" });
+      });
     return this.active;
   }
 
@@ -342,8 +429,15 @@ export class AgentSession {
           effort,
         });
         this.selected = selected;
-        this.contextBudget = undefined;
         this.selectedEffort = effort;
+        this.compactionAvailable = canCompactSession(this.sessionManager, this.selected);
+        this.contextBudget = estimateSessionContextBudget(
+          this.options,
+          this.selected,
+          this.permissionPreset,
+          this.selectedEffort,
+        );
+        this.inputProjection = undefined;
       } finally {
         this.busy = false;
       }
@@ -355,9 +449,20 @@ export class AgentSession {
   flush(): Promise<void> {
     this.assertIdle(true);
     this.busy = true;
-    this.active = this.sessionManager.flush().finally(() => {
-      this.busy = false;
-    });
+    this.active = this.sessionManager
+      .flush()
+      .then(() => {
+        this.compactionAvailable = canCompactSession(this.sessionManager, this.selected);
+        this.contextBudget = estimateSessionContextBudget(
+          this.options,
+          this.selected,
+          this.permissionPreset,
+          this.selectedEffort,
+        );
+      })
+      .finally(() => {
+        this.busy = false;
+      });
 
     return this.active;
   }
@@ -464,7 +569,9 @@ export class AgentSession {
   ): Promise<void> {
     let unsubscribe = () => {};
     const failures: unknown[] = [];
+    let autoCompaction: AutomaticCompaction | undefined;
     let runtimeContexts = this.sessionManager.getRuntimeContexts();
+    let systemPromptCheckpoints = this.sessionManager.getSystemPromptCheckpoints();
 
     try {
       await this.options.modelRuntime.checkModel(this.selected, signal);
@@ -481,44 +588,62 @@ export class AgentSession {
         if (!manager) throw new Error("Skills are unavailable in this session");
         loaded.push(await manager.load(cwd, id, signal, true));
       }
-      const skills = manager?.view(cwd).skills;
       const userTurn = messages.filter((message) => message.role === "user").length;
-      const preparedContexts = prepareRuntimeContexts(
-        runtimeContexts,
-        [
-          buildPermissionContext(this.permissionPreset, cwd),
-          ...loaded.map((skill) => skill.content),
-        ]
-          .filter(Boolean)
-          .join("\n\n"),
-        userTurn,
-        loaded,
+      const preparedContexts = loaded.length
+        ? prepareRuntimeContexts(
+            runtimeContexts,
+            loaded.map((skill) => skill.content).join("\n\n"),
+            userTurn,
+            loaded,
+            "user",
+          )
+        : runtimeContexts;
+      const { systemPrompt, tools } = buildSessionModelContext(
+        this.options,
+        this.selected,
+        this.permissionPreset,
       );
-      const mcp = this.options.mcpManager?.snapshot(cwd);
-      const ordinaryTools = [
-        ...this.options.tools,
-        ...(manager ? [createSkillTool(manager, cwd)] : []),
-      ];
-      if (mcp?.tools.length && ordinaryTools.some((tool) => tool.name === "codemode"))
-        throw new Error("The codemode tool name is reserved while MCP tools are available");
-      const tools = mcp?.tools.length
-        ? [...ordinaryTools, createCodemodeTool([...ordinaryTools, ...mcp.tools], mcp.servers)]
-        : ordinaryTools;
       this.toolDisplayNames = new Map(
         tools.flatMap((tool: PermissionTool) =>
           tool.displayName ? [[tool.name, tool.displayName] as const] : [],
         ),
       );
+      const preparedPromptState = prepareSystemPromptState(
+        systemPromptCheckpoints,
+        systemPrompt,
+        messages.length + 1,
+      );
+      autoCompaction = new AutomaticCompaction({
+        manager: this.sessionManager,
+        runtime: this.options.modelRuntime,
+        history: () =>
+          this.agent!.messages.map((message) =>
+            withToolDisplayName(message, this.toolDisplayNames),
+          ),
+        snapshots: preparedContexts,
+        systemPromptCheckpoints: preparedPromptState,
+        onSaved: () => {
+          runtimeContexts = preparedContexts;
+          systemPromptCheckpoints = preparedPromptState;
+        },
+        notify: (event) => {
+          if (event.type === "compaction_start") {
+            this.activeCompaction = {
+              startedAt: event.startedAt,
+              historyMessageCount: event.historyMessageCount,
+            };
+          } else if (event.type === "compaction_end") {
+            this.activeCompaction = undefined;
+          } else if (event.type === "context_budget") {
+            this.contextBudget = event.budget;
+          }
+          this.emit(event);
+        },
+      });
       this.agent = new Agent({
         model: this.selected,
         messages,
-        systemPrompt: buildCapabilityPrompt({
-          systemPrompt: this.options.systemPrompt,
-          tools,
-          skills,
-          mcpServers: mcp?.servers,
-          contextWindow: this.selected.contextWindow,
-        }),
+        systemPrompt,
         tools:
           this.options.permissionPolicy || this.options.mcpManager
             ? this.toolApprovals.bind(tools)
@@ -526,8 +651,10 @@ export class AgentSession {
         streamFn: createSessionStreamFn(
           this.options.modelRuntime,
           preparedContexts,
-          () => {
+          (projection) => {
+            this.inputProjection = projection;
             runtimeContexts = preparedContexts;
+            systemPromptCheckpoints = preparedPromptState;
             if (loaded.length && !this.skillLoads.some((row) => row.userTurn === userTurn)) {
               this.skillLoads.push({ userTurn, skills: loaded });
               this.emit({ type: "skills_loaded", userTurn, skills: loaded });
@@ -537,8 +664,11 @@ export class AgentSession {
             this.contextBudget = budget;
             this.emit({ type: "context_budget", budget });
           },
+          this.sessionManager.getCompactions().at(-1),
+          (input) => autoCompaction!.prepare(input),
         ),
         streamOptions: {
+          maxTokens: this.options.maxTokens,
           reasoning:
             this.selectedEffort === "default" || this.selectedEffort === "off"
               ? undefined
@@ -554,6 +684,7 @@ export class AgentSession {
       this.acceptingRunApprovals = false;
       this.approvals.cancelPending();
       try {
+        await autoCompaction?.wait();
         if (this.agent) {
           const messages = this.agent.messages.map((message) =>
             withToolDisplayName(message, this.toolDisplayNames),
@@ -567,7 +698,11 @@ export class AgentSession {
             timings.push(this.promptTiming);
             this.emit({ type: "prompt_timing", timing: this.promptTiming });
           }
-          await this.sessionManager.commit(messages, runtimeContexts, timings);
+          if (!this.sessionManager.hasPendingSave) {
+            await this.sessionManager.commit(messages, runtimeContexts, timings, {
+              systemPromptCheckpoints,
+            });
+          }
         }
       } catch (error) {
         failures.push(error);
@@ -575,9 +710,11 @@ export class AgentSession {
         unsubscribe();
         this.agent = undefined;
         this.draft = undefined;
+        this.activeCompaction = undefined;
         this.controller = undefined;
         this.promptTiming = undefined;
         this.busy = false;
+        this.compactionAvailable = canCompactSession(this.sessionManager, this.selected);
         this.outcome = failures.length ? (signal.aborted ? "cancelled" : "error") : "success";
         this.failure = failures.length
           ? failures

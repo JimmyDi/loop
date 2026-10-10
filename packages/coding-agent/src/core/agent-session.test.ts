@@ -173,6 +173,14 @@ test("MCP discovery cannot block prompts; ready tools join the next prompt and e
     });
     await vi.waitFor(() => expect(manager.tools(directory)).toHaveLength(1));
     await session.prompt("Use the newly ready MCP");
+    expect(session.modelInputProjection?.sources).toEqual([
+      { type: "history", messageIndex: 0 },
+      { type: "history", messageIndex: 1 },
+      { type: "history", messageIndex: 2 },
+      { type: "history", messageIndex: 3 },
+      { type: "history", messageIndex: 4 },
+    ]);
+    expect(session.modelInputProjection?.historyMessageCount).toBe(5);
     expect(requests[1]!.tools).toHaveLength(3);
     expect(requests[1]!.tools?.map((tool) => tool.name)).toEqual([
       "read",
@@ -417,17 +425,18 @@ test("session presets enforce built-in tools, persist, reject busy changes and r
     expect(events).toEqual(["permission_changed"]);
     await session.prompt("Write allowed");
     expect(await readFile(join(root, "file"), "utf8")).toBe("value");
-    expect(new Set(policies).size).toBe(1);
-    expect(policies[0]).not.toContain("Current permission preset:");
-    expect(contexts[0]?.messages[1]?.content).toContain("Current permission preset: read-only");
-    expect(contexts[2]?.messages.at(-1)?.content).toContain(
-      "Current permission preset: workspace-write",
-    );
+    expect(new Set(policies).size).toBe(2);
+    expect(policies[0]).toContain("Current permission preset: read-only");
+    expect(contexts[2]?.systemPrompt).toContain("Current permission preset: workspace-write");
     expect(contexts[2]?.messages.slice(0, contexts[1]?.messages.length)).toEqual(
       contexts[1]?.messages,
     );
-    expect(contexts[1]?.messages.slice(0, 2)).toEqual(contexts[0]?.messages);
-    expect(manager.getRuntimeContexts()).toHaveLength(2);
+    expect(contexts[1]?.messages.slice(0, 1)).toEqual(contexts[0]?.messages);
+    expect(manager.getRuntimeContexts()).toHaveLength(0);
+    expect(manager.getSystemPromptCheckpoints()).toHaveLength(2);
+    expect(manager.getSystemPromptCheckpoints()[1]?.sections.permissions).toContain(
+      "workspace-write",
+    );
     expect(JSON.stringify(session.state.messages)).not.toContain("Current permission preset:");
     session.dispose();
     const { session: reopened } = await createAgentSession({
@@ -435,12 +444,17 @@ test("session presets enforce built-in tools, persist, reject busy changes and r
       sessionManager: await SessionManager.open(manager.sessionFile!),
     });
     expect(reopened.permissionPreset).toBe("workspace-write");
+    expect(reopened.modelInputProjection).toBeUndefined();
     await reopened.prompt("Write after restore");
+    expect(reopened.modelInputProjection?.historyMessageCount).toBe(11);
+    expect(
+      reopened.modelInputProjection?.sources.filter((source) => source.type === "runtime-context"),
+    ).toEqual([]);
     expect(reopened.sessionManager.getRuntimeContexts()).toEqual(manager.getRuntimeContexts());
     expect(contexts[4]?.messages.slice(0, contexts[3]?.messages.length)).toEqual(
       contexts[3]?.messages,
     );
-    expect(policies[4]).toBe(policies[0]);
+    expect(policies[4]).toBe(policies[2]);
     reopened.dispose();
   } finally {
     await skills.close();
@@ -502,6 +516,62 @@ const model: Model<Api> = {
   maxTokens: 512,
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 };
+
+test("each tool continuation retains the caller cap and observes final payload limits", async () => {
+  let requests = 0;
+  let executions = 0;
+  const budgets: ContextBudget[] = [];
+  const session = new AgentSession({
+    model,
+    maxTokens: 128,
+    modelRuntime: runtime(async (selected, _context, options) => {
+      expect(options?.maxTokens).toBe(128);
+      await options?.onPayload?.({ max_completion_tokens: 96 }, selected);
+      requests++;
+      return stream(
+        requests === 1
+          ? answer(
+              [{ type: "toolCall", id: "fixture-call", name: "fixture", arguments: {} }],
+              "toolUse",
+            )
+          : answer(),
+      );
+    }),
+    sessionManager: SessionManager.inMemory(),
+    systemPrompt: "Fixture instructions",
+    tools: [
+      {
+        name: "fixture",
+        description: "Read fixture",
+        parameters: { type: "object", properties: {} },
+        execute: () => {
+          executions++;
+          return [{ type: "text", text: "Fixture result" }];
+        },
+      },
+    ],
+  });
+  session.subscribe((event) => {
+    if (event.type === "context_budget") budgets.push(event.budget);
+  });
+  try {
+    await session.prompt("Read the fixture");
+    expect(requests).toBe(2);
+    expect(executions).toBe(1);
+    expect(budgets.map((budget) => budget.reservedOutputTokens)).toEqual([128, 128, 128, 128]);
+    expect(budgets.map((budget) => budget.requestOutputTokenLimit)).toEqual([
+      undefined,
+      96,
+      undefined,
+      96,
+    ]);
+    expect(session.state.contextBudget?.requestOutputTokenLimit).toBe(96);
+    expect(session.sessionManager.messages).toHaveLength(4);
+    expect(model.maxTokens).toBe(512);
+  } finally {
+    session.dispose();
+  }
+});
 
 function answer(
   content: AssistantMessage["content"] = [{ type: "text", text: "done" }],
@@ -592,15 +662,25 @@ test("runtime context survives filtered failures and stays out of titles, images
       { type: "image" as const, data: "AAAA", mimeType: "image/png" },
     ];
     await session.prompt(content);
-    expect(contexts[1]?.messages).toHaveLength(4);
+    expect(contexts[1]?.messages).toHaveLength(2);
     expect(contexts[1]?.messages[0]?.content).toBe("First task");
-    expect(contexts[1]?.messages[1]).toEqual(contexts[0]?.messages[1]);
-    expect(contexts[1]?.messages[2]?.content).toEqual(content);
-    expect(contexts[1]?.messages[3]?.content).toContain("workspace-write");
-    expect(contexts[1]?.systemPrompt).toBe(contexts[0]?.systemPrompt);
+    expect(contexts[1]?.messages[1]?.content).toEqual(content);
+    expect(contexts[1]?.systemPrompt).toContain("workspace-write");
+    expect(session.modelInputProjection).toEqual({
+      historyMessageCount: 3,
+      sources: [
+        { type: "history", messageIndex: 0 },
+        { type: "history", messageIndex: 2 },
+      ],
+    });
+    const projection = session.modelInputProjection!;
+    projection.sources[0]!.messageIndex = 100;
+    expect(session.modelInputProjection?.sources[0]?.messageIndex).toBe(0);
+    expect(contexts[1]?.systemPrompt).not.toBe(contexts[0]?.systemPrompt);
     expect(visibleUsers).toEqual(["First task", content]);
     expect(session.state.messages).toHaveLength(4);
-    expect(manager.getRuntimeContexts().map((entry) => entry.userTurn)).toEqual([0, 1]);
+    expect(manager.getRuntimeContexts()).toEqual([]);
+    expect(manager.getSystemPromptCheckpoints().map((entry) => entry.messageCount)).toEqual([1, 3]);
     expect(titleContexts).toHaveLength(1);
     expect(JSON.stringify(titleContexts)).not.toContain("Loop runtime context");
     expect(session.state.title?.messageIndices).toEqual([0]);
@@ -654,14 +734,16 @@ test("failed and cancelled prompts retain runtime context after model use, exclu
     expect(session.state.promptTimings).toEqual([]);
     rejectPreflight = false;
     await expect(session.prompt("Failure")).rejects.toThrow("Model failed");
+    expect(session.modelInputProjection?.historyMessageCount).toBe(1);
     expect(session.state.promptTimings?.[0]?.finishedAt).toBeTypeOf("number");
-    expect(session.sessionManager.getRuntimeContexts()).toHaveLength(1);
+    expect(session.sessionManager.getSystemPromptCheckpoints()).toHaveLength(1);
     failModel = false;
     const pending = session.prompt("Cancel").catch(() => {});
     await startedPromise;
     await session.abort();
     await pending;
-    expect(session.sessionManager.getRuntimeContexts()).toHaveLength(1);
+    expect(session.sessionManager.getSystemPromptCheckpoints()).toHaveLength(1);
+    expect(session.modelInputProjection?.historyMessageCount).toBe(2);
     expect(session.state.outcome).toBe("cancelled");
     expect(session.state.promptTimings?.at(-1)?.finishedAt).toBeTypeOf("number");
   } finally {
@@ -686,6 +768,7 @@ test("oversized prompts reject before dispatch and preserve full input without a
     expect(session.state.messages[0]?.content).toBe(content);
     expect(session.sessionManager.getRuntimeContexts()).toEqual([]);
     expect(session.state.contextBudget?.fits).toBe(false);
+    expect(session.modelInputProjection).toBeUndefined();
     expect(session.state.error).toContain("Context budget exceeded");
     expect(session.state.outcome).toBe("error");
     expect(session.state.isRunning).toBe(false);
@@ -753,7 +836,9 @@ test("tool continuations check the complete request and recover with a larger mo
     expect(reopened.messages[1]).toEqual(toolResponse);
     expect(reopened.messages[2]?.content).toEqual([{ type: "text", text: resultText }]);
     await session.setModel({ ...model, contextWindow: 32000 });
-    expect(session.state.contextBudget).toBeUndefined();
+    expect(session.state.contextBudget?.contextWindow).toBe(32000);
+    expect(session.state.contextBudget?.estimatedInputTokens).toBeGreaterThan(0);
+    expect(session.modelInputProjection).toBeUndefined();
     await session.prompt("Continue from the saved result");
     expect(contexts).toHaveLength(2);
     expect(contexts[1]?.messages[2]?.content).toEqual([{ type: "text", text: resultText }]);
@@ -837,8 +922,8 @@ test("two prompts create fresh Agents, preserve complete tool history and commit
     await session.prompt("same input");
 
     expect(await readFile(join(dir, "config.txt"), "utf8")).toBe("saved");
-    expect(contexts.map((context) => context.messages.length)).toEqual([2, 4, 6]);
-    expect(contexts[1].messages[3]).toMatchObject({
+    expect(contexts.map((context) => context.messages.length)).toEqual([1, 3, 5]);
+    expect(contexts[1].messages[2]).toMatchObject({
       role: "toolResult",
       toolCallId: "write-1",
       toolName: "write",
@@ -996,7 +1081,7 @@ test("save failure retains pending history, blocks new work and flush never reru
     await expect(session.prompt("save")).rejects.toThrow();
     expect(session.state.hasPendingSave).toBe(true);
     expect(session.state.unread).toBe(true);
-    expect(manager.getRuntimeContexts()).toHaveLength(1);
+    expect(manager.getSystemPromptCheckpoints()).toHaveLength(1);
     expect(session.state.messages).toHaveLength(2);
     expect(await readFile(join(store + "-old", manager.getSessionId()) + ".jsonl", "utf8")).toBe(
       before,
@@ -1367,9 +1452,25 @@ test("explicit and automatic skills preserve instructions in durable history wit
     expect(JSON.stringify(requests[1])).toContain("Unique original instructions");
     expect(session.state.messages.some((message) => message.role === "toolResult")).toBe(true);
     await session.prompt("Use this skill", { skills: [skill.id] });
+    expect(session.state.messages[4]?.content).toBe("Use this skill");
+    expect(requests.at(-1)?.messages[4]?.content).toBe(
+      session.sessionManager.getRuntimeContexts()[0]!.content + "\n\nUse this skill",
+    );
     await session.prompt("Use this skill again", { skills: [skill.id] });
     const loaded = session.state.skillLoads!;
     expect(loaded.map((row) => row.userTurn)).toEqual([1, 2]);
+    expect(session.modelInputProjection?.skillExpansions).toEqual([
+      {
+        snapshotIndex: 0,
+        messageIndex: 4,
+        skills: [{ id: skill.id, revision: loaded[0]!.skills[0]!.revision }],
+      },
+      {
+        snapshotIndex: 1,
+        messageIndex: 6,
+        skills: [{ id: skill.id, revision: loaded[1]!.skills[0]!.revision }],
+      },
+    ]);
     await writeFile(
       path,
       "---\nname: example\ndescription: Review updated source\n---\nUpdated instructions.",

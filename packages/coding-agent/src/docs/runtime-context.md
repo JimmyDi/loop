@@ -1,62 +1,27 @@
 # Runtime Context
 
-Managed sessions describe their current permission policy in host-generated runtime context instead of changing the system prompt. The first model request records a complete snapshot; later runs record another only when the rendered context changes. Each new snapshot explicitly supersedes earlier snapshots. Permission checks and sandbox enforcement remain independent of this text.
+Application instructions remain separate from original conversation. Current permission guidance is rendered in the system prompt; explicitly selected Skill instructions are expanded into their matching model-facing user message. Enforcement remains independent of prompt text.
 
-## Usage
+## Usage and assembly
 
-No extra configuration is required. Create a managed session and use its existing permission API while idle:
+Use the permission picker or `session.setPermissionPreset()` while idle. The next prompt refreshes `<permissions>`. Multiple switches before submitting use the final selection. The installed model runtime receives an ordinary `systemPrompt` string, not native system transcript messages.
 
-```typescript
-import { createAgentSession, SessionManager } from "@loop/coding-agent";
-
-const { session } = await createAgentSession({
-  sessionManager: SessionManager.inMemory(),
-  permissionPreset: "read-only",
-});
-try {
-  await session.setPermissionPreset("workspace-write");
-  // The next prompt uses workspace-write context and the same system prompt.
-} finally {
-  session.dispose();
-}
-```
-
-## Request assembly
-
-The coding-agent layer renders permission guidance before each run. Its injected stream function assembles each main request, projects retained snapshots after the associated user message, and then checks the complete [context budget](context-budget.md) before dispatch. The snapshots use the user role and identify themselves as host-provided context. They are separate messages, not edits to user text or attachments. Agent continues to own only ordinary conversation history and the sequential tool loop.
-
-For example, two runs under read-only followed by a workspace-write run produce this request order:
-
-```text
-stable system prompt
-user task 1
-runtime context: read-only
-assistant/tool history 1
-user task 2
-assistant/tool history 2
-user task 3
-runtime context: workspace-write
-assistant/tool history 3
-```
-
-Without explicit skill selections, unchanged rendered permission text adds no new snapshot. Tool continuations reuse the same snapshot at the same position; permission changes append after earlier history. Earlier snapshots remain intact to preserve the message prefix and the policy described during previous work. This improves cache stability but does not guarantee a provider cache hit. Tool and Skill catalog changes can separately change the system prompt on the next run. Context text still consumes tokens, and distinct changes accumulate until history is discarded; Loop has no compaction.
+Explicit selection through Web, `$name` or `prompt(content, { skills: [id] })` reads instructions and saves their revision. Projection prepends `<skill name="..." location="...">` blocks to the corresponding user message. String input stays a string; block input receives a text block before existing text and images. Stored input, attachments, events and title inputs remain unchanged. Automatic loads remain ordinary `load_skill` results. Skills do not grant tool permission.
 
 ## Storage and lifecycle
 
-`RuntimeContextSnapshot` is exported with `userTurn`, `content`, `timestamp` and optional `skills: LoadedSkill[]`. Explicit skill selections add a snapshot for each selected turn, including repeated selections. `userTurn` is the zero-based ordinal among actual user messages, not an index among all messages. This anchor remains valid when request normalization removes failed assistant messages or adapts history for another model. Snapshots are stored in the session header's optional `runtimeContexts` field, separate from conversation messages.
+`RuntimeContextSnapshot` has `userTurn`, `content`, `timestamp`, optional `skills`, and optional `placement: "user"`. New explicit selections use this placement; permission changes no longer create snapshots. The anchor is the zero-based ordinal among actual user messages. Repeated selections preserve independent revisions. `getRuntimeContexts()` returns isolated committed or pending state.
 
-`SessionManager.getRuntimeContexts()` returns a cloned snapshot, including pending save state. `commit(messages, runtimeContexts?, promptTimings?)` accepts complete snapshots; omitted runtime context preserves the existing value. Invalid ordering, missing user turns, empty text or invalid timestamps reject. Hosts that replace or truncate history must supply matching context metadata.
+Version-2 snapshots without placement replay as separate user messages at their original anchors and are not rewritten. Current system permissions supersede earlier guidance. Stored instructions remain available after reopening even if their source changes.
 
-Only a run that reaches the model dispatch records a new snapshot. Preflight failures, context-budget rejection and cancellation before dispatch record none. Model failures and cancellation after dispatch retain the context supplied to that attempt. Context and conversation history are committed together; a failed save retains both for `flush()` without replaying tools or calling the model again. Process termination before that commit has the same recovery limits as ordinary history.
+`SystemPromptCheckpoint` stores `messageCount`, `timestamp` and changed rendered `sections` in the header. The first dispatched prompt records all sections; later prompts record changes and `null` removals. `getSystemPromptCheckpoints()` returns isolated metadata. These are not sent as user text and do not guarantee incremental transmission or cache hits. Project instruction files are loaded at session creation.
 
-Restoring a session reuses the exact stored snapshot text, timestamp and position. Sessions without snapshots add current context at the next request. Permission switches that occur before the next request collapse to the final effective selection. Sessions without a managed policy or skills add no context; if restored history contains an earlier policy snapshot, one clearing snapshot marks it obsolete.
+Only dispatched requests accept new Skill and system checkpoints. Preflight or budget rejection does not. Metadata and conversation commit together; failed writes retain pending state for `flush()` without repeating tools or model calls. Unsaved state cannot survive process termination.
 
 ## Presentation and limits
 
-Runtime snapshots do not enter `session.state.messages`, user message events, title generation, conversation counts, or history positions. CLI and Web continue to display actual user and assistant messages. A custom `ModelRuntime.streamSimple` receives the projected model request, including runtime context; its message count can therefore differ from the session's conversation count. Title requests use their own context and do not receive permission snapshots.
-
-The same path carries [explicit Skill instruction snapshots](skills.md). New runs place the budgeted metadata catalog in the system prompt's `<skills>` section instead of runtime messages. Older saved catalog text is retained for replay; the current system catalog explicitly governs new loads. The user-role envelope does not grant authority; tool policy remains authoritative. Custom system-prompt replacement still replaces the base instructions only, as described in [context files](context-files.md).
+Runtime metadata stays out of `state.messages`, conversation counts and title generation. [Projection](model-input-projection.md) maps originals, legacy context, Skills and [summaries](compaction.md). Mappings are not forwarded to the provider. Full budgeting includes all instructions and declarations. Tags are not a parser or security boundary.
 
 ## Source
 
-[Projection and validation](../core/runtime-context.ts), [permission narration](../core/permissions/permission-context.ts), [model dispatch](../core/model-runtime.ts), [session lifecycle](../core/agent-session.ts), [storage](../core/session-manager.ts), and [projection tests](../core/runtime-context.test.ts).
+[Snapshots](../core/runtime-context.ts), [Skill rendering](../core/skills/skill-file.ts), [projection](../core/model-input-projection.ts), [prompt checkpoints](../core/context/system-prompt-state.ts), [permissions](../core/permissions/permission-context.ts), [lifecycle](../core/agent-session.ts), [storage](../core/session-manager.ts).

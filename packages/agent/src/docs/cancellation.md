@@ -33,4 +33,4 @@ History retention does not undo tool side effects. For durable session snapshots
 
 ## Source
 
-[agent.ts](../agent.ts), [agent-loop.ts](../agent-loop.ts), and cancellation cases in [agent.test.ts](../agent.test.ts).
+[agent.ts](../agent.ts), [agent-loop.ts](../agent-loop.ts), [cancellable waits](../abortable-promise.ts), [stream cleanup](../stream-model-response.ts), and cancellation cases in [agent.test.ts](../agent.test.ts).

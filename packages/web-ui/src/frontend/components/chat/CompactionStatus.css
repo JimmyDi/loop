@@ -1,0 +1,30 @@
+.compaction-status {
+  flex: 0 0 auto;
+  margin: 16px 0;
+  color: var(--ink-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.compaction-duration {
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line-subtle);
+}
+.compaction-status-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.compaction-status-row svg {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+.compaction-status-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.compaction-wait-hint {
+  color: var(--ink-muted);
+}

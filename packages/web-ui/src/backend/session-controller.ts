@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { SessionEvent, SessionSnapshot } from "../shared/protocol";
-import { getModelEfforts } from "@loop/coding-agent";
+import { getModelEfforts, NothingToCompactError } from "@loop/coding-agent";
 import { applyEvent } from "../shared/session-projection";
 import { projectTools } from "../shared/tool-projection";
 import { HttpError, errorText } from "./http/errors";
@@ -114,8 +114,7 @@ export class SessionController {
   }
 
   async abort(): Promise<void> {
-    // Wait one microtask so an accepted prompt has entered the SDK before abort.
-    await Promise.resolve();
+    await Promise.resolve(); // Let an accepted prompt enter the SDK before abort.
     await this.session.abort();
     await this.active;
   }
@@ -133,16 +132,18 @@ export class SessionController {
   }
 
   async command(
-    operation: "model" | "flush" | "title" | "permission",
+    operation: "model" | "flush" | "title" | "permission" | "compact",
     action: () => Promise<void>,
   ): Promise<void> {
     this.assertIdle(operation === "flush");
     this.snapshot = { ...this.snapshot, operation, commandError: undefined };
+    if (operation === "compact") this.snapshot.compactionStartedAt = Date.now();
     this.events.publish({ type: "session.state", snapshot: this.snapshot });
     const work = Promise.resolve()
       .then(action)
       .catch((error) => {
-        this.snapshot.commandError = errorText(error);
+        if (!(error instanceof NothingToCompactError))
+          this.snapshot.commandError = errorText(error);
         throw error;
       })
       .finally(() => this.sync());
@@ -195,6 +196,7 @@ export class SessionController {
       effort: this.session.effort,
       operation: "idle",
       draftIndex: undefined,
+      compactionStartedAt: undefined,
       tools: projectTools(this.session.state.messages),
     };
     this.events.publish({ type: "session.state", snapshot: this.snapshot });

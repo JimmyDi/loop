@@ -39,7 +39,7 @@ export const sessionRoutes =
     }
 
     const match = url.pathname.match(
-      /^\/api\/sessions\/([^/]+)(?:\/(prompt|abort|flush|model|events|title|permission|approvals|read|pin)(?:\/([^/]+))?)?$/,
+      /^\/api\/sessions\/([^/]+)(?:\/(prompt|abort|flush|compact|model|events|title|permission|approvals|read|pin)(?:\/([^/]+))?)?$/,
     );
 
     if (!match) return;
@@ -128,6 +128,9 @@ export const sessionRoutes =
       if (!isPermissionPreset(body.preset)) throw new HttpError(400, "invalid_permission_preset");
       const preset = body.preset;
       await controller.command("permission", () => controller.session.setPermissionPreset(preset));
+    } else if (action === "compact" && method === "POST") {
+      if (!controller.session.compact) throw new HttpError(400, "compaction_unavailable");
+      await controller.command("compact", () => controller.session.compact!());
     } else if (action === "title" && method === "PUT") {
       const title = requiredString(body, "title");
       await controller.command("title", () => controller.session.renameTitle(title));

@@ -19,6 +19,9 @@ import { useComposerAttachments } from "../../hooks/useComposerAttachments";
 import { useComposerProject } from "../../hooks/useComposerProject";
 import { ComposerProjectSelector } from "./ComposerProjectSelector";
 import { useModels } from "../../hooks/useModels";
+import { useContextCompaction } from "../../hooks/useContextCompaction";
+import { ComposerCommands } from "./ComposerCommands";
+import { ComposerSendButton } from "./ComposerSendButton";
 import { ApiError } from "../../lib/api";
 import "./ChatComposer.css";
 
@@ -40,6 +43,7 @@ export const ChatComposer = ({
   const permission = useSessionPermission(snapshot);
   const attachments = useComposerAttachments(snapshot.sessionId);
   const models = useModels();
+  const compact = useContextCompaction(snapshot, connected);
   const current =
     models.data?.find(
       (model) => model.provider === snapshot.model.provider && model.id === snapshot.model.id,
@@ -49,7 +53,7 @@ export const ChatComposer = ({
     () => (unsupportedImages ? new ApiError("model_images_unsupported", "", 400) : undefined),
     [unsupportedImages],
   );
-  const running = snapshot.operation === "prompt";
+  const running = snapshot.operation === "prompt" || compact.running;
   const disabled =
     !connected ||
     project.pending ||
@@ -57,11 +61,17 @@ export const ChatComposer = ({
     snapshot.state.hasPendingSave ||
     !!snapshot.state.pendingApprovals?.length ||
     prompt.pending ||
+    compact.running ||
     prompt.uncertain;
   const blocked =
     disabled || model.pending || permission.pending || attachments.pending || project.pending;
   const submit = () => {
     if (blocked || unsupportedImages || !project.hasProject) return;
+    const slash = prompt.text.match(/^\s*\/([a-z]*)\s*$/i);
+    if (slash) {
+      if ("compact".startsWith(slash[1]!.toLowerCase())) void compact.start();
+      return;
+    }
     if (!prompt.text.trim() && !prompt.images.length && !prompt.files.length) return;
 
     setFocusRequest((request) => request + 1);
@@ -74,6 +84,7 @@ export const ChatComposer = ({
         dismissible
         error={
           prompt.error ??
+          compact.error ??
           stopping.error ??
           model.error ??
           permission.error ??
@@ -96,7 +107,7 @@ export const ChatComposer = ({
       {newSession && <ComposerProjectSelector selection={project} disabled={blocked} />}
       <form
         className="chat-composer"
-        data-running={running}
+        data-running={snapshot.operation === "prompt"}
         onSubmit={(event) => {
           event.preventDefault();
           submit();
@@ -113,7 +124,7 @@ export const ChatComposer = ({
           sessionId={snapshot.sessionId}
           hideSkills={prompt.submitted}
           focusRequest={focusRequest}
-          value={prompt.text}
+          value={compact.running && /^\s*\/[a-z]*\s*$/i.test(prompt.text) ? "" : prompt.text}
           onChange={prompt.setText}
           onSubmit={submit}
           disabled={disabled || model.pending || permission.pending}
@@ -126,6 +137,13 @@ export const ChatComposer = ({
           text={prompt.text}
           onText={prompt.setText}
           disabled={blocked}
+        />
+        <ComposerCommands
+          snapshot={snapshot}
+          text={prompt.text}
+          disabled={blocked}
+          commandDisabled={compact.disabled}
+          onCompact={() => void compact.start()}
         />
         <div className="composer-toolbar">
           <ComposerAddMenu
@@ -149,32 +167,19 @@ export const ChatComposer = ({
             error={model.error}
             select={model.change}
           />
-          {running ? (
-            <ActionButton
-              className="composer-send stop"
-              aria-label={t("stop")}
-              disabled={stopping.pending}
-              onClick={() =>
-                void stopping.run(() => command("/sessions/" + snapshot.sessionId + "/abort"))
-              }
-            >
-              ■
-            </ActionButton>
-          ) : (
-            <ActionButton
-              className="composer-send primary"
-              type="submit"
-              aria-label={t("send")}
-              disabled={
-                blocked ||
-                !project.hasProject ||
-                unsupportedImages ||
-                (!prompt.text.trim() && !prompt.images.length && !prompt.files.length)
-              }
-            >
-              ↑
-            </ActionButton>
-          )}
+          <ComposerSendButton
+            running={running}
+            stopping={stopping.pending}
+            disabled={
+              blocked ||
+              !project.hasProject ||
+              unsupportedImages ||
+              (!prompt.text.trim() && !prompt.images.length && !prompt.files.length)
+            }
+            onStop={() =>
+              void stopping.run(() => command("/sessions/" + snapshot.sessionId + "/abort"))
+            }
+          />
         </div>
         {stopping.pending && (
           <span className="sr-only" role="status">

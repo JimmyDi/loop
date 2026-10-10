@@ -28,7 +28,9 @@ Tool execution does not increment the turn count; each model request does. When 
 
 ## Model boundary
 
-`StreamFn` accepts `Model<Api>`, `Context`, and optional `SimpleStreamOptions`. It returns `AssistantMessageEventStream` or a promise of that stream.
+`StreamFn` accepts `Model<Api>`, `Context`, optional `SimpleStreamOptions`, and optional `ModelInputMetadata`. It returns `AssistantMessageEventStream` or a promise of that stream. Existing stream functions can ignore the fourth argument.
+
+The loop supplies metadata for every request. `historyMessageCount` is the number of completed history entries at dispatch, including the accepted user input. `sources[i]` identifies normalized `context.messages[i]`: a `history` source has its zero-based original `messageIndex`; a `tool-repair` source has the originating assistant's `messageIndex` and missing `toolCallId`. Failed/aborted assistants remain in history but have no request entry. Model adaptation preserves origins even when content blocks change. Metadata and temporary origin markers are separate from provider context; hosts must not forward metadata as provider messages.
 
 The first await obtains the stream object; `stream.result()` returns the completed message from the same request. It does not start a second request.
 
@@ -44,4 +46,15 @@ There is no agent-level retry, deferred polling, parallel tool execution, queue,
 
 ## Source
 
-[agent-loop.ts](../agent-loop.ts), [types.ts](../types.ts), and [agent-loop.test.ts](../agent-loop.test.ts).
+The loop writes history and schedules tools sequentially. Focused internal modules handle the request boundary without adding public exports:
+
+| Module | Responsibility |
+| --- | --- |
+| [agent-loop.ts](../agent-loop.ts) | Turn scheduling, history writes, event order and skipped-call pairing. |
+| [validate-loop-input.ts](../validate-loop-input.ts) | Prompt, image capability, stream function and turn-limit validation before history changes. |
+| [normalize-model-input.ts](../normalize-model-input.ts) | Model-compatible replay and original message indexes, including missing-result repairs. |
+| [stream-model-response.ts](../stream-model-response.ts) | Request construction, native stream events, final result and iterator cleanup. |
+| [execute-tool.ts](../execute-tool.ts) | Tool lookup, runtime argument validation, execution and error-result envelopes. |
+| [abortable-promise.ts](../abortable-promise.ts) | Cancellable promise waits and abort-listener cleanup. |
+
+See [types.ts](../types.ts), [loop integration tests](../agent-loop.test.ts), [normalization tests](../normalize-model-input.test.ts), [stream tests](../stream-model-response.test.ts), [tool tests](../execute-tool.test.ts), [input tests](../validate-loop-input.test.ts) and [cancellation-wait tests](../abortable-promise.test.ts).

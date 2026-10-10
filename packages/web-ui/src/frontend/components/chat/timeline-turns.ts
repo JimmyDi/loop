@@ -1,6 +1,9 @@
 import type { Message } from "../../../shared/protocol";
 
-export type TurnMessage = { index: number; message: Exclude<Message, { role: "user" }> };
+export type TurnMessage = {
+  index: number;
+  message: Extract<Message, { role: "assistant" | "toolResult" }>;
+};
 
 export type TimelineTurn =
   | { type: "user"; index: number; message: Extract<Message, { role: "user" }> }
@@ -19,6 +22,8 @@ export const groupTimelineTurns = (
   let userMessageIndex: number | undefined;
 
   for (const [index, message] of messages.entries()) {
+    if (message.role === "system") continue;
+
     if (message.role === "user") {
       turns.push({ type: "user", index, message });
       userMessageIndex = index;

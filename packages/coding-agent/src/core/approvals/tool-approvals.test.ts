@@ -26,7 +26,7 @@ const model = {
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 };
 
-const call = (id: string, name: string, args: Record<string, unknown>): ToolCall => ({
+const call = (id: string, name: string, args: ToolCall["arguments"]): ToolCall => ({
   type: "toolCall",
   id,
   name,

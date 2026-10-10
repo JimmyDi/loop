@@ -30,11 +30,7 @@ const answer = (
   };
 };
 
-const call = (
-  id: string,
-  name = "echo",
-  args: Record<string, unknown> = { text: id },
-): ToolCall => {
+const call = (id: string, name = "echo", args: ToolCall["arguments"] = { text: id }): ToolCall => {
   return { type: "toolCall", id, name, arguments: args };
 };
 

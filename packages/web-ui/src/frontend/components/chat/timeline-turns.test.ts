@@ -43,6 +43,24 @@ test("user turns preserve message positions and isolate conversations", () => {
   expect(turns[3]).toMatchObject({ userMessageIndex: 3, messages: [{ index: 4 }] });
 });
 
+test("native system messages stay out of visible turns without changing history indexes", () => {
+  const messages: Message[] = [
+    { role: "system", content: "Synthetic instructions", timestamp: 0 },
+    { role: "user", content: "Request", timestamp: 0 },
+    assistant([{ type: "text", text: "Update" }]),
+    { role: "system", content: [{ type: "text", text: "Synthetic update" }], timestamp: 0 },
+    assistant([{ type: "text", text: "Answer" }]),
+  ];
+  const original = structuredClone(messages);
+  const turns = groupTimelineTurns(messages);
+  expect(turns.map((turn) => [turn.type, turn.index])).toEqual([
+    ["user", 1],
+    ["assistant", 2],
+  ]);
+  expect(turns[1]).toMatchObject({ userMessageIndex: 1, messages: [{ index: 2 }, { index: 4 }] });
+  expect(messages).toEqual(original);
+});
+
 test("flat projection keeps updates, tool batches and final text in order without paired result duplicates", () => {
   const first = assistant(
     [

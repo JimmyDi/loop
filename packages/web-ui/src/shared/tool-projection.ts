@@ -19,7 +19,14 @@ export const projectTools = (messages: readonly Message[]): Record<string, ToolV
     }
 
     if (message.role === "toolResult") {
-      const displayName = message.details?.loopDisplayName;
+      const details = message.details;
+      const displayName =
+        details &&
+        typeof details === "object" &&
+        !Array.isArray(details) &&
+        "loopDisplayName" in details
+          ? details.loopDisplayName
+          : undefined;
       tools[message.toolCallId] = {
         ...tools[message.toolCallId],
         id: message.toolCallId,

@@ -25,3 +25,22 @@ test("display metadata retains exact tool identity, content and the original his
   ).toEqual(projected);
   expect(withToolDisplayName(message, new Map())).toEqual(message);
 });
+
+test.each([null, false, 1, "synthetic details", ["synthetic details"]])(
+  "display labels handle non-object JSON details (%j)",
+  (details) => {
+    const message: ToolResultMessage = {
+      role: "toolResult",
+      toolCallId: "call",
+      toolName: "example",
+      content: [],
+      isError: false,
+      timestamp: 0,
+      details,
+    };
+    expect(withToolDisplayName(message, new Map([["example", "Example"]])).details).toEqual({
+      loopDisplayName: "Example",
+    });
+    expect(message.details).toEqual(details);
+  },
+);

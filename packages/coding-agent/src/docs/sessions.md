@@ -38,7 +38,7 @@ The manager commits one full snapshot at the end of each prompt, including model
 
 New completed output also sets header unread to true; runs without output and repeated saves preserve it. Read session.state.unread or manager.unread for the current flag, and use manager.markRead(messageCount) after viewing completed output. It preserves timestamps and rejects pending saves; hosts can publish their own UI notifications after success. See [session format](session-format.md) for stale-receipt handling.
 
-[Runtime context](runtime-context.md) is saved as separate header metadata in the same commit. It is projected into model requests while leaving conversation messages, title inputs, counts and history positions unchanged. Permission switches do not rewrite the system prompt or earlier runtime snapshots.
+[Runtime metadata](runtime-context.md) is committed separately from originals. Explicit Skill instructions expand only in model user input; current permissions update the system prompt and its section checkpoints. Legacy snapshots remain unchanged. Manual [compaction](compaction.md) preserves originals and changes only subsequent model input. Title inputs, counts and history indexes remain stable.
 
 [Session titles](session-titles.md) are independent header metadata and may finish after a prompt. History/model/title writes serialize within one manager. Call `waitForTitle()` before disposal to retain generated titles, or `abort()` to cancel and drain both the main run and title work. Runtime replacement cancels and drains old title work before opening another writable session.
 
@@ -78,7 +78,7 @@ Subscriptions remain attached to their session instance. Remove the previous sub
 
 Prompts are passed to the model runtime without a Loop-specific estimated-context rejection. Full text and history consume memory and model context; the provider can reject excessive requests through the normal prompt error flow. Loop does not truncate user content automatically.
 
-There is no branching, fork/import API, compaction, background checkpointing, crash replay, or cross-process write coordination. A forced exit can lose the current run. Atomic rename does not promise power-loss durability or exactly-once tool effects. Keep conversation files private; tool results may contain source text, local paths, or sensitive output.
+There is no branching, fork/import API, periodic background checkpointing, crash replay, or cross-process write coordination. [Automatic compaction](compaction.md) saves live history together with each accepted summary checkpoint before the next main request. A forced exit can still lose work since the latest successful save. Atomic rename does not promise power-loss durability or exactly-once tool effects. Keep conversation files private; tool results may contain source text, local paths, or sensitive output.
 
 ## Source
 

@@ -22,6 +22,12 @@ When a remembered conversation returns session_not_found (404), clear only its a
 
 ## Requests and Drafts
 
+The Compact command shows the estimated context/window percentage and a matching ring. Reopening a nonempty chat or completing compaction locally recomputes this estimate, including the summary and retained messages; no extra model request is made. A disabled Compact item still shows the percentage. The backend reports planner-backed availability; short contexts are disabled before the first click and show a concise reason on hover. Escape or an outside click dismisses the command menu for the current input; editing the text or clearing and retyping `/` opens it again.
+
+Type `/` and choose **Compact**, or submit `/compact`, to summarize older context while preserving complete conversation history. The host selects complete recent turns using projected message estimates, including selected Skill instructions. If all uncompressed turns fit the retention budget, show **Nothing to compact** without calling the model or saving a checkpoint. The notice follows the interface language, appears only once and closes after five seconds or through its Close button. It retains the draft and attachments. After a no-work response, disable another attempt until the conversation history, checkpoint or selected model changes. Delayed compaction state updates do not clear the notice. Starting another operation clears the local notice; it is not retained as a session error. See [context compaction](../../../../coding-agent/src/docs/compaction.md).
+
+Compaction appears at the end of the conversation with a compact outline icon and **Working for** elapsed time above a thin divider. After 15 seconds, add **This can take a few minutes**; elapsed time comes from the server’s operation start and survives refresh or reconnection to the live server. The composer keeps its ordinary background, temporarily hides slash-command text and offers **Stop generating**. Failure or cancellation restores the command draft and preserves attachments and Skills. Success leaves **Context compacted** at the checkpoint’s original history position; the latest saved checkpoint restores this marker when reopening. The marker is interface metadata, not a new conversation message, and is withheld while a save remains pending. Starting compaction reveals the status once; later updates preserve manual scrolling.
+
 | State | Behavior |
 | --- | --- |
 | Before submission | usePrompt creates a requestId and records text, images, text files and streamId |

@@ -12,6 +12,7 @@ import { unavailableModel } from "./models/unavailable-model";
 import { isModelEffort } from "./models/model-effort";
 import type { ModelEffort } from "./models/model-effort";
 import { getModelEfforts } from "./model-runtime";
+import { validateRequestMaxTokens } from "./models/output-budget";
 import type { SessionTitleOptions } from "./titles/types";
 import { PermissionPolicy } from "./permissions/policy";
 import { isPermissionPreset } from "./permissions/types";
@@ -26,6 +27,7 @@ export type CreateAgentSessionOptions = ServiceOptions & {
   tools?: readonly string[];
   sessionManager?: SessionManager;
   maxTurns?: number;
+  maxTokens?: number;
   allowUnavailableModel?: boolean;
   effort?: ModelEffort;
   title?: SessionTitleOptions;
@@ -46,6 +48,7 @@ export async function createAgentSession(
     "tools",
     "sessionManager",
     "maxTurns",
+    "maxTokens",
     "allowUnavailableModel",
     "effort",
     "title",
@@ -59,6 +62,7 @@ export async function createAgentSession(
   }
 
   const manager = options.sessionManager;
+  validateRequestMaxTokens(options.maxTokens);
   if (options.permissionPreset !== undefined && !isPermissionPreset(options.permissionPreset))
     throw new Error("Invalid permission preset");
 
@@ -138,6 +142,7 @@ export async function createAgentSession(
     tools,
     systemPrompt: services.systemPrompt,
     maxTurns: options.maxTurns,
+    maxTokens: options.maxTokens,
     effort,
     title: options.title,
     permissionPolicy,

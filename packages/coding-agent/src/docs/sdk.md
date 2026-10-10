@@ -51,6 +51,7 @@ That sample enables coding tools and runs once before exiting. Without an argume
 | `noContextFiles` | Disable project instruction discovery. |
 | `effort` | Optional model reasoning effort; validated against supported levels. Saved in session model metadata. Missing values restore the saved effort or use default. |
 | `maxTurns` | Optional positive model-request limit per prompt, enforced by Agent. |
+| `maxTokens` | Optional positive safe integer caller output cap for every main request, bounded by the selected model ceiling. Native fixed-thinking adjustments are included in the context reserve. Session-local; not persisted. See [context budget](context-budget.md). |
 | `title` | Optional [title policy](session-titles.md): mode, model override, input/output limits and timeout. SDK defaults to deterministic fallback only. |
 | `allowUnavailableModel` | Opt-in restoration of saved history without requiring its model/authentication during creation. Defaults to false; prompt and model-switch preflight remain mandatory. |
 
@@ -77,7 +78,7 @@ An explicit cwd must match the manager's canonical cwd. The factory resolves ser
 | `respondToApproval(response): boolean` | Submit allowed-once or rejected for matching session/request IDs; eligible MCP requests also accept allowed-session. |
 | `dispose(): void` | Cancel idle approval requests, remove listeners and forbid further use; rejects while busy or a save is pending. |
 
-Read `model`, `effort`, `sessionId`, `sessionFile`, `sessionManager`, `isRunning`, and `state`. State contains completed `messages`, optional `draft`, `isRunning`, `hasPendingSave`, `outcome`, `error`, and `listenerErrors`. Message/model snapshots can be inspected without mutating the underlying session. The optional `state.contextBudget` and `context_budget` event expose the latest full-request estimate. `prompt()` can reject with exported `ContextBudgetExceededError` before model dispatch; complete history is retained. Actual provider usage remains in completed assistant messages. See [context budget](context-budget.md) for recovery and estimation limits.
+Read `model`, `effort`, `sessionId`, `sessionFile`, `sessionManager`, `isRunning`, and `state`. State contains completed `messages`, optional `draft`, `isRunning`, `hasPendingSave`, `outcome`, `error`, and `listenerErrors`. Message/model snapshots can be inspected without mutating the underlying session. `modelInputProjection` returns the latest dispatched main request's source map without message bodies; see [model input projection](model-input-projection.md). The optional `state.contextBudget` and `context_budget` event expose the latest full-request estimate. `prompt()` can reject with exported `ContextBudgetExceededError` before model dispatch; complete history is retained. Actual provider usage remains in completed assistant messages. See [context budget](context-budget.md) for recovery and estimation limits.
 
 Managed sessions additionally expose permissionPreset directly and in state. Direct AgentSession construction with custom host tools has no managed preset and rejects permission changes. The managed factory's version-2 session metadata requires a current Loop reader.
 
@@ -95,7 +96,7 @@ The public messageText helper concatenates text blocks in order, excludes thinki
 
 Use [sessions](sessions.md) for storage and replacement through `AgentSessionRuntime`. On a failed save, retain the live session, repair storage, and call `flush()` before disposing it. The in-memory example above has no disk-save recovery requirement.
 
-Hosts can supply a shared `mcpManager` to add ready external tools to each prompt; see [MCP servers](mcp.md) for lifecycle, session permission enforcement and memory-only session tool grants. [Skills](skills.md) add workflows through background metadata discovery and on-demand loading. Loop does not expose `session.agent`, steering, follow-up, queues, compaction, extensions, or RPC.
+Hosts can supply a shared `mcpManager` to add ready external tools to each prompt; see [MCP servers](mcp.md) for lifecycle, session permission enforcement and memory-only session tool grants. [Skills](skills.md) add workflows through background metadata discovery and on-demand loading. `session.compact()` creates a durable summary checkpoint without replacing original history; automatic compaction runs before main requests under input pressure with no additional configuration. See [compaction](compaction.md) for thresholds, events and recovery. Loop does not expose `session.agent`, steering, follow-up, queues, extensions, or RPC.
 
 ## Source
 

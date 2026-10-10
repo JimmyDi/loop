@@ -37,6 +37,14 @@ export const applyEvent = (
     next.state.permissionPreset = event.permissionPreset;
   } else if (event.type === "context_budget") {
     next.state.contextBudget = event.budget;
+  } else if (event.type === "compaction_start") {
+    next.state.activeCompaction = {
+      startedAt: event.startedAt,
+      historyMessageCount: event.historyMessageCount,
+    };
+  } else if (event.type === "compaction_end") {
+    next.state.activeCompaction = undefined;
+    if (event.checkpoint) next.state.compaction = event.checkpoint;
   } else if (event.type === "skills_loaded") {
     next.state.skillLoads = [
       ...(next.state.skillLoads ?? []).filter((row) => row.userTurn !== event.userTurn),
@@ -87,6 +95,7 @@ export const applyFrame = (snapshot: SessionSnapshot | undefined, frame: Frame) 
         isRunning: true,
         error: undefined,
         contextBudget: undefined,
+        activeCompaction: undefined,
         outcome: "idle" as const,
       },
     };

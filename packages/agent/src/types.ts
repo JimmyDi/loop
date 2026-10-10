@@ -15,10 +15,21 @@ import type {
 
 export type PromptContent = UserMessage["content"];
 
+/** Origins at the normalized model boundary; never part of provider messages. */
+export type ModelMessageSource =
+  | { type: "history"; messageIndex: number }
+  | { type: "tool-repair"; messageIndex: number; toolCallId: string };
+
+export type ModelInputMetadata = {
+  historyMessageCount: number;
+  sources: ModelMessageSource[];
+};
+
 export type StreamFn = (
   model: Model<Api>,
   context: Context,
   options?: SimpleStreamOptions,
+  metadata?: ModelInputMetadata,
 ) => AssistantMessageEventStream | Promise<AssistantMessageEventStream>;
 
 export type AgentTool = Pick<Tool, "name" | "description" | "parameters"> & {

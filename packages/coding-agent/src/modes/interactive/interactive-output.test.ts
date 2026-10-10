@@ -58,6 +58,22 @@ test("reports waiting before any stream event and thinking without exposing reas
   ]);
 });
 
+test("reports automatic compaction without rendering summary text as an assistant reply", () => {
+  const chunks: string[] = [];
+  const output = new InteractiveOutput((text) => chunks.push(text));
+  output.handle({ type: "compaction_start", startedAt: 1000, historyMessageCount: 3 });
+  output.handle({
+    type: "compaction_end",
+    checkpoint: {
+      id: "fixture",
+      firstKeptMessageIndex: 2,
+      historyMessageCount: 3,
+      timestamp: 2000,
+    },
+  });
+  expect(chunks).toEqual(["[Compacting context… (/abort to cancel)]\n", "[Context compacted]\n"]);
+});
+
 test("renders final-only text and missing suffixes without duplicating streamed blocks", () => {
   const chunks: string[] = [];
   const output = new InteractiveOutput((text) => chunks.push(text));

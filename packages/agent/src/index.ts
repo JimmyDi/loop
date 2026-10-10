@@ -8,5 +8,7 @@ export type {
   AgentLoopOptions,
   AgentOptions,
   StreamFn,
+  ModelMessageSource,
+  ModelInputMetadata,
   PromptContent,
 } from "./types";

@@ -1,0 +1,21 @@
+.composer-commands:empty { display: none; }
+.composer-command-menu {
+  position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; z-index: 6;
+  padding: 6px; border: 1px solid var(--line); border-radius: 16px;
+  background: var(--surface-raised); box-shadow: 0 8px 28px var(--shadow-soft);
+}
+.composer-command-menu button {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0;
+  padding: 9px 12px; min-height: 40px; border: 0; border-radius: 10px;
+  background: var(--surface-subtle); color: var(--ink); text-align: left; cursor: pointer;
+}
+.composer-command-menu button svg { width: 20px; height: 20px; flex-shrink: 0; }
+.composer-command-menu strong { font-size: 13px; font-weight: 500; }
+.composer-command-menu button span { font-size: 12px; color: var(--ink-muted); overflow-wrap: anywhere; }
+.composer-command-menu button[aria-disabled="true"] { opacity: .55; cursor: default; }
+.composer-command-menu button:focus-visible { outline: 2px solid var(--focus-border); outline-offset: -2px; }
+.composer-command-menu p { display: block; margin: 0; padding: 4px 12px; font-size: 11px; color: var(--ink-muted); }
+@media (max-width: 600px) {
+  .composer-command-menu button { flex-wrap: wrap; gap: 6px; }
+  .composer-command-menu button span { flex-basis: 100%; padding-left: 26px; }
+}

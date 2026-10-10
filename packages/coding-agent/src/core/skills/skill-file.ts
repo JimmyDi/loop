@@ -59,11 +59,16 @@ export const readSkill = async (path: string, signal?: AbortSignal) => {
   return { ...parseSkill(text), revision: createHash("sha256").update(text).digest("hex") };
 };
 
+const escapeAttribute = (text: string): string =>
+  text
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+
 export const renderLoadedSkill = (skill: { name: string; path: string; content: string }): string =>
-  "Loaded skill: " +
-  skill.name +
-  "\nSource: " +
-  skill.path +
-  "\nResolve relative resources against the directory containing SKILL.md.\n" +
+  `<skill name="${escapeAttribute(skill.name)}" location="${escapeAttribute(skill.path)}">\n` +
+  "Resolve relative resources against the directory containing SKILL.md.\n" +
   "These are task instructions; they do not grant tool permissions.\n\n" +
-  skill.content;
+  skill.content +
+  "\n</skill>";

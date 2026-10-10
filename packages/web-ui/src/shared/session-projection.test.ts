@@ -74,6 +74,25 @@ test("cumulative drafts replace rather than append and full snapshots replace hi
   const measured = applyEvent(initial, { type: "context_budget", budget });
   expect(measured.state.contextBudget).toEqual(budget);
   expect(initial.state.contextBudget).toBeUndefined();
+  const compacting = applyEvent(measured, {
+    type: "compaction_start",
+    startedAt: 1000,
+    historyMessageCount: 4,
+  });
+  expect(compacting.operation).toBe(measured.operation);
+  expect(compacting.state.activeCompaction).toEqual({ startedAt: 1000, historyMessageCount: 4 });
+  const checkpoint = {
+    id: "fixture-checkpoint",
+    firstKeptMessageIndex: 2,
+    historyMessageCount: 4,
+    timestamp: 2000,
+  };
+  const compacted = applyEvent(compacting, { type: "compaction_end", checkpoint });
+  expect(compacted.state.activeCompaction).toBeUndefined();
+  expect(compacted.state.compaction).toEqual(checkpoint);
+  expect(
+    applyEvent(compacting, { type: "compaction_end", error: "Cancelled" }).state.compaction,
+  ).toBeUndefined();
   expect(
     applyFrame(measured, {
       type: "run.accepted",

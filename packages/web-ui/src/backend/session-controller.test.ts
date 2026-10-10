@@ -14,6 +14,7 @@ import type { SessionRegistry } from "./session-registry";
 import { fileContent, readFileContent } from "../shared/prompt-files";
 import { MAX_IMAGE_BYTES } from "../shared/prompt-images";
 import { eventResponse } from "./http/sse";
+import { errorResponse } from "./http/errors";
 
 const model = {
   id: "test",
@@ -58,6 +59,211 @@ const waitFor = async (condition: () => boolean) => {
 
   expect(condition()).toBe(true);
 };
+
+test("automatic compaction streams within a prompt, reconnects with activity and resumes the same run", async () => {
+  const manager = SessionManager.inMemory();
+  await manager.commit([
+    { role: "user", content: "x".repeat(108000), timestamp: 1 },
+    answer("Previous result"),
+  ]);
+  const ready = Promise.withResolvers<void>();
+  const native = createAssistantMessageEventStream();
+  let main = 0;
+  const session = new AgentSession({
+    model: { ...model, contextWindow: 32000, maxTokens: 1024 },
+    sessionManager: manager,
+    systemPrompt: "Rules",
+    tools: [],
+    modelRuntime: runtime((_selected, context) => {
+      if (context.systemPrompt?.startsWith("Summarize the conversation")) {
+        ready.resolve();
+        return native;
+      }
+      main++;
+      const result = createAssistantMessageEventStream();
+      result.push({ type: "done", reason: "stop", message: answer("Continue work") });
+      result.end();
+      return result;
+    }),
+  });
+  const controller = new SessionController(session, "project");
+  const frames: Frame[] = [];
+  const disconnect = controller.events.connect((frame) => {
+    frames.push(frame);
+  });
+  try {
+    const runId = controller.prompt("fixture-request", "Continue");
+    await waitFor(
+      () =>
+        Boolean(controller.snapshot.state.activeCompaction) ||
+        controller.snapshot.operation === "idle",
+    );
+    expect(controller.snapshot.state.error).toBeUndefined();
+    expect(controller.snapshot.state.activeCompaction).toBeDefined();
+    await ready.promise;
+    expect(controller.snapshot.operation).toBe("prompt");
+    expect(controller.snapshot.state.activeCompaction?.startedAt).toEqual(expect.any(Number));
+    expect(controller.snapshot.runId).toBe(runId);
+    const reconnected: Frame[] = [];
+    const detach = controller.events.connect((frame) => {
+      reconnected.push(frame);
+    });
+    expect(reconnected[0]).toMatchObject({
+      type: "session.snapshot",
+      snapshot: {
+        state: {
+          activeCompaction: { startedAt: controller.snapshot.state.activeCompaction!.startedAt },
+        },
+      },
+    });
+    detach();
+    native.push({ type: "done", reason: "stop", message: answer("Previous goal completed") });
+    native.end();
+    await waitFor(() => controller.snapshot.operation === "idle");
+    expect(main).toBe(1);
+    expect(controller.snapshot.state.activeCompaction).toBeUndefined();
+    expect(controller.snapshot.state.compaction?.firstKeptMessageIndex).toBe(2);
+    expect(controller.prompt("fixture-request", "Continue")).toBe(runId);
+    expect(
+      frames.filter(
+        (frame) => frame.type === "loop.event" && frame.event.type === "compaction_start",
+      ),
+    ).toHaveLength(1);
+    expect(
+      frames.filter(
+        (frame) => frame.type === "loop.event" && frame.event.type === "compaction_end",
+      ),
+    ).toHaveLength(1);
+  } finally {
+    disconnect();
+    await controller.close();
+  }
+});
+
+test("HTTP compaction reserves the session, publishes busy state, saves a checkpoint and supports cancellation", async () => {
+  const manager = SessionManager.inMemory();
+  await manager.commit([
+    { role: "user", content: "First task" + "x".repeat(4000), timestamp: 1 },
+    answer("First result"),
+    { role: "user", content: "Latest task", timestamp: 2 },
+    answer("Latest result"),
+  ]);
+  const original = manager.messages;
+  const ready = Promise.withResolvers<void>();
+  const native = createAssistantMessageEventStream();
+  let delay = true;
+  const session = new AgentSession({
+    model,
+    systemPrompt: "Current rules",
+    tools: [],
+    sessionManager: manager,
+    modelRuntime: runtime(() => {
+      ready.resolve();
+      if (delay) return native;
+      const stream = createAssistantMessageEventStream();
+      stream.push({ type: "done", reason: "stop", message: answer("Goal: continue the task.") });
+      return stream;
+    }),
+  });
+  const controller = new SessionController(session, "project");
+  const route = sessionRoutes({
+    get: async () => controller,
+    assertAvailable: () => {},
+  } as unknown as SessionRegistry);
+  const url = new URL("http://localhost/api/sessions/" + session.sessionId + "/compact");
+  const frames: Frame[] = [];
+  const disconnect = controller.events.connect((frame) => frames.push(frame));
+  try {
+    const beforeBudget = controller.snapshot.state.contextBudget!;
+    expect(beforeBudget.estimatedInputTokens).toBeGreaterThan(0);
+    const pending = route(new Request(url, { method: "POST" }), url);
+    const rejected = expect(pending).rejects.toThrow("cancelled");
+    await ready.promise;
+    expect(controller.snapshot.operation).toBe("compact");
+    expect(controller.snapshot.state.compactionAvailable).toBe(true);
+    const startedAt = controller.snapshot.compactionStartedAt;
+    expect(startedAt).toEqual(expect.any(Number));
+    const fetched = await route(
+      new Request(url.href.replace(/\/compact$/, "")),
+      new URL(url.href.replace(/\/compact$/, "")),
+    );
+    expect(await fetched?.json()).toMatchObject({
+      operation: "compact",
+      compactionStartedAt: startedAt,
+    });
+    expect(() => controller.prompt("overlap", "New task")).toThrow("session_busy");
+    await controller.abort();
+    await rejected;
+    expect(manager.messages).toEqual(original);
+    expect(manager.getCompactions()).toEqual([]);
+    expect(controller.snapshot.compactionStartedAt).toBeUndefined();
+    delay = false;
+    const result = await route(new Request(url, { method: "POST" }), url);
+    expect(result?.status).toBe(200);
+    expect(manager.messages).toEqual(original);
+    expect(manager.getCompactions()).toHaveLength(1);
+    expect(controller.snapshot.operation).toBe("idle");
+    expect(controller.snapshot.compactionStartedAt).toBeUndefined();
+    expect(controller.snapshot.state.compaction?.firstKeptMessageIndex).toBe(2);
+    expect(controller.snapshot.state.contextBudget?.estimatedInputTokens).toBeLessThan(
+      beforeBudget.estimatedInputTokens,
+    );
+    expect(
+      frames.some(
+        (frame) => frame.type === "session.state" && frame.snapshot.operation === "compact",
+      ),
+    ).toBe(true);
+  } finally {
+    disconnect();
+    await controller.close();
+  }
+});
+
+test("HTTP short-context compaction settles idle with a no-work notice and no model call", async () => {
+  const manager = SessionManager.inMemory();
+  const history = [1, 2].map((timestamp) => ({
+    role: "user" as const,
+    content: "Question",
+    timestamp,
+  }));
+  await manager.commit(history);
+  const session = new AgentSession({
+    model,
+    systemPrompt: "Rules",
+    tools: [],
+    sessionManager: manager,
+    modelRuntime: runtime(
+      () => {
+        throw new Error("Must not dispatch");
+      },
+      async () => {
+        throw new Error("Must not authenticate");
+      },
+    ),
+  });
+  const controller = new SessionController(session, "project");
+  const route = sessionRoutes({
+    get: async () => controller,
+    assertAvailable: () => {},
+  } as unknown as SessionRegistry);
+  const url = new URL("http://localhost/api/sessions/" + session.sessionId + "/compact");
+  try {
+    expect(controller.snapshot.state.compactionAvailable).toBe(false);
+    const result = await route(new Request(url, { method: "POST" }), url).catch(errorResponse);
+    expect(result?.status).toBe(400);
+    expect(await result?.json()).toMatchObject({ code: "nothing_to_compact" });
+    expect(controller.snapshot.operation).toBe("idle");
+    expect(controller.snapshot.commandError).toBeUndefined();
+    expect(controller.snapshot.state.error).toBeUndefined();
+    expect(controller.snapshot.state.outcome).toBe("idle");
+    expect(controller.snapshot.compactionStartedAt).toBeUndefined();
+    expect(controller.snapshot.state.messages).toEqual(history);
+    expect(manager.getCompactions()).toEqual([]);
+    expect(manager.hasPendingSave).toBe(false);
+  } finally {
+    await controller.close();
+  }
+});
 
 test("approval events keep snapshots current without requiring a prompt or enabling an answerer", async () => {
   const session = new AgentSession({

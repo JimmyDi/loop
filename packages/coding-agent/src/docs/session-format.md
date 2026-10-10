@@ -28,6 +28,8 @@ The exported `SessionHeader` contains:
 | permissionPreset | Required: read-only, workspace-write or danger-full-access. Invalid values reject. |
 | promptTimings | Optional completed PromptTiming[] with ordered userMessageIndex, startedAt and finishedAt in Unix milliseconds. Invalid indices or timestamps reject. See [prompt duration](sessions.md#prompt-duration). |
 | runtimeContexts | Optional RuntimeContextSnapshot[]: zero-based userTurn ordinal, rendered content, timestamp in Unix milliseconds and optional skills with loaded identities, source paths, instruction texts, revisions and optional descriptions. See [runtime context](runtime-context.md). |
+| systemPromptCheckpoints | Optional initial system sections and subsequent changed-section patches. |
+| compactions | Optional complete summaries, original-history boundaries, model identity and summary usage. See [compaction](compaction.md). |
 
 Omitted effort uses Default. Unknown effort values reject; supported levels depend on model metadata. The header stores no API key or endpoint. Reconfigure those through [model runtime](models.md) when restoring a session.
 
@@ -43,7 +45,9 @@ Assistant messages retain content blocks, API/provider/model identity, usage, st
 
 User content may contain text and base64 image blocks. Images persist inside the same session JSONL; there is no separate attachment file.
 
-There are no stored streaming deltas, drafts, system prompt, tool functions, or model-change entry records. Changing the selected model updates header metadata. Storage is a rewritten full snapshot, not an append-only event journal.
+There are no stored streaming deltas, drafts, tool functions, or model-change entry records. Optional `systemPromptCheckpoints` retain initial rendered sections and subsequent changes; optional `compactions` retain summaries, original-history boundaries, model identity and native summary usage. New explicit Skill snapshots use `placement: "user"`; absent placement preserves legacy replay. Changing the model updates header metadata. Storage remains a rewritten full snapshot, not an append-only journal.
+
+`commit(messages, runtimeContexts?, promptTimings?, context?)` accepts optional complete `context.compactions` and `context.systemPromptCheckpoints` arrays; omitted arrays preserve existing metadata. `getCompactions()` and `getSystemPromptCheckpoints()` return cloned committed or pending state. Boundaries reference unchanged message indexes; checkpoint validation rejects invalid anchors before write and on restore.
 
 ## Read and write
 
@@ -51,7 +55,7 @@ SessionManager.setPinned(pinned: boolean) serializes pin changes with history, t
 
 Unread is stored only in the header. commit() sets unread when newly appended history contains assistant or tool output. Re-saving the same history or a run without output preserves the flag. SessionManager.markRead(messageCount) serializes with history and metadata writes and clears unread only when that count matches the nonempty saved history. The count is supplied by the reader and is not an extra stored field. It returns true for an accepted or duplicate receipt, false for a mismatched or empty history, and rejects invalid counts, pending saves or write failures. Read metadata changes preserve messages and activity timestamps. SessionManager.unread and session.state.unread include the pending flag after a save failure; getHeader() exposes committed metadata. No extra storage file is used.
 
-Use `SessionManager.open(path)` and its snapshot accessors rather than editing live files. `commit(messages, runtimeContexts?, promptTimings?)` expects complete history and preserves existing runtime context and prompt timings when their arguments are omitted. `getRuntimeContexts()` returns a cloned snapshot, including pending state after a save failure. Runtime snapshots require strictly increasing user-turn ordinals referencing actual user messages, nonempty content, and nonnegative safe integer timestamps. Snapshots are optional for sessions without a managed policy. On failure, `flush()` retries the same pending snapshot; see [sessions and recovery](sessions.md).
+Use `SessionManager.open(path)` and its snapshot accessors rather than editing live files. `commit(messages, runtimeContexts?, promptTimings?, context?)` expects complete history and preserves existing metadata when optional arguments are omitted. `getRuntimeContexts()` returns a cloned snapshot, including pending state after a save failure. Runtime snapshots require strictly increasing user-turn ordinals referencing actual user messages, nonempty content, and nonnegative safe integer timestamps. New snapshots record explicitly selected Skills; current permission guidance belongs to the system prompt. On failure, `flush()` retries the same pending snapshot; see [sessions and recovery](sessions.md).
 
 All storage constructors produce version 2 with a read-only permission preset. The managed factory applies explicit selections or new-session settings before enabling tools. Opening a file requires valid permission metadata and never converts unsupported formats. Session discovery skips files with an unsupported format or version without modifying them, so they cannot block supported sessions. Invalid JSON, invalid current-format metadata and storage read errors still report failures. Share only synthetic fixtures: real session cwd and conversation/tool content can disclose local information.
 

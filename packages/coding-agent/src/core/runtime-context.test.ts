@@ -1,11 +1,15 @@
 import { expect, test } from "vitest";
 import type { Message } from "@earendil-works/pi-ai";
 
-import {
-  prepareRuntimeContexts,
-  projectRuntimeContexts,
-  validateRuntimeContexts,
-} from "./runtime-context";
+import { prepareRuntimeContexts, validateRuntimeContexts } from "./runtime-context";
+import { projectModelInput } from "./model-input-projection";
+import type { RuntimeContextSnapshot } from "./runtime-context";
+
+const project = (messages: Message[], snapshots: RuntimeContextSnapshot[]) =>
+  projectModelInput(messages, snapshots, {
+    historyMessageCount: messages.length,
+    sources: messages.map((_, messageIndex) => ({ type: "history", messageIndex })),
+  }).messages;
 
 test("context snapshots append only changes and preserve the prior request prefix", () => {
   const user = (content: string): Message => ({ role: "user", content, timestamp: 1 });
@@ -13,8 +17,8 @@ test("context snapshots append only changes and preserve the prior request prefi
   const unchanged = prepareRuntimeContexts(first, "Read-only context", 1);
   const changed = prepareRuntimeContexts(unchanged, "Writable context", 1);
   const history = [user("First task"), user("Second task")];
-  const before = projectRuntimeContexts(history.slice(0, 1), first);
-  const after = projectRuntimeContexts(history, changed);
+  const before = project(history.slice(0, 1), first);
+  const after = project(history, changed);
 
   expect(unchanged).toEqual(first);
   expect(changed).toHaveLength(2);
@@ -27,7 +31,7 @@ test("context snapshots append only changes and preserve the prior request prefi
   ]);
   expect(history).toEqual([user("First task"), user("Second task")]);
   expect(first).toHaveLength(1);
-  expect(projectRuntimeContexts(history, [])).toEqual(history);
+  expect(project(history, [])).toEqual(history);
 
   const cleared = prepareRuntimeContexts(changed, "", 2);
   expect(cleared.at(-1)?.content).toContain("Earlier runtime-context snapshots no longer apply");

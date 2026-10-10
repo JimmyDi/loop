@@ -1,6 +1,6 @@
 # Session Events
 
-Coding sessions forward the five [Agent events](../../../agent/src/docs/events.md) and add context_budget, prompt_timing, agent_settled, session_title, permission_changed, approval_requested and approval_resolved. Consumers send commands through instance methods and receive results through subscriptions.
+Coding sessions forward the five [Agent events](../../../agent/src/docs/events.md) and add context_budget, compaction_start, compaction_end, prompt_timing, agent_settled, session_title, permission_changed, approval_requested and approval_resolved. Consumers send commands through instance methods and receive results through subscriptions.
 
 ## Subscribe
 
@@ -37,6 +37,8 @@ See the full [SDK sample](../sdk.sample.ts) for construction and cleanup. It onl
 | `tool_execution_end` | Show the matching result and `isError`. |
 | prompt_timing | Carries timing: PromptTiming at prompt start and generation end; upsert by userMessageIndex. Completion precedes saving and does not imply success or a durable save. |
 | `context_budget` | Carries the complete estimated input and response reserve before every main request, including rejected requests and tool continuations. See [context budget](context-budget.md). |
+| `compaction_start` | Automatic summarization started within a prompt; carries `startedAt` and live `historyMessageCount`. |
+| `compaction_end` | Automatic preparation finished; carries optional saved checkpoint ID/boundary/count/time and optional error. Summary text and usage are not broadcast. A generation error can still allow the main request when its input fits. |
 | `agent_settled` | An accepted prompt's execution and save attempt have finished. Inspect outcome and pending-save state. |
 | `session_title` | Title display changed or generation failed; carries title and optional error. May arrive after a run settles. |
 | permission_changed | Managed permission selection saved; carries permissionPreset. No prompt run ID is needed. |
@@ -48,6 +50,8 @@ Approval events are paired by request ID, including unavailable, rejected and ca
 The initial fallback title is published immediately and again after saving; a title event alone is not a history-save acknowledgement. Title errors are exposed separately in `state.titleError` and never change the main run outcome. See [session titles](session-titles.md).
 
 `agent_settled` fires for accepted prompts even when model preflight fails. Validation failures before acceptance, such as a concurrent prompt, do not start a run or emit it. Model switching and flushing do not emit prompt lifecycle events.
+
+`state.activeCompaction` exposes transient automatic activity and clears on completion, cancellation or failure. The prompt remains running, preserving its run identity, Stop behavior and reconnect timing. Manual compaction continues using the host command lifecycle. A compaction end event does not mean the prompt has settled or that its final response has been saved.
 
 ## Completed messages and drafts
 

@@ -40,6 +40,7 @@ bash packages/coding-agent/src/cli.sample.sh
 | Command | Behavior |
 | --- | --- |
 | `/abort` | Cancel the run and wait for finalization. |
+| `/compact` | Summarize older context while idle, preserving complete original history. See [compaction](compaction.md). |
 | `/model` | Show the active provider/model. |
 | `/model provider/id` | Switch a configured model while idle; a bare ID uses the current provider. |
 | `/permissions [level]` | Show the effective preset or persist a supported preset while idle. |

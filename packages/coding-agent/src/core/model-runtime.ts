@@ -5,7 +5,14 @@ import {
   getSupportedThinkingLevels,
   validateToolArguments,
 } from "@earendil-works/pi-ai";
-import type { Api, Context, Model, Models, SimpleStreamOptions } from "@earendil-works/pi-ai";
+import type {
+  Api,
+  Context,
+  Model,
+  Models,
+  SimpleStreamOptions,
+  ToolCall,
+} from "@earendil-works/pi-ai";
 import { adjustMaxTokensForThinking } from "@earendil-works/pi-ai/api/simple-options";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completions.lazy";
 import { openAIResponsesApi } from "@earendil-works/pi-ai/api/openai-responses.lazy";
@@ -30,7 +37,12 @@ export const validateSessionToolArguments = (
   args: Record<string, unknown>,
   id: string,
 ): Record<string, unknown> =>
-  validateToolArguments(tool, { type: "toolCall", id, name: tool.name, arguments: args });
+  validateToolArguments(tool, {
+    type: "toolCall",
+    id,
+    name: tool.name,
+    arguments: args as ToolCall["arguments"],
+  });
 
 /** Assemble and check every main request, including sequential tool continuations. */
 export const createSessionStreamFn = (

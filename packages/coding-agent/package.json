@@ -28,7 +28,7 @@
     "check": "biome check src"
   },
   "dependencies": {
-    "@earendil-works/pi-ai": "^0.85.1",
+    "@earendil-works/pi-ai": "^1.1.0",
     "@earendil-works/pi-codemode": "1.0.4",
     "@loop/agent": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.32.0",

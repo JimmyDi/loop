@@ -44,12 +44,13 @@ test("Settings opens General outside the mobile drawer and restores focus withou
         <AppShell />
       </QueryClientProvider>,
     );
-    const trigger = view.getByRole("button", { name: "Settings" });
+    const trigger = view.getByRole("button", { name: "More" });
 
     expect(view.queryByRole("button", { name: "Model settings" })).toBeNull();
     expect(view.queryByRole("combobox", { name: "Language" })).toBeNull();
     trigger.focus();
     fireEvent.click(trigger);
+    fireEvent.click(view.getByRole("menuitem", { name: "Settings" }));
     const dialog = view.getByRole("dialog", { name: "Settings" });
 
     expect(dialog.hasAttribute("open")).toBe(true);
@@ -126,17 +127,19 @@ test("Settings opens General outside the mobile drawer and restores focus withou
     fireEvent.keyDown(dialog, { key: "Escape" });
     fireEvent(dialog, new window.Event("cancel", { cancelable: true }) as unknown as Event);
     expect(view.queryByRole("dialog")).toBeNull();
-    expect(view.getByRole("button", { name: "设置" })).toBe(trigger);
+    expect(view.getByRole("button", { name: "更多" })).toBe(trigger);
     expect(useWorkspace.getState().sidebar).toBe(true);
     expect(document.activeElement).toBe(trigger);
 
     fireEvent.click(trigger);
+    fireEvent.click(view.getByRole("menuitem", { name: "设置" }));
     expect(view.getByRole("tabpanel", { name: "通用" })).toBeTruthy();
     fireEvent.click(view.getByRole("button", { name: "关闭" }));
     expect(view.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(trigger);
 
     fireEvent.click(trigger);
+    fireEvent.click(view.getByRole("menuitem", { name: "设置" }));
     fireEvent.click(view.getByRole("button", { name: "语言 中文" }));
     await act(async () => fireEvent.click(view.getByRole("option", { name: "English" })));
     expect(view.getByRole("dialog", { name: "Settings" })).toBeTruthy();
@@ -150,7 +153,7 @@ test("Settings opens General outside the mobile drawer and restores focus withou
     expect((view.getByRole("radio", { name: "Dark" }) as HTMLInputElement).checked).toBe(true);
     expect(useWorkspace.getState().drafts).toEqual({ example: "Unsent draft" });
     fireEvent.click(view.getByRole("button", { name: "Close" }));
-    expect(view.getByRole("button", { name: "Settings" })).toBe(trigger);
+    expect(view.getByRole("button", { name: "More" })).toBe(trigger);
   } finally {
     cleanup();
     client.clear();

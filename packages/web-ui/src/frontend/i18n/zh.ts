@@ -144,6 +144,8 @@ export const zh = {
   resize: "调整侧栏宽度",
   language: "语言",
   settings: "设置",
+  appMenu: "更多",
+  feedback: "反馈",
   personal: "个人",
   general: "通用",
   languageDescription: "应用界面使用的语言",

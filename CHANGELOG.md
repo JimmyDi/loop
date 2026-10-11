@@ -35,6 +35,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Changed
 
+- Web UI: replace the bottom Settings button with a text-only More entry opening an upward menu containing Settings and Feedback, without a logo, chevron or sign-in entry. Settings opens the existing panel; Feedback uses only a leading paper-plane icon sized to balance with the Settings icon and opens GitHub’s new-issue page with a pre-filled bug report. Add the matching repository issue template with reproduction steps, expected/actual behavior and environment fields.
+
 - Agent, coding-agent and Web: preserve tool argument validation and display metadata compatibility, and keep system messages out of the visible conversation. Existing session storage remains unchanged.
 
 - coding-agent and Web: place current permission guidance in `<permissions>` within the system prompt, save initial system sections and subsequent changed-section checkpoints, and expand selected Skill instructions as `<skill>` blocks in anchored model user messages. Preserve original user input, images, revisions and permission enforcement; replay legacy runtime snapshots. Optional version-2 header metadata records prompt changes and compaction checkpoints without native system transcript messages or a storage-version change.

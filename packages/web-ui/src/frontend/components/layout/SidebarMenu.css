@@ -1,0 +1,73 @@
+.sidebar-menu {
+  position: relative;
+}
+.sidebar-menu-trigger.action-button {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 13px;
+  transition: background-color 140ms ease;
+}
+.sidebar-menu-trigger.action-button:hover:not(:disabled),
+.sidebar-menu-trigger.action-button:focus-visible,
+.sidebar-menu-trigger.action-button[aria-expanded="true"] {
+  outline: none;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+.sidebar-menu-panel {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  box-shadow: 0 8px 28px var(--shadow);
+}
+.sidebar-menu-panel > button,
+.sidebar-menu-panel > a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.sidebar-menu-panel > button:hover,
+.sidebar-menu-panel > a:hover,
+.sidebar-menu-panel > button:focus-visible,
+.sidebar-menu-panel > a:focus-visible {
+  outline: none;
+  background: var(--surface-hover);
+}
+.sidebar-menu-panel svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-menu-trigger.action-button {
+    transition: none;
+  }
+}

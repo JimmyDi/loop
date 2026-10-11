@@ -9,8 +9,8 @@ import { PinnedSessions } from "../projects/PinnedSessions";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { LoopIcon } from "../ui/LoopIcon";
-import { SettingsIcon } from "../ui/SettingsIcon";
 import { SettingsDialog } from "../settings/SettingsDialog";
+import { SidebarMenu } from "./SidebarMenu";
 import "./Sidebar.css";
 
 export const Sidebar = () => {
@@ -108,14 +108,7 @@ export const Sidebar = () => {
         </div>
       </div>
       <footer>
-        <ActionButton
-          className="sidebar-settings ghost"
-          aria-haspopup="dialog"
-          onClick={() => setSettingsOpen(true)}
-        >
-          <SettingsIcon />
-          {t("settings")}
-        </ActionButton>
+        <SidebarMenu onOpenSettings={() => setSettingsOpen(true)} />
       </footer>
       {adding && (
         <AddProjectDialog

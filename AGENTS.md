@@ -146,8 +146,10 @@
 - Keep streamFn explicit and return the final AssistantMessage from prompt(). Reject concurrent
   prompts, model errors, cancellation, truncation, deferred responses and exhausted maxTurns.
   Completed history excludes streaming drafts. Pair skipped tool calls before the next request.
-- Do not add steering, follow-up, queues, persistence, retries, compaction, tool progress, hooks
-  or provider implementations to agent. Application persistence stays in coding-agent.
+- Keep steering and follow-up consumption inside the complete agent loop through lower-layer
+  callback contracts. coding-agent owns editable queue storage, input preparation, persistence
+  and compaction. Do not add application services, retries, tool progress or provider implementations
+  to agent.
 - Reuse the model runtime dependency's message, model and stream types; preserve the original AI event in message updates.
   Do not import application or UI implementations into agent. Add resource integrations
   under coding-agent/core only when requested; do not add unused scaffolding.

@@ -909,7 +909,9 @@ test("two prompts create fresh Agents, preserve complete tool history and commit
 
     if (event.type === "message_update") {
       expect(session.state.draft).toBeDefined();
-      expect(session.sessionManager.messages).toHaveLength(contexts.length < 3 ? 0 : 4);
+      expect(session.sessionManager.messages).toHaveLength(
+        contexts.length === 1 ? 0 : contexts.length === 2 ? 3 : 4,
+      );
     }
   });
   session.subscribe(async (event) => {
@@ -935,7 +937,7 @@ test("two prompts create fresh Agents, preserve complete tool history and commit
           context.tools?.length === 5 && context.systemPrompt === contexts[0].systemPrompt,
       ),
     ).toBe(true);
-    expect(signals[0]).not.toBe(signals[1]);
+    expect(signals[0]).toBe(signals[1]);
     expect(signals.every((signal) => signal && !signal.aborted)).toBe(true);
     expect(signals[0]).not.toBe(signals[2]);
     expect(fileDuringRun.trim().split("\n")).toHaveLength(1);
@@ -1506,6 +1508,8 @@ test("steer waits for the whole tool batch and follow-ups retain FIFO order", as
   const release = Promise.withResolvers<void>();
   const order: string[] = [];
   let calls = 0;
+  const signals: Array<AbortSignal | undefined> = [];
+  let settled = 0;
   const session = new AgentSession({
     model,
     sessionManager: SessionManager.inMemory(),
@@ -1525,7 +1529,8 @@ test("steer waits for the whole tool batch and follow-ups retain FIFO order", as
         },
       },
     ],
-    modelRuntime: runtime((_model, context) => {
+    modelRuntime: runtime((_model, context, options) => {
+      signals.push(options?.signal);
       calls++;
       if (calls === 1)
         return stream(
@@ -1543,6 +1548,9 @@ test("steer waits for the whole tool batch and follow-ups retain FIFO order", as
       return stream();
     }),
   });
+  session.subscribe((event) => {
+    if (event.type === "agent_settled") settled++;
+  });
   try {
     const running = session.prompt("original");
     await entered.promise;
@@ -1552,6 +1560,9 @@ test("steer waits for the whole tool batch and follow-ups retain FIFO order", as
     release.resolve();
     await running;
     await session.waitForIdle();
+    expect(settled).toBe(1);
+    expect(new Set(signals).size).toBe(1);
+    expect(session.state.promptTimings).toHaveLength(3);
     expect(order).toEqual(["tool", "tool", "steer", "later"]);
     expect(session.state.queue).toEqual([]);
     expect(
@@ -1840,7 +1851,6 @@ test("saving a bypassed edit appends it without interrupting the active later me
     session.enqueue("remaining", { id: "remaining" });
     session.beginQueuedEdit("held");
     release.resolve();
-    await running;
     await laterEntered.promise;
     expect(seen).toEqual(["original", "later"]);
     expect(session.state.queue).toMatchObject([{ id: "held", editing: true }, { id: "remaining" }]);
@@ -1849,12 +1859,164 @@ test("saving a bypassed edit appends it without interrupting the active later me
     expect(session.state.queue?.map((item) => item.id)).toEqual(["remaining", "newer", "held"]);
     expect(seen).toEqual(["original", "later"]);
     laterRelease.resolve();
+    await running;
     await session.waitForIdle();
     expect(seen).toEqual(["original", "later", "remaining", "newer", "saved"]);
     expect(session.state.queue).toEqual([]);
   } finally {
     release.resolve();
     laterRelease.resolve();
+    await session.abort();
+    session.dispose();
+  }
+});
+
+test("failed queued input preparation retains its item and the prior task's saved history", async () => {
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  const session = new AgentSession({
+    model,
+    sessionManager: SessionManager.inMemory(),
+    systemPrompt: "Fixture",
+    tools: [],
+    modelRuntime: runtime(async () => {
+      entered.resolve();
+      await release.promise;
+      return stream();
+    }),
+  });
+  try {
+    const running = session.prompt("initial");
+    await entered.promise;
+    session.enqueue("requires a skill", { id: "pending", skills: ["a".repeat(24)] });
+    release.resolve();
+    await expect(running).rejects.toThrow("Skills are unavailable");
+    expect(session.state.queue?.map((item) => item.id)).toEqual(["pending"]);
+    expect(session.sessionManager.messages.map((message) => message.role)).toEqual([
+      "user",
+      "assistant",
+    ]);
+    expect(session.state.promptTimings).toHaveLength(1);
+  } finally {
+    release.resolve();
+    await session.abort();
+    session.dispose();
+  }
+});
+
+test("a boundary save failure retains steering and prevents another model request", async () => {
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  const manager = SessionManager.inMemory();
+  let requests = 0;
+  const session = new AgentSession({
+    model,
+    sessionManager: manager,
+    systemPrompt: "Fixture",
+    tools: [],
+    modelRuntime: runtime(async () => {
+      requests++;
+      entered.resolve();
+      await release.promise;
+      return stream();
+    }),
+  });
+  const commit = vi.spyOn(manager, "commit").mockRejectedValue(new Error("checkpoint failed"));
+  try {
+    const running = session.prompt("initial");
+    await entered.promise;
+    session.enqueue("steer", { id: "retained" });
+    session.steerQueued("retained");
+    release.resolve();
+    await expect(running).rejects.toThrow("checkpoint failed");
+    expect(requests).toBe(1);
+    expect(session.state.queue).toMatchObject([{ id: "retained", steering: true }]);
+  } finally {
+    commit.mockRestore();
+    release.resolve();
+    await session.abort();
+    session.dispose();
+  }
+});
+
+test("idle queue preparation can stop and resume without removing or duplicating its input", async () => {
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  let checks = 0;
+  let requests = 0;
+  const session = new AgentSession({
+    model,
+    sessionManager: SessionManager.inMemory(),
+    systemPrompt: "Fixture",
+    tools: [],
+    modelRuntime: runtime(
+      () => {
+        requests++;
+        return stream();
+      },
+      async () => {
+        if (++checks === 1) {
+          entered.resolve();
+          await release.promise;
+        }
+      },
+    ),
+  });
+  try {
+    session.enqueue("queued", { id: "held" });
+    await entered.promise;
+    const stopping = session.abort();
+    release.resolve();
+    await stopping;
+    expect(session.state.queue?.map((item) => item.id)).toEqual(["held"]);
+    expect(session.state.canResume).toBe(true);
+    expect(session.state.messages).toEqual([]);
+    await session.resume();
+    expect(requests).toBe(1);
+    expect(session.state.queue).toEqual([]);
+    expect(session.state.promptTimings).toMatchObject([
+      { userMessageIndex: 0, messageStartIndex: 1 },
+    ]);
+    expect(session.state.messages.filter((message) => message.role === "user")).toMatchObject([
+      { content: "queued" },
+    ]);
+  } finally {
+    release.resolve();
+    await session.abort();
+    session.dispose();
+  }
+});
+
+test("stop during queue acceptance retains the selected input for exactly one resume", async () => {
+  let requests = 0;
+  const session = new AgentSession({
+    model,
+    sessionManager: SessionManager.inMemory(),
+    systemPrompt: "Fixture",
+    tools: [],
+    modelRuntime: runtime(() => {
+      requests++;
+      return stream();
+    }),
+  });
+  const detach = session.subscribe((event) => {
+    if (event.type === "queue_changed" && session.isRunning && !session.state.queue?.length)
+      void session.abort();
+  });
+  try {
+    session.enqueue("queued", { id: "selected" });
+    await session.waitForIdle();
+    expect(requests).toBe(0);
+    expect(session.state.canResume).toBe(true);
+    expect(session.state.messages).toEqual([]);
+    detach();
+    await session.resume();
+    expect(requests).toBe(1);
+    expect(session.state.messages.filter((message) => message.role === "user")).toMatchObject([
+      { content: "queued" },
+    ]);
+  } finally {
+    detach();
     await session.abort();
     session.dispose();
   }

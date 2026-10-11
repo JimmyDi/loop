@@ -329,12 +329,11 @@ test("unexpected failures and invalid input release the agent", async () => {
   expect(requests).toBe(2);
 });
 
-test("step finishes the complete tool batch and continuation adds no user message", async () => {
+test("continue resumes a complete loop without duplicating input or completed tools", async () => {
   let requests = 0;
   let executions = 0;
   const agent = new Agent({
     model,
-    maxTurns: 1,
     tools: [
       {
         name: "fixture",
@@ -361,14 +360,22 @@ test("step finishes the complete tool batch and continuation adds no user messag
       );
     },
   });
-  const first = await agent.step("input");
-  expect(first.stopReason).toBe("toolUse");
-  expect(requests).toBe(1);
+  const ready = Promise.withResolvers<void>();
+  agent.subscribe((event) => {
+    if (event.type === "tool_execution_end" && event.toolCallId === "two") {
+      agent.abort();
+      ready.resolve();
+    }
+  });
+  const running = agent.prompt("input").catch(() => {});
+  await ready.promise;
+  agent.abort();
+  await running;
+  await agent.continue();
   expect(executions).toBe(2);
-  await agent.step();
-  expect(requests).toBe(2);
   expect(agent.messages.filter((message) => message.role === "user")).toHaveLength(1);
+  expect(agent.messages.at(-1)).toMatchObject({ stopReason: "stop" });
   const empty = new Agent({ model, streamFn: () => stream() });
-  await expect(empty.step()).rejects.toThrow("user history");
+  await expect(empty.continue()).rejects.toThrow("user history");
   await expect(empty.prompt(undefined as never)).rejects.toThrow("Prompt is required");
 });

@@ -13,12 +13,12 @@ See [Agent API](src/docs/agent.md) for a minimal call and [agent.sample.ts](src/
 | Feature | Documentation |
 | --- | --- |
 | Create an Agent, prompt, and reuse history | [Agent API](src/docs/agent.md) |
-| Model requests and repeated tool turns | [Agent loop](src/docs/agent-loop.md) |
+| Model requests, tool turns and scheduled input boundaries | [Agent loop](src/docs/agent-loop.md) |
 | Streaming messages and subscriptions | [Events](src/docs/events.md) |
 | Declare, validate, and execute tools | [Tools](src/docs/tools.md) |
 | Abort, failure, truncation, and turn limits | [Cancellation and errors](src/docs/cancellation.md) |
 
-Session storage, built-in coding tools, and model configuration belong to [coding-agent](../coding-agent/README.md). Agent has no default stream registration, persistence, queues, steering, compaction, or provider implementation.
+Session storage, built-in coding tools, and model configuration belong to [coding-agent](../coding-agent/README.md). Agent has no default stream registration, persistence, queue storage, compaction, or provider implementation.
 
 ## Validation
 

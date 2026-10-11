@@ -45,6 +45,7 @@ For a custom URL and streamed output, use the runnable [Agent sample](../agent.s
 | Member | Result |
 | --- | --- |
 | `prompt(content: PromptContent): Promise<AssistantMessage>` | Runs all model/tool turns and returns the final successful assistant message. |
+| `continue(): Promise<AssistantMessage>` | Runs from completed user history without adding another user input. |
 | `messages: Message[]` | Isolated snapshot of completed history, including tool calls and results. |
 | `isRunning: boolean` | Whether a prompt is currently running. |
 | `subscribe(listener): () => void` | Adds an [event listener](events.md); returns unsubscribe. |
@@ -64,8 +65,8 @@ For persistence, capture `agent.messages` after the run settles and pass that sn
 
 [agent.ts](../agent.ts), [types.ts](../types.ts), and [agent.test.ts](../agent.test.ts). See [cancellation and errors](cancellation.md) for rejected prompts and recoverable history.
 
-## Host Step Execution
+## Continuation and scheduled inputs
 
-step(content?: PromptContent): Promise<AssistantMessage> executes one model response and its entire sequential tool batch. Omit content to continue existing user history without appending input. Empty history and concurrent calls reject. Validation, native events, cancellation and tool pairing match prompt; a successful step returns even when another model request is required.
+Use continue(): Promise<AssistantMessage> to resume completed user history without appending input. It runs model/tool turns to completion with the same cancellation and pairing guarantees as prompt(). Empty user history and concurrent calls reject. Each invocation uses one cancellation signal and one maxTurns budget across all model requests, including scheduled inputs.
 
-Each step has its own cancellation signal. maxTurns validates as a positive integer; hosts repeating steps enforce their total request limit. prompt retains its whole-task behavior and requires input. Agent owns no queue, steering policy or persistence. The [coding session scheduler](../../../coding-agent/src/docs/message-queue.md) uses this execution boundary.
+AgentLoopOptions accepts getSteeringMessages and getFollowUpMessages callbacks returning native prompt content arrays. The loop polls steering before its first request and after complete tool batches; ordinary follow-ups are polled only after a successful response without tools. The returned inputs are appended and processed inside the same running Agent. Hosts own queue storage, editing and persistence. See [loop boundaries](agent-loop.md#scheduled-inputs-and-checkpoints).

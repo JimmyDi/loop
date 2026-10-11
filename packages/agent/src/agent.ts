@@ -46,12 +46,12 @@ export class Agent {
     return this.execute(content);
   }
 
-  /** One model response and its complete sequential tool batch. */
-  step(content?: PromptContent): Promise<AssistantMessage> {
-    return this.execute(content, true);
+  /** Resume completed history without appending a duplicate user input. */
+  continue(): Promise<AssistantMessage> {
+    return this.execute();
   }
 
-  private async execute(content?: PromptContent, singleTurn = false): Promise<AssistantMessage> {
+  private async execute(content?: PromptContent): Promise<AssistantMessage> {
     if (this.isRunning) throw new Error("Agent is already running");
 
     this.controller = new AbortController();
@@ -65,7 +65,6 @@ export class Agent {
           for (const listener of this.listeners) await listener(structuredClone(event));
         },
         this.controller.signal,
-        singleTurn,
       );
     } finally {
       this.controller = undefined;

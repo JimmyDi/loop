@@ -549,3 +549,54 @@ test("oversized newest turns remain intact and fail without rerunning completed 
     session.dispose();
   }
 });
+
+test("queued work compacts inside the same running loop before its model request", async () => {
+  const manager = SessionManager.inMemory();
+  await manager.commit([user(10000), answer()]);
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  let main = 0;
+  let summaries = 0;
+  let settled = 0;
+  const session = new AgentSession({
+    model,
+    sessionManager: manager,
+    systemPrompt: "Rules",
+    tools: [],
+    modelRuntime: runtime(async (_model, context) => {
+      if (isSummary(context)) {
+        summaries++;
+        return stream(answer("Prior work summarized"));
+      }
+      main++;
+      if (main === 1) {
+        entered.resolve();
+        await release.promise;
+        return stream(answer("x".repeat(100000)));
+      }
+      expect(context.messages[0]).toMatchObject({ role: "user" });
+      expect(JSON.stringify(context.messages)).toContain("Prior work summarized");
+      return stream(answer());
+    }),
+  });
+  session.subscribe((event) => {
+    if (event.type === "agent_settled") settled++;
+  });
+  try {
+    const running = session.prompt("first");
+    await entered.promise;
+    session.enqueue("next", { id: "next" });
+    release.resolve();
+    await running;
+    expect(main).toBe(2);
+    expect(summaries).toBeGreaterThan(0);
+    expect(settled).toBe(1);
+    expect(session.state.queue).toEqual([]);
+    expect(manager.getCompactions().length).toBeGreaterThan(0);
+    expect(manager.getPromptTimings()).toHaveLength(2);
+  } finally {
+    release.resolve();
+    await session.abort();
+    session.dispose();
+  }
+});

@@ -4,7 +4,7 @@
 
 ## Calling the loop
 
-The exported signature is `runAgentLoop(content, history, options, onEvent?, signal?, singleTurn?): Promise<AssistantMessage>`.
+The exported signature is `runAgentLoop(content, history, options, onEvent?, signal?): Promise<AssistantMessage>`.
 
 - `content` is user-message content: a string or text/image blocks; image-only input is allowed.
 - `history` is a mutable `Message[]`. The loop is its sole writer during the run.
@@ -21,8 +21,9 @@ Do not append the input or returned assistant again. The loop has already writte
 3. Build `Context` from `messages`, `systemPrompt`, and tool declarations. Local `execute` functions are excluded.
 4. Call `streamFn` and consume its async event iterator.
 5. Read `result()` on that same stream and append the complete assistant once.
-6. Reject unsupported or failed stop reasons. If there are no tools, return the assistant.
-7. Execute tool calls in source order, append their matching results, and request the model again.
+6. Reject unsupported or failed stop reasons. Execute tools in source order and append matching results.
+7. Await finishTurn, poll steering, and continue when tools or steering inputs are present.
+8. After a response without tools, poll follow-ups; continue if present, otherwise return the final assistant.
 
 Tool execution does not increment the turn count; each model request does. When `maxTurns` is reached, already requested tools finish and their results remain in history, but the next model request is rejected.
 
@@ -42,7 +43,7 @@ A stream must finish with an AI `done` or `error` event. Closing without either 
 
 Agent emits [message and tool events](events.md), with the original AI update carried inside `message_update`. Stop reasons and interrupted tool batches follow [cancellation and error rules](cancellation.md).
 
-There is no agent-level retry, deferred polling, parallel tool execution, queue, or context compaction.
+There is no agent-level retry, deferred polling, parallel tool execution, queue storage, or context compaction.
 
 ## Source
 
@@ -59,6 +60,17 @@ The loop writes history and schedules tools sequentially. Focused internal modul
 
 See [types.ts](../types.ts), [loop integration tests](../agent-loop.test.ts), [normalization tests](../normalize-model-input.test.ts), [stream tests](../stream-model-response.test.ts), [tool tests](../execute-tool.test.ts), [input tests](../validate-loop-input.test.ts) and [cancellation-wait tests](../abortable-promise.test.ts).
 
-## Single-Step Execution
+## Scheduled inputs and checkpoints
 
-The final optional singleTurn flag defaults to false. When true, return after the first response and complete tool batch. Undefined content continues existing user history without adding input; empty history rejects. Agent exposes this through step(). Hosts own scheduling across calls; the loop contains no queue or steering callback.
+Undefined content continues existing user history without appending input; empty user history rejects.
+
+| Option | Boundary and contract |
+| --- | --- |
+| getSteeringMessages(signal) | Return native prompt content arrays before the first request and after each successful response and complete tool batch. |
+| getFollowUpMessages(signal) | Return native prompt content arrays only after a successful response without tools and no steering. |
+| prepareRequest(signal) | Return systemPrompt, tools and streamFn for the next request and its tools. |
+| finishTurn({ message, history }, signal) | Awaited after the complete response and tool batch, before queue polling. History is an isolated snapshot. |
+
+Callbacks are optional lower-layer contracts. Hosts provide queue storage, Skill preparation, save checkpoints and compaction; Agent has no application imports. Callbacks must cooperate with cancellation and avoid consuming inputs before preparation succeeds. A callback failure rejects the run. No polling follows model failures, cancellation or a failed finishTurn. A reached maxTurns budget does not consume another queued input; tool continuations reject, while a naturally finished response returns successfully.
+
+Steering does not cancel streams or skip tools. Tool results precede steering user messages in history and in the next model request. One Agent and cancellation signal remain active until tool continuations, steering and follow-ups are exhausted. Hosts can return one input at a time to preserve per-input configuration and timing. See [message queue](../../../coding-agent/src/docs/message-queue.md).

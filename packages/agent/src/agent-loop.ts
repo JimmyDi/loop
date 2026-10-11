@@ -12,7 +12,6 @@ export const runAgentLoop = async (
   options: AgentLoopOptions,
   onEvent: AgentEventListener = () => {},
   signal: AbortSignal = new AbortController().signal,
-  singleTurn = false,
 ): Promise<AssistantMessage> => {
   validateLoopInput(content ?? "Continuation", options);
   if (content === undefined && !history.some((message) => message.role === "user"))
@@ -33,13 +32,23 @@ export const runAgentLoop = async (
   if (content !== undefined)
     await append({ role: "user", content: structuredClone(content), timestamp: Date.now() });
 
+  let pending = (await options.getSteeringMessages?.(signal)) ?? [];
   for (let turn = 0; ; turn++) {
     signal.throwIfAborted();
 
     if (options.maxTurns !== undefined && turn >= options.maxTurns)
       throw new Error("Maximum model turns reached: " + options.maxTurns);
 
-    const message = await streamModelResponse(history, options, emit, signal);
+    for (const input of pending) {
+      signal.throwIfAborted();
+      validateLoopInput(input, options);
+      await append({ role: "user", content: structuredClone(input), timestamp: Date.now() });
+    }
+    pending = [];
+    const configuration = await options.prepareRequest?.(signal);
+    signal.throwIfAborted();
+    const requestOptions = configuration ? { ...options, ...configuration } : options;
+    const message = await streamModelResponse(history, requestOptions, emit, signal);
     const calls = message.content.filter((item) => item.type === "toolCall");
     let completed = 0;
 
@@ -58,8 +67,6 @@ export const runAgentLoop = async (
         );
       }
 
-      if (!calls.length) return structuredClone(message);
-
       for (const call of calls) {
         signal.throwIfAborted();
         await emit({
@@ -69,7 +76,7 @@ export const runAgentLoop = async (
           args: call.arguments,
         });
 
-        const result = await executeTool(call, options.tools ?? [], signal);
+        const result = await executeTool(call, requestOptions.tools ?? [], signal);
 
         // Commit before notifying so a failed listener cannot leave an unpaired call.
         history.push(structuredClone(result));
@@ -86,7 +93,6 @@ export const runAgentLoop = async (
         await emit({ type: "message_end", message: result });
         signal.throwIfAborted();
       }
-      if (singleTurn) return structuredClone(message);
     } catch (error) {
       // Request normalization filters error/aborted assistants on replay; do not create orphan results for them.
       if (message.stopReason !== "error" && message.stopReason !== "aborted") {
@@ -106,5 +112,20 @@ export const runAgentLoop = async (
 
       throw error;
     }
+
+    await options.finishTurn?.(
+      { message: structuredClone(message), history: structuredClone(history) },
+      signal,
+    );
+    signal.throwIfAborted();
+    // Never take an input that cannot receive a model request in this run.
+    if (options.maxTurns !== undefined && turn + 1 >= options.maxTurns) {
+      if (calls.length) throw new Error("Maximum model turns reached: " + options.maxTurns);
+      return structuredClone(message);
+    }
+    pending = (await options.getSteeringMessages?.(signal)) ?? [];
+    if (calls.length || pending.length) continue;
+    pending = (await options.getFollowUpMessages?.(signal)) ?? [];
+    if (!pending.length) return structuredClone(message);
   }
 };

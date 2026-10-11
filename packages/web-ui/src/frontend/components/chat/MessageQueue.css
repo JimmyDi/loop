@@ -1,0 +1,158 @@
+.message-queue {
+  margin: 0 16px -12px;
+  padding: 4px 10px 18px;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  background: var(--surface-raised);
+}
+.message-queue ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: min(360px, 40vh);
+  overflow-y: auto;
+}
+.message-queue li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 3px 0 3px 8px;
+  transition: transform 150ms ease;
+}
+.message-queue li[data-dragged="true"] {
+  opacity: 0.35;
+}
+.message-queue ol[data-dragging="true"] {
+  cursor: grabbing;
+}
+.queue-drag-preview {
+  position: fixed;
+  top: -10000px;
+  left: -10000px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 3px 0 3px 8px;
+  list-style: none;
+  color: var(--ink);
+  background: var(--surface-raised);
+}
+.queue-drag-preview .queue-actions {
+  opacity: 0.35;
+}
+.queue-drag-preview .queue-grip {
+  opacity: 0.65;
+}
+.queue-drag {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 30px;
+  padding: 2px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: grab;
+}
+.queue-drag:active:not(:disabled) {
+  cursor: grabbing;
+}
+.queue-drag:hover:not(:disabled),
+.queue-drag:focus-visible {
+  background: var(--surface-hover);
+  color: var(--ink);
+}
+.queue-drag:focus-visible {
+  outline: 2px solid var(--focus-border);
+  outline-offset: 1px;
+}
+.queue-drag:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.queue-drag svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.queue-drag .queue-grip {
+  position: absolute;
+  left: -7px;
+  width: 8px;
+  height: 18px;
+  fill: currentColor;
+  stroke: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.message-queue li:hover .queue-grip,
+.queue-drag:focus-visible .queue-grip,
+.message-queue li[data-dragged="true"] .queue-grip {
+  opacity: 0.65;
+}
+.queue-body {
+  display: flex;
+  align-items: baseline;
+  flex: 1;
+  gap: 8px;
+  min-width: 0;
+}
+.queue-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 22px;
+}
+.queue-metadata {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+.queue-paused {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+}
+.message-queue li[data-steering="true"] {
+  opacity: 0.7;
+}
+@media (max-width: 480px) {
+  .message-queue {
+    margin-inline: 10px;
+    padding-inline: 6px;
+  }
+  .message-queue li {
+    gap: 4px;
+  }
+  .queue-text {
+    font-size: 13px;
+  }
+  .message-queue li:not([data-held="true"]) .queue-metadata {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .message-queue li,
+  .queue-drag .queue-grip {
+    transition: none;
+  }
+}

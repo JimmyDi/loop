@@ -935,7 +935,8 @@ test("two prompts create fresh Agents, preserve complete tool history and commit
           context.tools?.length === 5 && context.systemPrompt === contexts[0].systemPrompt,
       ),
     ).toBe(true);
-    expect(signals[0]).toBe(signals[1]);
+    expect(signals[0]).not.toBe(signals[1]);
+    expect(signals.every((signal) => signal && !signal.aborted)).toBe(true);
     expect(signals[0]).not.toBe(signals[2]);
     expect(fileDuringRun.trim().split("\n")).toHaveLength(1);
     expect(events.filter((type) => type === "agent_settled")).toHaveLength(2);
@@ -1293,7 +1294,7 @@ test("prompt wall time ends before saving, survives restore and is absent from m
   });
   try {
     await session.prompt("Request");
-    expect(events).toEqual([
+    expect(events).toMatchObject([
       { userMessageIndex: 0, startedAt: 1000 },
       { userMessageIndex: 0, startedAt: 1000, finishedAt: 30000 },
     ]);
@@ -1497,5 +1498,364 @@ test("explicit and automatic skills preserve instructions in durable history wit
     session?.dispose();
     await skills.close();
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("steer waits for the whole tool batch and follow-ups retain FIFO order", async () => {
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  const order: string[] = [];
+  let calls = 0;
+  const session = new AgentSession({
+    model,
+    sessionManager: SessionManager.inMemory(),
+    systemPrompt: "Fixture",
+    tools: [
+      {
+        name: "fixture",
+        description: "Fixture",
+        parameters: { type: "object", properties: {} },
+        execute: async () => {
+          order.push("tool");
+          if (order.length === 1) {
+            entered.resolve();
+            await release.promise;
+          }
+          return [{ type: "text", text: "result" }];
+        },
+      },
+    ],
+    modelRuntime: runtime((_model, context) => {
+      calls++;
+      if (calls === 1)
+        return stream(
+          answer(
+            [
+              { type: "toolCall", id: "one", name: "fixture", arguments: {} },
+              { type: "toolCall", id: "two", name: "fixture", arguments: {} },
+            ],
+            "toolUse",
+          ),
+        );
+      order.push(
+        String(context.messages.filter((message) => message.role === "user").at(-1)?.content),
+      );
+      return stream();
+    }),
+  });
+  try {
+    const running = session.prompt("original");
+    await entered.promise;
+    session.enqueue("later", { id: "a" });
+    session.enqueue("steer", { id: "b" });
+    session.steerQueued("b");
+    release.resolve();
+    await running;
+    await session.waitForIdle();
+    expect(order).toEqual(["tool", "tool", "steer", "later"]);
+    expect(session.state.queue).toEqual([]);
+    expect(
+      session.state.messages
+        .filter((message) => message.role === "user")
+        .map((message) => message.content),
+    ).toEqual(["original", "steer", "later"]);
+  } finally {
+    release.resolve();
+    await session.abort();
+    session.dispose();
+  }
+});
+
+test("stop preserves queue and resume uses committed results without duplicate input or tools", async () => {
+  const entered = Promise.withResolvers<void>();
+  let requests = 0;
+  let tools = 0;
+  const session = new AgentSession({
+    model,
+    sessionManager: SessionManager.inMemory(),
+    systemPrompt: "Fixture",
+    tools: [
+      {
+        name: "fixture",
+        description: "Fixture",
+        parameters: { type: "object", properties: {} },
+        execute: () => {
+          tools++;
+          return [{ type: "text", text: "completed" }];
+        },
+      },
+    ],
+    modelRuntime: runtime(async (_model, context) => {
+      requests++;
+      if (requests === 1)
+        return stream(
+          answer([{ type: "toolCall", id: "done", name: "fixture", arguments: {} }], "toolUse"),
+        );
+      if (requests === 2) {
+        entered.resolve();
+        return new Promise(() => {});
+      }
+      if (requests === 3)
+        expect(
+          context.messages.some(
+            (message) => message.role === "toolResult" && message.toolCallId === "done",
+          ),
+        ).toBe(true);
+      return stream();
+    }),
+  });
+  try {
+    const running = session.prompt("original");
+    const failed = running.catch(() => {});
+    await entered.promise;
+    session.enqueue("queued", { id: "q" });
+    await session.abort();
+    await failed;
+    expect(session.state.canResume).toBe(true);
+    expect(session.state.queue?.map((item) => item.id)).toEqual(["q"]);
+    expect(requests).toBe(2);
+    expect(tools).toBe(1);
+    await session.resume();
+    await session.waitForIdle();
+    expect(tools).toBe(1);
+    expect(requests).toBe(4);
+    expect(
+      session.state.messages
+        .filter((message) => message.role === "user")
+        .map((message) => message.content),
+    ).toEqual(["original", "queued"]);
+    expect(session.state.canResume).toBe(false);
+  } finally {
+    await session.abort();
+    session.dispose();
+  }
+});
+
+test("repeated stop and resume retain streamed text and independent durable attempt timings", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "loop-stopped-response-"));
+  const manager = SessionManager.draft(directory, join(directory, "history"));
+  let calls = 0;
+  let visible = Promise.withResolvers<void>();
+  const session = new AgentSession({
+    model,
+    sessionManager: manager,
+    systemPrompt: "Fixture",
+    tools: [],
+    modelRuntime: runtime((_model, context) => {
+      calls++;
+      expect(context.messages.filter((message) => message.role === "user")).toHaveLength(1);
+      expect(
+        context.messages.some(
+          (message) => message.role === "assistant" && message.stopReason === "aborted",
+        ),
+      ).toBe(false);
+      if (calls === 3) return stream(answer([{ type: "text", text: "Completed response" }]));
+      const native = createAssistantMessageEventStream();
+      const partial = answer([{ type: "text", text: "Partial attempt " + calls }]);
+      native.push({ type: "start", partial });
+      native.push({
+        type: "text_delta",
+        contentIndex: 0,
+        delta: "Partial attempt " + calls,
+        partial,
+      });
+      return native;
+    }),
+  });
+  session.subscribe((event) => {
+    if (event.type === "message_update") visible.resolve();
+  });
+  try {
+    let running = session.prompt("Request").catch(() => {});
+    for (const attempt of [1, 2]) {
+      await visible.promise;
+      await session.abort();
+      await running;
+      expect(session.state.messages.at(-1)).toMatchObject({
+        role: "assistant",
+        stopReason: "aborted",
+        content: [{ type: "text", text: "Partial attempt " + attempt }],
+      });
+      expect(session.state.promptTimings).toHaveLength(attempt);
+      expect(session.state.promptTimings?.at(-1)).toMatchObject({
+        userMessageIndex: 0,
+        messageStartIndex: attempt,
+        messageEndIndex: attempt + 1,
+        stopped: true,
+      });
+      const reopened = await SessionManager.open(manager.sessionFile!);
+      expect(reopened.messages).toEqual(session.state.messages);
+      expect(reopened.getPromptTimings()).toEqual(session.state.promptTimings);
+      visible = Promise.withResolvers<void>();
+      if (attempt === 1) running = session.resume().catch(() => {});
+    }
+    await session.resume();
+    expect(session.state.messages.filter((message) => message.role === "user")).toHaveLength(1);
+    expect(session.state.promptTimings).toHaveLength(3);
+    expect(session.state.promptTimings?.at(-1)).toMatchObject({
+      messageStartIndex: 3,
+      messageEndIndex: 4,
+      stopped: false,
+    });
+    expect(new Set(session.state.promptTimings?.map((timing) => timing.id)).size).toBe(3);
+  } finally {
+    await session.abort();
+    session.dispose();
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("stopping in preflight retains input for resume and leaves queued work paused", async () => {
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  let checks = 0;
+  let calls = 0;
+  const session = new AgentSession({
+    model,
+    modelRuntime: runtime(
+      () => {
+        calls++;
+        return stream();
+      },
+      async () => {
+        if (++checks === 1) {
+          entered.resolve();
+          await release.promise;
+        }
+      },
+    ),
+    sessionManager: SessionManager.inMemory(),
+    systemPrompt: "Fixture",
+    tools: [],
+  });
+  try {
+    const running = session.prompt("initial").catch(() => {});
+    await entered.promise;
+    session.enqueue("queued", { id: "q" });
+    const stopping = session.abort();
+    release.resolve();
+    await stopping;
+    await running;
+    expect(session.state.messages).toEqual([]);
+    expect(session.state.canResume).toBe(true);
+    expect(calls).toBe(0);
+    await session.resume();
+    await session.waitForIdle();
+    expect(
+      session.state.messages
+        .filter((message) => message.role === "user")
+        .map((message) => message.content),
+    ).toEqual(["initial", "queued"]);
+    expect(calls).toBe(2);
+  } finally {
+    release.resolve();
+    await session.abort();
+    session.dispose();
+  }
+});
+
+test("queue survives a stopped run's save failure and resume remains blocked until flush", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "loop-queue-save-"));
+  const store = join(directory, "sessions");
+  const manager = await SessionManager.create(directory, store);
+  const entered = Promise.withResolvers<void>();
+  let calls = 0;
+  const session = new AgentSession({
+    model,
+    modelRuntime: runtime(() => {
+      if (++calls === 1) {
+        entered.resolve();
+        return createAssistantMessageEventStream();
+      }
+      return stream();
+    }),
+    sessionManager: manager,
+    systemPrompt: "Fixture",
+    tools: [],
+  });
+  try {
+    const running = session.prompt("original").catch(() => {});
+    await entered.promise;
+    session.enqueue("queued", { id: "q" });
+    await rename(store, store + "-old");
+    await writeFile(store, "blocked");
+    await session.abort();
+    await running;
+    expect(session.state.hasPendingSave).toBe(true);
+    expect(session.state.canResume).toBe(true);
+    expect(session.state.queue?.map((item) => item.id)).toEqual(["q"]);
+    expect(() => session.resume()).toThrow("Pending session save");
+    expect(() => session.steerQueued("q")).toThrow("Pending session save");
+    await rm(store);
+    await rename(store + "-old", store);
+    await session.flush();
+    expect(calls).toBe(1);
+    expect(session.state.queue).toHaveLength(1);
+    await session.resume();
+    await session.waitForIdle();
+    expect(calls).toBe(3);
+    const restored = await SessionManager.open(manager.sessionFile!);
+    expect(
+      restored.messages
+        .filter((message) => message.role === "user")
+        .map((message) => message.content),
+    ).toEqual(["original", "queued"]);
+    expect(restored.getPromptTimings()).toHaveLength(3);
+  } finally {
+    await session.abort();
+    if (!session.state.hasPendingSave) session.dispose();
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("saving a bypassed edit appends it without interrupting the active later message", async () => {
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  const laterEntered = Promise.withResolvers<void>();
+  const laterRelease = Promise.withResolvers<void>();
+  const seen: unknown[] = [];
+  const session = new AgentSession({
+    model,
+    modelRuntime: runtime(async (_model, context) => {
+      seen.push(context.messages.filter((message) => message.role === "user").at(-1)?.content);
+      if (seen.length === 1) {
+        entered.resolve();
+        await release.promise;
+      }
+      if (seen.length === 2) {
+        laterEntered.resolve();
+        await laterRelease.promise;
+      }
+      return stream();
+    }),
+    sessionManager: SessionManager.inMemory(),
+    systemPrompt: "Fixture",
+    tools: [],
+  });
+  try {
+    const running = session.prompt("original");
+    await entered.promise;
+    session.enqueue("editing", { id: "held" });
+    session.enqueue("later", { id: "later" });
+    session.enqueue("remaining", { id: "remaining" });
+    session.beginQueuedEdit("held");
+    release.resolve();
+    await running;
+    await laterEntered.promise;
+    expect(seen).toEqual(["original", "later"]);
+    expect(session.state.queue).toMatchObject([{ id: "held", editing: true }, { id: "remaining" }]);
+    session.enqueue("newer", { id: "newer" });
+    session.editQueued("held", "saved");
+    expect(session.state.queue?.map((item) => item.id)).toEqual(["remaining", "newer", "held"]);
+    expect(seen).toEqual(["original", "later"]);
+    laterRelease.resolve();
+    await session.waitForIdle();
+    expect(seen).toEqual(["original", "later", "remaining", "newer", "saved"]);
+    expect(session.state.queue).toEqual([]);
+  } finally {
+    release.resolve();
+    laterRelease.resolve();
+    await session.abort();
+    session.dispose();
   }
 });

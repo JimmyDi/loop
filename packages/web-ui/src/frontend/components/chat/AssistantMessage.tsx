@@ -12,6 +12,7 @@ export const AssistantMessage = ({
   generating = streaming,
   showFooter = true,
   timing,
+  hideError = false,
 }: {
   message: Extract<Message, { role: "assistant" }>;
   tools: Record<string, ToolView>;
@@ -19,6 +20,7 @@ export const AssistantMessage = ({
   generating?: boolean;
   showFooter?: boolean;
   timing?: PromptTiming;
+  hideError?: boolean;
 }) => (
   <article className="assistant-message" aria-busy={streaming}>
     {timing && <PromptDuration timing={timing} />}
@@ -28,6 +30,7 @@ export const AssistantMessage = ({
         tools={tools}
         streaming={streaming}
         generating={generating}
+        hideError={hideError}
       />
       {!streaming && showFooter && (
         <MessageFooter

@@ -2,3 +2,6 @@
   width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%; font-size: 22px; padding: 0;
 }
 .composer-send.stop { font-size: 12px; background: var(--surface-selected); color: var(--ink); }
+.composer-send.resume { background: #000; border-color: #000; color: #fff; }
+.composer-send.resume:hover:not(:disabled) { background: #222; }
+.composer-send.resume svg { width: 22px; height: 22px; fill: currentColor; }

@@ -1,4 +1,5 @@
 import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
+import { randomUUID } from "node:crypto";
 
 import { Agent } from "@loop/agent";
 import type { AgentEvent, PromptContent } from "@loop/agent";
@@ -39,7 +40,9 @@ import { prepareSystemPromptState } from "./context/system-prompt-state";
 import { compactSession } from "./context/compact-session";
 import { NothingToCompactError } from "./context/compaction-error";
 import { canCompactSession } from "./context/session-compaction-plan";
+import { MessageQueue } from "./message-queue";
 import { AutomaticCompaction } from "./context/automatic-compaction";
+import { stoppedResponse } from "./stopped-response";
 
 export class AgentSession {
   private listeners = new Set<SessionEventListener>();
@@ -47,6 +50,10 @@ export class AgentSession {
   private agent?: Agent;
   private controller?: AbortController;
   private busy = false;
+  private readonly queue = new MessageQueue();
+  private paused = false;
+  private prompting = false;
+  private continuation?: { content?: PromptContent; skills: string[] };
   private disposed = false;
   private draft?: AssistantMessage;
   private selected: Model<Api>;
@@ -208,6 +215,8 @@ export class AgentSession {
       ),
       draft: this.draft ? structuredClone(this.draft) : undefined,
       isRunning: this.busy,
+      queue: this.queue.messages,
+      canResume: this.paused && !!this.continuation,
       hasPendingSave: this.sessionManager.hasPendingSave,
       unread: this.sessionManager.unread,
       outcome: this.outcome,
@@ -235,7 +244,7 @@ export class AgentSession {
         ? [
             ...this.sessionManager
               .getPromptTimings()
-              .filter((candidate) => candidate.userMessageIndex !== timing.userMessageIndex),
+              .filter((candidate) => candidate.id !== timing.id),
             structuredClone(timing),
           ]
         : this.sessionManager.getPromptTimings(),
@@ -285,6 +294,101 @@ export class AgentSession {
       return Promise.reject(error);
     }
 
+    this.paused = false;
+    this.continuation = undefined;
+    return this.start(content, options.skills ?? []);
+  }
+
+  enqueue(content: PromptContent, options: { skills?: string[]; id?: string } = {}): string {
+    if (this.disposed) throw new Error("Session is disposed");
+    if (this.sessionManager.hasPendingSave)
+      throw new Error("Pending session save; call flush first");
+    if (
+      Array.isArray(content) &&
+      content.some((part) => part.type === "image") &&
+      !this.selected.input.includes("image")
+    )
+      throw new Error("Model does not support image input");
+    const id = this.queue.add(content, options.skills, options.id);
+    this.emit({ type: "queue_changed" });
+    this.drain();
+    return id;
+  }
+
+  editQueued(id: string, content: PromptContent, skills?: string[]): void {
+    if (this.disposed) throw new Error("Session is disposed");
+    if (
+      Array.isArray(content) &&
+      content.some((part) => part.type === "image") &&
+      !this.selected.input.includes("image")
+    )
+      throw new Error("Model does not support image input");
+    this.queue.edit(id, content, skills);
+    this.emit({ type: "queue_changed" });
+    this.drain();
+  }
+
+  beginQueuedEdit(id: string): void {
+    if (this.disposed) throw new Error("Session is disposed");
+    this.queue.beginEdit(id);
+    this.emit({ type: "queue_changed" });
+  }
+
+  cancelQueuedEdit(id: string): void {
+    if (this.disposed) throw new Error("Session is disposed");
+    this.queue.cancelEdit(id);
+    this.emit({ type: "queue_changed" });
+    this.drain();
+  }
+
+  deleteQueued(id: string): void {
+    this.queue.remove(id);
+    this.emit({ type: "queue_changed" });
+  }
+
+  moveQueued(id: string, beforeId?: string): void {
+    this.queue.move(id, beforeId);
+    this.emit({ type: "queue_changed" });
+  }
+
+  steerQueued(id: string): void {
+    if (this.disposed) throw new Error("Session is disposed");
+    if (this.sessionManager.hasPendingSave)
+      throw new Error("Pending session save; call flush first");
+    this.queue.steer(id);
+    this.emit({ type: "queue_changed" });
+    if (this.paused) {
+      this.paused = false;
+      this.continuation = undefined;
+    }
+    this.drain();
+  }
+
+  resume(): Promise<void> {
+    this.assertIdle();
+    if (!this.paused || !this.continuation)
+      return Promise.reject(new Error("Session cannot resume"));
+    const next = this.continuation;
+    this.paused = false;
+    this.continuation = undefined;
+    return this.start(next.content, next.skills);
+  }
+
+  private drain(): void {
+    if (
+      this.busy ||
+      this.paused ||
+      this.sessionManager.hasPendingSave ||
+      this.approvals.pending.length
+    )
+      return;
+    const next = this.queue.take();
+    if (!next) return;
+    void this.start(next.content, next.skills).catch(() => {});
+  }
+
+  private start(content: PromptContent | undefined, skills: string[]): Promise<void> {
+    this.prompting = true;
     this.busy = true;
     this.failure = undefined;
     this.contextBudget = undefined;
@@ -293,10 +397,16 @@ export class AgentSession {
     this.controller = new AbortController();
     this.acceptingRunApprovals = true;
     this.promptTiming = {
-      userMessageIndex: this.sessionManager.messages.length,
+      id: randomUUID(),
+      messageStartIndex: this.sessionManager.messages.length + (content === undefined ? 0 : 1),
+      userMessageIndex:
+        content === undefined
+          ? this.sessionManager.messages.findLastIndex((message) => message.role === "user")
+          : this.sessionManager.messages.length,
       startedAt: Date.now(),
     };
-    this.active = this.run(structuredClone(content), this.controller.signal, options.skills ?? []);
+    this.active = this.run(structuredClone(content), this.controller.signal, skills);
+    this.emit({ type: "queue_changed" });
 
     return this.active;
   }
@@ -341,6 +451,7 @@ export class AgentSession {
       .finally(() => {
         this.controller = undefined;
         this.busy = false;
+        this.prompting = false;
         this.compactionAvailable = canCompactSession(this.sessionManager, this.selected);
         this.emit({ type: "agent_settled" });
       });
@@ -348,6 +459,7 @@ export class AgentSession {
   }
 
   async abort(): Promise<void> {
+    if (this.prompting) this.paused = true;
     this.titles.cancel();
     this.controller?.abort(new Error("Run cancelled"));
     this.agent?.abort();
@@ -563,7 +675,7 @@ export class AgentSession {
   }
 
   private async run(
-    content: PromptContent,
+    content: PromptContent | undefined,
     signal: AbortSignal,
     selectedSkills: string[],
   ): Promise<void> {
@@ -572,23 +684,37 @@ export class AgentSession {
     let autoCompaction: AutomaticCompaction | undefined;
     let runtimeContexts = this.sessionManager.getRuntimeContexts();
     let systemPromptCheckpoints = this.sessionManager.getSystemPromptCheckpoints();
+    const initialCount = this.sessionManager.messages.length;
 
     try {
       await this.options.modelRuntime.checkModel(this.selected, signal);
       signal.throwIfAborted();
 
       const messages = this.sessionManager.messages;
+      if (content === undefined && this.promptTiming)
+        this.emit({ type: "prompt_timing", timing: this.promptTiming });
       const cwd = this.sessionManager.getCwd();
       const manager = this.options.skillManager;
       const loaded: LoadedSkill[] = [];
-      const selection = manager
-        ? await resolveSkillSelection(manager, cwd, content, selectedSkills)
-        : selectedSkills;
+      const selection =
+        manager && content !== undefined
+          ? await resolveSkillSelection(manager, cwd, content, selectedSkills)
+          : content === undefined &&
+              runtimeContexts.some(
+                (snapshot) =>
+                  snapshot.userTurn ===
+                  messages.filter((message) => message.role === "user").length - 1,
+              )
+            ? []
+            : selectedSkills;
+      selectedSkills = [...selection];
       for (const id of new Set(selection)) {
         if (!manager) throw new Error("Skills are unavailable in this session");
         loaded.push(await manager.load(cwd, id, signal, true));
       }
-      const userTurn = messages.filter((message) => message.role === "user").length;
+      const userTurn =
+        messages.filter((message) => message.role === "user").length -
+        (content === undefined ? 1 : 0);
       const preparedContexts = loaded.length
         ? prepareRuntimeContexts(
             runtimeContexts,
@@ -611,7 +737,7 @@ export class AgentSession {
       const preparedPromptState = prepareSystemPromptState(
         systemPromptCheckpoints,
         systemPrompt,
-        messages.length + 1,
+        messages.length + (content === undefined ? 0 : 1),
       );
       autoCompaction = new AutomaticCompaction({
         manager: this.sessionManager,
@@ -677,7 +803,17 @@ export class AgentSession {
         maxTurns: this.options.maxTurns,
       });
       unsubscribe = this.agent.subscribe((event) => this.onAgentEvent(event));
-      await this.agent.prompt(content);
+      let input = content;
+      for (let turn = 0; ; turn++) {
+        signal.throwIfAborted();
+        if (this.options.maxTurns !== undefined && turn >= this.options.maxTurns)
+          throw new Error("Maximum model turns reached: " + this.options.maxTurns);
+        const answer = await this.agent.step(input);
+        input = undefined;
+        signal.throwIfAborted();
+        if (this.queue.hasSteering || !answer.content.some((part) => part.type === "toolCall"))
+          break;
+      }
     } catch (error) {
       failures.push(error);
     } finally {
@@ -689,13 +825,24 @@ export class AgentSession {
           const messages = this.agent.messages.map((message) =>
             withToolDisplayName(message, this.toolDisplayNames),
           );
+          const partial = signal.aborted && this.paused ? stoppedResponse(this.draft) : undefined;
+          if (partial) {
+            messages.push(partial);
+            this.emit({ type: "message_end", message: partial });
+          }
           const timings = this.sessionManager.getPromptTimings();
           if (this.promptTiming && messages[this.promptTiming.userMessageIndex]?.role === "user") {
             this.promptTiming = {
               ...this.promptTiming,
               finishedAt: Math.max(this.promptTiming.startedAt, Date.now()),
+              messageEndIndex: messages.length,
+              stopped: signal.aborted && this.paused,
             };
-            timings.push(this.promptTiming);
+            const previousTiming = timings.findIndex(
+              (timing) => timing.id === this.promptTiming!.id,
+            );
+            if (previousTiming < 0) timings.push(this.promptTiming);
+            else timings[previousTiming] = this.promptTiming;
             this.emit({ type: "prompt_timing", timing: this.promptTiming });
           }
           if (!this.sessionManager.hasPendingSave) {
@@ -707,6 +854,16 @@ export class AgentSession {
       } catch (error) {
         failures.push(error);
       } finally {
+        if (signal.aborted && this.paused) {
+          this.continuation = {
+            content:
+              (this.agent?.messages.length ?? initialCount) > initialCount ? undefined : content,
+            skills: selectedSkills,
+          };
+        } else if (!failures.length) {
+          this.paused = false;
+          this.continuation = undefined;
+        }
         unsubscribe();
         this.agent = undefined;
         this.draft = undefined;
@@ -714,6 +871,7 @@ export class AgentSession {
         this.controller = undefined;
         this.promptTiming = undefined;
         this.busy = false;
+        this.prompting = false;
         this.compactionAvailable = canCompactSession(this.sessionManager, this.selected);
         this.outcome = failures.length ? (signal.aborted ? "cancelled" : "error") : "success";
         this.failure = failures.length
@@ -722,6 +880,7 @@ export class AgentSession {
               .join("; ")
           : undefined;
         this.emit({ type: "agent_settled" });
+        if (!failures.length) this.drain();
       }
     }
 

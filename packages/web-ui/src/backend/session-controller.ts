@@ -1,12 +1,13 @@
 import { createHash } from "node:crypto";
 import type { SessionEvent, SessionSnapshot } from "../shared/protocol";
-import { getModelEfforts, NothingToCompactError } from "@loop/coding-agent";
+import { NothingToCompactError } from "@loop/coding-agent";
 import { applyEvent } from "../shared/session-projection";
 import { projectTools } from "../shared/tool-projection";
 import { HttpError, errorText } from "./http/errors";
 import type { SessionPort } from "./loop";
 import { SessionEvents } from "./session-events";
 import { SessionApprovals } from "./session-approvals";
+import { sessionModel, settledSnapshot } from "./session-model";
 import { promptContent } from "../shared/prompt-images";
 import type { PromptImage } from "../shared/prompt-images";
 import type { PromptFile } from "../shared/prompt-files";
@@ -30,7 +31,7 @@ export class SessionController {
       sessionId: session.sessionId,
       workspaceId,
       state: session.state,
-      model: this.model(),
+      model: sessionModel(this.session),
       effort: session.effort,
       operation: "idle",
       tools: projectTools(session.state.messages),
@@ -62,22 +63,35 @@ export class SessionController {
       .digest("hex");
     const existing = this.requests.get(requestId);
 
-    if (existing) {
-      if (existing.text !== signature) throw new HttpError(409, "request_conflict");
+    if (existing?.text !== undefined && existing.text !== signature)
+      throw new HttpError(409, "request_conflict");
+    if (existing) return existing.runId;
 
-      return existing.runId;
-    }
-
-    this.assertIdle();
+    if (this.snapshot.operation !== "idle" && this.snapshot.operation !== "prompt")
+      throw new HttpError(409, "session_busy");
+    if (this.session.state.hasPendingSave) throw new HttpError(409, "pending_save");
     if (images.length && !this.session.model.input.includes("image"))
       throw new HttpError(400, "model_images_unsupported");
 
     const runId = crypto.randomUUID();
-
     this.requests.set(requestId, { text: signature, runId });
-
     if (this.requests.size > 256) this.requests.delete(this.requests.keys().next().value!);
-
+    this.snapshot.acceptedRequestIds = [...this.requests.keys()];
+    if (
+      this.snapshot.operation === "prompt" ||
+      this.session.state.canResume ||
+      this.session.state.queue?.length
+    ) {
+      try {
+        if (!this.session.enqueue) throw new HttpError(409, "session_busy");
+        this.session.enqueue(content, { skills, id: requestId });
+      } catch (error) {
+        this.requests.delete(requestId);
+        this.snapshot.acceptedRequestIds = [...this.requests.keys()];
+        throw error;
+      }
+      return runId;
+    }
     this.settled = false;
     this.snapshot = {
       ...this.snapshot,
@@ -88,8 +102,8 @@ export class SessionController {
       state: { ...this.snapshot.state, isRunning: true, outcome: "idle", error: undefined },
     };
     this.events.publish({ type: "run.accepted", requestId, runId });
-    this.active = Promise.resolve()
-      .then(() => this.session.prompt(content, skills.length ? { skills } : {}))
+    this.active = this.session
+      .prompt(content, skills.length ? { skills } : {})
       .catch((error) => {
         if (this.snapshot.runId === runId && !this.settled)
           this.snapshot.commandError = errorText(error);
@@ -103,7 +117,6 @@ export class SessionController {
 
   async prepareSkills(requestId: string, skills: string[], signal: AbortSignal): Promise<void> {
     if (!skills.length || this.requests.has(requestId)) return;
-    this.assertIdle();
     if (!this.session.validateSkillSelection) throw new HttpError(400, "skills_unavailable");
     try {
       await this.session.validateSkillSelection(skills, signal);
@@ -114,7 +127,6 @@ export class SessionController {
   }
 
   async abort(): Promise<void> {
-    await Promise.resolve(); // Let an accepted prompt enter the SDK before abort.
     await this.session.abort();
     await this.active;
   }
@@ -176,33 +188,18 @@ export class SessionController {
       throw new HttpError(409, "pending_save");
   }
 
-  private model() {
-    const { provider, id, name } = this.session.model;
-
-    return {
-      provider,
-      id,
-      name,
-      efforts: getModelEfforts(this.session.model),
-      input: [...this.session.model.input],
-    };
-  }
-
   private sync(): void {
-    this.snapshot = {
-      ...this.snapshot,
-      state: this.session.state,
-      model: this.model(),
-      effort: this.session.effort,
-      operation: "idle",
-      draftIndex: undefined,
-      compactionStartedAt: undefined,
-      tools: projectTools(this.session.state.messages),
-    };
+    this.snapshot = settledSnapshot(this.session, this.snapshot);
     this.events.publish({ type: "session.state", snapshot: this.snapshot });
   }
 
   private onEvent(event: SessionEvent): void {
+    if (event.type === "queue_changed") {
+      const state = this.session.state;
+      this.snapshot = { ...this.snapshot, state, operation: state.isRunning ? "prompt" : "idle" };
+      this.events.publish({ type: "session.state", snapshot: this.snapshot });
+      return;
+    }
     if (
       event.type === "session_title" ||
       event.type === "permission_changed" ||

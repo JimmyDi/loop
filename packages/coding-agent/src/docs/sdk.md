@@ -96,7 +96,7 @@ The public messageText helper concatenates text blocks in order, excludes thinki
 
 Use [sessions](sessions.md) for storage and replacement through `AgentSessionRuntime`. On a failed save, retain the live session, repair storage, and call `flush()` before disposing it. The in-memory example above has no disk-save recovery requirement.
 
-Hosts can supply a shared `mcpManager` to add ready external tools to each prompt; see [MCP servers](mcp.md) for lifecycle, session permission enforcement and memory-only session tool grants. [Skills](skills.md) add workflows through background metadata discovery and on-demand loading. `session.compact()` creates a durable summary checkpoint without replacing original history; automatic compaction runs before main requests under input pressure with no additional configuration. See [compaction](compaction.md) for thresholds, events and recovery. Loop does not expose `session.agent`, steering, follow-up, queues, extensions, or RPC.
+Hosts can supply a shared `mcpManager` to add ready external tools to each prompt; see [MCP servers](mcp.md) for lifecycle, session permission enforcement and memory-only session tool grants. [Skills](skills.md) add workflows through background metadata discovery and on-demand loading. `session.compact()` creates a durable summary checkpoint without replacing original history; automatic compaction runs before main requests under input pressure with no additional configuration. See [compaction](compaction.md) for thresholds, events and recovery. Loop does not expose `session.agent`, extensions or RPC. Use [message queue and resume](message-queue.md) for follow-ups, safe-boundary steering and stopped-task continuation.
 
 ## Source
 

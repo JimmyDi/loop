@@ -10,8 +10,13 @@ export const PromptDuration = ({ timing }: { timing: PromptTiming }) => {
   const { duration } = useElapsedTime(startedAt, finishedAt);
 
   return (
-    <div className="prompt-duration" data-state={finishedAt === undefined ? "working" : "worked"}>
-      {t(finishedAt === undefined ? "workingFor" : "workedFor", { duration })}
+    <div
+      className="prompt-duration"
+      data-state={finishedAt === undefined ? "working" : timing.stopped ? "stopped" : "worked"}
+    >
+      {t(finishedAt === undefined ? "workingFor" : timing.stopped ? "stoppedAfter" : "workedFor", {
+        duration,
+      })}
     </div>
   );
 };

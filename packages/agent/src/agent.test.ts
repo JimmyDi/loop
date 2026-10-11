@@ -328,3 +328,47 @@ test("unexpected failures and invalid input release the agent", async () => {
 
   expect(requests).toBe(2);
 });
+
+test("step finishes the complete tool batch and continuation adds no user message", async () => {
+  let requests = 0;
+  let executions = 0;
+  const agent = new Agent({
+    model,
+    maxTurns: 1,
+    tools: [
+      {
+        name: "fixture",
+        description: "Fixture",
+        parameters: Type.Object({}),
+        execute: () => {
+          executions++;
+          return [];
+        },
+      },
+    ],
+    streamFn: () => {
+      requests++;
+      return stream(
+        requests === 1
+          ? {
+              ...answer("toolUse"),
+              content: [
+                { type: "toolCall", id: "one", name: "fixture", arguments: {} },
+                { type: "toolCall", id: "two", name: "fixture", arguments: {} },
+              ],
+            }
+          : answer(),
+      );
+    },
+  });
+  const first = await agent.step("input");
+  expect(first.stopReason).toBe("toolUse");
+  expect(requests).toBe(1);
+  expect(executions).toBe(2);
+  await agent.step();
+  expect(requests).toBe(2);
+  expect(agent.messages.filter((message) => message.role === "user")).toHaveLength(1);
+  const empty = new Agent({ model, streamFn: () => stream() });
+  await expect(empty.step()).rejects.toThrow("user history");
+  await expect(empty.prompt(undefined as never)).rejects.toThrow("Prompt is required");
+});

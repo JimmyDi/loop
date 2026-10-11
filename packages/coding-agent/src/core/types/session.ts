@@ -2,6 +2,7 @@ import type { Api, AssistantMessage, Message, Model } from "@earendil-works/pi-a
 
 import type { AgentEvent, AgentTool } from "@loop/agent";
 import type { ModelRuntime } from "../model-runtime";
+import type { QueuedMessage } from "../message-queue";
 import type { SessionManager } from "../session-manager";
 import type { ModelEffort } from "../models/model-effort";
 import type { SessionTitle, SessionTitleOptions } from "../titles/types";
@@ -20,6 +21,7 @@ export type SessionEvent =
   | (AgentEvent & { toolDisplayName?: string })
   | ApprovalEvent
   | { type: "agent_settled" }
+  | { type: "queue_changed" }
   | { type: "prompt_timing"; timing: PromptTiming }
   | { type: "context_budget"; budget: ContextBudget }
   | { type: "compaction_start"; startedAt: number; historyMessageCount: number }
@@ -39,6 +41,8 @@ export type SessionEventListener = (event: SessionEvent) => void | Promise<void>
 
 export type SessionState = {
   messages: Message[];
+  queue?: QueuedMessage[];
+  canResume?: boolean;
   draft?: AssistantMessage;
   isRunning: boolean;
   hasPendingSave: boolean;

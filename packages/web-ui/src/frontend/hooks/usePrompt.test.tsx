@@ -68,7 +68,7 @@ test("large attachments are submitted intact and API failures preserve drafts fo
     expect(bodies[1]?.files).toEqual(files);
     expect(bodies[1]?.requestId).not.toBe(bodies[0]?.requestId);
     expect(result.current.uncertain).toBe(false);
-    expect(result.current.pending).toBe(true);
+    expect(result.current.pending).toBe(false);
   } finally {
     cleanup();
     useWorkspace.setState(workspace, true);
@@ -140,11 +140,11 @@ test("lost prompt response preserves draft and retries the same identity", async
     expect(result.current.files).toEqual(files);
     expect(useWorkspace.getState().skills.s).toEqual([skill]);
     act(() => useWorkspace.getState().attachFiles("s", []));
-    expect(result.current.files).toEqual(files);
+    expect(result.current.files).toEqual([]);
     await act(() => result.current.submit(true));
     expect(requests[0]).toBe(requests[1]);
     expect(result.current.uncertain).toBe(false);
-    expect(result.current.pending).toBe(true);
+    expect(result.current.pending).toBe(false);
     const request = JSON.parse(requests[0]!);
     expect(request.images).toEqual(images);
     expect(request.files).toEqual(files);
@@ -293,11 +293,11 @@ test.each(["restored", "restarted"])(
       await act(() => result.current.submit(true));
       expect(fetched).toBe(1);
       expect(result.current.uncertain).toBe(false);
-      expect(result.current.text).toBe(request.text);
+      expect(result.current.text).toBe(source === "restored" ? "" : request.text);
       if (source === "restored") {
-        expect(result.current.pending).toBe(true);
+        expect(result.current.pending).toBe(false);
         expect(result.current.error).toBeUndefined();
-        expect(useRequests.getState().pending.recovery).toEqual(request);
+        expect(useRequests.getState().pending.recovery).toBeUndefined();
       } else {
         expect(result.current.pending).toBe(false);
         expect(result.current.error).toMatchObject({ code: "delivery_unknown" });
@@ -377,7 +377,7 @@ test.each(["success", "error", "cancelled"] as const)(
       rerender({
         value: { ...accepted, operation: "idle", state: { ...accepted.state, outcome } },
       });
-      expect(result.current.files).toEqual(outcome === "success" ? [] : files);
+      expect(result.current.files).toEqual([]);
       expect(useRequests.getState().pending["file-only"]).toBeUndefined();
     } finally {
       cleanup();
@@ -388,3 +388,68 @@ test.each(["success", "error", "cancelled"] as const)(
     }
   },
 );
+
+test("busy submissions queue independently and late confirmations preserve the next draft", async () => {
+  const window = new Window();
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    fetch: globalThis.fetch,
+  };
+  Object.assign(globalThis, { window, document: window.document });
+  const { renderHook, act, cleanup } = await import("@testing-library/react/pure");
+  const { usePrompt } = await import("./usePrompt");
+  const { useWorkspace } = await import("../state/workspace-store");
+  const { useRequests } = await import("../state/request-store");
+  const workspace = useWorkspace.getState();
+  const requests = useRequests.getState();
+  const snapshot: SessionSnapshot = {
+    streamId: "stream",
+    sessionId: "queue-test",
+    workspaceId: "project",
+    model: { id: "test", provider: "test", name: "Test" },
+    operation: "prompt",
+    tools: {},
+    state: {
+      messages: [],
+      isRunning: true,
+      hasPendingSave: false,
+      outcome: "idle",
+      listenerErrors: [],
+    },
+  };
+  const response = Promise.withResolvers<Response>();
+  const bodies: { requestId: string; text: string }[] = [];
+  globalThis.fetch = (async (_url, init) => {
+    bodies.push(JSON.parse(String(init?.body)));
+    return bodies.length === 1
+      ? response.promise
+      : Response.json({ runId: "queued" }, { status: 202 });
+  }) as typeof fetch;
+  try {
+    useWorkspace.setState({ drafts: { "queue-test": "first" }, images: {}, files: {}, skills: {} });
+    useRequests.setState({ pending: {}, delivery: {} });
+    const { result } = renderHook(() => usePrompt(snapshot));
+    let submission: Promise<void>;
+    act(() => {
+      submission = result.current.submit();
+    });
+    act(() => result.current.setText("new draft"));
+    await act(async () => {
+      response.resolve(Response.json({ runId: "queued" }, { status: 202 }));
+      await submission;
+    });
+    expect(result.current.text).toBe("new draft");
+    expect(result.current.pending).toBe(false);
+    await act(() => result.current.submit());
+    expect(bodies.map((body) => body.text)).toEqual(["first", "new draft"]);
+    expect(bodies[0]?.requestId).not.toBe(bodies[1]?.requestId);
+    expect(result.current.text).toBe("");
+  } finally {
+    cleanup();
+    useWorkspace.setState(workspace, true);
+    useRequests.setState(requests, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});

@@ -42,6 +42,16 @@ test("elapsed duration switches to minutes while working and freezes at the reco
     );
     expect(ui.container.textContent).toBe("Worked for 6m 5s");
     expect(clear).toHaveBeenCalledWith(1);
+    ui.rerender(
+      <PromptDuration
+        timing={{ userMessageIndex: 0, startedAt: 1000, finishedAt: 6000, stopped: true }}
+      />,
+    );
+    expect(ui.container.textContent).toBe("You stopped after 5s");
+    expect(ui.container.firstElementChild?.getAttribute("data-state")).toBe("stopped");
+    ui.rerender(
+      <PromptDuration timing={{ userMessageIndex: 0, startedAt: 1000, finishedAt: 366000 }} />,
+    );
     await act(async () => {
       now = 90000;
       tick();

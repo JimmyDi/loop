@@ -7,13 +7,16 @@ import type { AgentEventListener, AgentLoopOptions, PromptContent } from "./type
 
 /** Sole writer of history. Callers must not mutate it until this promise settles. */
 export const runAgentLoop = async (
-  content: PromptContent,
+  content: PromptContent | undefined,
   history: Message[],
   options: AgentLoopOptions,
   onEvent: AgentEventListener = () => {},
   signal: AbortSignal = new AbortController().signal,
+  singleTurn = false,
 ): Promise<AssistantMessage> => {
-  validateLoopInput(content, options);
+  validateLoopInput(content ?? "Continuation", options);
+  if (content === undefined && !history.some((message) => message.role === "user"))
+    throw new Error("Continuation requires user history");
 
   // Streamed partial messages are mutable. Listeners receive event-time snapshots.
   const emit: AgentEventListener = (event) => onEvent(structuredClone(event));
@@ -27,7 +30,8 @@ export const runAgentLoop = async (
   };
 
   signal.throwIfAborted();
-  await append({ role: "user", content: structuredClone(content), timestamp: Date.now() });
+  if (content !== undefined)
+    await append({ role: "user", content: structuredClone(content), timestamp: Date.now() });
 
   for (let turn = 0; ; turn++) {
     signal.throwIfAborted();
@@ -82,6 +86,7 @@ export const runAgentLoop = async (
         await emit({ type: "message_end", message: result });
         signal.throwIfAborted();
       }
+      if (singleTurn) return structuredClone(message);
     } catch (error) {
       // Request normalization filters error/aborted assistants on replay; do not create orphan results for them.
       if (message.stopReason !== "error" && message.stopReason !== "aborted") {

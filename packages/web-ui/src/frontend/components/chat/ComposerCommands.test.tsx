@@ -247,7 +247,7 @@ test.each(["click", "enter", "submit", "prefix", "trailing"])(
       expect(view.queryByText("Compacting context")).toBeNull();
       expect(view.getByRole("textbox").textContent).toBe("");
       expect(view.container.querySelector("form")?.getAttribute("data-running")).toBe("false");
-      expect(view.getByRole("textbox").getAttribute("contenteditable")).toBe("false");
+      expect(view.getByRole("textbox").getAttribute("contenteditable")).toBe("true");
       fireEvent.submit(view.container.querySelector("form")!);
       expect(globalThis.fetch).toHaveBeenCalledTimes(1);
       const abortRequest = vi.fn(async () => Response.json(snapshot));

@@ -26,6 +26,7 @@ The CLI is interactive by default. The SDK sample performs one request workflow 
 | Interactive commands and Print mode | [CLI](src/docs/cli.md) |
 | Model selection, credentials, custom URLs | [Models](src/docs/models.md) |
 | Configuration files and environment | [Settings](src/docs/settings.md) |
+| Queue, reorder, steer, stop and resume inputs | [Message queue](src/docs/message-queue.md) |
 | Create, restore, replace, and save sessions | [Sessions](src/docs/sessions.md) |
 | Preserve and restore archive membership | [Session archive](src/docs/session-archive.md) |
 | Automatic titles, renaming and regeneration | [Session titles](src/docs/session-titles.md) |

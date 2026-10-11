@@ -4,6 +4,18 @@ import { mcpEn } from "./mcp-en";
 import { skillsEn } from "./skills-en";
 
 export const en = {
+  queuePaused: "Paused — queued messages are retained",
+  resume: "Resume",
+  queueTitle: "Queue ({{count}})",
+  queueDrag: "Drag to reorder; use Up/Down keys",
+  queueMore: "More message options",
+  queueEdit: "Edit",
+  queueEditing: "Editing · skipped in queue",
+  queueAttachments: "Attachments",
+  queuePayload: "{{images}} images · {{files}} files · {{skills}} skills",
+  queueSteer: "Steer",
+  queueSteering: "Waiting for next step",
+  queueDelete: "Delete",
   compaction: {
     running: "Compacting context",
     completed: "Context compacted",
@@ -117,6 +129,7 @@ export const en = {
   looping: "Looping...",
   workingFor: "Working for {{duration}}",
   workedFor: "Worked for {{duration}}",
+  stoppedAfter: "You stopped after {{duration}}",
   modelConnectionHint:
     "Cannot reach the model service. Open Settings → Models to check the URL and authentication, then select the configured model.",
   success: "Completed",
@@ -188,6 +201,11 @@ export const en = {
   maxOutputTokens: "Maximum output tokens",
   addModel: "Add model",
   errors: {
+    queue_item_missing: "This queued message has already been consumed or removed.",
+    queue_conflict: "The queue changed; review its current state and retry.",
+    resume_unavailable: "This conversation cannot resume yet.",
+    invalid_queue_action: "Invalid queue operation.",
+
     nothing_to_compact: "Nothing to compact.",
     invalid_mcp_config:
       "Check the name, command or URL, unique keys, and valid environment variable names. Use an absolute working directory.",

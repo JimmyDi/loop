@@ -22,6 +22,14 @@
   background: var(--surface-running);
   border-color: var(--running-border);
 }
+.chat-composer[data-editing="true"] .composer-send.primary {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+.chat-composer[data-editing="true"] .composer-send.primary:hover:not(:disabled) {
+  background: #222;
+}
 .composer-toolbar {
   display: flex;
   align-items: center;
@@ -29,11 +37,6 @@
   gap: 6px;
   padding: 4px var(--composer-content-inset) 10px;
   min-height: 48px;
-}
-.composer-uncertain {
-  font-size: 12px;
-  padding: 8px 0;
-  color: var(--ink-muted);
 }
 @media (max-width: 767px) {
   .composer-region {

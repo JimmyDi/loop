@@ -9,11 +9,13 @@ export const AssistantContent = ({
   tools,
   streaming = false,
   generating = false,
+  hideError = false,
 }: {
   message: Extract<Message, { role: "assistant" }>;
   tools: Record<string, ToolView>;
   streaming?: boolean;
   generating?: boolean;
+  hideError?: boolean;
 }) => (
   <>
     {groupAssistantContent(message.content).map((part, index, blocks) => {
@@ -36,6 +38,6 @@ export const AssistantContent = ({
         />
       );
     })}
-    {!streaming && <ErrorNotice error={message.errorMessage} />}
+    {!streaming && !hideError && <ErrorNotice error={message.errorMessage} />}
   </>
 );

@@ -60,6 +60,69 @@ const waitFor = async (condition: () => boolean) => {
   expect(condition()).toBe(true);
 };
 
+test("Stop retains streamed text in live snapshots and Resume appends a separately timed response", async () => {
+  let calls = 0;
+  const session = new AgentSession({
+    model,
+    sessionManager: SessionManager.inMemory(),
+    systemPrompt: "Fixture",
+    tools: [],
+    modelRuntime: runtime(() => {
+      const native = createAssistantMessageEventStream();
+      if (++calls === 1) {
+        const partial = answer("Retained partial text");
+        native.push({ type: "start", partial });
+        native.push({
+          type: "text_delta",
+          contentIndex: 0,
+          delta: "Retained partial text",
+          partial,
+        });
+      } else {
+        native.push({ type: "done", reason: "stop", message: answer("Resumed response") });
+      }
+      return native;
+    }),
+  });
+  const controller = new SessionController(session, "project");
+  try {
+    controller.prompt("request", "Work");
+    await waitFor(() => !!controller.snapshot.state.draft?.content.length);
+    await controller.abort();
+    expect(controller.snapshot.state.messages.at(-1)).toMatchObject({
+      stopReason: "aborted",
+      content: [{ type: "text", text: "Retained partial text" }],
+    });
+    const frames: Frame[] = [];
+    controller.events.connect((frame) => frames.push(frame))();
+    expect(frames[0]).toMatchObject({
+      type: "session.snapshot",
+      snapshot: { state: { promptTimings: [{ stopped: true }] } },
+    });
+    const { queueRoute } = await import("./routes/session-queue");
+    await queueRoute(
+      new Request("http://localhost/api/sessions/test/resume", { method: "POST" }),
+      "resume",
+      controller,
+    );
+    await session.waitForIdle();
+    expect(
+      controller.snapshot.state.messages
+        .filter((message) => message.role === "assistant")
+        .map((message) => message.content),
+    ).toEqual([
+      [{ type: "text", text: "Retained partial text" }],
+      [{ type: "text", text: "Resumed response" }],
+    ]);
+    expect(controller.snapshot.state.promptTimings).toMatchObject([
+      { stopped: true },
+      { stopped: false },
+    ]);
+  } finally {
+    await controller.close();
+  }
+});
+
 test("automatic compaction streams within a prompt, reconnects with activity and resumes the same run", async () => {
   const manager = SessionManager.inMemory();
   await manager.commit([
@@ -503,7 +566,9 @@ test("accepted requests deduplicate and drafts do not duplicate history", async 
   expect(() => controller.prompt("request", "hello", [], [], ["a".repeat(24)])).toThrow(
     "request_conflict",
   );
-  expect(() => controller.prompt("second", "hello")).toThrow("session_busy");
+  controller.prompt("second", "queued");
+  expect(session.state.queue?.map((item) => item.id)).toEqual(["second"]);
+  session.deleteQueued("second");
   expect(frames[1]?.type).toBe("run.accepted");
   await waitFor(() => calls === 1);
   const partial = answer("hel");
@@ -883,3 +948,164 @@ test("late title updates publish outside a run, replay on reconnect, and support
     await controller.close();
   }
 });
+
+test("queued HTTP operations keep position, attachments and live drafts through pause and resume", async () => {
+  const native = createAssistantMessageEventStream();
+  let calls = 0;
+  const session = new AgentSession({
+    model,
+    modelRuntime: runtime(() => {
+      calls++;
+      if (calls === 1) return native;
+      const result = createAssistantMessageEventStream();
+      result.push({ type: "done", reason: "stop", message: answer("done") });
+      return result;
+    }),
+    sessionManager: SessionManager.inMemory(),
+    systemPrompt: "Fixture",
+    tools: [],
+  });
+  const controller = new SessionController(session, "project");
+  const { queueRoute } = await import("./routes/session-queue");
+  const post = (body: unknown) =>
+    new Request("http://localhost/api/sessions/test/queue", {
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  try {
+    controller.prompt("original", "work");
+    await waitFor(() => calls === 1);
+    native.push({ type: "start", partial: answer("draft") });
+    await waitFor(() => !!controller.snapshot.state.draft);
+    controller.prompt("one", "first", [], [{ name: "fixture.txt", text: "reference" }]);
+    controller.prompt("two", "second");
+    expect(controller.snapshot.state.draft?.content).toEqual(answer("draft").content);
+    expect(controller.snapshot.draftIndex).toBe(1);
+    await queueRoute(post({ id: "one", action: "edit", text: "edited" }), "queue", controller);
+    expect(session.state.queue?.map((item) => item.id)).toEqual(["one", "two"]);
+    expect(session.state.queue?.[0]?.content).toEqual([
+      { type: "text", text: "edited" },
+      { type: "text", text: fileContent({ name: "fixture.txt", text: "reference" }) },
+    ]);
+    await queueRoute(post({ id: "two", action: "move", beforeId: "one" }), "queue", controller);
+    expect(session.state.queue?.map((item) => item.id)).toEqual(["two", "one"]);
+    await queueRoute(post({ id: "one", action: "delete" }), "queue", controller);
+    await expect(
+      queueRoute(post({ id: "one", action: "edit", text: "stale" }), "queue", controller),
+    ).rejects.toThrow("queue_item_missing");
+    await controller.abort();
+    expect(controller.snapshot.state.canResume).toBe(true);
+    expect(controller.snapshot.state.queue?.map((item) => item.id)).toEqual(["two"]);
+    const response = await queueRoute(post({}), "resume", controller);
+    expect(response.status).toBe(202);
+    await session.waitForIdle();
+    expect(calls).toBe(3);
+    expect(controller.snapshot.state.queue).toEqual([]);
+    expect(
+      session.state.messages
+        .filter((message) => message.role === "user")
+        .map((message) => message.content),
+    ).toEqual(["work", "second"]);
+  } finally {
+    await controller.close();
+  }
+});
+
+test.each(["edit", "cancel-edit"])(
+  "begin-edit survives reconnect and %s releases a bypassed item in the expected order",
+  async (action) => {
+    const native = createAssistantMessageEventStream();
+    const later = createAssistantMessageEventStream();
+    let calls = 0;
+    const session = new AgentSession({
+      model,
+      sessionManager: SessionManager.inMemory(),
+      systemPrompt: "Fixture",
+      tools: [],
+      modelRuntime: runtime(() => {
+        calls += 1;
+        if (calls === 1) return native;
+        if (calls === 2) return later;
+        const result = createAssistantMessageEventStream();
+        result.push({ type: "done", reason: "stop", message: answer("done") });
+        return result;
+      }),
+    });
+    const controller = new SessionController(session, "project");
+    const { queueRoute } = await import("./routes/session-queue");
+    const post = (body: unknown) =>
+      new Request("http://localhost/api/sessions/test/queue", {
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    try {
+      controller.prompt("original", "work");
+      await waitFor(() => calls === 1);
+      controller.prompt("held", "editing");
+      controller.prompt("later", "later");
+      controller.prompt("remaining", "remaining");
+      await queueRoute(post({ id: "held", action: "begin-edit" }), "queue", controller);
+      const frames: Frame[] = [];
+      const disconnect = controller.events.connect((frame) => frames.push(frame));
+      disconnect();
+      expect(frames[0]).toMatchObject({
+        type: "session.snapshot",
+        snapshot: {
+          state: {
+            queue: [{ id: "held", editing: true }, { id: "later" }, { id: "remaining" }],
+          },
+        },
+      });
+      native.push({ type: "done", reason: "stop", message: answer("done") });
+      await waitFor(() => calls === 2);
+      expect(calls).toBe(2);
+      expect(session.state.queue).toMatchObject([
+        { id: "held", editing: true },
+        { id: "remaining" },
+      ]);
+      await expect(
+        queueRoute(post({ id: "held", action: "steer" }), "queue", controller),
+      ).rejects.toMatchObject({ status: 409, code: "queue_conflict" });
+      if (action === "edit") {
+        await expect(
+          queueRoute(
+            post({
+              id: "held",
+              action,
+              text: "saved",
+              images: [{ type: "image", data: "invalid" }],
+            }),
+            "queue",
+            controller,
+          ),
+        ).rejects.toMatchObject({ status: 400, code: "invalid_images" });
+        expect(session.state.queue?.[0]).toMatchObject({ id: "held", editing: true });
+      }
+      await queueRoute(
+        post({ id: "held", action, text: "saved", images: [], files: [], skills: [] }),
+        "queue",
+        controller,
+      );
+      expect(controller.snapshot.state.queue?.map((item) => item.id)).toEqual(
+        action === "edit" ? ["remaining", "held"] : ["held", "remaining"],
+      );
+      later.push({ type: "done", reason: "stop", message: answer("done") });
+      await session.waitForIdle();
+      expect(calls).toBe(4);
+      expect(session.state.queue).toEqual([]);
+      expect(
+        session.state.messages
+          .filter((message) => message.role === "user")
+          .map((message) => message.content),
+      ).toEqual(
+        action === "edit"
+          ? ["work", "later", "remaining", "saved"]
+          : ["work", "later", "editing", "remaining"],
+      );
+    } finally {
+      await controller.close();
+    }
+  },
+);

@@ -41,7 +41,17 @@ export class Agent {
     this.controller?.abort(new Error("Run cancelled"));
   }
 
-  async prompt(content: PromptContent): Promise<AssistantMessage> {
+  prompt(content: PromptContent): Promise<AssistantMessage> {
+    if (content === undefined) return Promise.reject(new Error("Prompt is required"));
+    return this.execute(content);
+  }
+
+  /** One model response and its complete sequential tool batch. */
+  step(content?: PromptContent): Promise<AssistantMessage> {
+    return this.execute(content, true);
+  }
+
+  private async execute(content?: PromptContent, singleTurn = false): Promise<AssistantMessage> {
     if (this.isRunning) throw new Error("Agent is already running");
 
     this.controller = new AbortController();
@@ -55,6 +65,7 @@ export class Agent {
           for (const listener of this.listeners) await listener(structuredClone(event));
         },
         this.controller.signal,
+        singleTurn,
       );
     } finally {
       this.controller = undefined;

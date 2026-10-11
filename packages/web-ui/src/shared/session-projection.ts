@@ -52,8 +52,10 @@ export const applyEvent = (
     ];
   } else if (event.type === "prompt_timing") {
     next.state.promptTimings = [
-      ...(next.state.promptTimings ?? []).filter(
-        (timing) => timing.userMessageIndex !== event.timing.userMessageIndex,
+      ...(next.state.promptTimings ?? []).filter((timing) =>
+        event.timing.id
+          ? timing.id !== event.timing.id
+          : timing.userMessageIndex !== event.timing.userMessageIndex,
       ),
       event.timing,
     ];

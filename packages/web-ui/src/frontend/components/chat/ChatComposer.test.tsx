@@ -32,14 +32,287 @@ test("ChatComposer renders the session state without unsupported controls", () =
   );
 
   expect(html).toContain("Stop generating");
-  expect(html).toContain('aria-disabled="true"');
+  expect(html).toContain('contentEditable="true"');
   expect(html.indexOf('class="composer-toolbar"')).toBeLessThan(html.indexOf("permission-trigger"));
   expect(html).toContain("Session permissions: Read only");
   client.clear();
 });
 
+test.each(["running", "paused", "idle"])(
+  "queue Edit shows only Send while %s and restores the previous draft after saving",
+  async (mode) => {
+    const { Window } = await import("happy-dom");
+    const { useWorkspace } = await import("../../state/workspace-store");
+    const { useRequests } = await import("../../state/request-store");
+    const { useQueueEdits } = await import("../../state/queue-edit-store");
+    const window = new Window();
+    const previous = {
+      window: globalThis.window,
+      document: globalThis.document,
+      fetch: globalThis.fetch,
+    };
+    const workspace = useWorkspace.getState();
+    const requests = useRequests.getState();
+    const edits = useQueueEdits.getState();
+    Object.assign(globalThis, { window, document: window.document });
+    const { render, fireEvent, act, cleanup } = await import("@testing-library/react/pure");
+    const client = new QueryClient({
+      defaultOptions: { queries: { staleTime: Infinity, retry: false } },
+    });
+    client.setQueryData(["models"], [snapshot.model]);
+    const item = {
+      id: "a",
+      content: "Complete queued text\nNext line",
+      skills: [],
+      steering: false,
+    };
+    const current: SessionSnapshot = {
+      ...snapshot,
+      operation: mode === "running" ? "prompt" : "idle",
+      state: {
+        ...snapshot.state,
+        messages: [{ role: "user", content: "Work", timestamp: 0 }],
+        isRunning: mode === "running",
+        canResume: mode === "paused",
+        queue: [item, { ...item, id: "b", content: "Later" }],
+      },
+    };
+    const writes: Array<{ url: string; body: Record<string, unknown> }> = [];
+    globalThis.fetch = (async (url, init) => {
+      const body = JSON.parse(String(init?.body));
+      writes.push({ url: String(url), body });
+      return Response.json(
+        body.action === "begin-edit" ? { item: { ...item, editing: true } } : { accepted: true },
+      );
+    }) as typeof fetch;
+    try {
+      useQueueEdits.setState({ edits: {} });
+      useRequests.setState({ pending: {}, delivery: {} });
+      useWorkspace.setState({
+        drafts: { test: "Previous draft" },
+        images: {},
+        files: {},
+        skills: {},
+      });
+      const ui = render(
+        <QueryClientProvider client={client}>
+          <ChatComposer snapshot={current} connected />
+        </QueryClientProvider>,
+      );
+      fireEvent.click(ui.getAllByRole("button", { name: "More message options" })[0]!);
+      await act(async () => fireEvent.click(ui.getByRole("menuitem", { name: "Edit" })));
+      expect(ui.getAllByRole("textbox")).toHaveLength(1);
+      expect(ui.getByRole("textbox").textContent).toBe(item.content);
+      expect(document.activeElement).toBe(ui.getByRole("textbox"));
+      expect(ui.getAllByRole("listitem")).toHaveLength(1);
+      expect(ui.getByRole("listitem").textContent).toContain("Later");
+      expect(ui.queryByRole("button", { name: "Resume" })).toBeNull();
+      expect(ui.queryByRole("button", { name: "Stop generating" })).toBeNull();
+      expect(ui.queryByRole("button", { name: "Cancel" })).toBeNull();
+      expect(ui.queryByText("Editing queued message")).toBeNull();
+      expect(ui.container.querySelectorAll(".composer-send")).toHaveLength(1);
+      expect(ui.container.querySelector("form")?.getAttribute("data-running")).toBe("false");
+      expect(ui.container.querySelector("form")?.getAttribute("data-editing")).toBe("true");
+      const send = () => ui.getByRole("button", { name: "Send message" }) as HTMLButtonElement;
+      expect(send().disabled).toBe(false);
+      act(() => useWorkspace.getState().draft("test", ""));
+      expect(send().disabled).toBe(true);
+      expect(ui.container.querySelectorAll(".composer-send")).toHaveLength(1);
+      fireEvent.click(send());
+      expect(writes).toHaveLength(1);
+      act(() => useWorkspace.getState().draft("test", "/compact"));
+      await act(async () => fireEvent.click(ui.getByRole("button", { name: "Send message" })));
+      expect(writes).toEqual([
+        { url: "/api/sessions/test/queue", body: { id: "a", action: "begin-edit" } },
+        {
+          url: "/api/sessions/test/queue",
+          body: { id: "a", action: "edit", text: "/compact", images: [], files: [], skills: [] },
+        },
+      ]);
+      expect(ui.getByRole("textbox").textContent).toBe("Previous draft");
+      expect(ui.getAllByRole("listitem")).toHaveLength(2);
+      const restoredControl = mode === "paused" ? "Resume" : "Send message";
+      expect(ui.getByRole("button", { name: restoredControl })).toBeTruthy();
+      expect(ui.container.querySelector("form")?.getAttribute("data-editing")).toBe("false");
+    } finally {
+      cleanup();
+      client.clear();
+      useWorkspace.setState(workspace, true);
+      useRequests.setState(requests, true);
+      useQueueEdits.setState(edits, true);
+      Object.assign(globalThis, previous);
+      await window.happyDOM.close();
+    }
+  },
+);
+
+test("queued follow-up drafts show only Send until cleared or accepted", async () => {
+  const { Window } = await import("happy-dom");
+  const { useWorkspace } = await import("../../state/workspace-store");
+  const { useRequests } = await import("../../state/request-store");
+  const window = new Window();
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    fetch: globalThis.fetch,
+  };
+  const workspace = useWorkspace.getState();
+  const requests = useRequests.getState();
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, fireEvent, act, cleanup } = await import("@testing-library/react/pure");
+  const client = new QueryClient({
+    defaultOptions: { queries: { staleTime: Infinity, retry: false } },
+  });
+  client.setQueryData(["models"], [snapshot.model]);
+  const current: SessionSnapshot = {
+    ...snapshot,
+    state: {
+      ...snapshot.state,
+      messages: [{ role: "user", content: "Work", timestamp: 0 }],
+      queue: [{ id: "queued", content: "Later", skills: [], steering: false }],
+    },
+  };
+  const accepted = Promise.withResolvers<Response>();
+  const writes: string[] = [];
+  globalThis.fetch = (async (url) => {
+    writes.push(String(url));
+    return accepted.promise;
+  }) as typeof fetch;
+  const composer = (value: SessionSnapshot) => (
+    <QueryClientProvider client={client}>
+      <ChatComposer snapshot={value} connected />
+    </QueryClientProvider>
+  );
+  try {
+    useWorkspace.setState({ drafts: {}, images: {}, files: {}, skills: {} });
+    useRequests.setState({ pending: {}, delivery: {} });
+    const ui = render(composer(current));
+    expect(ui.getByRole("button", { name: "Stop generating" })).toBeTruthy();
+    act(() => useWorkspace.getState().draft("test", "Next input"));
+    expect(ui.queryByRole("button", { name: "Stop generating" })).toBeNull();
+    expect(ui.container.querySelectorAll(".composer-send")).toHaveLength(1);
+    ui.rerender(composer({ ...current, state: { ...current.state, queue: [] } }));
+    expect(ui.getByRole("button", { name: "Stop generating" })).toBeTruthy();
+    ui.rerender(composer(current));
+    act(() => useWorkspace.getState().draft("test", "  "));
+    expect(ui.getByRole("button", { name: "Stop generating" })).toBeTruthy();
+    act(() =>
+      useWorkspace.getState().attachFiles("test", [{ name: "fixture.txt", text: "Reference" }]),
+    );
+    expect(ui.queryByRole("button", { name: "Stop generating" })).toBeNull();
+    const send = () => ui.getByRole("button", { name: "Send message" }) as HTMLButtonElement;
+    await act(async () => fireEvent.click(send()));
+    expect(send().disabled).toBe(true);
+    expect(ui.queryByRole("button", { name: "Stop generating" })).toBeNull();
+    expect(writes).toEqual(["/api/sessions/test/prompt"]);
+    await act(async () => accepted.resolve(Response.json({ runId: "run" }, { status: 202 })));
+    expect(ui.getByRole("button", { name: "Stop generating" })).toBeTruthy();
+    expect(ui.queryByRole("button", { name: "Send message" })).toBeNull();
+    expect(ui.getByRole("textbox").textContent).toBe("");
+    expect(useWorkspace.getState().files.test).toEqual([]);
+    expect(ui.getByRole("listitem").textContent).toContain("Later");
+  } finally {
+    cleanup();
+    client.clear();
+    useWorkspace.setState(workspace, true);
+    useRequests.setState(requests, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("Stop becomes a resume control that preserves queued items and drafts through failure and retry", async () => {
+  const { Window } = await import("happy-dom");
+  const { useWorkspace } = await import("../../state/workspace-store");
+  const { useRequests } = await import("../../state/request-store");
+  const window = new Window();
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    fetch: globalThis.fetch,
+  };
+  const workspace = useWorkspace.getState();
+  const requests = useRequests.getState();
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, fireEvent, act, cleanup } = await import("@testing-library/react/pure");
+  const client = new QueryClient({
+    defaultOptions: { queries: { staleTime: Infinity, retry: false } },
+  });
+  client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
+  client.setQueryData(["models"], [snapshot.model]);
+  const response = Promise.withResolvers<Response>();
+  const writes: string[] = [];
+  globalThis.fetch = (async (url) => {
+    writes.push(String(url));
+    if (writes.length === 2) return response.promise;
+    return Response.json({ accepted: true }, { status: 202 });
+  }) as typeof fetch;
+  const queue = [{ id: "queued", content: "Later message", skills: [], steering: false }];
+  const active = { ...snapshot, state: { ...snapshot.state, queue } };
+  const paused: SessionSnapshot = {
+    ...active,
+    operation: "idle",
+    state: { ...active.state, isRunning: false, outcome: "cancelled", canResume: true },
+  };
+  const composer = (current: SessionSnapshot, connected = true) => (
+    <QueryClientProvider client={client}>
+      <ChatComposer snapshot={current} connected={connected} />
+    </QueryClientProvider>
+  );
+  try {
+    useWorkspace.setState({ drafts: {}, images: {}, files: {}, skills: {} });
+    useRequests.setState({ pending: {}, delivery: {} });
+    const ui = render(composer(active));
+    await act(async () => fireEvent.click(ui.getByRole("button", { name: "Stop generating" })));
+    expect(writes).toEqual(["/api/sessions/test/abort"]);
+    ui.rerender(composer(paused));
+    const resume = () => ui.getByRole("button", { name: "Resume" }) as HTMLButtonElement;
+    expect(resume().disabled).toBe(false);
+    expect(resume().className).toContain("composer-send resume");
+    expect(resume().querySelector("svg")).toBeTruthy();
+    expect(ui.queryByRole("button", { name: "Send message" })).toBeNull();
+    expect(ui.getByText("Later message")).toBeTruthy();
+    ui.rerender(composer(paused, false));
+    expect(resume().disabled).toBe(true);
+    ui.rerender(composer({ ...paused, state: { ...paused.state, hasPendingSave: true } }));
+    expect(resume().disabled).toBe(true);
+    ui.rerender(composer(paused));
+    act(() => useWorkspace.getState().draft("test", "Next draft"));
+    await act(async () => fireEvent.click(resume()));
+    expect(resume().disabled).toBe(true);
+    fireEvent.click(resume());
+    expect(writes).toEqual(["/api/sessions/test/abort", "/api/sessions/test/resume"]);
+    await act(async () =>
+      response.resolve(
+        Response.json({ code: "resume_unavailable", message: "Try again" }, { status: 409 }),
+      ),
+    );
+    expect(resume().disabled).toBe(false);
+    expect(ui.getByRole("alert").textContent).toContain("This conversation cannot resume yet.");
+    await act(async () => fireEvent.click(resume()));
+    expect(writes).toEqual([
+      "/api/sessions/test/abort",
+      "/api/sessions/test/resume",
+      "/api/sessions/test/resume",
+    ]);
+    ui.rerender(composer(active));
+    expect(ui.queryByRole("button", { name: "Stop generating" })).toBeNull();
+    expect(ui.getByRole("button", { name: "Send message" })).toBeTruthy();
+    expect(ui.queryByRole("button", { name: "Resume" })).toBeNull();
+    expect(ui.getByRole("textbox").textContent).toBe("Next draft");
+    expect(ui.getByText("Later message")).toBeTruthy();
+  } finally {
+    cleanup();
+    client.clear();
+    useWorkspace.setState(workspace, true);
+    useRequests.setState(requests, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
 test.each(["success", "error", "cancelled"] as const)(
-  "prompt delivery hides submitted skills during generation and settles on %s",
+  "accepted prompts release the composer and preserve the next draft on %s",
   async (outcome) => {
     const { Window } = await import("happy-dom");
     const { useWorkspace } = await import("../../state/workspace-store");
@@ -102,19 +375,16 @@ test.each(["success", "error", "cancelled"] as const)(
         expect(
           (ui.getByRole("button", { name: "Send message" }) as HTMLButtonElement).disabled,
         ).toBe(true);
-        expect(ui.getByRole("textbox").getAttribute("contenteditable")).toBe("false");
+        expect(ui.getByRole("textbox").getAttribute("contenteditable")).toBe("true");
         fireEvent.submit(ui.container.querySelector("form")!);
         expect(submitted).toBe(1);
       };
       expectWaiting();
       ui.rerender(composer(current, "switched-during-send"));
       expectWaiting();
-      await act(async () => response.resolve(Response.json({ runId: "run" }, { status: 202 })));
-      expectWaiting();
-      ui.rerender(composer(current, "switched-after-acceptance"));
-      expectWaiting();
-
       const request = useRequests.getState().pending.test!;
+      await act(async () => response.resolve(Response.json({ runId: "run" }, { status: 202 })));
+      expect(useRequests.getState().pending.test).toBeUndefined();
       const accepted = {
         ...snapshot,
         requestId: request.requestId,
@@ -129,13 +399,11 @@ test.each(["success", "error", "cancelled"] as const)(
       expect(ui.queryByText("Review")).toBeNull();
       expect(ui.getByRole("textbox").textContent).toBe("");
       expect(ui.getByRole("textbox").getAttribute("data-empty")).toBe("true");
-      expect(useWorkspace.getState().skills.test).toEqual([
-        { id: "exact-review-source", name: "Review" },
-      ]);
-      expect(useRequests.getState().pending.test?.skills).toEqual(["exact-review-source"]);
+      expect(useWorkspace.getState().skills.test).toEqual([]);
       ui.rerender(composer(accepted, "switched-during-generation"));
       expect(ui.queryByText("Review")).toBeNull();
       expect(ui.getByRole("textbox").textContent).toBe("");
+      act(() => useWorkspace.getState().draft("test", "New draft"));
       ui.rerender(
         composer(
           {
@@ -147,8 +415,8 @@ test.each(["success", "error", "cancelled"] as const)(
         ),
       );
       expect(useRequests.getState().pending.test).toBeUndefined();
-      expect(!!ui.queryByText("Review")).toBe(outcome !== "success");
-      expect(ui.getByRole("textbox").textContent).toBe(outcome === "success" ? "" : "Hello");
+      expect(ui.queryByText("Review")).toBeNull();
+      expect(ui.getByRole("textbox").textContent).toBe("New draft");
       act(() => useWorkspace.getState().draft("test", "Next message"));
       expect((ui.getByRole("button", { name: "Send message" }) as HTMLButtonElement).disabled).toBe(
         false,
@@ -220,9 +488,9 @@ test("new and switched composers focus drafts and restore focus after sending", 
     await act(async () => fireEvent.click(send));
     expect(submitted).toBe(1);
     expect(document.activeElement).toBe(input);
-    expect(input.getAttribute("contenteditable")).toBe("false");
+    expect(input.getAttribute("contenteditable")).toBe("true");
 
-    const request = useRequests.getState().pending.test!;
+    const request = { requestId: "accepted" };
     ui.rerender(composer({ ...snapshot, requestId: request.requestId }, true));
     expect(document.activeElement).toBe(input);
     const other = ui.getByRole("button", { name: "Other control" });

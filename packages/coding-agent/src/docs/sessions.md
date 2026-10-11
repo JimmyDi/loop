@@ -32,7 +32,7 @@ Malformed session files reject rather than being silently repaired or skipped. A
 
 ## Completed history
 
-Read `session.state.messages` after finalization for user, assistant, and matching tool-result messages. It returns the full history, not just this prompt's additions. Streaming drafts remain separate, and neither system prompt nor tool declarations accumulate as conversation entries.
+Read `session.state.messages` after finalization for user, assistant, and matching tool-result messages. It returns the full history, not just this prompt's additions. Live streaming drafts remain separate; explicit Stop retains visible partial text as an aborted assistant history entry without unfinished tools or thinking, and neither system prompt nor tool declarations accumulate as conversation entries.
 
 The manager commits one full snapshot at the end of each prompt, including model errors and cancellation. It writes a temporary sibling and renames it over the session file. A `message_end` event does not mean that snapshot has been persisted.
 
@@ -46,7 +46,7 @@ New completed output also sets header unread to true; runs without output and re
 
 ## Prompt duration
 
-Each accepted prompt records wall time in optional state.promptTimings, using PromptTiming with the zero-based userMessageIndex, startedAt and optional finishedAt in Unix milliseconds. Measurement begins at acceptance and ends after model/tool generation, including failures, cancellation and approval waits. Saving, retries and background title generation are excluded. Preflight failures without a new user message leave no stored timing. This metadata never enters model requests.
+Each accepted prompt records wall time in optional state.promptTimings, using PromptTiming with an optional stable id, the zero-based userMessageIndex, an inclusive messageStartIndex and exclusive messageEndIndex, startedAt and optional finishedAt in Unix milliseconds. Resumed attempts share the original user anchor but get distinct IDs and ordered history ranges. stopped marks explicit cancellation; repeated Stop/Resume preserves each completed attempt. Older timing records without IDs or ranges remain supported. Measurement begins at acceptance and ends after model/tool generation, including failures, cancellation and approval waits. Saving, retries and background title generation are excluded. Preflight failures without a new user message leave no stored timing. This metadata never enters model requests.
 
 The prompt_timing event publishes start and finish snapshots. SessionManager.getPromptTimings() returns cloned completed timings, including pending state after a save failure. Reopening or flushing preserves the original duration. Earlier sessions without timings remain valid; no elapsed time is inferred from message timestamps.
 
@@ -83,3 +83,7 @@ There is no branching, fork/import API, periodic background checkpointing, crash
 ## Source
 
 [session-manager.ts](../core/session-manager.ts), [agent-session.ts](../core/agent-session.ts), [agent-session-runtime.ts](../core/agent-session-runtime.ts), [session tests](../core/session-manager.test.ts), and [save recovery](../modes/save-recovery.ts).
+
+## Queued Inputs and Stopped Work
+
+Use [message queue and resume](message-queue.md) to enqueue inputs during generation, edit/reorder/delete them, select a safe steering boundary, and continue stopped work. Stop preserves the in-memory queue and pauses draining. Resume uses completed history without duplicating current input. Queue state survives browser reconnection to a live instance but is not restored after server restart.

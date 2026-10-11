@@ -1,6 +1,6 @@
 # Session Events
 
-Coding sessions forward the five [Agent events](../../../agent/src/docs/events.md) and add context_budget, compaction_start, compaction_end, prompt_timing, agent_settled, session_title, permission_changed, approval_requested and approval_resolved. Consumers send commands through instance methods and receive results through subscriptions.
+Coding sessions forward the five [Agent events](../../../agent/src/docs/events.md) and add queue_changed, context_budget, compaction_start, compaction_end, prompt_timing, agent_settled, session_title, permission_changed, approval_requested and approval_resolved. Consumers send commands through instance methods and receive results through subscriptions.
 
 ## Subscribe
 
@@ -35,7 +35,7 @@ See the full [SDK sample](../sdk.sample.ts) for construction and cleanup. It onl
 | `message_end` | Display a completed message; this is not a disk-save acknowledgement. |
 | `tool_execution_start` | Show the tool name/call ID and pending execution. |
 | `tool_execution_end` | Show the matching result and `isError`. |
-| prompt_timing | Carries timing: PromptTiming at prompt start and generation end; upsert by userMessageIndex. Completion precedes saving and does not imply success or a durable save. |
+| prompt_timing | Carries timing: PromptTiming at prompt start and generation end; upsert by id when present, otherwise by userMessageIndex for legacy records. Resume starts a new attempt with its own ID and message range. Completion precedes saving and does not imply success or a durable save. |
 | `context_budget` | Carries the complete estimated input and response reserve before every main request, including rejected requests and tool continuations. See [context budget](context-budget.md). |
 | `compaction_start` | Automatic summarization started within a prompt; carries `startedAt` and live `historyMessageCount`. |
 | `compaction_end` | Automatic preparation finished; carries optional saved checkpoint ID/boundary/count/time and optional error. Summary text and usage are not broadcast. A generation error can still allow the main request when its input fits. |
@@ -55,7 +55,7 @@ The initial fallback title is published immediately and again after saving; a ti
 
 ## Completed messages and drafts
 
-`state.messages` is completed history; `state.draft` is the current assistant partial. Draft state clears at assistant completion and run finalization. Do not append every delta into a persistent message list.
+`state.messages` is completed history; `state.draft` is the current assistant partial. Draft state clears at assistant completion and run finalization. On explicit Stop, coding-agent emits message_end for retained partial text marked aborted before the completed prompt_timing event and save; unfinished tool calls and thinking are excluded from that snapshot. Do not append every delta into a persistent message list.
 
 `agent_settled` means stopped, not necessarily successful or saved. `state.outcome` is `success`, `error`, or `cancelled` after finalization; `hasPendingSave` reports retained unsaved history. `prompt()` still rejects on failure, so handle its promise as well as events.
 
@@ -68,3 +68,7 @@ Subscriptions belong to one session instance. Rebind them when [AgentSessionRunt
 ## Source
 
 [session types](../core/types/session.ts), [agent-session.ts](../core/agent-session.ts), [agent-session.test.ts](../core/agent-session.test.ts), and [interactive output](../modes/interactive/interactive-output.ts).
+
+## Queue Changes
+
+queue_changed signals an input or scheduling change. Read state.queue, state.canResume and state.isRunning. The snapshot owns message bodies; events do not duplicate them. See [message queue](message-queue.md).

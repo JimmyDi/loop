@@ -51,6 +51,7 @@ export type ToolView = {
 };
 
 export type SessionSnapshot = {
+  acceptedRequestIds?: string[];
   streamId: string;
   sessionId: string;
   workspaceId: string;

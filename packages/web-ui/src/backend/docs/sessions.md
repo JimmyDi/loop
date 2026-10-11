@@ -53,10 +53,10 @@ Managed SDK sessions expose state.permissionPreset in snapshots. New Web session
 
 1. Validate text or attachments and a requestId of at most 128 characters.
 2. Synchronously reserve command state, record requestId/runId, and publish run.accepted.
-3. Call session.prompt asynchronously; return 202 without waiting for the full answer.
+3. Call session.prompt immediately and track its Promise; return 202 without waiting for the full answer.
 4. Forward message, tool, and agent_settled events, then publish session.state on completion.
 
-A session's prompt, model, and flush operations are mutually exclusive, with no command queue. hasPendingSave blocks new prompts and model changes; only flush can retry saving. Different sessions have separate controllers, while provider updates also use a global exclusion guard.
+Model and flush operations require idle state. Prompt submissions during generation or a pause use the core queue; no second model loop runs concurrently. hasPendingSave blocks new prompts and model changes; only flush can retry saving. Different sessions have separate controllers, while provider updates also use a global exclusion guard.
 
 The controller deduplicates up to 256 recent request IDs. The same ID and prompt content return the original runId without executing again; the same ID with different text, images or file names/contents returns request_conflict. This cache is in memory, so restart or eviction removes the exactly-once protection.
 
@@ -95,3 +95,13 @@ PUT /api/sessions/:id/model accepts provider, id and optional effort. Values are
 - [SessionRegistry](../session-registry.ts) / [tests](../session-registry.test.ts).
 - [Unread header storage](../../../../coding-agent/src/core/session-manager.ts) / [persistence tests](../../../../coding-agent/src/core/session-manager.test.ts) / [HTTP tests](../routes/sessions.test.ts).
 - [SessionController](../session-controller.ts) / [streaming, cancellation, and save tests](../session-controller.test.ts).
+
+## Queue and Resume Routes
+
+POST /api/sessions/:id/queue accepts id and action: edit (text and optional images/files/skills), move (optional beforeId; omit for end), delete, steer, begin-edit or cancel-edit. begin-edit marks the item as held in state.queue; the scheduler skips it until edit or cancel-edit releases it. begin-edit returns the held item with its full content and Skills for the main composer. The hold survives reconnects. Editing preserves omitted attachments and Skills, or replaces them with validated supplied arrays (including empty arrays for removal). Saving releases the item at its reserved position unless a later item was dispatched during editing, in which case the edited item moves to the queue tail. Cancelling restores the original item at its reserved position. The browser hides the held row while editing in its composer. Missing/consumed items return queue_item_missing; conflicts return queue_conflict. Only POST is supported. Edit bodies allow the same unlimited text budget as prompts.
+
+POST /api/sessions/:id/resume returns 202 for an idle resumable task with no pending save; core events publish activity and completion. Abort retains unconsumed inputs and pauses draining. Model/flush/title commands retain their idle locks.
+
+Snapshots carry ordered state.queue, state.canResume and bounded acceptedRequestIds. Core queue_changed events publish authoritative state while preserving active draft indexes and running tool status. A queued request uses its original requestId as queue ID. Deduplication covers the original payload even after editing/deletion; reusing its ID does not recreate it. This memory-only protection is lost on restart or eviction.
+
+See [core queue lifecycle](../../../../coding-agent/src/docs/message-queue.md), [queue route](../routes/session-queue.ts) and [controller regression tests](../session-controller.test.ts).

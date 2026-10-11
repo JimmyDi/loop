@@ -117,7 +117,7 @@ The backend registry owns independent AgentSession instances. Do not repeatedly 
 
 Loop supports session permission presets and approval cards for managed file/shell operations. Built-in approval policy follows the session preset; there is no separately configurable global approval mode. MCP calls follow session permissions: Full access allows automatically, while restricted presets require approval or an exact live-session tool grant. Plugins exposes connection settings and server enable switches without separate permission controls. See [permissions and approvals](../frontend/docs/permissions.md) and [MCP configuration](../frontend/docs/integrations.md).
 
-Loop currently has no skills, task scheduling, session branches, session renaming/deletion, message rollback/retry, steering, or queues. These are excluded from the initial UI. Web project renaming and unregistering do not change the session API. Tools have no progress events; bash displays activity and final output, without a terminal, interactive stdin, or live output panel.
+Current queue, steering and stop/resume contracts are described in [chat input](../frontend/docs/chat.md) and [core scheduling](../../../coding-agent/src/docs/message-queue.md). Session branches and message rollback/retry remain unavailable. Web project renaming and unregistering do not change the session API. Tools have no progress events; bash displays activity and final output, without a terminal, interactive stdin, or live output panel.
 
 File operations and bash run at the session `cwd` on the backend machine, not in the browser visitor's filesystem. The initial deployment is local and single-user, with same-origin pages/APIs served by Node.js on loopback. Remote multi-user hosting is outside scope.
 
@@ -246,7 +246,7 @@ Merge concurrent session loads so one file is not opened through multiple writab
 
 Clients use workspaceId/sessionId. The server maps project cwd and session files instead of accepting arbitrary file paths for session opening. Directory browsing and project creation may accept directory paths, and picker/project responses may return them, but these paths cannot bypass session ownership mapping. Removed projects must not remain accessible through session routes. Pages, API, and events share an origin served by `node:http`; development uses HTML imports and release mode will use prebuilt pages.
 
-The prompt route validates input and state, synchronously reserves the Web operation and requestId, starts and tracks the `session.prompt(content)` Promise, and returns `202` without waiting for generation. This reservation belongs to Web and does not use AgentSession's internal reserve method. Busy or pending-save states return explicit conflicts instead of queueing. Asynchronous preflight failures must still reach the frontend through events and state.
+The prompt route validates input and state, synchronously reserves the Web operation and requestId, starts and tracks the `session.prompt(content)` Promise, and returns `202` without waiting for generation. This reservation belongs to Web and does not use AgentSession's internal reserve method. Running prompt submissions enter the core queue; pending saves and other operations return explicit conflicts. Asynchronous preflight failures must still reach the frontend through events and state.
 
 Repeated sessionId/requestId with identical content returns the original runId; changed content under the same ID is rejected. Deduplication covers only a bounded in-process cache, not exactly-once execution across restarts. After a lost HTTP response, synchronize state rather than blindly resending with a new requestId.
 
@@ -265,7 +265,7 @@ Use the [SessionEvent definition](../../../coding-agent/src/core/types/session.t
 | `tool_execution_end` | Record the final result and error state |
 | `agent_settled` | Execution and the save attempt have finished; read final SessionState |
 
-Loop has no `agent_start`, `agent_end`, `turn_*`, `tool_execution_update`, or queue events. Use only the events defined by Loop's public contract.
+Loop has no `agent_start`, `agent_end`, `turn_*`, `tool_execution_update`, events. Queue changes are exposed by coding-agent as queue_changed. Use only the events defined by Loop's public contract.
 
 ### 6.2 Transport Envelope
 

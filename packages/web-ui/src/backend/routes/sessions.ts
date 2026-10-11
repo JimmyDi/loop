@@ -1,3 +1,4 @@
+import { queueRoute } from "./session-queue";
 import { readBody, requiredString } from "../http/input";
 import { eventResponse } from "../http/sse";
 import { HttpError } from "../http/errors";
@@ -39,7 +40,7 @@ export const sessionRoutes =
     }
 
     const match = url.pathname.match(
-      /^\/api\/sessions\/([^/]+)(?:\/(prompt|abort|flush|compact|model|events|title|permission|approvals|read|pin)(?:\/([^/]+))?)?$/,
+      /^\/api\/sessions\/([^/]+)(?:\/(prompt|queue|resume|abort|flush|compact|model|events|title|permission|approvals|read|pin)(?:\/([^/]+))?)?$/,
     );
 
     if (!match) return;
@@ -80,6 +81,8 @@ export const sessionRoutes =
     const controller = await registry.get(id!);
 
     registry.assertAvailable(controller.workspaceId);
+
+    if (action === "queue" || action === "resume") return queueRoute(request, action, controller);
 
     if (!action && method === "GET") return Response.json(controller.snapshot);
 

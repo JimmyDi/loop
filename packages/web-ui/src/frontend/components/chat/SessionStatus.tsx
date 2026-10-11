@@ -17,9 +17,11 @@ export const SessionStatus = ({
 }) => {
   const { t } = useTranslation();
   const action = useAsyncAction();
-  const error = [snapshot.commandError, snapshot.state.error, action.error].find(
-    (candidate) => candidate && !isNothingToCompact(candidate),
-  );
+  const error = [
+    snapshot.state.canResume ? undefined : snapshot.commandError,
+    snapshot.state.canResume ? undefined : snapshot.state.error,
+    action.error,
+  ].find((candidate) => candidate && !isNothingToCompact(candidate));
 
   if (connected && !error && !snapshot.state.hasPendingSave) return null;
 

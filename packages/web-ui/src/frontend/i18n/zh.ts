@@ -3,6 +3,18 @@ import { skillsZh } from "./skills-zh";
 import { permissionsZh } from "./permissions-zh";
 
 export const zh = {
+  queuePaused: "已暂停，队列已保留",
+  resume: "继续生成",
+  queueTitle: "队列（{{count}}）",
+  queueDrag: "拖拽排序，或使用上下方向键",
+  queueMore: "更多消息操作",
+  queueEdit: "编辑",
+  queueEditing: "编辑中 · 暂不发送",
+  queueAttachments: "附件",
+  queuePayload: "{{images}} 张图片 · {{files}} 个文件 · {{skills}} 个技能",
+  queueSteer: "Steer",
+  queueSteering: "等待下一步插入",
+  queueDelete: "删除",
   compaction: {
     running: "正在压缩上下文",
     completed: "上下文已压缩",
@@ -115,6 +127,7 @@ export const zh = {
   looping: "Looping...",
   workingFor: "Working for {{duration}}",
   workedFor: "Worked for {{duration}}",
+  stoppedAfter: "已停止 · 用时 {{duration}}",
   modelConnectionHint: "无法连接模型服务。请打开设置 → 模型检查地址和认证，再选择配置的模型。",
   success: "已完成",
   error: "错误",
@@ -184,6 +197,11 @@ export const zh = {
   maxOutputTokens: "最大输出 Token 数",
   addModel: "添加模型",
   errors: {
+    queue_item_missing: "这条队列消息已执行或删除。",
+    queue_conflict: "队列已变化，请检查当前状态后重试。",
+    resume_unavailable: "此会话暂时无法继续生成。",
+    invalid_queue_action: "无效的队列操作。",
+
     nothing_to_compact: "暂无需要压缩的内容。",
     invalid_mcp_config: "请检查名称、命令或 URL、重复的键和环境变量名。工作目录需填写绝对路径。",
     mcp_secret_required: "更换连接目标后，请重新填写已保存的环境变量或请求头值。",

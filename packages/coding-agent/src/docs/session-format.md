@@ -26,7 +26,7 @@ The exported `SessionHeader` contains:
 | `model` | Optional `{ provider: string, id: string, effort?: ModelEffort }`. |
 | `title` | Optional `SessionTitle`: text, source, source message indices, and optional model identity. See [session titles](session-titles.md). |
 | permissionPreset | Required: read-only, workspace-write or danger-full-access. Invalid values reject. |
-| promptTimings | Optional completed PromptTiming[] with ordered userMessageIndex, startedAt and finishedAt in Unix milliseconds. Invalid indices or timestamps reject. See [prompt duration](sessions.md#prompt-duration). |
+| promptTimings | Optional completed PromptTiming[] ordered by userMessageIndex and attempt ranges, with startedAt and finishedAt in Unix milliseconds. New records add a unique id, inclusive messageStartIndex, exclusive messageEndIndex and optional stopped flag. Resumed attempts may share the same user index. Legacy records remain valid; duplicate IDs, overlapping ranges and invalid indices/timestamps reject. See [prompt duration](sessions.md#prompt-duration). |
 | runtimeContexts | Optional RuntimeContextSnapshot[]: zero-based userTurn ordinal, rendered content, timestamp in Unix milliseconds and optional skills with loaded identities, source paths, instruction texts, revisions and optional descriptions. See [runtime context](runtime-context.md). |
 | systemPromptCheckpoints | Optional initial system sections and subsequent changed-section patches. |
 | compactions | Optional complete summaries, original-history boundaries, model identity and summary usage. See [compaction](compaction.md). |

@@ -1,3 +1,4 @@
+import { setImmediate } from "node:timers/promises";
 import { expect, test } from "vitest";
 import { Window } from "happy-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -100,8 +101,12 @@ test.each([true, false])(
         expect(ui.getByRole("dialog")).toBeTruthy();
       }
     } finally {
-      cleanup();
-      client.clear();
+      await act(async () => {
+        cleanup();
+        client.clear();
+        // Drain React callbacks queued before unmount while the DOM globals still exist.
+        await setImmediate();
+      });
       useWorkspace.setState(workspace, true);
       useRequests.setState(requests, true);
       await i18n.changeLanguage(language);
@@ -154,8 +159,11 @@ test("archive confirmation fetches collapsed history, requires consent and retai
     expect(useWorkspace.getState().active).toBeUndefined();
     expect(useWorkspace.getState().drafts.a).toBe("Unsent");
   } finally {
-    cleanup();
-    client.clear();
+    await act(async () => {
+      cleanup();
+      client.clear();
+      await setImmediate();
+    });
     useWorkspace.setState(state, true);
     Object.assign(globalThis, previous);
     await window.happyDOM.close();

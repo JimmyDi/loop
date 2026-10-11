@@ -63,3 +63,9 @@ For persistence, capture `agent.messages` after the run settles and pass that sn
 ## Source
 
 [agent.ts](../agent.ts), [types.ts](../types.ts), and [agent.test.ts](../agent.test.ts). See [cancellation and errors](cancellation.md) for rejected prompts and recoverable history.
+
+## Host Step Execution
+
+step(content?: PromptContent): Promise<AssistantMessage> executes one model response and its entire sequential tool batch. Omit content to continue existing user history without appending input. Empty history and concurrent calls reject. Validation, native events, cancellation and tool pairing match prompt; a successful step returns even when another model request is required.
+
+Each step has its own cancellation signal. maxTurns validates as a positive integer; hosts repeating steps enforce their total request limit. prompt retains its whole-task behavior and requires input. Agent owns no queue, steering policy or persistence. The [coding session scheduler](../../../coding-agent/src/docs/message-queue.md) uses this execution boundary.

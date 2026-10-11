@@ -37,6 +37,7 @@ export const AssistantTurn = ({
 
   return (
     <>
+      {completed?.stopped && <PromptDuration timing={completed} />}
       {entries.map((entry) => {
         const { index, message } = entry;
         if (message.role === "toolResult")
@@ -48,7 +49,8 @@ export const AssistantTurn = ({
           <AssistantMessage
             key={index}
             message={message}
-            timing={entry === final ? completed : undefined}
+            timing={!completed?.stopped && entry === final ? completed : undefined}
+            hideError={!!completed?.stopped}
             tools={tools}
             streaming={index === draftIndex || (running && entry === entries.at(-1))}
             generating={index === draftIndex}
@@ -56,7 +58,7 @@ export const AssistantTurn = ({
           />
         );
       })}
-      {completed && !final && <PromptDuration timing={completed} />}
+      {completed && !completed.stopped && !final && <PromptDuration timing={completed} />}
     </>
   );
 };

@@ -301,6 +301,69 @@ test("native commentary and final text retain content order while thinking stays
   }
 });
 
+test("stopped responses keep independent duration separators through resume and reconnect", () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  try {
+    const stopped = {
+      ...draft,
+      stopReason: "aborted" as const,
+      content: [{ type: "text" as const, text: "First partial response" }],
+    };
+    const next = {
+      ...draft,
+      content: [{ type: "text" as const, text: "Resumed partial response" }],
+    };
+    const snapshot: SessionSnapshot = {
+      ...initial,
+      operation: "idle",
+      state: {
+        ...initial.state,
+        isRunning: false,
+        canResume: true,
+        messages: [...initial.state.messages, stopped, next],
+        promptTimings: [
+          {
+            id: "first",
+            userMessageIndex: 0,
+            messageStartIndex: 1,
+            messageEndIndex: 2,
+            startedAt: 1000,
+            finishedAt: 38000,
+            stopped: true,
+          },
+          {
+            id: "second",
+            userMessageIndex: 0,
+            messageStartIndex: 2,
+            messageEndIndex: 3,
+            startedAt: 40000,
+            finishedAt: 45000,
+            stopped: true,
+          },
+        ],
+      },
+    };
+    const html = renderToStaticMarkup(
+      <MessageTimeline snapshot={structuredClone(snapshot)} connected />,
+    );
+    expect(html.indexOf("You stopped after 37s")).toBeLessThan(
+      html.indexOf("First partial response"),
+    );
+    expect(html.indexOf("First partial response")).toBeLessThan(
+      html.indexOf("You stopped after 5s"),
+    );
+    expect(html.indexOf("You stopped after 5s")).toBeLessThan(
+      html.indexOf("Resumed partial response"),
+    );
+    expect(html.match(/data-state="stopped"/g)).toHaveLength(2);
+    expect(html).not.toContain('role="alert"');
+  } finally {
+    Object.assign(globalThis, previous);
+  }
+});
+
 test("tool-only turns and standalone results do not invent replies, and partial failures stay visible", async () => {
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };

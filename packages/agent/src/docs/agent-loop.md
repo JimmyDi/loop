@@ -4,7 +4,7 @@
 
 ## Calling the loop
 
-The exported signature is `runAgentLoop(content, history, options, onEvent?, signal?): Promise<AssistantMessage>`.
+The exported signature is `runAgentLoop(content, history, options, onEvent?, signal?, singleTurn?): Promise<AssistantMessage>`.
 
 - `content` is user-message content: a string or text/image blocks; image-only input is allowed.
 - `history` is a mutable `Message[]`. The loop is its sole writer during the run.
@@ -58,3 +58,7 @@ The loop writes history and schedules tools sequentially. Focused internal modul
 | [abortable-promise.ts](../abortable-promise.ts) | Cancellable promise waits and abort-listener cleanup. |
 
 See [types.ts](../types.ts), [loop integration tests](../agent-loop.test.ts), [normalization tests](../normalize-model-input.test.ts), [stream tests](../stream-model-response.test.ts), [tool tests](../execute-tool.test.ts), [input tests](../validate-loop-input.test.ts) and [cancellation-wait tests](../abortable-promise.test.ts).
+
+## Single-Step Execution
+
+The final optional singleTurn flag defaults to false. When true, return after the first response and complete tool batch. Undefined content continues existing user history without adding input; empty history rejects. Agent exposes this through step(). Hosts own scheduling across calls; the loop contains no queue or steering callback.

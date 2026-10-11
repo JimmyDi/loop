@@ -11,6 +11,7 @@ import { LoopingIndicator } from "./LoopingIndicator";
 import { PromptDuration } from "./PromptDuration";
 import { JumpToLatestButton } from "./JumpToLatestButton";
 import { CompactionStatus } from "./CompactionStatus";
+import { timingForTurn } from "./timeline-timing";
 import "./MessageTimeline.css";
 
 export const MessageTimeline = ({
@@ -43,7 +44,13 @@ export const MessageTimeline = ({
   if (snapshot.state.draft && draftIndex !== undefined) messages[draftIndex] = snapshot.state.draft;
 
   const checkpoint = snapshot.state.hasPendingSave ? undefined : snapshot.state.compaction;
-  const turns = groupTimelineTurns(messages, checkpoint?.historyMessageCount);
+  const timings = snapshot.state.promptTimings ?? [];
+  const turns = groupTimelineTurns(messages, [
+    ...(checkpoint ? [checkpoint.historyMessageCount] : []),
+    ...timings.flatMap((timing) =>
+      timing.messageStartIndex === undefined ? [] : [timing.messageStartIndex],
+    ),
+  ]);
   const compactedPosition = checkpoint
     ? turns.findLastIndex((turn) => turn.index < checkpoint.historyMessageCount)
     : -1;
@@ -60,11 +67,12 @@ export const MessageTimeline = ({
         <div className="timeline-content" ref={scroll.contentRef}>
           {!messages.length && !looping && <p className="timeline-empty">{t("emptySession")}</p>}
           {turns.map((turn, position) => {
-            const timing = snapshot.state.promptTimings?.find(
-              (candidate) =>
-                candidate.userMessageIndex ===
-                (turn.type === "user" ? turn.index : turn.userMessageIndex),
-            );
+            const timing = timingForTurn(timings, turn);
+            const neighbor = turns[position + (timing?.stopped ? -1 : 1)];
+            const assistantTiming =
+              neighbor?.type === "assistant" && timingForTurn(timings, neighbor) === timing
+                ? undefined
+                : timing;
             const key = `${snapshot.sessionId}:${turn.index}`;
 
             if (turn.type === "user") {
@@ -99,7 +107,7 @@ export const MessageTimeline = ({
                 <AssistantTurn
                   messages={turn.messages}
                   tools={snapshot.tools}
-                  timing={turns[position + 1]?.type === "assistant" ? undefined : timing}
+                  timing={assistantTiming}
                   draftIndex={draftIndex}
                   running={snapshot.operation === "prompt" && turn === turns.at(-1)}
                 />

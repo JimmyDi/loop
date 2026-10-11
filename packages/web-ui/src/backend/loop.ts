@@ -33,7 +33,21 @@ export type SessionPort = Pick<
   | "registerApprovalHandler"
   | "respondToApproval"
 > &
-  Partial<Pick<AgentSession, "validateSkillSelection" | "compact">>;
+  Partial<
+    Pick<
+      AgentSession,
+      | "validateSkillSelection"
+      | "compact"
+      | "enqueue"
+      | "editQueued"
+      | "beginQueuedEdit"
+      | "cancelQueuedEdit"
+      | "deleteQueued"
+      | "moveQueued"
+      | "steerQueued"
+      | "resume"
+    >
+  >;
 
 export type LoopBridge = {
   models(): Promise<ModelChoice[]>;

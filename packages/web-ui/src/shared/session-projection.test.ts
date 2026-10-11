@@ -38,6 +38,22 @@ test("cumulative drafts replace rather than append and full snapshots replace hi
     timing: { ...timing, finishedAt: 30000 },
   });
   expect(finished.state.promptTimings).toEqual([{ ...timing, finishedAt: 30000 }]);
+  const stopped = applyEvent(initial, {
+    type: "prompt_timing",
+    timing: {
+      ...timing,
+      id: "stopped",
+      messageStartIndex: 1,
+      messageEndIndex: 2,
+      finishedAt: 30000,
+      stopped: true,
+    },
+  });
+  const resumed = applyEvent(stopped, {
+    type: "prompt_timing",
+    timing: { ...timing, id: "resumed", messageStartIndex: 2 },
+  });
+  expect(resumed.state.promptTimings?.map((timing) => timing.id)).toEqual(["stopped", "resumed"]);
   expect(initial.state.promptTimings).toBeUndefined();
   const permitted = applyEvent(initial, {
     type: "permission_changed",

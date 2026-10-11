@@ -63,6 +63,16 @@ export type AgentEvent =
 
 export type AgentEventListener = (event: AgentEvent) => void | Promise<void>;
 
+export type AgentRequestConfiguration = Pick<
+  AgentLoopOptions,
+  "systemPrompt" | "tools" | "streamFn"
+>;
+
+export type AgentTurn = {
+  message: AssistantMessage;
+  history: readonly Message[];
+};
+
 export type AgentLoopOptions = {
   model: Model<Api>;
   systemPrompt?: string;
@@ -70,6 +80,16 @@ export type AgentLoopOptions = {
   streamFn: StreamFn;
   streamOptions?: Omit<SimpleStreamOptions, "signal">;
   maxTurns?: number;
+  /** Polled before the first request and after each complete sequential tool batch. */
+  getSteeringMessages?: (signal: AbortSignal) => PromptContent[] | Promise<PromptContent[]>;
+  /** Polled only after a successful response without tool calls. */
+  getFollowUpMessages?: (signal: AbortSignal) => PromptContent[] | Promise<PromptContent[]>;
+  /** Refresh request configuration without giving the host ownership of history. */
+  prepareRequest?: (
+    signal: AbortSignal,
+  ) => AgentRequestConfiguration | Promise<AgentRequestConfiguration>;
+  /** Awaited after successful responses and their complete tool results, before queue polling. */
+  finishTurn?: (turn: AgentTurn, signal: AbortSignal) => void | Promise<void>;
 };
 
 export type AgentOptions = AgentLoopOptions & { messages?: readonly Message[] };

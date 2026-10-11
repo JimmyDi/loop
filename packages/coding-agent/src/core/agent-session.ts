@@ -2,7 +2,7 @@ import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 import { randomUUID } from "node:crypto";
 
 import { Agent } from "@loop/agent";
-import type { AgentEvent, PromptContent } from "@loop/agent";
+import type { AgentEvent, AgentRequestConfiguration, PromptContent } from "@loop/agent";
 import { ApprovalService } from "./approvals/approval-service";
 import { ToolApprovals } from "./approvals/tool-approvals";
 import type {
@@ -12,11 +12,10 @@ import type {
   ApprovalResponse,
   ApprovalResult,
 } from "./approvals/types";
-import { createSessionStreamFn, getModelEfforts } from "./model-runtime";
+import { getModelEfforts } from "./model-runtime";
 import type { ModelEffort } from "./models/model-effort";
 import { validateRequestMaxTokens } from "./models/output-budget";
 import { validateMessages } from "./messages";
-import { prepareRuntimeContexts } from "./runtime-context";
 import { SessionTitleService } from "./titles/session-title";
 import type { PermissionPreset } from "./permissions/types";
 import { approvalPolicyFor, DEFAULT_PERMISSION_PRESET } from "./permissions/types";
@@ -33,15 +32,13 @@ import type { ModelInputProjection } from "./model-input-projection";
 import { withToolDisplayName } from "./tool-display";
 import type { PermissionTool } from "./approvals/tool-approvals";
 import type { LoadedSkill } from "./skills/types";
-import { resolveSkillSelection } from "./skills/selection";
-import { buildSessionModelContext } from "./context/session-model-context";
 import { estimateSessionContextBudget } from "./context/session-context-budget";
-import { prepareSystemPromptState } from "./context/system-prompt-state";
 import { compactSession } from "./context/compact-session";
 import { NothingToCompactError } from "./context/compaction-error";
 import { canCompactSession } from "./context/session-compaction-plan";
 import { MessageQueue } from "./message-queue";
-import { AutomaticCompaction } from "./context/automatic-compaction";
+import type { AutomaticCompaction } from "./context/automatic-compaction";
+import { prepareSessionInput, createSessionRequest } from "./context/session-input";
 import { stoppedResponse } from "./stopped-response";
 
 export class AgentSession {
@@ -53,7 +50,7 @@ export class AgentSession {
   private readonly queue = new MessageQueue();
   private paused = false;
   private prompting = false;
-  private continuation?: { content?: PromptContent; skills: string[] };
+  private continuation?: { content?: PromptContent; skills: string[]; queued?: boolean };
   private disposed = false;
   private draft?: AssistantMessage;
   private selected: Model<Api>;
@@ -371,7 +368,7 @@ export class AgentSession {
     const next = this.continuation;
     this.paused = false;
     this.continuation = undefined;
-    return this.start(next.content, next.skills);
+    return this.start(next.content, next.skills, next.queued);
   }
 
   private drain(): void {
@@ -382,12 +379,16 @@ export class AgentSession {
       this.approvals.pending.length
     )
       return;
-    const next = this.queue.take();
+    const next = this.queue.peek();
     if (!next) return;
-    void this.start(next.content, next.skills).catch(() => {});
+    void this.start(next.content, next.skills, true).catch(() => {});
   }
 
-  private start(content: PromptContent | undefined, skills: string[]): Promise<void> {
+  private start(
+    content: PromptContent | undefined,
+    skills: string[],
+    queued = false,
+  ): Promise<void> {
     this.prompting = true;
     this.busy = true;
     this.failure = undefined;
@@ -398,14 +399,15 @@ export class AgentSession {
     this.acceptingRunApprovals = true;
     this.promptTiming = {
       id: randomUUID(),
-      messageStartIndex: this.sessionManager.messages.length + (content === undefined ? 0 : 1),
+      messageStartIndex:
+        this.sessionManager.messages.length + (content === undefined && !queued ? 0 : 1),
       userMessageIndex:
-        content === undefined
+        content === undefined && !queued
           ? this.sessionManager.messages.findLastIndex((message) => message.role === "user")
           : this.sessionManager.messages.length,
       startedAt: Date.now(),
     };
-    this.active = this.run(structuredClone(content), this.controller.signal, skills);
+    this.active = this.run(structuredClone(content), this.controller.signal, skills, queued);
     this.emit({ type: "queue_changed" });
 
     return this.active;
@@ -678,13 +680,126 @@ export class AgentSession {
     content: PromptContent | undefined,
     signal: AbortSignal,
     selectedSkills: string[],
+    queued: boolean,
   ): Promise<void> {
     let unsubscribe = () => {};
     const failures: unknown[] = [];
     let autoCompaction: AutomaticCompaction | undefined;
     let runtimeContexts = this.sessionManager.getRuntimeContexts();
     let systemPromptCheckpoints = this.sessionManager.getSystemPromptCheckpoints();
-    const initialCount = this.sessionManager.messages.length;
+    let continuationContent = queued ? undefined : content;
+    let continuationStart = this.sessionManager.messages.length;
+    let queuedInputPending = queued;
+    let configuration: AgentRequestConfiguration;
+    let retainAcceptedInput = () => {};
+
+    const finishTiming = (messages: typeof this.sessionManager.messages, stopped = false) => {
+      const timings = this.sessionManager.getPromptTimings();
+      if (this.promptTiming && messages[this.promptTiming.userMessageIndex]?.role === "user") {
+        if (this.promptTiming.finishedAt !== undefined) return timings;
+        this.promptTiming = {
+          ...this.promptTiming,
+          finishedAt: Math.max(this.promptTiming.startedAt, Date.now()),
+          messageEndIndex: messages.length,
+          stopped,
+        };
+        const index = timings.findIndex((timing) => timing.id === this.promptTiming!.id);
+        if (index < 0) timings.push(this.promptTiming);
+        else timings[index] = this.promptTiming;
+        this.emit({ type: "prompt_timing", timing: this.promptTiming });
+      }
+      return timings;
+    };
+
+    const prepareInput = (input: PromptContent | undefined, skills: string[]) =>
+      prepareSessionInput({
+        options: this.options,
+        model: this.selected,
+        permissionPreset: this.permissionPreset,
+        messages: this.agent?.messages ?? this.sessionManager.messages,
+        runtimeContexts,
+        systemPromptCheckpoints,
+        input,
+        skills,
+        signal,
+      });
+
+    const acceptInput = (prepared: Awaited<ReturnType<typeof prepareInput>>) => {
+      selectedSkills = [...prepared.selection];
+      this.toolDisplayNames = prepared.toolDisplayNames;
+      retainAcceptedInput = () => {
+        runtimeContexts = prepared.runtimeContexts;
+        systemPromptCheckpoints = prepared.systemPromptCheckpoints;
+      };
+      const request = createSessionRequest({
+        options: this.options,
+        prepared,
+        bindTools: (tools) =>
+          this.options.permissionPolicy || this.options.mcpManager
+            ? this.toolApprovals.bind(tools)
+            : tools,
+        history: () =>
+          this.agent!.messages.map((message) =>
+            withToolDisplayName(message, this.toolDisplayNames),
+          ),
+        onRetained: () => {
+          runtimeContexts = prepared.runtimeContexts;
+          systemPromptCheckpoints = prepared.systemPromptCheckpoints;
+        },
+        onRequest: (projection) => {
+          this.inputProjection = projection;
+          const { loaded, userTurn } = prepared;
+          if (loaded.length && !this.skillLoads.some((row) => row.userTurn === userTurn)) {
+            this.skillLoads.push({ userTurn, skills: loaded });
+            this.emit({ type: "skills_loaded", userTurn, skills: loaded });
+          }
+        },
+        notify: (event) => {
+          if (event.type === "compaction_start") {
+            this.activeCompaction = {
+              startedAt: event.startedAt,
+              historyMessageCount: event.historyMessageCount,
+            };
+          } else if (event.type === "compaction_end") this.activeCompaction = undefined;
+          else if (event.type === "context_budget") this.contextBudget = event.budget;
+          this.emit(event);
+        },
+      });
+      autoCompaction = request.compaction;
+      configuration = request.configuration;
+    };
+
+    const takeInput = async (steeringOnly: boolean): Promise<PromptContent[]> => {
+      while (true) {
+        signal.throwIfAborted();
+        const next = this.queue.peek(steeringOnly);
+        if (!next) return [];
+        const prepared = await prepareInput(next.content, next.skills);
+        signal.throwIfAborted();
+        // Queue edits and reorders remain live while asynchronous Skill preparation runs.
+        if (JSON.stringify(next) !== JSON.stringify(this.queue.peek(steeringOnly))) continue;
+        const messages = this.agent!.messages.map((message) =>
+          withToolDisplayName(message, this.toolDisplayNames),
+        );
+        await this.sessionManager.commit(messages, runtimeContexts, finishTiming(messages), {
+          systemPromptCheckpoints,
+        });
+        signal.throwIfAborted();
+        if (JSON.stringify(next) !== JSON.stringify(this.queue.peek(steeringOnly))) continue;
+        this.queue.take(steeringOnly);
+        continuationContent = next.content;
+        continuationStart = messages.length;
+        acceptInput(prepared);
+        this.promptTiming = {
+          id: randomUUID(),
+          userMessageIndex: messages.length,
+          messageStartIndex: messages.length + 1,
+          startedAt: Date.now(),
+        };
+        this.emit({ type: "queue_changed" });
+        return [next.content];
+      }
+    };
 
     try {
       await this.options.modelRuntime.checkModel(this.selected, signal);
@@ -693,106 +808,44 @@ export class AgentSession {
       const messages = this.sessionManager.messages;
       if (content === undefined && this.promptTiming)
         this.emit({ type: "prompt_timing", timing: this.promptTiming });
-      const cwd = this.sessionManager.getCwd();
-      const manager = this.options.skillManager;
-      const loaded: LoadedSkill[] = [];
-      const selection =
-        manager && content !== undefined
-          ? await resolveSkillSelection(manager, cwd, content, selectedSkills)
-          : content === undefined &&
-              runtimeContexts.some(
-                (snapshot) =>
-                  snapshot.userTurn ===
-                  messages.filter((message) => message.role === "user").length - 1,
-              )
-            ? []
-            : selectedSkills;
-      selectedSkills = [...selection];
-      for (const id of new Set(selection)) {
-        if (!manager) throw new Error("Skills are unavailable in this session");
-        loaded.push(await manager.load(cwd, id, signal, true));
-      }
-      const userTurn =
-        messages.filter((message) => message.role === "user").length -
-        (content === undefined ? 1 : 0);
-      const preparedContexts = loaded.length
-        ? prepareRuntimeContexts(
-            runtimeContexts,
-            loaded.map((skill) => skill.content).join("\n\n"),
-            userTurn,
-            loaded,
-            "user",
-          )
-        : runtimeContexts;
-      const { systemPrompt, tools } = buildSessionModelContext(
-        this.options,
-        this.selected,
-        this.permissionPreset,
-      );
-      this.toolDisplayNames = new Map(
-        tools.flatMap((tool: PermissionTool) =>
-          tool.displayName ? [[tool.name, tool.displayName] as const] : [],
-        ),
-      );
-      const preparedPromptState = prepareSystemPromptState(
-        systemPromptCheckpoints,
-        systemPrompt,
-        messages.length + (content === undefined ? 0 : 1),
-      );
-      autoCompaction = new AutomaticCompaction({
-        manager: this.sessionManager,
-        runtime: this.options.modelRuntime,
-        history: () =>
-          this.agent!.messages.map((message) =>
-            withToolDisplayName(message, this.toolDisplayNames),
-          ),
-        snapshots: preparedContexts,
-        systemPromptCheckpoints: preparedPromptState,
-        onSaved: () => {
-          runtimeContexts = preparedContexts;
-          systemPromptCheckpoints = preparedPromptState;
-        },
-        notify: (event) => {
-          if (event.type === "compaction_start") {
-            this.activeCompaction = {
-              startedAt: event.startedAt,
-              historyMessageCount: event.historyMessageCount,
-            };
-          } else if (event.type === "compaction_end") {
-            this.activeCompaction = undefined;
-          } else if (event.type === "context_budget") {
-            this.contextBudget = event.budget;
-          }
-          this.emit(event);
-        },
-      });
+      if (queued) {
+        while (true) {
+          const next = this.queue.peek();
+          if (!next) return;
+          const prepared = await prepareInput(next.content, next.skills);
+          signal.throwIfAborted();
+          if (JSON.stringify(next) !== JSON.stringify(this.queue.peek())) continue;
+          this.queue.take();
+          queuedInputPending = false;
+          content = next.content;
+          continuationContent = content;
+          acceptInput(prepared);
+          this.emit({ type: "queue_changed" });
+          break;
+        }
+      } else acceptInput(await prepareInput(content, selectedSkills));
       this.agent = new Agent({
         model: this.selected,
         messages,
-        systemPrompt,
-        tools:
-          this.options.permissionPolicy || this.options.mcpManager
-            ? this.toolApprovals.bind(tools)
-            : tools,
-        streamFn: createSessionStreamFn(
-          this.options.modelRuntime,
-          preparedContexts,
-          (projection) => {
-            this.inputProjection = projection;
-            runtimeContexts = preparedContexts;
-            systemPromptCheckpoints = preparedPromptState;
-            if (loaded.length && !this.skillLoads.some((row) => row.userTurn === userTurn)) {
-              this.skillLoads.push({ userTurn, skills: loaded });
-              this.emit({ type: "skills_loaded", userTurn, skills: loaded });
-            }
-          },
-          (budget) => {
-            this.contextBudget = budget;
-            this.emit({ type: "context_budget", budget });
-          },
-          this.sessionManager.getCompactions().at(-1),
-          (input) => autoCompaction!.prepare(input),
-        ),
+        ...configuration!,
+        prepareRequest: () => configuration,
+        getSteeringMessages: () => takeInput(true),
+        getFollowUpMessages: () => takeInput(false),
+        finishTurn: async ({ message }) => {
+          signal.throwIfAborted();
+          const completed = this.agent!.messages.map((message) =>
+            withToolDisplayName(message, this.toolDisplayNames),
+          );
+          await this.sessionManager.commit(
+            completed,
+            runtimeContexts,
+            message.content.some((part) => part.type === "toolCall")
+              ? undefined
+              : finishTiming(completed),
+            { systemPromptCheckpoints },
+          );
+          signal.throwIfAborted();
+        },
         streamOptions: {
           maxTokens: this.options.maxTokens,
           reasoning:
@@ -802,18 +855,14 @@ export class AgentSession {
         },
         maxTurns: this.options.maxTurns,
       });
-      unsubscribe = this.agent.subscribe((event) => this.onAgentEvent(event));
-      let input = content;
-      for (let turn = 0; ; turn++) {
-        signal.throwIfAborted();
-        if (this.options.maxTurns !== undefined && turn >= this.options.maxTurns)
-          throw new Error("Maximum model turns reached: " + this.options.maxTurns);
-        const answer = await this.agent.step(input);
-        input = undefined;
-        signal.throwIfAborted();
-        if (this.queue.hasSteering || !answer.content.some((part) => part.type === "toolCall"))
-          break;
-      }
+      unsubscribe = this.agent.subscribe((event) => {
+        if (event.type === "message_end" && event.message.role === "user") retainAcceptedInput();
+        this.onAgentEvent(event);
+      });
+      signal.throwIfAborted();
+      if (content === undefined) await this.agent.continue();
+      else await this.agent.prompt(content);
+      signal.throwIfAborted();
     } catch (error) {
       failures.push(error);
     } finally {
@@ -830,21 +879,7 @@ export class AgentSession {
             messages.push(partial);
             this.emit({ type: "message_end", message: partial });
           }
-          const timings = this.sessionManager.getPromptTimings();
-          if (this.promptTiming && messages[this.promptTiming.userMessageIndex]?.role === "user") {
-            this.promptTiming = {
-              ...this.promptTiming,
-              finishedAt: Math.max(this.promptTiming.startedAt, Date.now()),
-              messageEndIndex: messages.length,
-              stopped: signal.aborted && this.paused,
-            };
-            const previousTiming = timings.findIndex(
-              (timing) => timing.id === this.promptTiming!.id,
-            );
-            if (previousTiming < 0) timings.push(this.promptTiming);
-            else timings[previousTiming] = this.promptTiming;
-            this.emit({ type: "prompt_timing", timing: this.promptTiming });
-          }
+          const timings = finishTiming(messages, signal.aborted && this.paused);
           if (!this.sessionManager.hasPendingSave) {
             await this.sessionManager.commit(messages, runtimeContexts, timings, {
               systemPromptCheckpoints,
@@ -857,8 +892,11 @@ export class AgentSession {
         if (signal.aborted && this.paused) {
           this.continuation = {
             content:
-              (this.agent?.messages.length ?? initialCount) > initialCount ? undefined : content,
+              (this.agent?.messages.length ?? continuationStart) > continuationStart
+                ? undefined
+                : continuationContent,
             skills: selectedSkills,
+            queued: queuedInputPending,
           };
         } else if (!failures.length) {
           this.paused = false;

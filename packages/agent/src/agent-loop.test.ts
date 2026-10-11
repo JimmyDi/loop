@@ -474,3 +474,87 @@ test("rejects incomplete streams and unexpected stream-function failures", async
 
   await expect(runAgentLoop("hello", [], { model, streamFn })).rejects.toThrow("request failed");
 });
+
+test("steering joins completed tool results inside one run; follow-ups wait for natural completion", async () => {
+  const history: Message[] = [];
+  const requests: Context[] = [];
+  const order: string[] = [];
+  const steering: string[] = [];
+  const followUps = ["follow-up"];
+  const result = await runAgentLoop("initial", history, {
+    model,
+    tools: [
+      tool((args) => {
+        order.push(String(args.text));
+        if (args.text === "a") steering.push("change direction");
+        return [{ type: "text", text: String(args.text) }];
+      }),
+    ],
+    streamFn: (_model, context) => {
+      requests.push(structuredClone(context));
+      return stream(requests.length === 1 ? answer([call("a"), call("b")]) : answer());
+    },
+    getSteeringMessages: () => steering.splice(0, 1),
+    getFollowUpMessages: () => {
+      expect(requests.at(-1)?.messages.at(-1)?.role).toBe("user");
+      return followUps.splice(0, 1);
+    },
+    finishTurn: ({ history: completed }) => {
+      order.push("finish:" + completed.at(-1)?.role);
+    },
+  });
+  expect(order).toEqual(["a", "b", "finish:toolResult", "finish:assistant", "finish:assistant"]);
+  expect(requests[1]?.messages.map((message) => message.role)).toEqual([
+    "user",
+    "assistant",
+    "toolResult",
+    "toolResult",
+    "user",
+  ]);
+  expect(
+    history.filter((message) => message.role === "user").map((message) => message.content),
+  ).toEqual(["initial", "change direction", "follow-up"]);
+  expect(result.stopReason).toBe("stop");
+});
+
+test("request preparation refreshes tools and stream configuration for the next turn", async () => {
+  let requests = 0;
+  let executed = 0;
+  const updated = tool(() => {
+    executed++;
+    return [];
+  });
+  const streamFn: StreamFn = (_model, context) => {
+    requests++;
+    expect(context.systemPrompt).toBe("prepared");
+    expect(context.tools?.map((entry) => entry.name)).toEqual(["echo"]);
+    return stream(requests === 1 ? answer([call("a")]) : answer());
+  };
+  await runAgentLoop("input", [], {
+    model,
+    streamFn: () => {
+      throw new Error("Unprepared request");
+    },
+    prepareRequest: () => ({ systemPrompt: "prepared", tools: [updated], streamFn }),
+  });
+  expect(requests).toBe(2);
+  expect(executed).toBe(1);
+});
+
+test("a failed turn checkpoint and exhausted request budget do not consume queued messages", async () => {
+  for (const fail of [true, false]) {
+    const queued = ["retained"];
+    const pending = runAgentLoop("input", [], {
+      model,
+      maxTurns: 1,
+      streamFn: () => stream(answer()),
+      finishTurn: () => {
+        if (fail) throw new Error("checkpoint failed");
+      },
+      getFollowUpMessages: () => queued.splice(0, 1),
+    });
+    if (fail) await expect(pending).rejects.toThrow("checkpoint failed");
+    else await pending;
+    expect(queued).toEqual(["retained"]);
+  }
+});

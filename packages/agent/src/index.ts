@@ -6,6 +6,8 @@ export type {
   AgentEvent,
   AgentEventListener,
   AgentLoopOptions,
+  AgentRequestConfiguration,
+  AgentTurn,
   AgentOptions,
   StreamFn,
   ModelMessageSource,

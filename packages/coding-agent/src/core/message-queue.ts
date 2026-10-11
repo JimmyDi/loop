@@ -19,10 +19,6 @@ export class MessageQueue {
     return structuredClone(this.items);
   }
 
-  get hasSteering(): boolean {
-    return this.items.some((item) => item.steering && !item.editing);
-  }
-
   add(content: PromptContent, skills: string[] = [], id: string = randomUUID()): string {
     this.validate(content, skills);
     if (!id || this.items.some((item) => item.id === id)) throw new Error("Duplicate queue ID");
@@ -77,10 +73,17 @@ export class MessageQueue {
     item.steering = true;
   }
 
-  take(steeringOnly = false): QueuedMessage | undefined {
+  peek(steeringOnly = false): QueuedMessage | undefined {
     let index = this.items.findIndex((item) => item.steering && !item.editing);
     if (index < 0 && !steeringOnly) index = this.items.findIndex((item) => !item.editing);
     if (index < 0) return;
+    return structuredClone(this.items[index]);
+  }
+
+  take(steeringOnly = false): QueuedMessage | undefined {
+    const next = this.peek(steeringOnly);
+    if (!next) return;
+    const index = this.items.findIndex((item) => item.id === next.id);
     for (const item of this.items.slice(0, index)) {
       if (item.editing) this.bypassedEdits.add(item.id);
     }

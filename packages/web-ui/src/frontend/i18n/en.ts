@@ -147,6 +147,8 @@ export const en = {
   resize: "Resize sidebar",
   language: "Language",
   settings: "Settings",
+  appMenu: "More",
+  feedback: "Feedback",
   personal: "Personal",
   general: "General",
   languageDescription: "Language for the app UI",

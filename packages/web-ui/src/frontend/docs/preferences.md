@@ -10,9 +10,9 @@ The sidebar uses a translucent frosted-glass background with backdrop blur, a so
 
 The sidebar shows the electric-blue Loop icon at 28px; the welcome screen shows it at 64px. Both use the shared [LoopIcon](../components/ui/LoopIcon.tsx) and supplied 256px PNGs to preserve the smooth gradient on high-density displays. Light uses the approved charcoal tile with a white-to-blue mark; Dark uses a white tile with a charcoal-to-blue mark. Geometry, spacing and the blue endpoint stay the same. Explicit Light/Dark selections override the browser preference, while System follows live `prefers-color-scheme` changes through CSS. The images update without remounting or changing layout. These decorative images are hidden from assistive technology; nearby text provides the context. Browser favicons and Safari icons keep the standard [brand assets](../../docs/assets/loop-brand/README.md), independently of the in-app theme setting.
 
-Open **Settings** at the bottom of the sidebar, then use the language dropdown in **General**. The modal's left navigation groups **General**, **Models** and **Appearance** under **Personal** (**个人** in Chinese), followed by **Integrations → MCPs and Skills** for [MCP settings](integrations.md), and a separate **Archived** (**归档**) section containing **Archived chats**. Regular-weight gray labels align with the item icons. Each opening starts on General; use Tab to move between navigation groups and Up/Down or Home/End within each group. Use **Models** to manage providers and credentials. The sidebar entry, dialog title, navigation, page headings, and option descriptions all follow the selected interface language.
+Open the **More** menu at the bottom of the sidebar and choose **Settings**, then use the language dropdown in **General**. The modal's left navigation groups **General**, **Models** and **Appearance** under **Personal** (**个人** in Chinese), followed by **Integrations → MCPs and Skills** for [MCP settings](integrations.md), and a separate **Archived** (**归档**) section containing **Archived chats**. Regular-weight gray labels align with the item icons. Each opening starts on General; use Tab to move between navigation groups and Up/Down or Home/End within each group. Use **Models** to manage providers and credentials. The sidebar entry, dialog title, navigation, page headings, and option descriptions all follow the selected interface language.
 
-Hovering over Settings highlights a 40px-high row with 12px corners and narrow 8px side insets. A translucent tint darkens the background in Light mode and lightens it in Dark mode while retaining the sidebar's glass effect. The row sits 8px below the divider and above the bottom edge. The brief color transition respects reduced-motion preferences.
+The text-only More menu trigger (更多 in Chinese) highlights a 48px-high row with 12px corners and narrow 8px side insets. It has no logo or chevron. Opening it shows Settings and Feedback in a rounded menu above the trigger, without a sign-in entry. Use arrow keys or Home/End to navigate; Escape, Tab, clicking outside or moving focus outside dismisses it. Escape returns focus to the trigger. A translucent tint darkens the trigger in Light mode and lightens it in Dark mode while retaining the sidebar's glass effect. The row sits 8px below the divider and above the bottom edge. The brief color transition respects reduced-motion preferences.
 
 The General panel starts with a General page heading and a General section heading. Rounded settings cards contain Permission followed by Language, each with a short description and dropdown. Permission selects Read only, Workspace write, or Full access for future Web sessions across all projects; existing sessions keep their saved permissions. Full access requires confirmation. The backend persists this preference independently of browser language and theme; see [permissions](permissions.md). In Chinese the headings read 通用, and the Language description reads 应用界面使用的语言.
 
@@ -24,7 +24,13 @@ Switching updates interface text and the page lang attribute without refreshing 
 
 During development, Vite hot updates of the English or Chinese resource file refresh i18next's resource store and the visible translations without changing the selected language or reloading the page.
 
-Open the dropdown with click, Enter, Space, or an arrow key. Use arrow keys or Home/End to navigate and Enter/Space to select. Escape closes the dropdown first; clicking outside or tabbing away also dismisses it. The modal closes with its top-right button or Escape and returns focus to Settings. On mobile, closing Settings leaves the project drawer open.
+Open the dropdown with click, Enter, Space, or an arrow key. Use arrow keys or Home/End to navigate and Enter/Space to select. Escape closes the dropdown first; clicking outside or tabbing away also dismisses it. The modal closes with its top-right button or Escape and returns focus to the More menu trigger. On mobile, closing Settings leaves the project drawer open.
+
+## Feedback
+
+Choose **More → Feedback**, marked with a paper-plane outline icon, to open the repository's GitHub new-issue page in a new tab. The link pre-fills a bug-report title and Markdown sections for the problem, reproduction steps, expected behavior, actual behavior, environment and additional context. The same [bug report template](../../../../../.github/ISSUE_TEMPLATE/bug_report.md) is available from GitHub's issue chooser once published on the default branch. The pre-filled body also works before the template is published.
+
+Feedback never submits an issue automatically or includes session history, logs, environment values or other local data. Fill in the template manually and submit it on GitHub; GitHub may require its own sign-in. Remove credentials, personal data and private content from any added text or attachments.
 
 ## Appearance
 
@@ -72,6 +78,8 @@ Drafts and unconfirmed requests contain user input in local browser storage; the
 - [Language initialization](../i18n/setup.ts) / [translation contract tests](../i18n/setup.test.ts).
 - [Language matching](../i18n/language.ts) / [tests](../i18n/language.test.ts).
 - [Settings dialog](../components/settings/SettingsDialog.tsx) / [tests](../components/settings/SettingsDialog.test.tsx).
+- [Sidebar menu](../components/layout/SidebarMenu.tsx) / [tests](../components/layout/SidebarMenu.test.tsx).
+- [Feedback issue link](../lib/feedback-issue.ts) / [tests](../lib/feedback-issue.test.ts).
 - [Language dropdown](../components/settings/LanguageSelect.tsx) / [tests](../components/settings/LanguageSelect.test.tsx).
 - [preferences](../lib/preferences.ts) / [tests](../lib/preferences.test.ts).
 - [Appearance cards](../components/settings/AppearanceSettings.tsx) / [tests](../components/settings/AppearanceSettings.test.tsx).

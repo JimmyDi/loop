@@ -4,6 +4,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-12
+
 ### Breaking Changes
 
 - Agent workspace API: replace `step()` and the `runAgentLoop` singleTurn argument with complete `prompt()` / `continue()` execution and steering/follow-up callbacks. Use `continue()` to resume existing user history; move host scheduling into the loop boundary contracts. See [Agent loop](packages/agent/src/docs/agent-loop.md#scheduled-inputs-and-checkpoints).

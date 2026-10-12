@@ -32,6 +32,8 @@ The CLI is interactive by default. The SDK sample performs one request workflow 
 | Automatic titles, renaming and regeneration | [Session titles](src/docs/session-titles.md) |
 | On-disk JSONL schema | [Session format](src/docs/session-format.md) |
 | Stream output and observe run completion | [Events](src/docs/events.md) |
+| Record execution events to local logs | [Telemetry](src/docs/telemetry.md) |
+| Inspect trace event names and business mappings | [Trace events](src/docs/trace-events.md) |
 | Read, bash, edit, and write | [Tools](src/docs/tools.md) |
 | Configure MCP servers and discover external tools in the background | [MCP servers](src/docs/mcp.md) |
 | Discover and call tools through isolated JavaScript | [Codemode](src/docs/codemode.md) |

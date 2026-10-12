@@ -72,7 +72,11 @@ export const generateSummary = async (
       streamFn: async (selected, context, options) => {
         await runtime.checkModel(selected, signal);
         signal.throwIfAborted();
-        return runtime.streamSimple(selected, context, withOutputBudget(options, budget));
+        return (runtime.forPurpose?.("compaction") ?? runtime).streamSimple(
+          selected,
+          context,
+          withOutputBudget(options, budget),
+        );
       },
       streamOptions,
     },

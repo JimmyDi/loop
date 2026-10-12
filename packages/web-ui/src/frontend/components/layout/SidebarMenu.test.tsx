@@ -35,6 +35,9 @@ test.each([
       expect(view.queryByText("Sign in")).toBeNull();
       expect(document.activeElement).toBe(settingsItem);
       expect(feedbackItem.getAttribute("href")).toBe(feedbackIssueUrl);
+      expect(new URL(feedbackItem.getAttribute("href")!).searchParams.get("template")).toBe(
+        "blank",
+      );
       expect(feedbackItem.getAttribute("target")).toBe("_blank");
       expect(feedbackItem.getAttribute("rel")).toBe("noopener noreferrer");
 

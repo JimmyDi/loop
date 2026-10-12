@@ -49,6 +49,8 @@ test("project HTTP lifecycle stays local and never accepts a session file path",
     expect(project.name).toBe("Custom project");
     expect((await call("/api/directories")).status).toBe(404);
     expect((await call("/api/directories/capabilities")).status).toBe(404);
+    expect((await call("/api/sessions/synthetic-session/trace")).status).toBe(404);
+    expect((await call("/api/sessions/synthetic-session/trace", "POST", {})).status).toBe(404);
     expect((await (await call("/api/workspaces")).json()).length).toBe(1);
     expect((await call("/api/sessions", "POST", { path: "/private/session.jsonl" })).status).toBe(
       400,

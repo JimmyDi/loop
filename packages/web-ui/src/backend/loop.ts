@@ -46,6 +46,7 @@ export type SessionPort = Pick<
       | "moveQueued"
       | "steerQueued"
       | "resume"
+      | "flushTrace"
     >
   >;
 

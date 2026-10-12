@@ -64,6 +64,12 @@ export { createReadTool, createBashTool, createEditTool, createWriteTool } from 
 export { messageText } from "./core/messages";
 export { DEFAULT_MODEL, DEFAULT_PROVIDER, getAgentDir, getSessionDir } from "./config";
 export type { PromptTiming } from "./core/prompt-timing";
+export type {
+  TraceMode,
+  TraceOptions,
+  TraceEvent,
+  TraceStatus,
+} from "@loop/telemetry";
 export { McpManager } from "./core/mcp/mcp-manager";
 export type { McpPromptServer, McpToolSnapshot } from "./core/mcp/mcp-manager";
 export { SkillManager } from "./core/skills/skill-manager";

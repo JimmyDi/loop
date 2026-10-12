@@ -221,6 +221,8 @@ export type ModelRuntime = {
   getModels(): readonly Model<Api>[];
   checkModel(model: Model<Api>, signal?: AbortSignal): Promise<void>;
   streamSimple: StreamFn;
+  /** Optional observation scope; never changes provider selection or execution. */
+  forPurpose?: (purpose: string) => ModelRuntime;
 };
 
 export type ModelRuntimeOptions = {

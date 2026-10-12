@@ -170,6 +170,7 @@ export class SessionController {
     if (this.session.state.hasPendingSave) await this.command("flush", () => this.session.flush());
 
     this.dispose();
+    await this.session.flushTrace?.();
   }
 
   dispose(): void {

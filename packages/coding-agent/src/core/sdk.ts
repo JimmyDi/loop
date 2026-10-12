@@ -1,6 +1,8 @@
-import { dirname } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { realpathSync } from "node:fs";
 import type { Api, Model } from "@earendil-works/pi-ai";
+import { TraceRecorder, pruneTraces } from "@loop/telemetry";
+import type { TraceOptions } from "@loop/telemetry";
 
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, getSessionDir } from "../config";
 import { AgentSession } from "./agent-session";
@@ -32,7 +34,10 @@ export type CreateAgentSessionOptions = ServiceOptions & {
   effort?: ModelEffort;
   title?: SessionTitleOptions;
   permissionPreset?: PermissionPreset;
+  telemetry?: false | TraceOptions;
 };
+
+const retention = new Map<string, Promise<void>>();
 
 export async function createAgentSession(
   options: CreateAgentSessionOptions = {},
@@ -55,6 +60,7 @@ export async function createAgentSession(
     "permissionPreset",
     "mcpManager",
     "skillManager",
+    "telemetry",
   ]);
 
   for (const key of Object.keys(options)) {
@@ -135,7 +141,25 @@ export async function createAgentSession(
     await sessionManager.setModel({ provider: model.provider, id: model.id, effort });
   }
 
+  const traceRecorder =
+    options.telemetry !== false && sessionManager.getSessionFile()
+      ? await TraceRecorder.open(
+          join(
+            services.agentDir,
+            "traces",
+            basename(getSessionDir(services.cwd, services.agentDir)),
+            sessionManager.getSessionId(),
+          ),
+          sessionManager.getSessionId(),
+          options.telemetry || {},
+        )
+      : undefined;
+  if (traceRecorder && !retention.has(services.agentDir)) {
+    const cleanup = pruneTraces(join(services.agentDir, "traces")).catch(() => {});
+    retention.set(services.agentDir, cleanup);
+  }
   const session = new AgentSession({
+    traceRecorder,
     model,
     modelRuntime: services.modelRuntime,
     sessionManager,

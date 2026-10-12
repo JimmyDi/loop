@@ -4,6 +4,14 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Added
+
+- telemetry and coding-agent: add an independent local trace package with ordered JSONL records, bounded storage, inactive-log retention, credential filtering and deterministic shutdown draining. Capture configuration, queued inputs, logical model calls including summaries and titles, tools, approvals, compaction and save outcomes without changing Session version-2 storage or execution results. File-backed sessions default to content capture; SDK callers can select metadata/stream modes or disable recording. Reduce capture overhead with single-pass filtering, metadata content skipping, serialized snapshot reuse, batched writes and early bypass of disabled recording while preserving event order and flush boundaries. Use schema-bound event names and payload contracts with compile-time checks for required, incorrect and extra fields, documented in the dot-separated [event catalog](packages/coding-agent/src/docs/trace-events.md) with typed forwarding for complete observations and Core adaptation that preserves business subscriptions; existing local records retain their original names.
+
+### Changed
+
+- Web UI: open a blank GitHub issue from Feedback without a prefilled bug title or report body; remove the Bug report issue template.
+
 ## [0.2.0] - 2026-10-12
 
 ### Breaking Changes

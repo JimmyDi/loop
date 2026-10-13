@@ -38,6 +38,26 @@ test("file justifications validate as display text without accepting shell escal
   ).toThrow("escalation is not supported");
 });
 
+test("policy observers cannot mutate permission outcomes or fail permitted checks", async () => {
+  const root = await mkdtemp(join(tmpdir(), "loop-policy-observer-"));
+  try {
+    const policy = new PermissionPolicy(root, { permissionPreset: "workspace-write" });
+    const seen: string[] = [];
+    const unsubscribe = policy.subscribe((event) => {
+      seen.push(event.type);
+      Object.assign(event, { preset: "danger-full-access" });
+      throw new Error("synthetic observer failure");
+    });
+    await expect(policy.checkWrite(join(root, "file"))).resolves.toBeTruthy();
+    expect(policy.preset()).toBe("workspace-write");
+    await expect(policy.checkWrite(join(root, "../outside"))).rejects.toThrow("outside");
+    expect(seen).toContain("permission.write.checked");
+    unsubscribe();
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("policy contains real paths, protects storage and freezes caller options", async () => {
   const root = await mkdtemp(join(import.meta.dirname, ".policy-test-"));
   const workspace = join(root, "work");

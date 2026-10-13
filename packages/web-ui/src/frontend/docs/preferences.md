@@ -28,9 +28,9 @@ Open the dropdown with click, Enter, Space, or an arrow key. Use arrow keys or H
 
 ## Feedback
 
-Choose **More → Feedback**, marked with a paper-plane outline icon, to open the repository's GitHub new-issue page in a new tab. The link pre-fills a bug-report title and Markdown sections for the problem, reproduction steps, expected behavior, actual behavior, environment and additional context. The same [bug report template](../../../../../.github/ISSUE_TEMPLATE/bug_report.md) is available from GitHub's issue chooser once published on the default branch. The pre-filled body also works before the template is published.
+Choose **More → Feedback**, marked with a paper-plane outline icon, to open a blank issue in the repository on GitHub in a new tab. The link selects the blank form without pre-filling the title, description, labels or issue type.
 
-Feedback never submits an issue automatically or includes session history, logs, environment values or other local data. Fill in the template manually and submit it on GitHub; GitHub may require its own sign-in. Remove credentials, personal data and private content from any added text or attachments.
+Feedback never submits an issue automatically or includes session history, logs, environment values or other local data. Write the title and description and submit on GitHub; GitHub may require its own sign-in. Remove credentials, personal data and private content from any added text or attachments.
 
 ## Appearance
 

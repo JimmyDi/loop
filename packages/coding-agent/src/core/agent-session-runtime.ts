@@ -63,6 +63,7 @@ export class AgentSessionRuntime {
     try {
       await this.current.abort();
       this.current.dispose();
+      await this.current.flushTrace();
       this.disposed = true;
       this.rebind = undefined;
     } finally {
@@ -88,6 +89,7 @@ export class AgentSessionRuntime {
 
       release();
       previous.dispose();
+      await previous.flushTrace();
       this.current = session;
 
       const releaseNext = session.reserve();

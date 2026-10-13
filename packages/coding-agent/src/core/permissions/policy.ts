@@ -7,10 +7,37 @@ import { PermissionError } from "./permission-error";
 import { DEFAULT_PERMISSION_PRESET, isPermissionPreset } from "./types";
 import type { ExecutionPolicy, PermissionPreset, ToolPermissionOptions } from "./types";
 
+export type PermissionObservation =
+  | { type: "permission.policy.resolved"; preset: PermissionPreset; writableRootCount: number }
+  | {
+      type: "permission.write.checked";
+      preset: PermissionPreset;
+      targetPath: string;
+      denial?: string;
+    };
+
 export class PermissionPolicy {
   readonly workspaceRoot: string;
   private readonly protectedPaths: string[];
   private readonly initial: PermissionPreset;
+  private observers = new Set<(event: PermissionObservation) => void>();
+
+  subscribe(listener: (event: PermissionObservation) => void): () => void {
+    this.observers.add(listener);
+    return () => {
+      this.observers.delete(listener);
+    };
+  }
+
+  private notify(event: PermissionObservation): void {
+    for (const listener of this.observers) {
+      try {
+        listener({ ...event });
+      } catch {
+        /* Observation never grants permissions. */
+      }
+    }
+  }
 
   constructor(
     cwd: string,
@@ -51,6 +78,11 @@ export class PermissionPolicy {
       }
       writableRoots.push(temporary);
     }
+    this.notify({
+      type: "permission.policy.resolved",
+      preset,
+      writableRootCount: writableRoots.length,
+    });
     return { preset, workspaceRoot: this.workspaceRoot, writableRoots, protectedRoots };
   }
 
@@ -59,20 +91,32 @@ export class PermissionPolicy {
   ): Promise<{ policy: ExecutionPolicy; target: string; denial?: string }> {
     const policy = await this.resolve();
     const target = await canonicalPath(path);
-    if (policy.preset === "danger-full-access") return { policy, target };
+    if (policy.preset === "danger-full-access") {
+      this.notify({ type: "permission.write.checked", preset: policy.preset, targetPath: target });
+      return { policy, target };
+    }
     if (policy.protectedRoots.some((root) => isWithin(target, root) || isWithin(root, target))) {
+      this.notify({
+        type: "permission.write.checked",
+        preset: policy.preset,
+        targetPath: target,
+        denial: "Target overlaps protected Loop storage",
+      });
       throw new PermissionError("Target overlaps protected Loop storage");
     }
-    return {
-      policy,
-      target,
-      denial:
-        policy.preset === "read-only"
-          ? "Files are read-only"
-          : !isWithin(target, policy.workspaceRoot)
-            ? "Target is outside the workspace"
-            : undefined,
-    };
+    const denial =
+      policy.preset === "read-only"
+        ? "Files are read-only"
+        : !isWithin(target, policy.workspaceRoot)
+          ? "Target is outside the workspace"
+          : undefined;
+    this.notify({
+      type: "permission.write.checked",
+      preset: policy.preset,
+      targetPath: target,
+      denial,
+    });
+    return { policy, target, denial };
   }
 
   async checkWrite(path: string): Promise<string> {

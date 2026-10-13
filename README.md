@@ -44,8 +44,9 @@ The public npm package is `@loop-harness/loop`; the installed executable remains
 | packages/agent | In-memory model and sequential tool loop |
 | packages/coding-agent | Sessions, permissions, tools, persistence, CLI and SDK |
 | packages/web-ui | Frontend, backend and shared protocol |
+| packages/telemetry | Local trace recording, storage and retention |
 
-All three are private workspace packages with independent manifests and public exports, bundled into the root distribution. Root bin.ts and sdk.ts are application distribution entries. Commands flow Web/CLI/SDK → coding-agent → agent → model API. Events flow upward through subscriptions. Only the model-runtime module configures and injects the model runtime; the loop initiates requests. pnpm check:architecture enforces dependencies and rejects cycles and private imports.
+All four are private workspace packages with independent manifests and public exports, bundled into the root distribution. Root bin.ts and sdk.ts are application distribution entries. Commands flow Web/CLI/SDK → coding-agent → agent → model API. Events flow upward through subscriptions. Only the model-runtime module configures and injects the model runtime; the loop initiates requests. pnpm check:architecture enforces dependencies and rejects cycles and private imports.
 
 Loop remains single-agent. Reliability, safety, recoverability and usability determine maturity.
 
@@ -55,6 +56,7 @@ Loop remains single-agent. Reliability, safety, recoverability and usability det
 | --- | --- |
 | Agent API, events and tools | [Agent](packages/agent/README.md) |
 | SDK, CLI, models and sessions | [Coding-agent](packages/coding-agent/README.md) |
+| Local execution logs | [Telemetry](packages/telemetry/README.md) |
 | Browser application and server | [Web UI](packages/web-ui/README.md) |
 | Development, build and distribution | [Development](docs/development.md) |
 

@@ -12,6 +12,7 @@ import type { PermissionPreset } from "../permissions/types";
 import { ToolApprovals } from "./tool-approvals";
 import type { PermissionTool, ToolApprovalContext } from "./tool-approvals";
 import type { ApprovalRequest } from "./types";
+import type { NestedToolEvent } from "./tool-approvals";
 
 const model = {
   id: "test",
@@ -393,4 +394,42 @@ test("bound execution context expires and cannot be reused after a call ends", a
       "late",
     ),
   ).toThrow("expired");
+});
+
+test("nested tool observation preserves execution and parent IDs even when observers throw", async () => {
+  const events: NestedToolEvent[] = [];
+  const bridge = new ToolApprovals(
+    async () => {
+      throw new Error("Unexpected approval");
+    },
+    (event) => {
+      events.push(event);
+      throw new Error("synthetic recorder failure");
+    },
+  );
+  const child: PermissionTool = {
+    name: "child",
+    description: "Synthetic",
+    parameters: {},
+    execute: () => [{ type: "text", text: "synthetic nested result" }],
+  };
+  const parent: PermissionTool = {
+    name: "parent",
+    description: "Synthetic",
+    parameters: {},
+    execute: (_args, signal, approval) => approval!.executeNested!(child, {}, signal),
+  };
+  bridge.onEvent({
+    type: "tool_execution_start",
+    toolCallId: "root-call",
+    toolName: "parent",
+    args: {},
+  });
+  expect(await bridge.bind([parent])[0].execute({}, new AbortController().signal)).toEqual([
+    { type: "text", text: "synthetic nested result" },
+  ]);
+  expect(events.map((event) => [event.type, event.toolCallId, event.parentToolCallId])).toEqual([
+    ["nested_tool.started", "root-call/1", "root-call"],
+    ["nested_tool.completed", "root-call/1", "root-call"],
+  ]);
 });

@@ -1,4 +1,4 @@
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { createHash } from "node:crypto";
 import { realpathSync } from "node:fs";
@@ -12,6 +12,9 @@ export function getSessionDir(cwd: string, agentDir = getAgentDir()): string {
 
   return join(agentDir, "sessions", project);
 }
+
+export const getTraceDir = (cwd: string, agentDir = getAgentDir()): string =>
+  join(agentDir, "traces", basename(getSessionDir(cwd, agentDir)));
 
 export const VERSION = "0.1.0";
 

@@ -8,8 +8,45 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { existsSync } from "node:fs";
 import { expect, test } from "vitest";
 
-import { SessionManager, getSessionDir } from "@loop/coding-agent";
+import { SessionManager, getSessionDir, getTraceDir } from "@loop/coding-agent";
 import { createLoopBridge } from "./loop";
+
+test("Web deletion closes pending trace writes and removes history and logs; archive preserves both", async () => {
+  const { SessionRegistry } = await import("./session-registry");
+  const { ProjectStore } = await import("./projects/project-store");
+  const root = await mkdtemp(join(import.meta.dirname, ".bridge-delete-trace-test-"));
+  const registry = new SessionRegistry(
+    new ProjectStore(join(root, "projects.json")),
+    createLoopBridge(root),
+  );
+  try {
+    const project = await registry.projects.add(root);
+    const manager = await SessionManager.create(root, getSessionDir(root, root));
+    await manager.setModel({ provider: "synthetic", id: "unavailable", effort: "default" });
+    await manager.commit([{ role: "user", content: "synthetic history", timestamp: 0 }]);
+    const id = manager.getSessionId();
+    const controller = await registry.get(id);
+    const traceDir = join(getTraceDir(root, root), id);
+    await registry.archive(project.id, [id], true);
+    expect(existsSync(traceDir)).toBe(true);
+    expect(existsSync(manager.sessionFile!)).toBe(true);
+    expect(await registry.get(id)).toBe(controller);
+    await registry.archive(project.id, [id], "delete");
+    expect(existsSync(traceDir)).toBe(false);
+    expect(existsSync(manager.sessionFile!)).toBe(false);
+    await expect(registry.get(id)).rejects.toThrow("session_not_found");
+    const second = await SessionManager.create(root, getSessionDir(root, root));
+    await second.setModel({ provider: "synthetic", id: "unavailable", effort: "default" });
+    await second.commit([{ role: "user", content: "synthetic second history", timestamp: 0 }]);
+    const secondId = second.getSessionId();
+    await registry.get(secondId);
+    await registry.archive(project.id, [secondId], "delete-session");
+    expect(existsSync(join(getTraceDir(root, root), secondId))).toBe(false);
+  } finally {
+    await registry.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 test("SDK bridge lists canonical project history without exposing file paths", async () => {
   const root = await mkdtemp(join(import.meta.dirname, ".bridge-test-"));

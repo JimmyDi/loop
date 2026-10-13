@@ -36,6 +36,9 @@ importers:
       '@loop/coding-agent':
         specifier: workspace:*
         version: link:packages/coding-agent
+      '@loop/telemetry':
+        specifier: workspace:*
+        version: link:packages/telemetry
       '@loop/web-ui':
         specifier: workspace:*
         version: link:packages/web-ui
@@ -84,6 +87,9 @@ importers:
       '@loop/agent':
         specifier: workspace:*
         version: link:../agent
+      '@loop/telemetry':
+        specifier: workspace:*
+        version: link:../telemetry
       '@modelcontextprotocol/sdk':
         specifier: ^1.32.0
         version: 1.32.0(supports-color@7.2.0)(zod@4.6.5)
@@ -93,6 +99,8 @@ importers:
       yaml:
         specifier: ^2.9.1
         version: 2.9.1
+
+  packages/telemetry: {}
 
   packages/web-ui:
     dependencies:

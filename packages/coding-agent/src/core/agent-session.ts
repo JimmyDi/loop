@@ -40,6 +40,8 @@ import { MessageQueue } from "./message-queue";
 import type { AutomaticCompaction } from "./context/automatic-compaction";
 import { prepareSessionInput, createSessionRequest } from "./context/session-input";
 import { stoppedResponse } from "./stopped-response";
+import { SessionTrace } from "./telemetry/session-trace";
+import { traceModelRuntime } from "./telemetry/model-trace";
 
 export class AgentSession {
   private listeners = new Set<SessionEventListener>();
@@ -70,17 +72,32 @@ export class AgentSession {
   private inputProjection?: ModelInputProjection;
   private toolDisplayNames = new Map<string, string>();
   private skillLoads: Array<{ userTurn: number; skills: LoadedSkill[] }> = [];
+  private readonly trace: SessionTrace;
+  private readonly unsubscribeWrites: () => void;
+  private readonly unsubscribePolicy: () => void;
+  private traceClosing?: Promise<void>;
 
   constructor(private readonly options: SessionOptions) {
     validateRequestMaxTokens(options.maxTokens);
+    this.trace = new SessionTrace(options.traceRecorder);
+    this.options = {
+      ...options,
+      modelRuntime: traceModelRuntime(options.modelRuntime, this.trace),
+    };
+    this.unsubscribeWrites = options.sessionManager.subscribeWrites((event) =>
+      this.trace.observation(event, event.operationId, this.trace.runId),
+    );
+    this.unsubscribePolicy =
+      options.permissionPolicy?.subscribe((event) => this.trace.observation(event)) ?? (() => {});
     this.skillLoads = options.sessionManager
       .getRuntimeContexts()
       .flatMap((row) =>
         row.skills?.length ? [{ userTurn: row.userTurn, skills: row.skills }] : [],
       );
     options.skillManager?.view(options.sessionManager.getCwd());
-    this.toolApprovals = new ToolApprovals((input, options) =>
-      this.requestApproval(input, options),
+    this.toolApprovals = new ToolApprovals(
+      (input, options) => this.requestApproval(input, options),
+      (event) => this.trace.nested(event),
     );
     this.approvals = new ApprovalService(
       this.sessionId,
@@ -101,13 +118,30 @@ export class AgentSession {
     );
     this.titles = new SessionTitleService(
       options.sessionManager,
-      options.modelRuntime,
+      this.options.modelRuntime,
       options.title,
       (title, error) => {
         this.titleError = error;
         this.emit({ type: "session_title", title, error });
       },
     );
+    this.trace.record("session.attached", {
+      model: {
+        provider: this.selected.provider,
+        id: this.selected.id,
+        effort: this.selectedEffort,
+      },
+      permissionPreset: this.permissionPreset,
+      messageCount: this.sessionManager.messages.length,
+    });
+  }
+
+  get traceStatus() {
+    return this.trace.status;
+  }
+
+  flushTrace(): Promise<void> {
+    return this.traceClosing ?? this.trace.flush();
   }
 
   get sessionManager() {
@@ -181,6 +215,7 @@ export class AgentSession {
       return Promise.reject(error);
     }
     this.busy = true;
+    const operationId = this.trace.begin("permission.change", { preset });
     this.active = this.sessionManager
       .setPermissionPreset(preset)
       .then(() => {
@@ -191,6 +226,19 @@ export class AgentSession {
           this.selectedEffort,
         );
         this.emit({ type: "permission_changed", permissionPreset: preset });
+        this.trace.record(
+          "permission.change.completed",
+          { preset, outcome: "success" },
+          operationId,
+        );
+      })
+      .catch((error) => {
+        this.trace.record(
+          "permission.change.completed",
+          { outcome: "error", error: String(error) },
+          operationId,
+        );
+        throw error;
       })
       .finally(() => {
         this.busy = false;
@@ -389,6 +437,7 @@ export class AgentSession {
     skills: string[],
     queued = false,
   ): Promise<void> {
+    this.trace.start({ content, skills, queued }, content === undefined);
     this.prompting = true;
     this.busy = true;
     this.failure = undefined;
@@ -425,6 +474,10 @@ export class AgentSession {
     this.outcome = "idle";
     this.controller = new AbortController();
     const signal = this.controller.signal;
+    const operationId = this.trace.begin("compaction", {
+      trigger: "manual",
+      historyMessageCount: this.sessionManager.messages.length,
+    });
     this.active = compactSession(
       this.sessionManager,
       this.options.modelRuntime,
@@ -451,6 +504,16 @@ export class AgentSession {
         throw error;
       })
       .finally(() => {
+        const checkpoint = this.sessionManager.getCompactions().at(-1);
+        this.trace.endCompaction(
+          {
+            outcome: this.outcome,
+            error: this.failure,
+            checkpoint: this.trace.mode === "metadata" ? checkpoint?.id : checkpoint,
+          },
+          operationId,
+        );
+        void this.trace.flush();
         this.controller = undefined;
         this.busy = false;
         this.prompting = false;
@@ -461,6 +524,7 @@ export class AgentSession {
   }
 
   async abort(): Promise<void> {
+    if (this.busy) this.trace.record("run.cancel.requested", undefined);
     if (this.prompting) this.paused = true;
     this.titles.cancel();
     this.controller?.abort(new Error("Run cancelled"));
@@ -534,6 +598,11 @@ export class AgentSession {
       (getModelEfforts(selected).includes(this.selectedEffort) ? this.selectedEffort : "default");
     this.busy = true;
 
+    const operationId = this.trace.begin("model.change", {
+      provider: selected.provider,
+      id: selected.id,
+      effort,
+    });
     this.active = (async () => {
       try {
         await this.options.modelRuntime.checkModel(selected);
@@ -552,6 +621,18 @@ export class AgentSession {
           this.selectedEffort,
         );
         this.inputProjection = undefined;
+        this.trace.record(
+          "model.change.completed",
+          { provider: selected.provider, id: selected.id, effort, outcome: "success" },
+          operationId,
+        );
+      } catch (error) {
+        this.trace.record(
+          "model.change.completed",
+          { outcome: "error", error: String(error) },
+          operationId,
+        );
+        throw error;
       } finally {
         this.busy = false;
       }
@@ -604,6 +685,15 @@ export class AgentSession {
     this.disposed = true;
     this.approvals.dispose();
     this.titles.dispose();
+    this.traceClosing = this.titles
+      .wait()
+      .catch(() => {})
+      .then(() => {
+        this.unsubscribeWrites();
+        this.unsubscribePolicy();
+        this.trace.record("session.detached", undefined);
+        return this.trace.close();
+      });
     if (this.options.ownsSkillManager) void this.options.skillManager?.close();
     this.listeners.clear();
   }
@@ -621,6 +711,7 @@ export class AgentSession {
   }
 
   private emit(event: SessionEvent): void {
+    this.trace.event(event, event.type === "queue_changed" ? this.queue.messages : undefined);
     const report = (error: unknown) => {
       this.listenerErrors.push(error instanceof Error ? error.message : String(error));
     };
@@ -711,18 +802,40 @@ export class AgentSession {
       return timings;
     };
 
-    const prepareInput = (input: PromptContent | undefined, skills: string[]) =>
-      prepareSessionInput({
-        options: this.options,
-        model: this.selected,
-        permissionPreset: this.permissionPreset,
-        messages: this.agent?.messages ?? this.sessionManager.messages,
-        runtimeContexts,
-        systemPromptCheckpoints,
-        input,
-        skills,
-        signal,
-      });
+    const prepareInput = async (input: PromptContent | undefined, skills: string[]) => {
+      const id = this.trace.begin("input.prepare", { skills, resume: input === undefined });
+      try {
+        const prepared = await prepareSessionInput({
+          options: this.options,
+          model: this.selected,
+          permissionPreset: this.permissionPreset,
+          messages: this.agent?.messages ?? this.sessionManager.messages,
+          runtimeContexts,
+          systemPromptCheckpoints,
+          input,
+          skills,
+          signal,
+        });
+        this.trace.record(
+          "input.prepare.completed",
+          {
+            outcome: "success",
+            skills: prepared.loaded.map(({ id, revision }) => ({ id, revision })),
+          },
+          id,
+          this.trace.runId,
+        );
+        return prepared;
+      } catch (error) {
+        this.trace.record(
+          "input.prepare.completed",
+          { outcome: signal.aborted ? "cancelled" : "error", error: String(error) },
+          id,
+          this.trace.runId,
+        );
+        throw error;
+      }
+    };
 
     const acceptInput = (prepared: Awaited<ReturnType<typeof prepareInput>>) => {
       selectedSkills = [...prepared.selection];
@@ -748,6 +861,7 @@ export class AgentSession {
         },
         onRequest: (projection) => {
           this.inputProjection = projection;
+          this.trace.record("model.input.projected", projection);
           const { loaded, userTurn } = prepared;
           if (loaded.length && !this.skillLoads.some((row) => row.userTurn === userTurn)) {
             this.skillLoads.push({ userTurn, skills: loaded });
@@ -787,6 +901,10 @@ export class AgentSession {
         signal.throwIfAborted();
         if (JSON.stringify(next) !== JSON.stringify(this.queue.peek(steeringOnly))) continue;
         this.queue.take(steeringOnly);
+        this.trace.record(
+          "input.consumed",
+          this.trace.mode === "metadata" ? { id: next.id, skills: next.skills } : next,
+        );
         continuationContent = next.content;
         continuationStart = messages.length;
         acceptInput(prepared);
@@ -816,6 +934,10 @@ export class AgentSession {
           signal.throwIfAborted();
           if (JSON.stringify(next) !== JSON.stringify(this.queue.peek())) continue;
           this.queue.take();
+          this.trace.record(
+            "input.consumed",
+            this.trace.mode === "metadata" ? { id: next.id, skills: next.skills } : next,
+          );
           queuedInputPending = false;
           content = next.content;
           continuationContent = content;
@@ -917,6 +1039,11 @@ export class AgentSession {
               .map((error) => (error instanceof Error ? error.message : String(error)))
               .join("; ")
           : undefined;
+        this.trace.settle({
+          outcome: this.outcome,
+          error: this.failure,
+          hasPendingSave: this.sessionManager.hasPendingSave,
+        });
         this.emit({ type: "agent_settled" });
         if (!failures.length) this.drain();
       }

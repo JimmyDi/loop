@@ -64,6 +64,7 @@ test("inline name selects text, confirms once, synchronizes header and sidebar a
   );
   try {
     const ui = render(view());
+    expect(ui.queryByRole("button", { name: "Trace" })).toBeNull();
     const name = () => ui.container.querySelector<HTMLButtonElement>(".session-name-button")!;
     const edit = () => ui.getByRole("textbox", { name: "Conversation title" }) as HTMLInputElement;
     fireEvent.click(name());

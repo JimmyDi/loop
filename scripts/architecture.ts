@@ -8,7 +8,7 @@ const portable = (path: string): string => path.replaceAll("\\", "/");
 export const root = portable(resolve(import.meta.dirname, ".."));
 const config = ts.readConfigFile(resolve(root, "tsconfig.json"), ts.sys.readFile);
 const { options } = ts.parseJsonConfigFileContent(config.config, ts.sys, root);
-const names = ["agent", "coding-agent", "web-ui"];
+const names = ["agent", "coding-agent", "web-ui", "telemetry"];
 const owner = (file: string) => portable(relative(root, file)).split("/")[1];
 const terminal = (file: string) =>
   /coding-agent\/src\/(cli(?:\/|\.ts)|main\.ts|modes\/)/.test(file);
@@ -40,7 +40,7 @@ export const inspectImports = (file: string, source: string) => {
     }
     if (name.startsWith("@earendil-works/pi-ai")) {
       if (
-        from === "web-ui" ||
+        ["web-ui", "telemetry"].includes(from) ||
         (from === "coding-agent" &&
           !typeOnly &&
           entry !== "packages/coding-agent/src/core/model-runtime.ts")
@@ -51,10 +51,14 @@ export const inspectImports = (file: string, source: string) => {
     if (workspace) {
       const [, to, subpath] = workspace;
       const allowed =
-        from === "web-ui" ? "coding-agent" : from === "coding-agent" ? "agent" : undefined;
+        from === "web-ui"
+          ? ["coding-agent"]
+          : from === "coding-agent"
+            ? ["agent", "telemetry"]
+            : [];
       const shell = entry === "bin.ts" && ["@loop/web-ui", "@loop/coding-agent/cli"].includes(name);
       const sdk = entry === "sdk.ts" && name === "@loop/coding-agent";
-      if (!shell && !sdk && (to !== allowed || subpath || (browser(file) && !typeOnly)))
+      if (!shell && !sdk && (!allowed.includes(to!) || subpath || (browser(file) && !typeOnly)))
         reject(name);
     }
     const resolved = ts.resolveModuleName(name, file, options, ts.sys).resolvedModule;

@@ -1,6 +1,7 @@
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { mkdir, readFile, rename, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { stageTraceDeletion } from "@loop/telemetry";
 
 import { atomicWrite } from "../utils/atomic-write";
 import { SessionManager } from "./session-manager";
@@ -10,7 +11,13 @@ export class SessionArchive {
   private writes: Promise<unknown> = Promise.resolve();
   private readonly file: string;
 
-  constructor(private readonly sessionDir: string) {
+  constructor(
+    private readonly sessionDir: string,
+    private readonly traceDir = basename(dirname(sessionDir)) === "sessions" &&
+    /^[a-f0-9]{24}$/.test(basename(sessionDir))
+      ? join(dirname(dirname(sessionDir)), "traces", basename(sessionDir))
+      : undefined,
+  ) {
     this.file = join(sessionDir, "archive.json");
   }
 
@@ -28,9 +35,18 @@ export class SessionArchive {
       if (!targets.length) return;
       const staging = join(this.sessionDir, ".delete-" + crypto.randomUUID());
       const moved: { original: string; staged: string }[] = [];
+      const restoreTraces: Array<() => Promise<void>> = [];
       await mkdir(staging, { mode: 0o700 });
       try {
         for (const record of targets) {
+          if (!/^[a-f0-9-]{36}$/.test(record.id)) throw new Error("Invalid session ID");
+          if (this.traceDir) {
+            const restore = await stageTraceDeletion(
+              join(this.traceDir, record.id),
+              join(staging, record.id + ".traces"),
+            );
+            if (restore) restoreTraces.push(restore);
+          }
           const staged = join(staging, record.id + ".jsonl");
           await rename(record.path, staged);
           moved.push({ original: record.path, staged });
@@ -38,7 +54,15 @@ export class SessionArchive {
         for (const id of selected) entries.delete(id);
         await atomicWrite(this.file, JSON.stringify([...entries]) + "\n");
       } catch (error) {
-        for (const file of moved.reverse()) await rename(file.staged, file.original);
+        const rollback = await Promise.allSettled([
+          ...moved.reverse().map((file) => rename(file.staged, file.original)),
+          ...restoreTraces.reverse().map((restore) => restore()),
+        ]);
+        const failures = rollback.flatMap((result) =>
+          result.status === "rejected" ? [result.reason] : [],
+        );
+        if (failures.length)
+          throw new AggregateError([error, ...failures], "Session deletion rollback failed");
         await rm(staging, { recursive: true, force: true });
         throw error;
       }

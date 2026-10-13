@@ -21,6 +21,7 @@ export const closeSessions = async (sessions: Iterable<SessionController>): Prom
 export const disposeSessions = async (sessions: SessionController[]): Promise<void> => {
   await cancelTitles(sessions);
   for (const item of sessions) item.dispose();
+  await Promise.all(sessions.map((item) => item.session.flushTrace?.()));
 };
 
 export const cancelTitles = async (sessions: Iterable<SessionController>): Promise<void> => {

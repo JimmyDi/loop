@@ -22,6 +22,15 @@ import type { SystemPromptCheckpoint } from "./context/system-prompt-state";
 import { validatePromptTimings } from "./prompt-timing";
 import type { PromptTiming } from "./prompt-timing";
 
+export type SessionWriteEvent = {
+  type: "session.save.started" | "session.save.completed";
+  operationId: string;
+  messageCount: number;
+  persisted: boolean;
+  outcome?: "success" | "error";
+  error?: string;
+};
+
 class UnsupportedSessionFormatError extends Error {
   constructor() {
     super("Unsupported session format or version");
@@ -32,6 +41,24 @@ export class SessionManager {
   private pending?: SessionData;
   private writing = false;
   private writes: Promise<void> = Promise.resolve();
+  private writeListeners = new Set<(event: SessionWriteEvent) => void>();
+
+  subscribeWrites(listener: (event: SessionWriteEvent) => void): () => void {
+    this.writeListeners.add(listener);
+    return () => {
+      this.writeListeners.delete(listener);
+    };
+  }
+
+  private notifyWrite(event: SessionWriteEvent): void {
+    for (const listener of this.writeListeners) {
+      try {
+        listener({ ...event });
+      } catch {
+        /* Observers never alter persistence. */
+      }
+    }
+  }
 
   private constructor(
     private data: SessionData,
@@ -415,11 +442,28 @@ export class SessionManager {
 
   private async write(data: SessionData): Promise<void> {
     if (this.draft && !data.messages.some((message) => message.role === "user")) return;
-    if (this.sessionFile)
-      await atomicWrite(
-        this.sessionFile,
-        [data.header, ...data.messages].map((entry) => JSON.stringify(entry)).join("\n") + "\n",
-      );
-    this.draft = false;
+    const event = {
+      operationId: crypto.randomUUID(),
+      messageCount: data.messages.length,
+      persisted: !!this.sessionFile,
+    };
+    this.notifyWrite({ type: "session.save.started", ...event });
+    try {
+      if (this.sessionFile)
+        await atomicWrite(
+          this.sessionFile,
+          [data.header, ...data.messages].map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+        );
+      this.draft = false;
+      this.notifyWrite({ type: "session.save.completed", ...event, outcome: "success" });
+    } catch (error) {
+      this.notifyWrite({
+        type: "session.save.completed",
+        ...event,
+        outcome: "error",
+        error: String(error),
+      });
+      throw error;
+    }
   }
 }

@@ -62,8 +62,14 @@ export type { ContextBudget } from "./core/context-budget";
 export type { SessionTitle, SessionTitleOptions } from "./core/titles/types";
 export { createReadTool, createBashTool, createEditTool, createWriteTool } from "./core/tools";
 export { messageText } from "./core/messages";
-export { DEFAULT_MODEL, DEFAULT_PROVIDER, getAgentDir, getSessionDir } from "./config";
+export { DEFAULT_MODEL, DEFAULT_PROVIDER, getAgentDir, getSessionDir, getTraceDir } from "./config";
 export type { PromptTiming } from "./core/prompt-timing";
+export type {
+  TraceMode,
+  TraceOptions,
+  TraceEvent,
+  TraceStatus,
+} from "@loop/telemetry";
 export { McpManager } from "./core/mcp/mcp-manager";
 export type { McpPromptServer, McpToolSnapshot } from "./core/mcp/mcp-manager";
 export { SkillManager } from "./core/skills/skill-manager";

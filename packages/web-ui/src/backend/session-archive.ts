@@ -2,6 +2,7 @@ import type { Project } from "../shared/protocol";
 import type { LoopBridge } from "./loop";
 import type { SessionController } from "./session-controller";
 import { HttpError } from "./http/errors";
+import { cancelTitles } from "./session-lifecycle";
 
 export const updateArchive = async (
   project: Project,
@@ -28,16 +29,16 @@ export const updateArchive = async (
   const active = [...instances.values()].filter(
     (item) => item.workspaceId === project.id && ids.includes(item.session.sessionId),
   );
-  await Promise.all(active.map((item) => item.session.cancelTitle()));
+  await cancelTitles(active);
+  for (const item of active) {
+    item.dispose();
+    instances.delete(item.session.sessionId);
+  }
   try {
+    await Promise.all(active.map((item) => item.session.flushTrace?.()));
     await loop.deleteSessions(project, ids, archivedOnly);
   } finally {
     const remaining = new Set((await loop.list(project)).map((record) => record.id));
-    for (const item of active) {
-      if (remaining.has(item.session.sessionId)) continue;
-      item.dispose();
-      instances.delete(item.session.sessionId);
-    }
     for (const id of ids) if (!remaining.has(id)) owners.delete(id);
   }
 };

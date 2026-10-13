@@ -39,6 +39,10 @@ test("production packages enforce downward public boundaries, declared dependenc
 });
 
 test.each([
+  ["telemetry/src/index.ts", 'import type { AgentSession } from "@loop/coding-agent";'],
+  ["telemetry/src/index.ts", 'import type { Agent } from "@loop/agent";'],
+  ["telemetry/src/index.ts", 'import "@earendil-works/pi-ai";'],
+  ["agent/src/agent.ts", 'import "@loop/telemetry";'],
   ["agent/src/agent.ts", 'import type { AgentSession } from "@loop/coding-agent";'],
   ["agent/src/index.ts", 'export * from "@loop/web-ui";'],
   ["coding-agent/src/core/sdk.ts", 'import "../main";'],
@@ -86,7 +90,8 @@ test("runtime cycles are rejected", () => {
 test("workspace manifests declare only downward package dependencies and explicit exports", async () => {
   const allowed: Record<string, string[]> = {
     agent: [],
-    "coding-agent": ["@loop/agent"],
+    telemetry: [],
+    "coding-agent": ["@loop/agent", "@loop/telemetry"],
     "web-ui": ["@loop/coding-agent"],
   };
   for (const [name, dependencies] of Object.entries(allowed)) {

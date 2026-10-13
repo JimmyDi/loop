@@ -32,6 +32,17 @@ export type PermissionTool = Omit<AgentTool, "execute"> & {
   ) => ReturnType<AgentTool["execute"]>;
 };
 
+export type NestedToolEvent = {
+  type: "nested_tool.started" | "nested_tool.completed";
+  toolCallId: string;
+  parentToolCallId: string;
+  toolName: string;
+  args?: Record<string, unknown>;
+  result?: Awaited<ReturnType<AgentTool["execute"]>>;
+  outcome?: "success" | "error" | "cancelled";
+  error?: string;
+};
+
 /** Associates sequential tool execution with its core-observed call ID, without changing Agent. */
 export class ToolApprovals {
   private call?: { id: string; name: string };
@@ -41,6 +52,7 @@ export class ToolApprovals {
       input: ApprovalInput,
       options: ApprovalRequestOptions,
     ) => Promise<ApprovalResult>,
+    private readonly observe?: (event: NestedToolEvent) => void,
   ) {}
 
   onEvent(event: AgentEvent): void {
@@ -75,15 +87,30 @@ export class ToolApprovals {
       signal.throwIfAborted();
       return await tool.execute(parameters, signal, {
         arguments: structuredClone(parameters),
-        executeNested: (child, childArgs, childSignal) => {
+        executeNested: async (child, childArgs, childSignal) => {
           signal.throwIfAborted();
           if (!active) throw new Error("Approval call context has expired");
-          return this.execute(
-            child,
-            childArgs,
-            AbortSignal.any([signal, childSignal]),
-            id + "/" + ++nested,
-          );
+          const toolCallId = id + "/" + ++nested;
+          const details = { toolCallId, parentToolCallId: id, toolName: child.name };
+          this.notify({ type: "nested_tool.started", ...details, args: childArgs });
+          try {
+            const result = await this.execute(
+              child,
+              childArgs,
+              AbortSignal.any([signal, childSignal]),
+              toolCallId,
+            );
+            this.notify({ type: "nested_tool.completed", ...details, result, outcome: "success" });
+            return result;
+          } catch (error) {
+            this.notify({
+              type: "nested_tool.completed",
+              ...details,
+              outcome: signal.aborted || childSignal.aborted ? "cancelled" : "error",
+              error: String(error),
+            });
+            throw error;
+          }
         },
         request: (operation, reason, operationSignal, options) => {
           signal.throwIfAborted();
@@ -100,6 +127,14 @@ export class ToolApprovals {
       });
     } finally {
       active = false;
+    }
+  }
+
+  private notify(event: NestedToolEvent): void {
+    try {
+      this.observe?.(event);
+    } catch {
+      /* Observation never changes tool execution. */
     }
   }
 }

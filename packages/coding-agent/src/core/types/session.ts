@@ -1,4 +1,5 @@
 import type { Api, AssistantMessage, Message, Model } from "@earendil-works/pi-ai";
+import type { TraceRecorder } from "@loop/telemetry";
 
 import type { AgentEvent, AgentTool } from "@loop/agent";
 import type { ModelRuntime } from "../model-runtime";
@@ -82,4 +83,5 @@ export type SessionOptions = {
   effort?: ModelEffort;
   title?: SessionTitleOptions;
   permissionPolicy?: PermissionPolicy;
+  traceRecorder?: TraceRecorder;
 };

@@ -67,6 +67,8 @@ Subscriptions belong to one session instance. Rebind them when [AgentSessionRunt
 
 ## Source
 
+For independently persisted execution records, see [telemetry](telemetry.md). Session subscriptions alone are not durable logging.
+
 [session types](../core/types/session.ts), [agent-session.ts](../core/agent-session.ts), [agent-session.test.ts](../core/agent-session.test.ts), and [interactive output](../modes/interactive/interactive-output.ts).
 
 ## Queue Changes

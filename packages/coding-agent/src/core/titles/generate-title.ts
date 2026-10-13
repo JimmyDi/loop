@@ -33,6 +33,7 @@ export async function generateTitle(
       .finally(() => bounded.removeEventListener("abort", abort));
   });
   bounded.throwIfAborted();
+  const observed = runtime.forPurpose?.("title") ?? runtime;
   const response = await runAgentLoop(
     prompt,
     [],
@@ -47,7 +48,7 @@ export async function generateTitle(
       ].join("\n"),
       tools: [],
       maxTurns: 1,
-      streamFn: runtime.streamSimple.bind(runtime),
+      streamFn: observed.streamSimple.bind(observed),
       streamOptions: { maxTokens: options.maxOutputTokens ?? 256 },
     },
     undefined,

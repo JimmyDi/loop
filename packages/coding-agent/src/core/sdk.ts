@@ -1,10 +1,10 @@
-import { basename, dirname, join } from "node:path";
+import { dirname, join } from "node:path";
 import { realpathSync } from "node:fs";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import { TraceRecorder, pruneTraces } from "@loop/telemetry";
 import type { TraceOptions } from "@loop/telemetry";
 
-import { DEFAULT_MODEL, DEFAULT_PROVIDER, getSessionDir } from "../config";
+import { DEFAULT_MODEL, DEFAULT_PROVIDER, getSessionDir, getTraceDir } from "../config";
 import { AgentSession } from "./agent-session";
 import { createAgentSessionServices } from "./agent-session-services";
 import type { ServiceOptions } from "./agent-session-services";
@@ -144,12 +144,7 @@ export async function createAgentSession(
   const traceRecorder =
     options.telemetry !== false && sessionManager.getSessionFile()
       ? await TraceRecorder.open(
-          join(
-            services.agentDir,
-            "traces",
-            basename(getSessionDir(services.cwd, services.agentDir)),
-            sessionManager.getSessionId(),
-          ),
+          join(getTraceDir(services.cwd, services.agentDir), sessionManager.getSessionId()),
           sessionManager.getSessionId(),
           options.telemetry || {},
         )

@@ -31,8 +31,11 @@ export const writeManifest = async (directory: string, manifest: TraceManifest):
 };
 
 /** One owner per session; a dead process's lock can be reclaimed without editing its log. */
-export const acquireTraceLock = async (directory: string): Promise<() => Promise<void>> => {
-  await mkdir(directory, { recursive: true, mode: 0o700 });
+export const acquireTraceLock = async (
+  directory: string,
+  createDirectory = true,
+): Promise<(currentDirectory?: string) => Promise<void>> => {
+  if (createDirectory) await mkdir(directory, { recursive: true, mode: 0o700 });
   const path = join(directory, "writer.lock");
   const token = randomUUID();
   let file: FileHandle;
@@ -66,9 +69,10 @@ export const acquireTraceLock = async (directory: string): Promise<() => Promise
   } finally {
     await file.close();
   }
-  return async () => {
-    const lock = JSON.parse(await readFile(path, "utf8")) as { token?: string };
-    if (lock.token === token) await rm(path);
+  return async (currentDirectory = directory) => {
+    const currentPath = join(currentDirectory, "writer.lock");
+    const lock = JSON.parse(await readFile(currentPath, "utf8")) as { token?: string };
+    if (lock.token === token) await rm(currentPath);
   };
 };
 

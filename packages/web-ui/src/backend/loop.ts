@@ -2,6 +2,7 @@ import { join } from "node:path";
 import {
   createAgentSession,
   getSessionDir,
+  getTraceDir,
   SessionArchive,
   SessionManager,
   SettingsManager,
@@ -72,7 +73,7 @@ export const createLoopBridge = (
     const directory = getSessionDir(project.cwd, agentDir);
     let archive = archives.get(directory);
     if (!archive) {
-      archive = new SessionArchive(directory);
+      archive = new SessionArchive(directory, getTraceDir(project.cwd, agentDir));
       archives.set(directory, archive);
     }
     return archive;

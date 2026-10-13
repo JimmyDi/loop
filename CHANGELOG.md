@@ -10,6 +10,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Changed
 
+- coding-agent and Web: delete matching local trace segments, payloads and manifests with a session after draining its writer; preserve logs on archive/restore. Reject active trace writers and restore staged history and logs when staging or archive-index updates fail. Infer trace roots for managed SessionArchive directories and support explicit roots for custom storage.
+
 - Web UI: open a blank GitHub issue from Feedback without a prefilled bug title or report body; remove the Bug report issue template.
 
 ## [0.2.0] - 2026-10-12

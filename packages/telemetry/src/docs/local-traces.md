@@ -23,6 +23,7 @@ console.log(recorder.status);
 - `flush()`: drains accepted writes and updates the manifest; no fsync guarantee.
 - `close()`: idempotently drains and releases ownership; calls after close do not reopen the writer.
 - `pruneTraces(root, { maxAgeDays, maxTotalBytes })`: removes recognizable inactive records oldest first; defaults to 30 days / 1 GiB. Live writers are preserved.
+- `stageTraceDeletion(directory, destination)`: acquires writer ownership and moves a closed trace directory into a caller-owned deletion transaction. Missing directories return undefined; active writers and move failures reject. Returns an async rollback callback that restores the directory and releases its lock. After committing, the caller must purge the destination including its lock. Source and destination must support rename on the same filesystem.
 
 Recorder defaults: content mode, 16 MiB queued bytes, 128 MiB per Session, 8 MiB payload ceiling and 8 MiB event segments. Metadata mode skips known content fields before reading or redacting their bodies; producers additionally allowlist business fields. Coding-agent selects native stream events only in stream mode. Filtering occurs once at the recorder boundary, and the writer reuses serialized content. Closed/failed recorders and already-full queues skip payload processing; determining whether a new event fits remaining space still requires serialization.
 

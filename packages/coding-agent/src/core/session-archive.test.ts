@@ -2,9 +2,11 @@ import { join } from "node:path";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { expect, test } from "vitest";
+import { TraceRecorder } from "@loop/telemetry";
 
 import { SessionArchive } from "./session-archive";
 import { SessionManager } from "./session-manager";
+import { getSessionDir, getTraceDir } from "../config";
 
 test("archive membership persists independently of history, serializes updates and restores", async () => {
   const root = await mkdtemp(join(import.meta.dirname, ".archive-test-"));
@@ -68,8 +70,13 @@ test("delete restores staged history when updating archive metadata fails", asyn
   const root = await mkdtemp(join(import.meta.dirname, ".archive-rollback-test-"));
   try {
     const session = await SessionManager.create(root, root);
-    const archive = new SessionArchive(root);
+    const traceDir = join(root, "traces");
+    const archive = new SessionArchive(root, traceDir);
     const id = session.getSessionId();
+    const recorder = await TraceRecorder.open(join(traceDir, id), id);
+    recorder.record({ type: "synthetic.event" });
+    await recorder.close();
+    const history = await readFile(join(traceDir, id, "events-000001.jsonl"), "utf8");
     await archive.set([id], true);
     const original = SessionManager.list;
     SessionManager.list = async (...args) => {
@@ -85,7 +92,75 @@ test("delete restores staged history when updating archive metadata fails", asyn
     }
     expect(await existsSync(session.sessionFile!)).toBe(true);
     expect((await SessionManager.open(session.sessionFile!)).getSessionId()).toBe(id);
+    expect(await readFile(join(traceDir, id, "events-000001.jsonl"), "utf8")).toBe(history);
+    expect(existsSync(join(traceDir, id, "writer.lock"))).toBe(false);
   } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("managed session deletion removes trace payloads while archiving and other sessions preserve them", async () => {
+  const root = await mkdtemp(join(import.meta.dirname, ".archive-trace-test-"));
+  try {
+    const sessionDir = getSessionDir(root, root);
+    const traceDir = getTraceDir(root, root);
+    const sessions = await Promise.all(
+      [0, 1, 2].map(() => SessionManager.create(root, sessionDir)),
+    );
+    const ids = sessions.map((session) => session.getSessionId());
+    for (const id of ids.slice(0, 2)) {
+      const trace = await TraceRecorder.open(join(traceDir, id), id);
+      trace.record({ type: "synthetic.event", data: { text: "x".repeat(20000) } });
+      await trace.close();
+    }
+    const archive = new SessionArchive(sessionDir);
+    const original = await readFile(join(traceDir, ids[0]!, "manifest.json"), "utf8");
+    await archive.set([ids[0]!], true);
+    await archive.set([ids[0]!], false);
+    expect(await readFile(join(traceDir, ids[0]!, "manifest.json"), "utf8")).toBe(original);
+    await archive.delete(root, [ids[0]!], { archivedOnly: false });
+    expect(existsSync(sessions[0]!.sessionFile!)).toBe(false);
+    expect(existsSync(join(traceDir, ids[0]!))).toBe(false);
+    expect(existsSync(join(traceDir, ids[1]!, "payloads"))).toBe(true);
+    await archive.set([ids[1]!], true);
+    await archive.delete(root, [ids[1]!]);
+    expect(existsSync(join(traceDir, ids[1]!))).toBe(false);
+    await archive.delete(root, [ids[2]!], { archivedOnly: false });
+    expect(existsSync(sessions[2]!.sessionFile!)).toBe(false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("active trace writers block deletion and restore earlier staged history and logs", async () => {
+  const root = await mkdtemp(join(import.meta.dirname, ".archive-trace-busy-test-"));
+  let active: TraceRecorder | undefined;
+  try {
+    const sessionDir = getSessionDir(root, root);
+    const traceDir = getTraceDir(root, root);
+    const first = await SessionManager.create(root, sessionDir);
+    const second = await SessionManager.create(root, sessionDir);
+    const firstId = first.getSessionId();
+    const secondId = second.getSessionId();
+    const closed = await TraceRecorder.open(join(traceDir, firstId), firstId);
+    closed.record({ type: "synthetic.event" });
+    await closed.close();
+    active = await TraceRecorder.open(join(traceDir, secondId), secondId);
+    const archive = new SessionArchive(sessionDir);
+    await archive.set([firstId, secondId], true);
+    await expect(archive.delete(root, [firstId, secondId])).rejects.toThrow(
+      "Trace already has a writer",
+    );
+    expect(existsSync(first.sessionFile!)).toBe(true);
+    expect(existsSync(second.sessionFile!)).toBe(true);
+    expect(existsSync(join(traceDir, firstId, "events-000001.jsonl"))).toBe(true);
+    expect(existsSync(join(traceDir, firstId, "writer.lock"))).toBe(false);
+    expect(await archive.list()).toEqual(new Set([firstId, secondId]));
+    await active.close();
+    await archive.delete(root, [firstId, secondId]);
+    expect(existsSync(join(traceDir, secondId))).toBe(false);
+  } finally {
+    await active?.close();
     await rm(root, { recursive: true, force: true });
   }
 });

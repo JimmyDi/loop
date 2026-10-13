@@ -31,7 +31,7 @@ File-backed SDK, CLI and Web sessions default to content capture. `telemetry: fa
 
 Storage is `<agentDir>/traces/<workspace-hash>/<session-id>/`. Core starts best-effort inactive-log retention once per data directory per process: 30 days / 1 GiB, plus the 128 MiB Session recording limit. Only Trace directories are cleaned; Session history remains unchanged.
 
-Deleting a conversation does not immediately delete its Trace directory; inactive traces remain until retention cleanup.
+Archiving or restoring a conversation preserves its traces. Web conversation deletion closes and drains the writer, then removes both history and the matching Trace directory, including payloads and manifest. SDK deletion through SessionArchive does the same for managed session directories; custom history directories must supply their trace root. Active trace writers block deletion, while missing traces do not. See [Session archive](session-archive.md) for rollback and crash limitations. Retention continues to clean other inactive traces independently.
 
 ## Capture boundaries
 

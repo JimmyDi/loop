@@ -16,6 +16,7 @@ export type {
   TypedTraceBegin,
 } from "./schema";
 export { pruneTraces } from "./retention";
+export { stageTraceDeletion } from "./trace-deletion";
 export type { TraceRetentionOptions } from "./retention";
 export { traceMetadata } from "./metadata";
 export { sanitizeTraceData, redactCredentials } from "./redaction";

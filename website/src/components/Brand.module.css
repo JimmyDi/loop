@@ -1,0 +1,35 @@
+.brand {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0;
+  color: var(--brand-ink);
+  text-shadow: var(--brand-text-shadow);
+  font-size: var(--brand-font-size, 32px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.8px;
+  transition: font-size 240ms ease;
+}
+
+.brand img {
+  display: block;
+  flex-shrink: 0;
+  filter: var(--brand-mark-filter);
+  width: var(--brand-artwork-size, 48px);
+  height: var(--brand-artwork-size, 48px);
+  transition:
+    width 240ms ease,
+    height 240ms ease;
+}
+
+@media (max-width: 700px) {
+  .brand {
+    font-size: var(--brand-font-size, 28px);
+  }
+
+  .brand img {
+    width: var(--brand-artwork-size, 44px);
+    height: var(--brand-artwork-size, 44px);
+  }
+}

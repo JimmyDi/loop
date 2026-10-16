@@ -19,7 +19,7 @@
   "scripts": {
     "dev": "tsx watch --clear-screen=false --exclude \"./packages/web-ui/src/frontend/**\" --conditions=loop-source bin.ts web --dev",
     "coding-agent": "node --conditions=loop-source --import tsx bin.ts",
-    "build": "pnpm -r build && tsdown && node scripts/copy-web.mjs && pnpm check:distribution",
+    "build": "pnpm --filter './packages/*' build && tsdown && node scripts/copy-web.mjs && pnpm check:distribution",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "check": "biome check . && pnpm check:architecture",

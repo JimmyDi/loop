@@ -1,0 +1,6 @@
+.plain {
+  transition: color 180ms;
+}
+.plain:hover {
+  color: var(--blue);
+}

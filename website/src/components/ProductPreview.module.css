@@ -1,0 +1,45 @@
+.product-stage {
+  position: relative;
+  z-index: 1;
+  width: min(1008px, 58vw, calc(100% - var(--page-gutter)));
+  margin: 0 auto;
+  padding: 8px 0 28px;
+}
+
+.app-preview {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 9 / 5;
+  max-height: 560px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f6f7f9;
+  box-shadow:
+    0 26px 65px var(--shadow),
+    0 2px 6px var(--shadow);
+  overflow: hidden;
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-preview {
+    background: #17191c;
+  }
+}
+
+@media (max-width: 900px) {
+  .product-stage {
+    width: calc(100% - var(--page-gutter));
+  }
+}
+
+@media (max-width: 700px) {
+  .product-stage {
+    padding-block: 8px 24px;
+  }
+
+  .app-preview {
+    border-radius: 8px;
+  }
+}

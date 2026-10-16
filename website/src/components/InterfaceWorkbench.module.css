@@ -1,0 +1,32 @@
+.interface-workbench {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 18px 35px var(--shadow);
+  color: var(--text);
+  min-width: 0;
+}
+
+.interface-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+}
+
+.interface-tab {
+  flex: 1;
+  padding: 10px 6px 12px;
+  background: none;
+  color: var(--muted);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font-size: 12px;
+}
+
+.interface-tab[aria-pressed="true"] {
+  color: var(--text);
+  border-bottom-color: var(--blue);
+}
+
+.interface-tab:hover {
+  background: var(--surface-hover);
+}

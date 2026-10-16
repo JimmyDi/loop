@@ -1,0 +1,36 @@
+.shell {
+  width: min(var(--content-width), calc(100% - var(--page-gutter)));
+  margin-inline: auto;
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 30;
+  top: 12px;
+  left: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--surface);
+  transform: translateY(-160%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+.responsive-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.04em 0.18em;
+  text-wrap: balance;
+}
+
+.responsive-title > span {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.responsive-copy {
+  text-wrap: pretty;
+}

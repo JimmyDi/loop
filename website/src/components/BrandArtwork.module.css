@@ -1,0 +1,8 @@
+.artwork {
+  display: inline-flex;
+  flex: none;
+}
+
+.artwork img {
+  display: block;
+}

@@ -1,0 +1,66 @@
+.integration-visual {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  /* Scale the 32px corner crop with the 1020 × 684 capture. */
+  border-radius: 3.14% / 4.68%;
+  background: light-dark(#f6f7f9, #18191c);
+  box-shadow: 0 16px 42px var(--shadow);
+}
+
+.frames {
+  position: relative;
+  aspect-ratio: 1020 / 684;
+  overflow: hidden;
+}
+
+.frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+  opacity: 0;
+  transition: opacity 480ms ease;
+}
+
+.frame[data-active="true"] {
+  opacity: 1;
+}
+
+.frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.playback {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: light-dark(#f6f7f9e6, #18191ce6);
+  color: var(--muted);
+}
+
+.playback:hover {
+  background: light-dark(#e8edf5, #303540);
+  color: var(--text);
+}
+
+.playback:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame {
+    transition: none;
+  }
+}

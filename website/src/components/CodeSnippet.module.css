@@ -1,0 +1,51 @@
+.code {
+  color: var(--editor-text);
+}
+
+.code[data-language="bash"] {
+  --syntax-comment: var(--terminal-muted);
+  --syntax-keyword: var(--terminal-keyword);
+  --syntax-string: var(--terminal-string);
+  --syntax-function: var(--terminal-command);
+  --syntax-type: var(--terminal-variable);
+  --syntax-property: var(--terminal-option);
+  color: var(--terminal-text);
+}
+
+.plain {
+  color: inherit;
+}
+
+.code[data-language="bash"] .keyword::before,
+.code[data-language="bash"] .function::before {
+  content: "$ ";
+  color: var(--terminal-option);
+}
+
+.comment {
+  color: var(--syntax-comment);
+}
+
+.keyword {
+  color: var(--syntax-keyword);
+}
+
+.string {
+  color: var(--syntax-string);
+}
+
+.function {
+  color: var(--syntax-function);
+}
+
+.type {
+  color: var(--syntax-type);
+}
+
+.property {
+  color: var(--syntax-property);
+}
+
+.number {
+  color: var(--syntax-number);
+}

@@ -1,0 +1,81 @@
+.site-header {
+  --header-progress: 0;
+  --brand-font-size: calc(26px - 4px * var(--header-progress));
+  --brand-artwork-size: calc(40px - 8px * var(--header-progress));
+  --language-switch-height: calc(32px - 4px * var(--header-progress));
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: 56px;
+}
+
+.bar {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 4vw, 48px);
+  width: min(
+    calc(1120px - 160px * var(--header-progress)),
+    calc(88vw - 8vw * var(--header-progress)),
+    calc(100% - var(--page-gutter))
+  );
+  height: calc(56px - 12px * var(--header-progress));
+  margin-inline: auto;
+  padding-inline: calc(20px * var(--header-progress));
+  border-radius: calc(32px * var(--header-progress));
+  transform: translateY(calc(8px * var(--header-progress)));
+  transition:
+    width 240ms ease,
+    height 240ms ease,
+    padding 240ms ease,
+    border-radius 320ms ease,
+    transform 240ms ease;
+}
+
+.bar::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border: 1px solid var(--header-edge);
+  border-radius: inherit;
+  background: var(--header-glass);
+  box-shadow: 0 4px 24px var(--shadow);
+  opacity: var(--header-progress);
+  transition: opacity 320ms ease;
+  pointer-events: none;
+}
+
+.site-header[data-floating="true"] .bar::before {
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(16px) saturate(1.2);
+}
+
+@media (max-width: 700px) {
+  .site-header {
+    --brand-font-size: calc(24px - 2px * var(--header-progress));
+    --brand-artwork-size: calc(36px - 4px * var(--header-progress));
+    --language-switch-height: 32px;
+  }
+
+  .bar {
+    width: calc(100% - 32px - 16px * var(--header-progress));
+    height: calc(56px - 8px * var(--header-progress));
+    gap: 16px;
+    padding-inline: calc(12px * var(--header-progress));
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .bar::before {
+    background: var(--header-solid);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar,
+  .bar::before {
+    transition: none;
+  }
+}

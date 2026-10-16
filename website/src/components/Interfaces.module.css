@@ -1,0 +1,34 @@
+.interfaces {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 40px;
+  padding-block: clamp(112px, 10vw, 160px) 64px;
+  justify-items: center;
+}
+
+.interfaces > :first-child {
+  text-align: center;
+}
+
+.interfaces h2 {
+  justify-content: center;
+}
+
+.interfaces > :last-child {
+  width: min(100%, 880px);
+}
+@media (max-width: 1000px) {
+  .interfaces {
+    gap: 30px;
+  }
+}
+@media (max-width: 900px) {
+  .interfaces {
+    gap: 25px;
+  }
+}
+@media (max-width: 700px) {
+  .interfaces {
+    padding-block: 80px 44px;
+  }
+}

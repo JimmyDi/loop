@@ -1,20 +1,15 @@
-<h3>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/brand-dark.svg">
+    <img src="docs/assets/readme/brand-light.svg" width="32%" alt="Loop — local-first, open-source coding harness.">
+  </picture>
   <picture>
     <source media="(prefers-reduced-motion: reduce) and (prefers-color-scheme: dark)" srcset="docs/assets/readme/terminal-dark.png">
     <source media="(prefers-reduced-motion: reduce)" srcset="docs/assets/readme/terminal-light.png">
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/terminal-dark.gif">
-    <img src="docs/assets/readme/terminal-light.gif" width="44%" align="right" alt="Terminal typing Loop Web, CLI and TypeScript SDK examples, then dissolving them into dust. The leading prompt stays visible.">
+    <img src="docs/assets/readme/terminal-light.gif" width="66%" alt="Terminal typing Loop Web, CLI and TypeScript SDK examples, then dissolving them into dust. The leading prompt stays visible.">
   </picture>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="packages/web-ui/src/docs/assets/loop-brand/png/loop-icon-light-256.png">
-    <img src="packages/web-ui/src/docs/assets/loop-brand/png/loop-icon-256.png" width="32" height="32" align="middle" alt="Loop icon">
-  </picture>
-  &nbsp;Loop
-</h3>
-
-<p><small><samp>LOCAL-FIRST<br>OPEN-SOURCE CODING HARNESS</samp></small></p>
-
-<br clear="all">
+</p>
 
 <p align="center">
   <br>
@@ -28,6 +23,8 @@
     <img src="https://img.shields.io/badge/license-MIT-white?style=social" alt="Software license: MIT">
   </a>
 </p>
+
+<br>
 
 # Loop
 

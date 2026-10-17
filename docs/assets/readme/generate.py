@@ -48,7 +48,7 @@ def rgb(value):
 
 def create_artwork(theme, mono_path):
     width, height = 464, 158
-    image = Image.new("RGB", (width * SCALE, height * SCALE), theme["page"])
+    image = Image.new("RGBA", (width * SCALE, height * SCALE))
     mono = ImageFont.truetype(mono_path, 12 * SCALE)
     try:
         mono.set_variation_by_name("Regular")
@@ -93,7 +93,7 @@ def create_artwork(theme, mono_path):
     text_box = (
         round(text_x), text_y - 16 * SCALE, (terminal_width - 45) * SCALE, 88 * SCALE
     )
-    return image.convert("RGB"), mono, text_box
+    return image, mono, text_box
 
 
 def render_code(value, font, size, theme):
@@ -191,7 +191,12 @@ def export(theme_name, mono_path):
                 (x + cx + 3 * SCALE, y + cy, x + cx + 9 * SCALE, y + cy + 15 * SCALE),
                 fill=theme["blue"],
             )
-        frames.append(image.quantize(palette=palette, dither=Image.Dither.NONE))
+        alpha = image.getchannel("A")
+        matte = Image.new("RGB", image.size, theme["page"])
+        matte.paste(image, mask=alpha)
+        frame = matte.quantize(palette=palette, dither=Image.Dither.NONE)
+        frame.paste(255, mask=alpha.point(lambda value: 255 if value < 128 else 0))
+        frames.append(frame)
         durations.append(duration)
 
     for command, layer in zip(COMMANDS, full_layers):
@@ -209,7 +214,7 @@ def export(theme_name, mono_path):
     path = OUTPUT / f"terminal-{theme_name}.gif"
     frames[0].save(
         path, save_all=True, append_images=frames[1:], duration=durations,
-        loop=0, optimize=True, disposal=1,
+        loop=0, optimize=False, disposal=2, transparency=255,
     )
     still = base.copy()
     still.paste(full_layers[0], (x, y), full_layers[0])

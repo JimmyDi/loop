@@ -79,6 +79,7 @@ test("approval APIs expose pending snapshots, isolate listeners and preserve man
   } finally {
     await session.abort();
     session.dispose();
+    await session.flushTrace();
   }
 });
 
@@ -300,6 +301,7 @@ test("run abort cancels approval waits and normal completion drains unawaited re
     } finally {
       await session.abort();
       session.dispose();
+      await session.flushTrace();
     }
   }
 });
@@ -357,6 +359,7 @@ test("disposing an idle session cancels pending approvals before clearing observ
     reason: "Review",
   });
   session.dispose();
+  await session.flushTrace();
   expect((await pending).outcome).toBe("cancelled");
   expect(outcomes).toEqual(["cancelled"]);
   expect(session.state.pendingApprovals).toEqual([]);
@@ -440,6 +443,7 @@ test("session presets enforce built-in tools, persist, reject busy changes and r
     );
     expect(JSON.stringify(session.state.messages)).not.toContain("Current permission preset:");
     session.dispose();
+    await session.flushTrace();
     const { session: reopened } = await createAgentSession({
       ...options,
       sessionManager: await SessionManager.open(manager.sessionFile!),
@@ -457,6 +461,7 @@ test("session presets enforce built-in tools, persist, reject busy changes and r
     );
     expect(policies[4]).toBe(policies[2]);
     reopened.dispose();
+    await reopened.flushTrace();
   } finally {
     await skills.close();
     await rm(root, { recursive: true, force: true });
@@ -497,10 +502,12 @@ test("reopening storage restores no pending approval, decision or handler", asyn
       expect(restored.permissionPreset).toBe("read-only");
     } finally {
       restored.dispose();
+      await restored.flushTrace();
     }
   } finally {
     await session.abort();
     session.dispose();
+    await session.flushTrace();
     await rm(root, { recursive: true, force: true });
   }
 });
@@ -571,6 +578,7 @@ test("each tool continuation retains the caller cap and observes final payload l
     expect(model.maxTokens).toBe(512);
   } finally {
     session.dispose();
+    await session.flushTrace();
   }
 });
 
@@ -688,6 +696,7 @@ test("runtime context survives filtered failures and stays out of titles, images
   } finally {
     await session.abort();
     session.dispose();
+    await session.flushTrace();
     await rm(root, { recursive: true, force: true });
   }
 });
@@ -749,6 +758,7 @@ test("failed and cancelled prompts retain runtime context after model use, exclu
     expect(session.state.promptTimings?.at(-1)?.finishedAt).toBeTypeOf("number");
   } finally {
     session.dispose();
+    await session.flushTrace();
   }
 });
 
@@ -775,6 +785,7 @@ test("oversized prompts reject before dispatch and preserve full input without a
     expect(session.state.isRunning).toBe(false);
   } finally {
     session.dispose();
+    await session.flushTrace();
   }
 });
 
@@ -850,6 +861,7 @@ test("tool continuations check the complete request and recover with a larger mo
     expect(session.state.contextBudget?.estimatedInputTokens).toBeGreaterThan(0);
   } finally {
     session.dispose();
+    await session.flushTrace();
     await rm(dir, { recursive: true, force: true });
   }
 });
@@ -868,6 +880,7 @@ test("provider failures below the local estimate retain native actual usage and 
     expect(session.sessionManager.messages[1]).toEqual(response);
   } finally {
     session.dispose();
+    await session.flushTrace();
   }
 });
 
@@ -951,6 +964,7 @@ test("two prompts create fresh Agents, preserve complete tool history and commit
     );
   } finally {
     session.dispose();
+    await session.flushTrace();
     await rm(dir, { recursive: true, force: true });
   }
 });
@@ -994,6 +1008,7 @@ test("model configuration locks against prompts and preserves selection on authe
   await session.prompt("next");
   expect(requested).toEqual(["other"]);
   session.dispose();
+  await session.flushTrace();
   await expect(session.prompt("disposed")).rejects.toThrow("disposed");
 });
 
@@ -1035,6 +1050,7 @@ test("cancelling asynchronous preflight prevents model execution and emits one s
   expect(session.state.messages).toEqual([]);
   expect(session.state.outcome).toBe("cancelled");
   session.dispose();
+  await session.flushTrace();
 });
 
 test.each(["error", "aborted", "length"] as const)(
@@ -1060,6 +1076,7 @@ test.each(["error", "aborted", "length"] as const)(
     await session.prompt("continue");
     expect(session.state.messages).toHaveLength(4);
     session.dispose();
+    await session.flushTrace();
   },
 );
 
@@ -1103,6 +1120,7 @@ test("save failure retains pending history, blocks new work and flush never reru
       manager.getRuntimeContexts(),
     );
     session.dispose();
+    await session.flushTrace();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -1167,6 +1185,7 @@ test("cancelled tool batches save matching results and a fresh Agent resumes wit
   } finally {
     await session.abort();
     session.dispose();
+    await session.flushTrace();
     await rm(dir, { recursive: true, force: true });
   }
 });
@@ -1196,6 +1215,7 @@ test("execution and storage failures are both reported without losing the snapsh
     await session.flush();
     expect((await SessionManager.open(manager.sessionFile!)).messages).toHaveLength(2);
     session.dispose();
+    await session.flushTrace();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -1245,6 +1265,7 @@ test("effort persists with the session, reaches every model call and rejects uns
     await session.prompt("test");
     expect(requested).toEqual(["high"]);
     session.dispose();
+    await session.flushTrace();
     const restoredManager = await SessionManager.open(manager.sessionFile!);
     expect(restoredManager.getHeader().model?.effort).toBe("high");
     const { session: restored } = await createAgentSession({
@@ -1269,6 +1290,7 @@ test("effort persists with the session, reaches every model call and rejects uns
       "Unsupported model effort",
     );
     restored.dispose();
+    await restored.flushTrace();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -1307,6 +1329,7 @@ test("prompt wall time ends before saving, survives restore and is absent from m
     expect(JSON.stringify(restored.messages)).not.toContain("finishedAt");
   } finally {
     session.dispose();
+    await session.flushTrace();
     clock.mockRestore();
     commit.mockRestore();
     await rm(dir, { recursive: true, force: true });
@@ -1385,6 +1408,7 @@ test("MCP calls follow live session permissions across preset changes", async ()
     } finally {
       await session.abort();
       session.dispose();
+      await session.flushTrace();
       await manager.close();
       await rm(directory, { recursive: true, force: true });
     }
@@ -1499,6 +1523,7 @@ test("explicit and automatic skills preserve instructions in durable history wit
     expect(JSON.stringify(requests.at(-1)?.messages)).toContain("Unique original instructions");
   } finally {
     session?.dispose();
+    await session?.flushTrace();
     await skills.close();
     await rm(root, { recursive: true, force: true });
   }
@@ -1575,6 +1600,7 @@ test("steer waits for the whole tool batch and follow-ups retain FIFO order", as
     release.resolve();
     await session.abort();
     session.dispose();
+    await session.flushTrace();
   }
 });
 
@@ -1640,6 +1666,7 @@ test("stop preserves queue and resume uses committed results without duplicate i
   } finally {
     await session.abort();
     session.dispose();
+    await session.flushTrace();
   }
 });
 
@@ -1713,6 +1740,7 @@ test("repeated stop and resume retain streamed text and independent durable atte
   } finally {
     await session.abort();
     session.dispose();
+    await session.flushTrace();
     await rm(directory, { recursive: true, force: true });
   }
 });
@@ -1763,6 +1791,7 @@ test("stopping in preflight retains input for resume and leaves queued work paus
     release.resolve();
     await session.abort();
     session.dispose();
+    await session.flushTrace();
   }
 });
 
@@ -1815,7 +1844,10 @@ test("queue survives a stopped run's save failure and resume remains blocked unt
     expect(restored.getPromptTimings()).toHaveLength(3);
   } finally {
     await session.abort();
-    if (!session.state.hasPendingSave) session.dispose();
+    if (!session.state.hasPendingSave) {
+      session.dispose();
+      await session.flushTrace();
+    }
     await rm(directory, { recursive: true, force: true });
   }
 });
@@ -1869,6 +1901,7 @@ test("saving a bypassed edit appends it without interrupting the active later me
     laterRelease.resolve();
     await session.abort();
     session.dispose();
+    await session.flushTrace();
   }
 });
 
@@ -1902,6 +1935,7 @@ test("failed queued input preparation retains its item and the prior task's save
     release.resolve();
     await session.abort();
     session.dispose();
+    await session.flushTrace();
   }
 });
 
@@ -1937,6 +1971,7 @@ test("a boundary save failure retains steering and prevents another model reques
     release.resolve();
     await session.abort();
     session.dispose();
+    await session.flushTrace();
   }
 });
 
@@ -1985,6 +2020,7 @@ test("idle queue preparation can stop and resume without removing or duplicating
     release.resolve();
     await session.abort();
     session.dispose();
+    await session.flushTrace();
   }
 });
 
@@ -2020,5 +2056,6 @@ test("stop during queue acceptance retains the selected input for exactly one re
     detach();
     await session.abort();
     session.dispose();
+    await session.flushTrace();
   }
 });

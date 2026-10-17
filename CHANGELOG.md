@@ -4,6 +4,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-17
+
 ### Added
 
 - Website: add an independent bilingual React marketing site with static HTML, responsive layouts, live system themes and locally hosted fonts. Present reviewed product captures and animated provider, longer-task and MCP/Skills workflows using fictional data, paired language/theme assets, clean edge-to-edge crops and accessible playback controls. Include a copyable startup command, benefit-led feature descriptions, and consistent-height Web/CLI/SDK examples with syntax highlighting and code scrolling. Support reduced motion, keyboard navigation and local privacy/terms dialogs. Keep website code, assets and builds separate from the Loop application; validate website PRs independently and deploy the verified static artifact to GitHub Pages from main.

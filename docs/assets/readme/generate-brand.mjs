@@ -32,15 +32,24 @@ const tagline = ["LOCAL-FIRST", "OPEN-SOURCE CODING HARNESS"].map(
   (line) => context.outlineText(line).d,
 );
 
+const compactSvg = (source) => {
+  return source
+    .replace(/\b(d|x1|x2|y1|y2|transform)="([^"]*)"/g, (_attribute, name, value) => {
+      const rounded = value.replace(/-?\d*\.\d+(?:[eE][+-]?\d+)?/g, (number) =>
+        String(Number(Number(number).toFixed(3))),
+      );
+      return name + '="' + rounded + '"';
+    })
+    .replace(/>\s+</g, "><")
+    .replace(/\s+\/>/g, "/>")
+    .trim();
+};
+
 for (const theme of ["light", "dark"]) {
-  const iconName = theme === "dark" ? "loop-icon-light.svg" : "loop-icon.svg";
+  const iconName = theme === "dark" ? "loop-icon-light-256.png" : "loop-icon-256.png";
   const icon = readFileSync(
-    resolve(root, "packages/web-ui/src/docs/assets/loop-brand/svg", iconName),
-    "utf8",
-  )
-    .replace(/^[\s\S]*?<svg[^>]*>/, "")
-    .replace(/<\/svg>\s*$/, "")
-    .replace(/\s*<(title|desc)>[\s\S]*?<\/\1>/g, "");
+    resolve(root, "packages/web-ui/src/docs/assets/loop-brand/png", iconName),
+  ).toString("base64");
   const text = theme === "dark" ? "#f0f3f6" : "#1f2328";
   const muted = theme === "dark" ? "#919aa6" : "#636c76";
   const svg = [
@@ -48,12 +57,12 @@ for (const theme of ["light", "dark"]) {
     '<title id="title">Loop</title>',
     '<desc id="description">Local-first. Open-source coding harness.</desc>',
     "<metadata>Wordmark outlines: Montserrat, Copyright 2011 The Montserrat Project Authors, SIL OFL 1.1. The Loop icon retains its original brand asset policy.</metadata>",
-    '<g transform="translate(0 35) scale(1.25)">' + icon + "</g>",
+    '<image x="0" y="35" width="80" height="80" href="data:image/png;base64,' + icon + '"/>',
     '<path d="' + wordmark + '" transform="translate(92 99)" fill="' + text + '"/>',
     '<path d="' + tagline[0] + '" transform="translate(0 166)" fill="' + muted + '"/>',
     '<path d="' + tagline[1] + '" transform="translate(0 190)" fill="' + muted + '"/>',
     "</svg>",
     "",
   ].join("\n");
-  writeFileSync(resolve(output, "brand-" + theme + ".svg"), svg);
+  writeFileSync(resolve(output, "brand-" + theme + ".svg"), compactSvg(svg) + "\n");
 }

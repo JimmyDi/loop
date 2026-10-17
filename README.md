@@ -1,6 +1,64 @@
+<h3>
+  <picture>
+    <source media="(prefers-reduced-motion: reduce) and (prefers-color-scheme: dark)" srcset="docs/assets/readme/terminal-dark.png">
+    <source media="(prefers-reduced-motion: reduce)" srcset="docs/assets/readme/terminal-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/terminal-dark.gif">
+    <img src="docs/assets/readme/terminal-light.gif" width="44%" align="right" alt="Terminal typing Loop Web, CLI and TypeScript SDK examples, then dissolving them into dust. The leading prompt stays visible.">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="packages/web-ui/src/docs/assets/loop-brand/png/loop-icon-light-256.png">
+    <img src="packages/web-ui/src/docs/assets/loop-brand/png/loop-icon-256.png" width="32" height="32" align="middle" alt="Loop icon">
+  </picture>
+  &nbsp;Loop
+</h3>
+
+<p><small><samp>LOCAL-FIRST<br>OPEN-SOURCE CODING HARNESS</samp></small></p>
+
+<br clear="all">
+
+<p align="center">
+  <br>
+  <a href="https://nodejs.org/">
+    <img src="https://img.shields.io/badge/runtime-Node.js%2024%2B-white?style=social" alt="Runtime: Node.js 24 or newer">
+  </a>
+  <a href="https://www.typescriptlang.org/">
+    <img src="https://img.shields.io/badge/language-TypeScript-white?style=social" alt="Language: TypeScript">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-white?style=social" alt="Software license: MIT">
+  </a>
+</p>
+
 # Loop
 
-Loop is a local-first, single-agent harness. CLI, SDK and Web share persistent coding sessions, an in-memory agent loop and a model runtime.
+Loop is a local-first, open-source coding harness built with TypeScript. Use it in your browser or terminal, or integrate it through the TypeScript SDK, to read and edit files and run commands in your projects. Connect your preferred model provider to get started.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/product-dark.webp">
+    <img src="docs/assets/readme/product-light.webp" width="720" alt="Loop Web UI showing a fictional coding session, project conversations, tool results and the message composer.">
+  </picture>
+</p>
+
+## What can Loop do?
+
+Loop can:
+
+- work in your browser or terminal, or inside your application through the TypeScript SDK
+- read and edit project files, run shell commands, and execute your tests
+- connect to built-in model providers, custom gateways, and compatible local model endpoints
+- save conversations by project and restore previous sessions to continue your work
+- load reusable Skills and use external MCP tools in the Web UI or through the SDK
+- compact long conversations automatically or on demand while preserving the original history
+- control tool access with permission presets and approve operations that need additional access
+
+## Why Loop
+
+- **Local-first:** work directly in your projects, with conversations and settings stored on your machine.
+- **Three ways to work:** use the Web UI, CLI, or TypeScript SDK with the same session and tool APIs.
+- **Model choice:** choose your provider and model, including compatible gateways and local endpoints.
+- **Controlled execution:** set read-only, workspace-write, or full-access permissions and review approval requests.
+- **A focused core:** a single-agent loop with inspectable TypeScript code, reusable Skills, and MCP integrations.
 
 ## Start
 

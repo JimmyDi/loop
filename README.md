@@ -12,19 +12,16 @@
 </p>
 
 <p align="center">
-  <br>
   <a href="https://nodejs.org/">
-    <img src="https://img.shields.io/badge/runtime-Node.js%2024%2B-white?style=social" alt="Runtime: Node.js 24 or newer">
+    <img src="https://img.shields.io/badge/runtime-Node.js%2024%2B-5FA04E?style=flat&amp;logo=nodedotjs&amp;logoColor=white" alt="Runtime: Node.js 24 or newer">
   </a>
   <a href="https://www.typescriptlang.org/">
-    <img src="https://img.shields.io/badge/language-TypeScript-white?style=social" alt="Language: TypeScript">
+    <img src="https://img.shields.io/badge/language-TypeScript-3178C6?style=flat&amp;logo=typescript&amp;logoColor=white" alt="Language: TypeScript">
   </a>
   <a href="LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-white?style=social" alt="Software license: MIT">
+    <img src="https://img.shields.io/badge/license-MIT-D4A72C?style=flat" alt="Software license: MIT">
   </a>
 </p>
-
-<br>
 
 # Loop
 

@@ -199,22 +199,31 @@ def export(theme_name, mono_path):
         frames.append(frame)
         durations.append(duration)
 
+    poster_index = None
     for command, layer in zip(COMMANDS, full_layers):
         empty, cursor = render_code("", font, size, theme)
         append(empty, cursor, 240)
         for length in range(1, len(command) + 1):
             typed, cursor = render_code(command[:length], font, size, theme)
             append(typed, cursor, 180 if command[length - 1] == "\n" else STEP_MS)
+        if poster_index is None:
+            poster_index = len(frames)
         for tick in range(4):
             append(layer, cursor if tick % 2 == 0 else None, 450)
         particles = make_particles(layer)
         for elapsed in range(0, 1781, STEP_MS):
             append(dissolve(layer, particles, elapsed / 1700))
         append(empty, duration=220)
+    # Start on the complete Web command, then wrap back through its typed input.
+    # The first full frame acts as a small poster during progressive GIF decoding.
+    frames = frames[poster_index:] + frames[:poster_index]
+    durations = durations[poster_index:] + durations[:poster_index]
     path = OUTPUT / f"terminal-{theme_name}.gif"
     frames[0].save(
         path, save_all=True, append_images=frames[1:], duration=durations,
-        loop=0, optimize=False, disposal=2, transparency=255,
+        # All changing pixels lie inside the opaque window. Retaining frames lets
+        # the encoder store only changed rectangles without leaving text trails.
+        loop=0, optimize=False, disposal=1, transparency=255,
     )
     still = base.copy()
     still.paste(full_layers[0], (x, y), full_layers[0])

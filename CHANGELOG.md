@@ -4,6 +4,12 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-17
+
+### Changed
+
+- CLI, SDK and Web: publish the 0.3 feature set with local execution traces and session-linked trace cleanup. See the 0.3.0 notes below for the complete feature changes; 0.3.0 was not published to npm.
+
 ## [0.3.0] - 2026-10-17
 
 ### Added

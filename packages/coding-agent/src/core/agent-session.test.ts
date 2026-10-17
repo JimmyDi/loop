@@ -245,6 +245,7 @@ test("MCP discovery cannot block prompts; ready tools join the next prompt and e
   } finally {
     await session.abort();
     session.dispose();
+    await session.flushTrace();
     await manager.close();
     await rm(directory, { recursive: true, force: true });
   }

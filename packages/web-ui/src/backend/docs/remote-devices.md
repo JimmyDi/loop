@@ -49,7 +49,7 @@ Requests and streams are bound to device expiry, revocation, tunnel disconnect a
 
 ## Limits and Validation
 
-The private relay still requires service access and terminates browser TLS; it does not provide encryption that hides traffic from Microsoft. Remote ingress serves built frontend assets even when the local listener uses Vite development middleware; run `pnpm build` before remote testing. Mobile layout, PWA/background delivery and network recovery polish are deferred.
+The private relay still requires service access and terminates browser TLS; it does not provide encryption that hides traffic from Microsoft. Remote ingress serves built frontend assets even when the local listener uses Vite development middleware. With pnpm dev, it uses the Web package’s dist/web directory; production keeps the packaged web directory, and an explicit assetsDir overrides the default. The remote entry never serves Vite source modules or HMR. Run `pnpm build` before remote testing and rebuild after frontend changes; pnpm dev alone does not build the remote page. A missing build returns 404 at the remote root even though the local Vite page works. Mobile layout, PWA/background delivery and network recovery polish are deferred.
 
 Automated tests use synthetic origins, temporary private stores, injected CLI results and model streams. They do not establish real Microsoft sign-in, phone-browser compatibility or relay connectivity.
 

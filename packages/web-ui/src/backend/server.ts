@@ -34,7 +34,9 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
     projects,
     createLoopBridge(agentDir, providers, settings, mcp, skills),
   );
-  const assetsDir = options.assetsDir ?? fileURLToPath(new URL("./web/", import.meta.url));
+  const assetsDir =
+    options.assetsDir ??
+    fileURLToPath(new URL(options.development ? "../../dist/web/" : "./web/", import.meta.url));
   const business = createBusinessRouter(registry, providers, settings, mcp, skills);
   const remoteAccess = await createRemoteAccess(agentDir, () =>
     startRemoteIngress(devices, business, assetsDir),

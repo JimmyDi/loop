@@ -11,6 +11,8 @@ import { generalSettingsRoutes } from "./routes/settings";
 import type { WebSettings } from "./settings/web-settings";
 import type { ProviderSettings } from "./providers/provider-settings";
 import type { SessionRegistry } from "./session-registry";
+import type { RemoteAccessController } from "./remote-access/controller";
+import { remoteAccessRoutes } from "./routes/remote-access";
 
 export const createRouter = (
   registry: SessionRegistry,
@@ -18,6 +20,7 @@ export const createRouter = (
   webSettings?: WebSettings,
   mcp?: McpManager,
   skills?: SkillManager,
+  remoteAccess?: RemoteAccessController,
 ) => {
   const integrations = mcp && mcpRoutes(mcp);
   const skillIntegrations = skills && skillRoutes(skills, registry);
@@ -25,6 +28,7 @@ export const createRouter = (
   const sessions = sessionRoutes(registry);
   const settings = providers && providerRoutes(registry, providers);
   const general = webSettings && generalSettingsRoutes(webSettings);
+  const remote = remoteAccess && remoteAccessRoutes(remoteAccess);
 
   return async (request: Request): Promise<Response> => {
     try {
@@ -32,6 +36,7 @@ export const createRouter = (
 
       const url = new URL(request.url);
       const response =
+        (await remote?.(request, url)) ??
         (await integrations?.(request, url)) ??
         (await skillIntegrations?.(request, url)) ??
         (await general?.(request, url)) ??

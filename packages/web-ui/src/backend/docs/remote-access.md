@@ -1,0 +1,89 @@
+# Private Tunnel Connection
+
+Loop manages the official Dev Tunnels CLI to sign in to Microsoft and host a private tunnel. This experimental connection stage does not expose the application: its separate loopback ingress returns HTTP 503 for every request, including frontend assets, APIs and control endpoints.
+
+## Setup and Usage
+
+Start Loop normally, then open **Settings → Remote access**:
+
+1. Select **Install Dev Tunnels CLI** in the first step. Loop downloads and verifies the official tool if needed. No terminal commands, Microsoft application registration, Client ID or scopes are required.
+2. Select **Sign in** in the second step and complete Microsoft sign-in in the computer's system browser. Personal Microsoft accounts, including Outlook accounts, use the official CLI's Microsoft login; organizational policies and service consent can still apply.
+3. Select **Connect Tunnel** in the third step. The completed third step and Disconnect Tunnel action indicate connection; the settings screen hides the HTTPS address and redundant connected caption. Remote requests receive an unavailable response after Microsoft's own access checks.
+4. The download cancel icon cancels installation; **Disconnect Tunnel** stops hosting through the existing stop command. The tunnel step shows one plug button, disabled while connecting or disconnecting, without a separate cancellation icon. Sign-in has no stop icon and settles on success, failure or timeout. Closing the settings tab does not stop the Web process.
+
+Completed steps show green checks; incomplete steps show empty circles, with actions unlocked in order. The heading's info button shows the license terms and privacy statement on hover, focus or click. The local API still supports automatic installation before login or connection. With an installed CLI, login starts in signing-in and an already authorized connection starts in connecting, including during executable verification. Only a missing or invalid executable returns these operations to installing for a verified replacement. **Sign out** in the sign-in step is available while connected as well as after hosting stops. It first finishes tunnel shutdown in the stopping phase without changing signedIn or its persisted marker. Only then does it enter signing-out, clear the marker and invoke CLI logout. Shutdown failure is assigned to Step 3 and preserves sign-in without invoking logout; account-stage failure is assigned to Step 2. The CLI account store is shared with other uses of Dev Tunnels under the same OS user: logout can affect those uses too. It does not sign the Microsoft browser session out or revoke consent.
+
+After a successful connection, Loop saves a reconnect preference and starts a fresh tunnel asynchronously on the next backend launch. Startup reports connecting until CLI readiness; it never restores a connected phase or an old address from disk. Every entry into Remote access checks the installed executable and returns the persisted sign-in result and current host state. It never invokes CLI account commands or reads the credential store. Checking never downloads, signs in or starts/stops hosting; a missing or invalid executable clears the local remembered sign-in. Concurrent entry checks share one probe; during an active operation they return its current state without running competing CLI commands. Installation checks validate only the executable file. Startup restores the last successful Loop sign-in from `<agentDir>/web-ui/remote-access/sign-in.json`. This version-1 file contains only `version` and `signedIn`, with no account identifiers or tokens. Writes are serialized and use a synced mode-0600 temporary file followed by atomic replacement. Missing, unreadable, invalid or unsupported-version files start unconfirmed. Start reuses a remembered login without calling login or user show again; when unconfirmed, it signs in through the CLI, which may reuse its own credentials. No old tunnel process or address is reused. Independent Web processes do not coordinate these state files; the last atomic replacement wins.
+
+## Installation and Credentials
+
+Loop pins CLI version `1.0.2115+e16833f284`, its official HTTPS artifact URL and SHA-256 digest per supported platform. Automatic installation supports macOS and Linux x64/ARM64, and Windows x64. Other targets report an unsupported-platform error. Platform runtime and credential-store requirements are those of the official CLI.
+
+The executable is saved below the data root at `bin/devtunnel/<version>/devtunnel` (`devtunnel.exe` on Windows), defaulting to `~/.loop/bin/devtunnel/<version>/devtunnel`. Setting `LOOP_DATA_DIR` relocates this directory with the rest of Loop's data. Downloads use a private temporary file, a 100 MiB limit, a cumulative ten-minute active-transfer deadline that excludes paused time, digest verification and atomic rename. Every use checks the installed digest; invalid content is replaced through a verified download. Loop neither modifies PATH nor installs a system package. It does not reuse arbitrary executables from PATH or accept executable paths, commands or download URLs through the API. Updating the pinned release requires a Loop update.
+
+Uninstall deletes only the current pinned executable from the managed directory, without invoking the CLI, logging out, reading Keychain credentials or changing system installations. Missing files count as already removed. Unexpected directories are not recursively deleted. Starting uninstall clears and persists the remembered sign-in before removing the executable; a failed removal leaves installation confirmed but sign-in unconfirmed. Successful removal resets installed and signedIn; CLI credentials remain available for later explicit sign-in. Removal errors report cli_uninstall_failed. Uninstall is rejected during a check, download, sign-in, stopping or hosting.
+
+After the transfer completes, `download.stage` becomes `verifying` while the controller remains `installing` and `installed` stays false. Pause and Resume are unavailable during full-file digest verification, flush, permission setup and atomic placement. Only successful installation sets `installed` to true and clears `download`; verification failure or cancellation removes the temporary file without completing the step.
+
+During downloading, Pause aborts the current request while retaining the private temporary file. Requests pin Azure Storage API version `2023-11-03` to obtain standard ETags and conditional range handling. Resume uses HTTP Range and If-Range when a validator is available; a full response truncates the partial file and restarts from zero. Invalid or inconsistent range responses fail closed. The complete file must still pass the pinned SHA-256 check before installation. Stop, graceful shutdown or failure removes the incomplete file; Stop never deletes an already installed executable. Paused downloads remain in the current Web process and are not restored after a restart.
+
+The CLI owns browser authorization and credential storage. On macOS, explicit login, logout and hosting can request access to the system login keychain. Automatic refresh never runs user show; it retains the persisted sign-in result and clears it when the executable is absent or invalid. Reauthorization and sign-out clear the remembered result before invoking account commands. Login completion is shown only after its successful result is saved; failed state writes report sign_in_state_failed in the responsible step. Failed reauthorization or cancellation before CLI success leaves the marker false. Stop, shutdown and ordinary tunnel failures preserve it. This marker does not verify credentials: external CLI logout, credential-store edits, expiration or service revocation may make it stale. No background credential probes run; reauthorization after an actual authorization failure requires explicit Sign out and Sign in. Loop does not automate approval or modify Keychain access permissions. Failed frontend status checks stop automatic polling and require manual Retry. Account operations are never retried automatically; they report failure on CLI exit or their deadline. A Keychain Deny response is managed inside the CLI and cannot be observed directly by Loop; sign-in settles on CLI exit or its deadline. The control API still accepts Stop to cancel an operation, but the sign-in step does not expose a stop icon. Loop does not use MSAL, send Microsoft tokens to frontend code, scrape login output for tokens, or maintain a separate credential cache. Raw CLI diagnostics are not returned to the UI or written to Loop logs. Cancel terminates the child process, with forced termination after two seconds if needed. Browser windows already opened by the CLI can remain open.
+
+Browser sign-in has a three-minute deadline; account commands have a thirty-second deadline and initial hosting readiness has a sixty-second deadline. A failed operation reports a fixed error code and can be retried. Unexpected host exit clears the address and closes the isolated ingress. Hosting status reflects CLI readiness; temporary network interruptions inside a running CLI are not independently detected by Loop.
+
+## Tunnel Lifecycle
+
+The reconnect preference is stored at `<agentDir>/web-ui/remote-access/connection.json` as version 1 with only an enabled boolean. It uses the same serialized, synced mode-0600 temporary writes and atomic replacement as sign-in storage; it contains no tunnel IDs, URLs, account details or credentials. A successful Connect saves enabled=true before reporting connected. A missing, unreadable, malformed or unsupported-version record defaults to false. Existing connections from before this feature need one successful Connect to create the preference.
+
+At startup, an enabled preference verifies the installed CLI and remembered sign-in before launching one fresh host using the CLI credential store. Restore never downloads the CLI or invokes login automatically; missing prerequisites clear the preference and leave hosting off. Host startup may still request OS credential-store approval. Failure is reported in the responsible step without a retry loop or a false connected state; the enabled preference remains for a later backend launch. A normal shutdown or unexpected host exit preserves the preference. Explicit Disconnect, sign-out, reauthorization, uninstall and detection of a missing or invalid executable clear it. Stop waits for an in-flight connection save before clearing, so a late completion cannot re-enable the preference. Disconnect still closes the host if saving fails, but reports connection_state_failed in Step 3 and does not proceed to CLI logout; retry after fixing storage permissions to clear the stale preference.
+
+Each Connect invokes the CLI's temporary-tunnel hosting mode, with one randomly bound loopback ingress port, HTTP protocol and a one-hour resource expiration. It never enables anonymous access or reuses old tunnel IDs. Access policy and transport are managed by the official CLI and service.
+
+Stop shuts down the host process and attempts bounded deletion of that connection's tunnel when its ID is known, then closes the ingress. A crash, interrupted startup or failed cleanup can leave a temporary cloud resource until service expiration; no remote Loop business endpoint is served. The address can change on every connection. CLI output is parsed only for the pinned version's readiness marker and port-specific HTTPS address; inspect URLs are not presented as connection addresses.
+
+The former SDK environment variables, MSAL cache and saved tunnel metadata are no longer read. Existing local records are left untouched; this change does not erase previously stored credentials or cloud resources.
+
+## Local Control API
+
+| Request | Behavior |
+| --- | --- |
+| `GET /api/remote-access` | Returns sanitized status and sets a process-lifetime HttpOnly, SameSite=Strict local control cookie |
+| `POST /api/remote-access` | Accepts exactly one action field: install, uninstall, login, start, stop, logout, pause or resume; requires the cookie and exact same-origin Origin |
+
+Example request body:
+
+```json
+{ "action": "start" }
+```
+
+POST returns HTTP 202 with the accepted state. Status includes `supported`, `installed`, `signedIn`, `phase`, optional `download` (`received` and optional `total` bytes, optional `paused` boolean and optional `stage` (`downloading` or `verifying`; omission means downloading)), `url`, optional `failedSteps` (`install`, `login`, `start`), sanitized `error` and optional `errorStep` (`install`, `login`, `start`). `errorStep` identifies the stage where an operation failed, including generic CLI errors and failures during automatic prerequisites; it is cleared when another command starts or an operation is intentionally stopped. The frontend uses it to display errors within the responsible setup step. signedIn records the last successfully persisted Loop login, restored on startup; it is not an independent credential-store or service-authorization probe.
+
+The optional `failedSteps` list records previously completed steps that later fail: an absent or invalid installed executable, failed reauthorization, or unexpected exit of a connected host. Successful recovery clears only the affected failure. Intentional stop clears the connection failure, sign-out clears the login failure, and successful uninstall clears all step failures. This metadata lasts only for the current process and never requires automatic credential probes. A failed refresh request returns HTTP 503; failure to clear a missing executable’s remembered login can leave its in-memory login unconfirmed, the frontend marks its cached completed steps as failed checks until a successful retry.
+
+Phases are `off`, `installing`, `uninstalling`, `signing-in`, `signing-out`, `connecting`, `connected`, `stopping` and `error`. Stop can cancel an active action, including paused downloads. Pause and resume are accepted only while the download transfer is active, and retain the installing phase with download.paused indicating the state. Other overlapping or inapplicable commands return 409. Malformed commands return 400, invalid origin/cookie returns 403 and unsupported methods return 405. The API accepts no CLI options or arbitrary URLs. It trusts local processes as the rest of Loop does; the cookie is not a multi-user authentication system.
+
+Entry uses GET with the query parameter **refresh=1** to verify installation before returning the remembered sign-in and current host state. Ordinary GET reads only memory. Both responses disable HTTP caching and set the local control cookie. Refresh preserves a running host and its address, including when a probe fails. Stop and shutdown cancel a pending check; other actions return 409 until it completes. A failed probe or state-clear write returns HTTP 503 with the fixed code **remote_status_failed**, without CLI diagnostics. The frontend offers Retry; rechecking has no installation or authorization side effects, but clears the remembered sign-in when the executable is missing.
+
+Errors distinguish unsupported platforms, download/storage failure, integrity failure, CLI operation failure, sign-in failure/timeout, sign-in-state storage failure, connection-preference storage failure and tunnel failure. Changing account or retrying in the current process requires an explicit action; application launch reconnects only when a previously successful connection left the preference enabled.
+
+## Limits
+
+This stage has no device pairing, remote business API, remote frontend or PWA installation. All exposed paths return 503. Automated tests use synthetic subprocess and service responses; they do not establish real account authorization, China connectivity or cross-platform execution.
+
+Microsoft's managed service is in preview without a production SLA. Browser HTTPS ingress terminates TLS at the service; Loop does not promise encryption that hides traffic from the relay. The CLI is a separate downloaded executable, not an npm package or a self-hostable Microsoft relay. See [CLI installation](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started), [service security](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/security), [license terms](https://aka.ms/devtunnels/tos) and [privacy statement](https://privacy.microsoft.com/privacystatement).
+
+## Source and Tests
+
+- [Reconnect preference storage](../remote-access/connection-store.ts) / [tests](../remote-access/connection-store.test.ts).
+- [Startup restore](../remote-access/create-remote-access.ts) / [tests](../remote-access/create-remote-access.test.ts).
+- [Sign-in marker storage](../remote-access/sign-in-store.ts) / [tests](../remote-access/sign-in-store.test.ts).
+- [Setup operation](../remote-access/setup-operation.ts) / [tests](../remote-access/setup-operation.test.ts).
+- [Controller](../remote-access/controller.ts) / [tests](../remote-access/controller.test.ts).
+- [Download transfer](../remote-access/cli-download.ts) / [tests](../remote-access/cli-download.test.ts).
+- [Pinned releases](../remote-access/cli-release.ts) and [installer](../remote-access/cli-installer.ts) / [tests](../remote-access/cli-installer.test.ts).
+- [CLI processes](../remote-access/cli-process.ts) / [tests](../remote-access/cli-process.test.ts).
+- [Runtime](../remote-access/cli-runtime.ts) / [tests](../remote-access/cli-runtime.test.ts).
+- [Hosting](../remote-access/cli-tunnel.ts) / [tests](../remote-access/cli-tunnel.test.ts).
+- [Closed ingress](../remote-access/closed-ingress.ts) / [tests](../remote-access/closed-ingress.test.ts).
+- [Local routes](../routes/remote-access.ts) / [tests](../routes/remote-access.test.ts).
+- [Frontend workflow](../../frontend/docs/remote-access.md).

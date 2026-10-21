@@ -1,0 +1,25 @@
+.remote-access-issue {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: start;
+  gap: 6px;
+  color: var(--error-ink);
+  font-size: 12px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.remote-access-issue[data-tone="warning"] {
+  color: light-dark(#995900, #f6c56a);
+}
+
+.remote-access-issue svg {
+  justify-self: start;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.remote-access-issue span {
+  min-width: 0;
+}

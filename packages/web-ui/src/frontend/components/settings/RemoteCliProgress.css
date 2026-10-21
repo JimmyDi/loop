@@ -1,0 +1,112 @@
+.remote-cli-progress {
+  display: grid;
+  grid-template-columns: minmax(24px, 1fr) 4ch 30px 30px;
+  grid-template-rows: 30px;
+  align-items: center;
+  gap: 4px;
+  flex: 1 0 150px;
+  max-width: 320px;
+  min-width: 150px;
+  margin-left: 6px;
+}
+
+.remote-cli-progress-track {
+  grid-column: 1;
+  grid-row: 1;
+  height: 10px;
+  padding: 2px;
+  overflow: hidden;
+  border: 1px solid light-dark(#91a4c0, #596a82);
+  border-radius: 999px;
+  background: transparent;
+}
+
+.remote-cli-progress[data-activity="true"] {
+  grid-template-columns: minmax(24px, 1fr);
+}
+
+.remote-cli-progress-fill {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+  background: linear-gradient(90deg, light-dark(#2563eb, #779eff), light-dark(#0284c7, #67d4ef));
+  box-shadow: 0 0 8px light-dark(#2563eb30, #8ab4ff55);
+  transition: width 450ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.remote-cli-progress-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 10%, light-dark(#ffffff80, #ffffffa6) 50%, transparent 90%);
+  transform: translateX(-100%);
+  animation: remote-cli-shimmer 1.8s linear infinite;
+}
+
+.remote-cli-progress-track[data-indeterminate="true"] .remote-cli-progress-fill {
+  animation: remote-cli-wait 2.4s ease-in-out infinite;
+}
+
+.remote-cli-progress-percent {
+  grid-column: 2;
+  grid-row: 1;
+  color: var(--ink-muted);
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.remote-cli-progress-action {
+  grid-row: 1;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.remote-cli-progress-action[data-action="pause"] {
+  grid-column: 3;
+}
+
+.remote-cli-progress-action[data-action="stop"] {
+  grid-column: 4;
+}
+
+.remote-cli-progress-action:has(button:disabled) {
+  cursor: not-allowed;
+}
+
+.remote-cli-progress-action > button:disabled {
+  pointer-events: none;
+}
+
+.remote-cli-progress[data-paused="true"] .remote-cli-progress-fill,
+.remote-cli-progress[data-paused="true"] .remote-cli-progress-fill::after {
+  animation-play-state: paused;
+  transition: none;
+}
+
+@keyframes remote-cli-shimmer {
+  to { transform: translateX(100%); }
+}
+
+@keyframes remote-cli-wait {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(257%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .remote-cli-progress-fill,
+  .remote-cli-progress-fill::after {
+    animation: none !important;
+    transition: none;
+  }
+  .remote-cli-progress-fill::after {
+    display: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .remote-cli-progress-track { border-color: CanvasText; }
+  .remote-cli-progress-fill { background: Highlight; forced-color-adjust: none; box-shadow: none; }
+  .remote-cli-progress-fill::after { display: none; }
+}

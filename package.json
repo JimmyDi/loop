@@ -45,6 +45,7 @@
     "@biomejs/biome": "^2.5.4",
     "@loop/agent": "workspace:*",
     "@loop/coding-agent": "workspace:*",
+    "@loop/telemetry": "workspace:*",
     "@loop/web-ui": "workspace:*",
     "@types/node": "^24.0.0",
     "@types/which": "^3.0.0",
@@ -54,8 +55,7 @@
     "tsx": "^4.22.0",
     "typescript": "^5.9.0",
     "vite": "^8.0.0",
-    "vitest": "^4.1.0",
-    "@loop/telemetry": "workspace:*"
+    "vitest": "^4.1.0"
   },
   "packageManager": "pnpm@11.25.0",
   "files": [

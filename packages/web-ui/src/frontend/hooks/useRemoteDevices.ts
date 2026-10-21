@@ -43,6 +43,7 @@ export const useRemoteDevices = (connected = true) => {
           margin: 2,
           errorCorrectionLevel: "M",
         });
+        if (next.expiresAt <= Date.now()) throw new Error("Pairing invitation expired");
         if (!abort.signal.aborted) setInvitation({ ...next, connectionId, qr });
       } catch (error) {
         if (!abort.signal.aborted) setGenerationError(error);
@@ -53,13 +54,16 @@ export const useRemoteDevices = (connected = true) => {
     return () => abort.abort();
   }, [connectionId, waiting, revision]);
   useEffect(() => {
-    if (!invitation) return;
+    if (!invitation || invitation.connectionId !== connectionId || waiting) return;
     const timer = setTimeout(
-      () => setInvitation(undefined),
+      () => {
+        setInvitation(undefined);
+        setRevision((value) => value + 1);
+      },
       Math.max(0, invitation.expiresAt - Date.now()),
     );
     return () => clearTimeout(timer);
-  }, [invitation]);
+  }, [invitation, connectionId, waiting]);
   const invite = !waiting && invitation?.connectionId === connectionId ? invitation : undefined;
   const createInvite = () => setRevision((value) => value + 1);
   const decide = (id: string, approve: boolean) =>

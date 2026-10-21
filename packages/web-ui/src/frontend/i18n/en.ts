@@ -2,8 +2,12 @@ import { projectsEn } from "./projects-en";
 import { permissionsEn } from "./permissions-en";
 import { mcpEn } from "./mcp-en";
 import { skillsEn } from "./skills-en";
+import { remoteEn } from "./remote-en";
 
 export const en = {
+  connectivity: "Connectivity",
+  remoteAccess: "Remote access",
+  remote: remoteEn,
   queuePaused: "Paused — queued messages are retained",
   resume: "Resume",
   queueTitle: "Queue ({{count}})",

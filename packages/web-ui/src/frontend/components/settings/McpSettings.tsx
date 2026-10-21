@@ -54,7 +54,7 @@ export const McpSettings = () => {
   return (
     <div className="mcp-settings" ref={page}>
       <div className="integration-heading">
-        <h3>{t("mcps")}</h3>
+        <h3 className="settings-section-title">{t("mcps")}</h3>
         <div className="integration-actions">
           <PluginSearch label={t("mcp.search")} value={search} onChange={setSearch} />
           <PluginAddMenu section="mcps" onSelect={add} disabled={Boolean(editing)} />

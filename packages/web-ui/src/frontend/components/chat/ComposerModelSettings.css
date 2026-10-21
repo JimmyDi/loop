@@ -60,6 +60,7 @@
 .composer-model-popover button:hover,
 .composer-model-popover button:focus-visible {
   background: var(--surface-hover);
+  outline: none;
 }
 .composer-model-popover button:disabled {
   opacity: 0.5;

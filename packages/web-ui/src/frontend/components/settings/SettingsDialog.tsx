@@ -9,6 +9,7 @@ import { ModelsSettings } from "./ModelsSettings";
 import { McpSettings } from "./McpSettings";
 import { SkillsSettings } from "./SkillsSettings";
 import { ArchivedChats } from "./ArchivedChats";
+import { RemoteAccessSettings } from "./RemoteAccessSettings";
 import { SettingsNavigation } from "./SettingsNavigation";
 import { settingsGroups } from "./settings-sections";
 import type { SettingsSection } from "./settings-sections";
@@ -49,6 +50,8 @@ export const SettingsDialog = ({ onClose }: { onClose(): void }) => {
                   <McpSettings />
                 ) : item === "skills" ? (
                   <SkillsSettings onUse={onClose} />
+                ) : item === "remoteAccess" ? (
+                  <RemoteAccessSettings />
                 ) : (
                   <ArchivedChats onOpen={onClose} />
                 ))}

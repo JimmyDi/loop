@@ -35,7 +35,7 @@ export const ArchivedChats = ({ onOpen }: { onOpen?(): void }) => {
   return (
     <div className="archived-chats">
       <header className="archived-chats-header">
-        <h3>{t("archivedChats")}</h3>
+        <h3 className="settings-section-title">{t("archivedChats")}</h3>
         <ActionButton
           className="archive-danger"
           disabled={change.isPending || sessions.isPending || !!sessions.error || !all.length}

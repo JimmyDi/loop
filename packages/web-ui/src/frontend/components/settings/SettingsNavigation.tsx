@@ -91,6 +91,11 @@ export const SettingsNavigation = ({
                       <path d="M9 7V2m6 5V2M6 7h12M7 7v5a5 5 0 0 0 10 0V7m-5 10v5" />
                     ) : item === "skills" ? (
                       <path d="M14 3H5v18h14V8l-5-5Z M14 3v5h5M8 12h8M8 16h6" />
+                    ) : item === "remoteAccess" ? (
+                      <>
+                        <rect x="7" y="2" width="10" height="20" rx="2" />
+                        <path d="M11 18h2" />
+                      </>
                     ) : item === "appearance" ? (
                       <>
                         <circle cx="12" cy="12" r="4" />

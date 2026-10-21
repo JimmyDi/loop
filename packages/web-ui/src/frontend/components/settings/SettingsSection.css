@@ -1,0 +1,10 @@
+.settings-section-title {
+  box-sizing: border-box;
+  min-height: 32px;
+  margin: 0;
+  padding-block: 4px;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 24px;
+}

@@ -47,7 +47,8 @@ export const RemoteDevicesSettings = ({ connected = true }: { connected?: boolea
                     strokeLinejoin="round"
                     aria-hidden="true"
                   >
-                    <path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.5-1L20 9M4 15l2.4 3A7 7 0 0 0 17.9 17" />
+                    <path d="M20 11a8 8 0 1 1-2.3-5.7L20 8" />
+                    <path d="M20 3v5h-5" />
                   </svg>
                 </ActionButton>
               </span>

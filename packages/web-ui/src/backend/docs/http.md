@@ -1,12 +1,12 @@
 # HTTP Boundaries
 
-The Web API serves a local single-user interface. Browser and API share an origin. Routes validate request origin and input before calling the SDK. Feature endpoints are documented under [projects](projects.md), [sessions](sessions.md), [providers](providers.md), and [SSE](events.md).
+The desktop Web API serves a local single-user interface. Browser and API share an origin. Routes validate request origin and input before calling the SDK. Feature endpoints are documented under [projects](projects.md), [sessions](sessions.md), [providers](providers.md), and [SSE](events.md).
 
 ## Local Request Validation
 
 The request URL host must be localhost, 127.0.0.1, or `[::1]`. If a Host header is present, it must match the URL host. A supplied Origin must exactly match the current origin, and Sec-Fetch-Site: cross-site is rejected. Failures return invalid_host or invalid_origin (403).
 
-The service listens only on 127.0.0.1. These checks are neither login authentication nor a tool sandbox; local programs can still access the service. There is no cross-origin CORS access, public hosting, or multi-user isolation.
+The service listens only on 127.0.0.1. These checks are neither login authentication nor a tool sandbox; local programs can still access the service. There is no cross-origin CORS access or multi-user isolation. A separate authenticated tunnel ingress uses the [remote device policy](remote-devices.md); it does not bypass these desktop checks.
 
 ## JSON Input
 

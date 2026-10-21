@@ -1,6 +1,7 @@
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
+import { isRemoteClient } from "../../lib/remote-session";
 import type { useProjectMenu } from "../../hooks/useProjectMenu";
 import { SessionPinIcon } from "./SessionPinIcon";
 import "./SessionContextMenu.css";
@@ -47,25 +48,27 @@ export const SessionContextMenu = ({
           ],
           ["delete", "permanentlyDelete", "M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7m4-7v7"],
         ] as const
-      ).map(([action, label, path]) => (
-        <button
-          key={action}
-          type="button"
-          role="menuitem"
-          tabIndex={-1}
-          disabled={action === "pin" ? pinDisabled : disabled}
-          onClick={() => onChoose(action)}
-        >
-          {action === "pin" ? (
-            <SessionPinIcon pinned={pinned} />
-          ) : (
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d={path} />
-            </svg>
-          )}
-          {t(label)}
-        </button>
-      ))}
+      )
+        .filter(([action]) => !isRemoteClient() || action === "rename" || action === "pin")
+        .map(([action, label, path]) => (
+          <button
+            key={action}
+            type="button"
+            role="menuitem"
+            tabIndex={-1}
+            disabled={action === "pin" ? pinDisabled : disabled}
+            onClick={() => onChoose(action)}
+          >
+            {action === "pin" ? (
+              <SessionPinIcon pinned={pinned} />
+            ) : (
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d={path} />
+              </svg>
+            )}
+            {t(label)}
+          </button>
+        ))}
     </div>,
     document.body,
   );

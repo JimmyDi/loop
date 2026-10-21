@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SessionSummary } from "../../../shared/protocol";
+import { isRemoteClient } from "../../lib/remote-session";
 import { useWorkspace } from "../../state/workspace-store";
 import { useSessions } from "../../state/session-store";
 import { useProjectMenu } from "../../hooks/useProjectMenu";
@@ -146,17 +147,19 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
             >
               <SessionPinIcon pinned={pinned} />
             </ActionButton>
-            <ActionButton
-              className="session-item-action session-item-archive icon ghost"
-              aria-label={t("archiveChat", { name: title })}
-              title={t("archiveSession")}
-              disabled={busy}
-              onClick={() => void action.change("archive")}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M3 4h18v4H3zM9 12h6" />
-              </svg>
-            </ActionButton>
+            {!isRemoteClient() && (
+              <ActionButton
+                className="session-item-action session-item-archive icon ghost"
+                aria-label={t("archiveChat", { name: title })}
+                title={t("archiveSession")}
+                disabled={busy}
+                onClick={() => void action.change("archive")}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M3 4h18v4H3zM9 12h6" />
+                </svg>
+              </ActionButton>
+            )}
           </>
         )}
       </div>

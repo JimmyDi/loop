@@ -119,7 +119,7 @@ Loop supports session permission presets and approval cards for managed file/she
 
 Current queue, steering and stop/resume contracts are described in [chat input](../frontend/docs/chat.md) and [core scheduling](../../../coding-agent/src/docs/message-queue.md). Session branches and message rollback/retry remain unavailable. Web project renaming and unregistering do not change the session API. Tools have no progress events; bash displays activity and final output, without a terminal, interactive stdin, or live output panel.
 
-File operations and bash run at the session `cwd` on the backend machine, not in the browser visitor's filesystem. The initial deployment is local and single-user, with same-origin pages/APIs served by Node.js on loopback. Remote multi-user hosting is outside scope.
+File operations and bash run at the session `cwd` on the backend machine, not in the browser visitor's filesystem. The initial deployment is local and single-user, with same-origin pages/APIs served by Node.js on loopback. Optional remote access uses an isolated tunnel ingress with [device pairing and authorization](../backend/docs/remote-devices.md). Multi-user hosting is outside scope.
 
 ### 3.3 Projects Tree and Management
 

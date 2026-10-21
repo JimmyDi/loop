@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary } from "react-error-boundary";
 
+import { RemoteAccessGate } from "./components/remote/RemoteAccessGate";
 import { AppShell } from "./components/layout/AppShell";
 import { ErrorNotice } from "./components/ui/ErrorNotice";
 import "./i18n/setup";
@@ -12,7 +13,9 @@ const query = new QueryClient({ defaultOptions: { queries: { staleTime: 5000, re
 export const App = () => (
   <QueryClientProvider client={query}>
     <ErrorBoundary FallbackComponent={ErrorNotice}>
-      <AppShell />
+      <RemoteAccessGate>
+        <AppShell />
+      </RemoteAccessGate>
     </ErrorBoundary>
   </QueryClientProvider>
 );

@@ -30,7 +30,20 @@ Status distinguishes off, preparing/downloading, verifying and installing, unins
 
 Opening this section and automatic status requests never invoke CLI account commands or read Keychain credentials. Explicit sign-in, sign-out and tunnel operations can trigger a macOS Keychain authorization dialog for the CLI credential item. This is an OS credential-store prompt, not a Microsoft browser sign-in or installation prompt. It requests the login keychain password, which is usually the macOS account password. The CLI can wait inside this credential read before opening a browser, so no browser window does not by itself mean that the login command was not started. Complete the macOS prompt manually; if canceled, wait for the sign-in failure or timeout before retrying. Approving once may require approval on later CLI invocations; Always Allow changes the keychain access permission for the requesting executable. Loop does not enter passwords or change those permissions automatically.
 
-The frontend does not receive or persist Microsoft credentials or host tokens in JavaScript storage. The local control cookie is HttpOnly and SameSite=Strict. The remote ingress does not serve this settings screen.
+The frontend does not receive or persist Microsoft credentials or host tokens in JavaScript storage. The local control cookie is HttpOnly and SameSite=Strict. Remote clients enter through the [pairing gate](../../backend/docs/remote-devices.md); settings and project administration are available only on the computer.
+
+
+## Device Pairing
+
+After connecting, select **Pair a device**. Scan the QR code with the phone; the generic link opens the same invitation without displaying the service address. The invitation expires after five minutes and can be used once. The tunnel remains private: Microsoft service authorization may be required before the phone reaches Loop.
+
+Enter a device name on the phone and select **Request access**. Compare its six-digit code with the pending device on the computer. Select **Approve** only when the codes match and the request is expected; **Decline** rejects it. Approval grants access to all registered projects and chats, prompt attachments and Agent commands under the session's existing permissions, including permission changes and tool approval. It is not a read-only or per-project grant.
+
+The phone waits without loading projects, conversations or other business data. Approval sets a Secure HttpOnly cookie and opens the existing chat interface. The credential is never returned to JavaScript or saved in browser storage; a separate CSRF value exists only in memory. Pairing tokens use a URL fragment removed from browser history when the page opens. Requests and invitations disappear on disconnect or backend restart.
+
+**Revoke access** removes a paired device and closes its active requests and streams. The phone returns to pairing when authorization is rechecked, including after an SSE failure, or within the fifteen-second periodic check. Unavailable authorization checks hide the chat UI and offer Retry. Conversation snapshots and query data are cleared on authorization loss; user-written drafts and uncertain-delivery records remain in that browser. Already downloaded content cannot be retracted. Previously accepted Agent work can continue on the computer after revocation.
+
+Device access expires after fourteen days and is not renewed automatically. Cookies belong to the exact public hostname; a new tunnel address normally requires a new pairing. Settings, project registration, archive/delete operations and provider/MCP/skill configuration remain local and their controls are hidden remotely. Phone-specific layouts and PWA installation are not yet implemented.
 
 ## Source and Tests
 
@@ -41,3 +54,7 @@ The frontend does not receive or persist Microsoft credentials or host tokens in
 - [License info tooltip](../components/settings/RemoteAccessInfo.tsx) / [tests](../components/settings/RemoteAccessInfo.test.tsx).
 - [Control hook](../hooks/useRemoteAccess.ts).
 - [Backend setup, lifecycle and limits](../../backend/docs/remote-access.md).
+
+- [Remote gate](../components/remote/RemoteAccessGate.tsx) / [tests](../components/remote/RemoteAccessGate.test.tsx).
+- [Phone pairing](../components/remote/RemotePairing.tsx) / [tests](../components/remote/RemotePairing.test.tsx).
+- [Desktop devices](../components/settings/RemoteDevicesSettings.tsx) / [tests](../components/settings/RemoteDevicesSettings.test.tsx).

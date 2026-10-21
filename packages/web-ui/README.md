@@ -30,7 +30,7 @@ If a sent message stays in the waiting state, check the model endpoint and serve
 - React chat components, editable drafts, model-authored updates, collapsed tool batches, Markdown and code copy.
 - English/Chinese interface, responsive sidebar, session navigation and model selection.
 - Frontend configuration of an OpenAI-compatible custom provider, including local gateways.
-- Experimental private tunnel controls in Settings → Remote access, with a three-step CLI installation, Microsoft sign-in and connection flow, completion checks and license/privacy info tooltip; does not yet expose the remote application. See [setup and limits](src/backend/docs/remote-access.md).
+- Experimental private tunnel controls in Settings → Remote access, with a three-step CLI installation, Microsoft sign-in and connection flow, completion checks and license/privacy info tooltip; one-use QR pairing, desktop approval and revocable remote chat access. See [setup and limits](src/backend/docs/remote-access.md).
 
 Components use arrow functions and have matching CSS/test files. Hooks and utilities are separated by responsibility. `architecture.test.ts` checks public imports, component companions and a 200-line implementation limit.
 

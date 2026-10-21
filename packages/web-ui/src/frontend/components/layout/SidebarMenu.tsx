@@ -2,6 +2,7 @@ import { useId } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useComposerMenu } from "../../hooks/useComposerMenu";
+import { isRemoteClient } from "../../lib/remote-session";
 import { feedbackIssueUrl } from "../../lib/feedback-issue";
 import { ActionButton } from "../ui/ActionButton";
 import { SettingsIcon } from "../ui/SettingsIcon";
@@ -49,19 +50,21 @@ export const SidebarMenu = ({ onOpenSettings }: { onOpenSettings(): void }) => {
           aria-label={t("appMenu")}
           onKeyDown={menu.navigate}
         >
-          <button
-            type="button"
-            role="menuitem"
-            tabIndex={-1}
-            aria-haspopup="dialog"
-            onClick={() => {
-              menu.close();
-              onOpenSettings();
-            }}
-          >
-            <SettingsIcon />
-            {t("settings")}
-          </button>
+          {!isRemoteClient() && (
+            <button
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
+              aria-haspopup="dialog"
+              onClick={() => {
+                menu.close();
+                onOpenSettings();
+              }}
+            >
+              <SettingsIcon />
+              {t("settings")}
+            </button>
+          )}
           <a
             role="menuitem"
             tabIndex={-1}

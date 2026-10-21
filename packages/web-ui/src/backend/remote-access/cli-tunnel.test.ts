@@ -69,3 +69,25 @@ test("early host failure does not report a connected tunnel and can be disposed"
   expect(failed).not.toHaveBeenCalled();
   expect(runCli).not.toHaveBeenCalled();
 });
+
+test("managed ingress receives the verified origin and closes before the CLI host stops", async () => {
+  const connected = vi.fn();
+  const close = vi.fn(async () => {});
+  const stop = vi.fn(async () => {
+    expect(close).toHaveBeenCalled();
+  });
+  vi.mocked(startCliProcess).mockImplementation((_file, _args, _signal, onLine) => {
+    queueMicrotask(() => {
+      onLine!("Hosting port at https://synthetic-1234.test.devtunnels.ms/");
+      onLine!("Ready to accept connections for tunnel: synthetic.test");
+    });
+    return { done: new Promise(() => {}), stop };
+  });
+  const tunnel = new CliTunnel("synthetic-cli", async () => ({ port: 1234, close, connected }));
+  expect(await tunnel.start(new AbortController().signal, vi.fn())).toBe(
+    "https://synthetic-1234.test.devtunnels.ms",
+  );
+  expect(connected).toHaveBeenCalledWith("https://synthetic-1234.test.devtunnels.ms");
+  await tunnel.close();
+  expect(stop).toHaveBeenCalledOnce();
+});

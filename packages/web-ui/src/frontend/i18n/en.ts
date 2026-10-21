@@ -1,3 +1,4 @@
+import { pairingEn } from "./pairing-en";
 import { projectsEn } from "./projects-en";
 import { permissionsEn } from "./permissions-en";
 import { mcpEn } from "./mcp-en";
@@ -5,6 +6,7 @@ import { skillsEn } from "./skills-en";
 import { remoteEn } from "./remote-en";
 
 export const en = {
+  pairing: pairingEn,
   connectivity: "Connectivity",
   remoteAccess: "Remote access",
   remote: remoteEn,

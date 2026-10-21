@@ -6,19 +6,20 @@ import { RemoteAccessMarker } from "./RemoteAccessMarker";
 import "./RemoteDevicesSettings.css";
 
 export const RemoteDevicesSettings = ({ connected = true }: { connected?: boolean }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const devices = useRemoteDevices(connected);
   const complete = !!devices.query.data?.devices.length;
+  const expired = devices.query.data?.expiredDevices ?? [];
+  const failed = !!devices.error || (!complete && expired.length > 0);
+  const loading = devices.generating && !complete && !expired.length;
+  const expiryDate = (value: number) =>
+    new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(value);
   return (
-    <li
-      className="remote-devices-step"
-      data-complete={complete && !devices.generating && !devices.error}
-    >
-      <RemoteAccessMarker
-        complete={complete}
-        loading={devices.generating}
-        failed={!!devices.error}
-      />
+    <li className="remote-devices-step" data-complete={complete && !failed}>
+      <RemoteAccessMarker complete={complete} loading={loading} failed={failed} />
       <section className="remote-access-step-content" aria-label={t("pairing.devices")}>
         <div className="remote-access-step-heading">
           <span className="remote-access-step-number">{t("remote.step", { number: 4 })}</span>
@@ -87,14 +88,30 @@ export const RemoteDevicesSettings = ({ connected = true }: { connected?: boolea
               </ActionButton>
             </div>
           ))}
-          {devices.query.data?.devices.map((item) => (
-            <div className="remote-devices-row" key={item.id}>
-              <strong>{item.name}</strong>
-              <ActionButton disabled={devices.pending} onClick={() => void devices.revoke(item.id)}>
-                {t("pairing.revoke")}
-              </ActionButton>
-            </div>
-          ))}
+          {[...(devices.query.data?.devices ?? []), ...expired].map((item) => {
+            const isExpired = expired.some((device) => device.id === item.id);
+            return (
+              <div className="remote-devices-row" key={item.id} role="group" aria-label={item.name}>
+                <div className="remote-device-summary">
+                  <RemoteAccessMarker complete={!isExpired} loading={false} failed={isExpired} />
+                  <div>
+                    <strong>{item.name}</strong>
+                    <p>
+                      {t(isExpired ? "pairing.deviceExpired" : "pairing.devicePaired", {
+                        date: expiryDate(item.expiresAt),
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <ActionButton
+                  disabled={devices.pending}
+                  onClick={() => void devices.revoke(item.id)}
+                >
+                  {t(isExpired ? "pairing.remove" : "pairing.revoke")}
+                </ActionButton>
+              </div>
+            );
+          })}
           {devices.error && <p role="alert">{t("pairing.manageFailed")}</p>}
         </div>
       </section>

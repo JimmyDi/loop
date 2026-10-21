@@ -14,7 +14,7 @@ All routes below use the desktop listener. GET status sets the process-lifetime 
 
 | Request | Result |
 | --- | --- |
-| `GET /api/remote-access/devices` | Connection state and ephemeral connectionId, nonexpired device metadata and pending requests with comparison codes |
+| `GET /api/remote-access/devices` | Connection state and ephemeral connectionId, nonexpired device metadata in devices, expired metadata in expiredDevices and pending requests with comparison codes |
 | `POST /api/remote-access/pairing` | Fresh `{url, expiresAt}` invitation; replaces the unused invitation |
 | `POST /api/remote-access/pairing/:id` | Exactly `{approve: boolean}`; approve or decline a pending request |
 | `DELETE /api/remote-access/devices/:id` | Persist revocation, then terminate that device's tracked access |
@@ -43,7 +43,7 @@ Responses disable caching; successful responses also suppress referrers, MIME sn
 
 `<agentDir>/web-ui/remote-access/devices.json` is a strict version-1 file holding only device IDs, names, creation/expiry timestamps and SHA-256 credential hashes. Missing storage starts empty; malformed, unreadable or unsupported storage fails server startup closed. Serialized mutations write a synced private mode-0600 temporary file and atomically replace the record. No raw credentials, pairing tokens, addresses or Microsoft tokens are persisted there. Independent Web processes do not coordinate writes; use one owner process.
 
-Approval becomes effective only after storage succeeds. A desktop approval already being saved remains durable if the tunnel disconnects during that write; it remains visible for later revocation, although its old pairing request is invalidated. Failed approval writes cannot grant access. Revocation persists first; a failed write reports failure and leaves the grant active for explicit retry. Expired records are excluded from authorization/status and pruned on the next approval.
+Approval becomes effective only after storage succeeds. A desktop approval already being saved remains durable if the tunnel disconnects during that write; it remains visible for later revocation, although its old pairing request is invalidated. Failed approval writes cannot grant access. Revocation persists first; a failed write reports failure and leaves the grant active for explicit retry. Expired records are excluded from authorization and the active devices list. Desktop status exposes their sanitized metadata separately in expiredDevices so Settings can show a red cross and offer removal, including after restart. They are pruned on the next successful approval or removed explicitly through the device DELETE route. Expired metadata never includes credential hashes and cannot authorize requests.
 
 Requests and streams are bound to device expiry, revocation, tunnel disconnect and client cancellation. At most sixteen simultaneous business responses are allowed per device. Closing a stream cancels its source reader, unsubscribes existing SSE listeners and clears heartbeat timers. An in-flight request whose response arrives after invalidation cannot return that business response. Disconnect closes ingress before stopping/deleting the hosted tunnel. Pairing state is memory-only and resets on disconnect/restart. Already accepted commands may continue on the computer; revocation cannot undo actions or retract previously downloaded data.
 

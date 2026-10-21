@@ -43,10 +43,12 @@ export class RemoteDevices {
   }
 
   status(): RemoteDevicesStatus {
+    const now = Date.now();
     return {
       connected: !!this.origin,
       connectionId: this.connectionId,
-      devices: this.devices.filter((item) => item.expiresAt > Date.now()).map(publicDevice),
+      devices: this.devices.filter((item) => item.expiresAt > now).map(publicDevice),
+      expiredDevices: this.devices.filter((item) => item.expiresAt <= now).map(publicDevice),
       pending: this.pairing.list(),
     };
   }

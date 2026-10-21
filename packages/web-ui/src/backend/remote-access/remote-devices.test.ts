@@ -28,6 +28,7 @@ test("approval persists across restart, revocation ends active requests and expi
     await devices.decide(pending.id, true);
     const device = devices.authenticate(credential);
     expect(devices.status().devices).toEqual([device]);
+    expect(devices.status().expiredDevices).toEqual([]);
     expect(JSON.stringify(devices.status())).not.toContain("credentialHash");
     const restarted = new RemoteDevices(store);
     await restarted.load();
@@ -47,7 +48,40 @@ test("approval persists across restart, revocation ends active requests and expi
     vi.advanceTimersByTime(deviceLifetime);
     expect(expiring.signal.aborted).toBe(true);
     expect(() => devices.authenticate(credential)).toThrow();
+    expect(devices.status().devices).toEqual([]);
+    expect(devices.status().expiredDevices).toEqual([device]);
+    expect(JSON.stringify(devices.status())).not.toContain("credentialHash");
+    await devices.revoke(device.id);
+    expect(devices.status().expiredDevices).toEqual([]);
     stop();
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("expired device metadata survives restart, can be removed and is pruned on new approval", async () => {
+  const root = await mkdtemp(join(import.meta.dirname, ".remote-devices-"));
+  try {
+    const store = new DeviceStore(join(root, "devices.json"));
+    const devices = new RemoteDevices(store);
+    await devices.load();
+    devices.connect(origin);
+    const first = requestPairing(devices);
+    await devices.decide(first.pending.id, true);
+    const device = devices.authenticate(first.credential);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(device.expiresAt);
+    const restarted = new RemoteDevices(store);
+    await restarted.load();
+    restarted.connect(origin);
+    expect(restarted.status().devices).toEqual([]);
+    expect(restarted.status().expiredDevices).toEqual([device]);
+    expect(() => restarted.authenticate(first.credential)).toThrow();
+    const next = requestPairing(restarted);
+    await restarted.decide(next.pending.id, true);
+    expect(restarted.status().devices).toHaveLength(1);
+    expect(restarted.status().expiredDevices).toEqual([]);
+    expect(await store.read()).toHaveLength(1);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

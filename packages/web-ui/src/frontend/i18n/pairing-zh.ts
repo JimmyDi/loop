@@ -21,5 +21,8 @@ export const pairingZh = {
   approve: "批准",
   reject: "拒绝",
   revoke: "撤销访问",
+  remove: "移除设备",
+  devicePaired: "已配对 · 授权将于 {{date}} 到期",
+  deviceExpired: "已过期 · 请重新配对以恢复访问",
   manageFailed: "设备管理失败，请刷新状态后重试。",
 };

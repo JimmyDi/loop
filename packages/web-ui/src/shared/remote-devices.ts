@@ -16,6 +16,7 @@ export type RemoteDevicesStatus = {
   connected: boolean;
   connectionId?: string;
   devices: RemoteDevice[];
+  expiredDevices: RemoteDevice[];
   pending: PairingRequest[];
 };
 

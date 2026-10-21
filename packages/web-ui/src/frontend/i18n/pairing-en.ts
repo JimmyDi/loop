@@ -21,5 +21,8 @@ export const pairingEn = {
   approve: "Approve",
   reject: "Decline",
   revoke: "Revoke access",
+  remove: "Remove device",
+  devicePaired: "Paired · Access expires {{date}}",
+  deviceExpired: "Expired · Pair again to restore access",
   manageFailed: "Device management failed. Refresh the status and retry.",
 };

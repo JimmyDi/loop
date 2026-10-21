@@ -50,7 +50,19 @@ test("local pairing approvals and revocations require the desktop control capabi
   await call(path, "POST", { approve: true });
   const status = await (await call("/devices"))!.json();
   expect(status.devices).toHaveLength(1);
+  expect(status.expiredDevices).toEqual([]);
   expect(JSON.stringify(status)).not.toContain("credentialHash");
-  await call("/devices/" + status.devices[0].id, "DELETE");
-  expect(() => devices.authenticate(pending.credential)).toThrow();
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    vi.setSystemTime(status.devices[0].expiresAt);
+    const expired = await (await call("/devices"))!.json();
+    expect(expired.devices).toEqual([]);
+    expect(expired.expiredDevices).toEqual(status.devices);
+    expect(JSON.stringify(expired)).not.toContain("credentialHash");
+    expect(() => devices.authenticate(pending.credential)).toThrow();
+    await call("/devices/" + status.devices[0].id, "DELETE");
+    expect((await (await call("/devices"))!.json()).expiredDevices).toEqual([]);
+  } finally {
+    vi.useRealTimers();
+  }
 });

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { RemoteAccessGate } from "./components/remote/RemoteAccessGate";
 import { ErrorNotice } from "./components/ui/ErrorNotice";
+import { LoopIcon } from "./components/ui/LoopIcon";
 import "./i18n/setup";
 import "./theme.css";
 import "./App.css";
@@ -24,7 +25,8 @@ export const App = () => {
           <Suspense
             fallback={
               <main className="app-loading" role="status">
-                {t("loading")}
+                <LoopIcon />
+                <span>{t("loading")}</span>
               </main>
             }
           >

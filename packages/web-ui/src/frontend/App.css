@@ -11,8 +11,10 @@ body {
   font-size: 13px;
 }
 .app-loading {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   min-height: 100dvh;
   color: var(--ink-muted);
 }

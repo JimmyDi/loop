@@ -10,7 +10,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
-- Web UI: apply the saved or system theme and loading-screen background directly from HTML before application resources load, preventing a white flash on refresh.
+- Web UI: apply the saved or system theme and loading-screen background directly from HTML before application resources load, preventing a white flash on refresh. Show the theme-aware Loop icon beside the loading text from the initial placeholder through chat loading.
 
 - Web UI: preserve SSE anti-transformation headers on remote device connections so intermediaries are instructed to forward streamed chat updates without compression or response rewriting while keeping responses uncached.
 

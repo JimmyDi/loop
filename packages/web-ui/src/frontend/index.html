@@ -8,7 +8,12 @@
       :root[data-theme="light"] { color-scheme: light; }
       :root[data-theme="dark"] { color-scheme: dark; }
       body { margin: 0; font-size: 13px; }
-      .app-loading { display: grid; place-items: center; min-height: 100dvh; }
+      .app-loading { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 100dvh; }
+      .app-loading .loop-icon { width: 28px; height: 28px; flex-shrink: 0; background: url("./assets/loop-icon.png") center / contain no-repeat; }
+      :root[data-theme="dark"] .app-loading .loop-icon { background-image: url("./assets/loop-icon-light.png"); }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) .app-loading .loop-icon { background-image: url("./assets/loop-icon-light.png"); }
+      }
     </style>
     <script data-initial-theme>
       (() => {
@@ -28,7 +33,7 @@
     <link rel="mask-icon" href="./assets/loop-mask-icon.svg" color="#222428" />
   </head>
   <body>
-    <div id="root"><main class="app-loading" role="status">Loop…</main></div>
+    <div id="root"><main class="app-loading" role="status"><span class="loop-icon" aria-hidden="true"></span><span>Loading…</span></main></div>
     <script type="module" src="./main.tsx"></script>
   </body>
 </html>

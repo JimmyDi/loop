@@ -10,6 +10,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Web UI: preserve the original Host and Origin when starting Dev Tunnels so phone scans and pairing requests pass the isolated ingress checks instead of returning invalid_host or invalid_origin.
+
 - Web UI: remove the browser focus outline appearing between Model and Effort menu rows while retaining the theme-aware keyboard focus background.
 
 - Web UI: align all Settings section titles to a shared position and heading height so switching sections no longer shifts the title.

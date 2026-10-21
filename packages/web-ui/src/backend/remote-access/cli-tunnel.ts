@@ -36,7 +36,19 @@ export class CliTunnel {
     try {
       this.child = startCliProcess(
         this.file,
-        ["host", "--port-number", String(port), "--protocol", "http", "--expiration", "1h"],
+        [
+          "host",
+          "--port-number",
+          String(port),
+          "--protocol",
+          "http",
+          "--expiration",
+          "1h",
+          "--host-header",
+          "unchanged",
+          "--origin-header",
+          "unchanged",
+        ],
         signal,
         (line) => {
           const id = line.match(

@@ -37,6 +37,13 @@ test("hosts a temporary private tunnel to isolated 503 ingress and deletes only 
     const args = vi.mocked(startCliProcess).mock.calls[0]![1];
     expect(args).not.toContain("--allow-anonymous");
     expect(args).toContain("1h");
+    expect(args.slice(args.indexOf("--host-header"), args.indexOf("--host-header") + 2)).toEqual([
+      "--host-header",
+      "unchanged",
+    ]);
+    expect(
+      args.slice(args.indexOf("--origin-header"), args.indexOf("--origin-header") + 2),
+    ).toEqual(["--origin-header", "unchanged"]);
     const response = await fetch("http://127.0.0.1:" + port + "/api/remote-access");
     expect(response.status).toBe(503);
     exited({ code: 1, output: "synthetic-private-error" });

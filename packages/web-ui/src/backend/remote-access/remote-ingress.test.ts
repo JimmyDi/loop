@@ -1,5 +1,6 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { request as httpRequest } from "node:http";
 import { expect, test, vi } from "vitest";
 
 import { DeviceStore } from "./device-store";
@@ -23,6 +24,80 @@ const setup = async () => {
 
 const credential = (response: Response) =>
   response.headers.get("set-cookie")!.split(";")[0]!.split("=")[1]!;
+
+test("preserved public Host and Origin reach pairing over loopback without trusting relay rewrites", async () => {
+  const root = await mkdtemp(join(import.meta.dirname, ".remote-ingress-"));
+  const devices = await setup();
+  const business = vi.fn(async () => Response.json({ ok: true }));
+  const ingress = await startRemoteIngress(devices, business, root);
+  ingress.connected(origin);
+  const local = "http://127.0.0.1:" + ingress.port;
+  const call = (path: string, headers: Record<string, string>, body?: string) =>
+    new Promise<Response>((resolve, reject) => {
+      const request = httpRequest(
+        local + path,
+        { method: body ? "POST" : "GET", headers },
+        (response) => {
+          const chunks: Buffer[] = [];
+          response.on("data", (chunk: Buffer) => chunks.push(chunk));
+          response.on("error", reject);
+          response.on("end", () =>
+            resolve(new Response(Buffer.concat(chunks), { status: response.statusCode })),
+          );
+        },
+      );
+      request.on("error", reject);
+      request.end(body);
+    });
+  try {
+    await writeFile(join(root, "index.html"), "<html><head></head><body>Loop</body></html>");
+    for (const host of [new URL(origin).host, "127.0.0.1:" + ingress.port]) {
+      const page = await call("/", { host });
+      expect(page.status, host).toBe(200);
+      expect(await page.text()).toContain('meta name="loop-remote"');
+      const token = new URL(devices.invite().url).hash.slice(6);
+      const request = await call(
+        "/api/remote-pairing",
+        { host, origin, "Content-Type": "application/json" },
+        JSON.stringify({ token, name: "Example phone" }),
+      );
+      expect(request.status, host).toBe(202);
+      expect((await call("/api/workspaces", { host })).status).toBe(401);
+      expect(
+        (await call("/api/remote-session", { host, origin: "https://other.test" })).status,
+      ).toBe(403);
+      for (const origin of ["http://localhost", "https://localhost"]) {
+        const response = await call("/api/remote-session", { host, origin });
+        expect(response.status).toBe(403);
+        expect(await response.json()).toEqual({ code: "invalid_origin" });
+      }
+    }
+    for (const host of [
+      "localhost:" + (ingress.port + 1),
+      "127.0.0.1:" + (ingress.port + 1),
+      "[::1]:" + (ingress.port + 1),
+      "localhost.other.test:" + ingress.port,
+      "other.test",
+      "localhost",
+      "localhost:" + ingress.port,
+      "127.0.0.1",
+      "[::1]",
+      "[::1]:" + ingress.port,
+    ]) {
+      const response = await call("/api/remote-session", {
+        host,
+        "x-forwarded-host": new URL(origin).host,
+        forwarded: "host=" + new URL(origin).host,
+      });
+      expect(response.status, host).toBe(403);
+      expect(await response.json()).toEqual({ code: "invalid_host" });
+    }
+    expect(business).not.toHaveBeenCalled();
+  } finally {
+    await ingress.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 test("unpaired ingress exposes only pairing and static bootstrap; exact origin and host are enforced", async () => {
   const root = await mkdtemp(join(import.meta.dirname, ".remote-ingress-"));

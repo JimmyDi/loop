@@ -10,6 +10,12 @@ body {
   margin: 0;
   font-size: 13px;
 }
+.app-loading {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  color: var(--ink-muted);
+}
 button,
 input,
 select {

@@ -16,6 +16,8 @@ export const useAutoScroll = ({
   const previous = useRef<TimelinePosition | undefined>(undefined);
   const anchored = useRef(false);
   const followingUser = useRef(false);
+  const bottomPinned = useRef(true);
+  const viewportSize = useRef({ width: 0, height: 0 });
   const lastScroll = useRef({ top: 0, width: 0, height: 0 });
   const [atBottom, setAtBottom] = useState(true);
   const onScroll = () => {
@@ -43,6 +45,12 @@ export const useAutoScroll = ({
       element.getBoundingClientRect().top +
       paddingBottom -
       element.clientHeight;
+    if (
+      viewportSize.current.width === element.clientWidth &&
+      viewportSize.current.height === element.clientHeight
+    ) {
+      bottomPinned.current = remaining <= 1;
+    }
     setAtBottom(remaining < 80);
   };
   const jump = () => {
@@ -127,14 +135,22 @@ export const useAutoScroll = ({
   }, [sessionId, userMessageIndex, running, revision, activityKey]);
 
   useLayoutEffect(() => {
-    if (!ref.current || !contentRef.current || typeof ResizeObserver === "undefined") return;
+    const element = ref.current;
+    if (!element || !contentRef.current) return;
+    viewportSize.current = { width: element.clientWidth, height: element.clientHeight };
+    if (typeof ResizeObserver === "undefined") return;
 
     const observer = new ResizeObserver(() => {
+      const resized =
+        viewportSize.current.width !== element.clientWidth ||
+        viewportSize.current.height !== element.clientHeight;
       updateMinHeight();
       if (followingUser.current) alignUserMessage();
+      else if (resized && bottomPinned.current) jump();
+      viewportSize.current = { width: element.clientWidth, height: element.clientHeight };
       onScroll();
     });
-    observer.observe(ref.current);
+    observer.observe(element);
     observer.observe(contentRef.current);
 
     return () => observer.disconnect();

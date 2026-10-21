@@ -23,6 +23,35 @@ export const RemoteDevicesSettings = ({ connected = true }: { connected?: boolea
         <div className="remote-access-step-heading">
           <span className="remote-access-step-number">{t("remote.step", { number: 4 })}</span>
           <div className="remote-access-step-title">
+            <div className="remote-access-actions">
+              <span className="remote-access-action" title={t("pairing.refreshCode")}>
+                <ActionButton
+                  className="icon ghost"
+                  aria-label={t("pairing.refreshCode")}
+                  title={t("pairing.refreshCode")}
+                  disabled={
+                    !connected ||
+                    !devices.query.data?.connected ||
+                    devices.query.isError ||
+                    devices.pending ||
+                    !!devices.query.data?.pending.length
+                  }
+                  onClick={devices.createInvite}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.5-1L20 9M4 15l2.4 3A7 7 0 0 0 17.9 17" />
+                  </svg>
+                </ActionButton>
+              </span>
+            </div>
             <h4>{t("pairing.devices")}</h4>
           </div>
         </div>
@@ -36,14 +65,6 @@ export const RemoteDevicesSettings = ({ connected = true }: { connected?: boolea
                 {t("pairing.openLink")}
               </a>
             </div>
-          )}
-          {!devices.invite && !devices.generating && !devices.query.data?.pending.length && (
-            <ActionButton
-              disabled={!connected || !devices.query.data?.connected || devices.pending}
-              onClick={devices.createInvite}
-            >
-              {t("pairing.refreshCode")}
-            </ActionButton>
           )}
           {devices.query.data?.pending.map((item) => (
             <div className="remote-devices-row" key={item.id}>

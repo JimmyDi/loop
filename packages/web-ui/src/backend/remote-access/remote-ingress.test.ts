@@ -55,6 +55,18 @@ test("preserved public Host and Origin reach pairing over loopback without trust
       const page = await call("/", { host });
       expect(page.status, host).toBe(200);
       expect(await page.text()).toContain('meta name="loop-remote"');
+      const navigation = {
+        host,
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-dest": "document",
+      };
+      const handedOff = await call("/", navigation);
+      expect(handedOff.status, host).toBe(200);
+      expect(await handedOff.text()).toContain('meta name="loop-remote"');
+      const blocked = await call("/api/remote-session", navigation);
+      expect(blocked.status).toBe(403);
+      expect(await blocked.json()).toEqual({ code: "invalid_origin" });
       const token = new URL(devices.invite().url).hash.slice(6);
       const request = await call(
         "/api/remote-pairing",

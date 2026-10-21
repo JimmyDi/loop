@@ -20,7 +20,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Web UI: serve the built frontend from the workspace Web package when pnpm dev hosts remote pairing, fixing the phone page returning 404 while the local Vite page works.
 
-- Web UI: preserve the original Host and Origin when starting Dev Tunnels so phone scans and pairing requests pass the isolated ingress checks instead of returning invalid_host or invalid_origin.
+- Web UI: preserve the original Host and Origin when starting Dev Tunnels so phone scans and pairing requests pass the isolated ingress checks instead of returning invalid_host or invalid_origin. Allow cross-site top-level navigation to the public pairing page after browser handoffs or sign-in redirects, retaining strict checks for APIs, frames, writes and foreign origins.
 
 - Web UI: remove the browser focus outline appearing between Model and Effort menu rows while retaining the theme-aware keyboard focus background.
 

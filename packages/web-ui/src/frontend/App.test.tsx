@@ -1,3 +1,4 @@
+import { setImmediate } from "node:timers/promises";
 import { Window } from "happy-dom";
 import { expect, test, vi } from "vitest";
 
@@ -32,20 +33,24 @@ test("pairing loads without the chat shell and approval loads the protected inte
         : { mode: "remote", authorized: false },
     ),
   ) as typeof fetch;
-  const { render, cleanup, act } = await import("@testing-library/react/pure");
+  const { render, cleanup, act, waitFor } = await import("@testing-library/react/pure");
   try {
     const view = render(<App />);
-    await vi.waitFor(() => expect(view.getByRole("textbox", { name: "Device name" })).toBeTruthy());
+    await waitFor(() => expect(view.getByRole("textbox", { name: "Device name" })).toBeTruthy());
     expect(shellLoaded).not.toHaveBeenCalled();
     expect(view.queryByText("Private chat interface")).toBeNull();
     authorized = true;
     await act(async () => {
       window.dispatchEvent(new window.Event("loop-remote-check"));
     });
-    await vi.waitFor(() => expect(view.getByText("Private chat interface")).toBeTruthy());
+    await waitFor(() => expect(view.getByText("Private chat interface")).toBeTruthy());
     expect(shellLoaded).toHaveBeenCalledOnce();
   } finally {
-    cleanup();
+    await act(async () => {
+      cleanup();
+      // React's scheduler uses setImmediate; keep the DOM until queued callbacks finish.
+      await setImmediate();
+    });
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

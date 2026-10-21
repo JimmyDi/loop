@@ -2,7 +2,12 @@ import { projectsZh } from "./projects-zh";
 import { skillsZh } from "./skills-zh";
 import { permissionsZh } from "./permissions-zh";
 
+import { remoteZh } from "./remote-zh";
+
 export const zh = {
+  connectivity: "连接",
+  remoteAccess: "远程访问",
+  remote: remoteZh,
   queuePaused: "已暂停，队列已保留",
   resume: "继续生成",
   queueTitle: "队列（{{count}}）",

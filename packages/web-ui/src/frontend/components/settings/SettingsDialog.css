@@ -31,7 +31,7 @@
   container-type: inline-size;
   min-width: 0;
   overflow: auto;
-  padding: 0 4px 12px;
+  padding: 6px 4px 12px;
 }
 @media (max-width: 767px) {
   .modal.settings-dialog {

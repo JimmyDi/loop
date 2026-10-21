@@ -13,7 +13,7 @@ export const GeneralSettings = () => {
 
   return (
     <>
-      <h3 className="general-settings-title">{t("general")}</h3>
+      <h3 className="settings-section-title general-settings-title">{t("general")}</h3>
       <section className="general-settings-section" aria-labelledby={sectionId}>
         <h4 id={sectionId}>{t("general")}</h4>
         <PermissionSettings />

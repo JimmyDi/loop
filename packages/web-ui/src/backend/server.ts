@@ -10,6 +10,7 @@ import { ProviderSettings } from "./providers/provider-settings";
 import { WebSettings } from "./settings/web-settings";
 import { createHttpServer, listen } from "./http/node-server";
 import { staticResponse } from "./http/static-files";
+import { createRemoteAccess } from "./remote-access/create-remote-access";
 
 export type ServerOptions = { development?: boolean; assetsDir?: string };
 
@@ -25,7 +26,8 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
     projects,
     createLoopBridge(agentDir, providers, settings, mcp, skills),
   );
-  const route = createRouter(registry, providers, settings, mcp, skills);
+  const remoteAccess = await createRemoteAccess(agentDir);
+  const route = createRouter(registry, providers, settings, mcp, skills, remoteAccess);
   const assetsDir = options.assetsDir ?? fileURLToPath(new URL("./web/", import.meta.url));
   const server = createHttpServer((request) =>
     new URL(request.url).pathname.startsWith("/api/")
@@ -54,6 +56,7 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
       url: url.href,
       async close() {
         try {
+          await remoteAccess.close();
           await registry.close();
         } finally {
           await mcp.close();
@@ -67,6 +70,7 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
       },
     };
   } catch (error) {
+    await remoteAccess.close();
     await mcp.close();
     await skills.close();
     await vite?.close();

@@ -1,7 +1,7 @@
-.models-settings h3 {
-  margin: 10px 0 12px;
-  font-size: 18px;
-  font-weight: 500;
+@import "./SettingsSection.css";
+
+.models-settings > .settings-section-title {
+  margin-bottom: 12px;
 }
 .models-description {
   margin: 0 0 24px;

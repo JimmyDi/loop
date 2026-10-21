@@ -4,6 +4,16 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Added
+
+- Web UI: add experimental Dev Tunnels controls in Settings with verified official CLI installation, resumable downloads, managed uninstall, Microsoft sign-in/sign-out and private tunnel connection/disconnection. Show compact three-step actions, completion/failure markers and localized inline progress for installation, uninstall, sign-in, sign-out, connection and shutdown; hide the service address and redundant status captions. Preserve partial downloads on Pause, validate resumed ranges and verify the pinned executable before installation. Uninstall removes only the managed executable and preserves CLI credentials. Sign out finishes tunnel shutdown before account logout. Persist only sign-in and reconnect booleans, restore a fresh tunnel after backend restart when enabled, and avoid credential-store probes when opening Settings. Explicit account or host operations may require system credential approval; errors remain in the responsible step with manual retry. Keep control commands same-origin and cookie-protected, and remote ingress isolated with HTTP 503 for every path; remote chats, files, agent actions, pairing and PWA access remain unavailable. See [setup and limits](packages/web-ui/src/backend/docs/remote-access.md).
+
+### Fixed
+
+- Web UI: remove the browser focus outline appearing between Model and Effort menu rows while retaining the theme-aware keyboard focus background.
+
+- Web UI: align all Settings section titles to a shared position and heading height so switching sections no longer shifts the title.
+
 ## [0.3.1] - 2026-10-17
 
 ### Changed

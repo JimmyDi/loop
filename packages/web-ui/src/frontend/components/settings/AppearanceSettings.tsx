@@ -13,7 +13,7 @@ export const AppearanceSettings = () => {
 
   return (
     <>
-      <h3 className="appearance-settings-title">{t("appearance")}</h3>
+      <h3 className="settings-section-title appearance-settings-title">{t("appearance")}</h3>
       <fieldset className="appearance-settings">
         <legend>{t("theme")}</legend>
         <div className="appearance-options">

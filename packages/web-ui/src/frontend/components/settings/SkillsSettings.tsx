@@ -45,7 +45,7 @@ export const SkillsSettings = ({ onUse }: { onUse?(): void }) => {
   return (
     <div className="skills-settings">
       <div className="integration-heading">
-        <h3>{t("skills.title")}</h3>
+        <h3 className="settings-section-title">{t("skills.title")}</h3>
         <div className="integration-actions">
           <PluginSearch label={t("skills.search")} value={search} onChange={setSearch} />
           <ActionButton

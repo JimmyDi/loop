@@ -37,7 +37,7 @@ export const ModelsSettings = () => {
 
   return (
     <div className="models-settings">
-      <h3>{t("models")}</h3>
+      <h3 className="settings-section-title">{t("models")}</h3>
       <p className="models-description">{t("providersDescription")}</p>
       {query.isPending && <p role="status">{t("loading")}</p>}
       <ErrorNotice error={query.error} />

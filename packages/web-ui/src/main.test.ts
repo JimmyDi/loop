@@ -71,6 +71,16 @@ test("production startup serves HTML, bundled assets and API before announcing r
 
     expect(response.status).toBe(200);
     expect(html).toContain("<title>Loop</title>");
+    const remote = await fetch(new URL("api/remote-access", url));
+    expect(remote.headers.get("cache-control")).toBe("no-store");
+    expect(remote.headers.get("set-cookie")).toContain("HttpOnly; SameSite=Strict");
+    expect(await remote.json()).toMatchObject({ phase: "off", signedIn: false });
+    const denied = await fetch(new URL("api/remote-access", url), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", origin: "https://example.test" },
+      body: JSON.stringify({ action: "start" }),
+    });
+    expect(denied.status).toBe(403);
     const icons = [...html.matchAll(/<link[^>]*rel="icon"[^>]*href="([^"]+)"[^>]*>/g)];
     expect(icons).toHaveLength(3);
     for (const [, icon] of icons) {

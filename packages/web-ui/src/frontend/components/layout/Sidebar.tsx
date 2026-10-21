@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { isRemoteClient } from "../../lib/remote-session";
@@ -10,9 +10,12 @@ import { PinnedSessions } from "../projects/PinnedSessions";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { LoopIcon } from "../ui/LoopIcon";
-import { SettingsDialog } from "../settings/SettingsDialog";
 import { SidebarMenu } from "./SidebarMenu";
 import "./Sidebar.css";
+
+const SettingsDialog = lazy(() =>
+  import("../settings/SettingsDialog").then((module) => ({ default: module.SettingsDialog })),
+);
 
 export const Sidebar = () => {
   const { t } = useTranslation();
@@ -123,7 +126,11 @@ export const Sidebar = () => {
           onClose={() => setAdding(false)}
         />
       )}
-      {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && (
+        <Suspense fallback={<p role="status">{t("loading")}</p>}>
+          <SettingsDialog onClose={() => setSettingsOpen(false)} />
+        </Suspense>
+      )}
     </aside>
   );
 };

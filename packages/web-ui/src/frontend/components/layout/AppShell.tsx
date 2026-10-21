@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import "katex/dist/katex.min.css";
 
 import { useSidebarWidth } from "../../hooks/useSidebarWidth";
 import { useMobileDrawer } from "../../hooks/useMobileDrawer";

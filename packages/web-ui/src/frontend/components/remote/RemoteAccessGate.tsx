@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import type { RemoteSession } from "../../../shared/remote-devices";
 import { api } from "../../lib/api";
-import { isRemoteClient, setRemoteCsrf } from "../../lib/remote-session";
+import { isRemoteClient, setRemoteCsrf, takeBootstrapSession } from "../../lib/remote-session";
 import { useSessions } from "../../state/session-store";
 import { RemotePairing } from "./RemotePairing";
 import "./RemoteAccessGate.css";
@@ -13,6 +13,7 @@ import "./RemoteAccessGate.css";
 export const RemoteAccessGate = ({ children }: { children: ReactNode }) => {
   const { t } = useTranslation();
   const remote = isRemoteClient();
+  const [bootstrap] = useState(() => (remote ? takeBootstrapSession() : undefined));
   const client = useQueryClient();
   const [token, setToken] = useState(() => {
     if (!remote) return "";
@@ -26,7 +27,9 @@ export const RemoteAccessGate = ({ children }: { children: ReactNode }) => {
     queryFn: ({ signal }) => api<RemoteSession>("/remote-session", { signal }),
     retry: false,
     refetchInterval: 15_000,
-    staleTime: 0,
+    initialData: bootstrap?.session,
+    initialDataUpdatedAt: bootstrap?.checkedAt,
+    staleTime: bootstrap ? 15_000 : 0,
   });
   const refresh = useCallback(() => {
     void query.refetch();

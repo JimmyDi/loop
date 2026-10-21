@@ -1,4 +1,5 @@
 import type { PairingStatus, RemoteSession } from "../../shared/remote-devices";
+import { setBootstrapSession } from "../lib/remote-session";
 import { remoteBootstrapView } from "./remote-bootstrap-view";
 
 export const mountRemoteBootstrap = (loadChat: () => Promise<unknown>): (() => void) => {
@@ -24,13 +25,14 @@ export const mountRemoteBootstrap = (loadChat: () => Promise<unknown>): (() => v
     if (!response.ok) throw new Error("Pairing request failed");
     return response.json();
   };
-  const open = async () => {
+  const open = async (session: RemoteSession) => {
     if (disposed || opening) return;
     opening = true;
     clearTimeout(timer);
     view.error();
     view.status("opening");
     try {
+      setBootstrapSession(session);
       await loadChat();
       dispose();
     } catch {
@@ -67,7 +69,7 @@ export const mountRemoteBootstrap = (loadChat: () => Promise<unknown>): (() => v
     try {
       const session = await request<RemoteSession>("remote-session");
       if (disposed || started !== revision || submitted || opening) return;
-      if (session.mode === "remote" && session.authorized) await open();
+      if (session.mode === "remote" && session.authorized) await open(session);
       else if (!token) await poll();
     } catch {
       if (!disposed && started === revision && !submitted) {

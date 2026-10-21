@@ -2,7 +2,12 @@ import { Window } from "happy-dom";
 import { expect, test, vi } from "vitest";
 
 import { api, command } from "./api";
-import { remoteCsrfHeaders, setRemoteCsrf } from "./remote-session";
+import {
+  remoteCsrfHeaders,
+  setRemoteCsrf,
+  setBootstrapSession,
+  takeBootstrapSession,
+} from "./remote-session";
 
 test("CSRF credentials stay in memory and are sent only for remote mutations", async () => {
   const window = new Window({ url: "https://example.test/" });
@@ -41,4 +46,13 @@ test("CSRF credentials stay in memory and are sent only for remote mutations", a
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }
+});
+
+test("bootstrap authorization is consumed once and retains its original check time", () => {
+  const checkedAt = Date.now();
+  setBootstrapSession({ mode: "remote", authorized: false });
+  const result = takeBootstrapSession();
+  expect(result?.session).toEqual({ mode: "remote", authorized: false });
+  expect(result?.checkedAt).toBeGreaterThanOrEqual(checkedAt);
+  expect(takeBootstrapSession()).toBeUndefined();
 });

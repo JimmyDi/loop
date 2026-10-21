@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
 
@@ -48,6 +48,10 @@ test.each([false, true])(
         let bytes = 0;
         for (const [, script] of initialScripts) {
           const response = await fetch(new URL(script!, remote));
+          if (script!.includes("remote-")) {
+            expect(response.headers.get("content-encoding")).toBe("gzip");
+            expect(response.headers.get("cache-control")).toBe("no-store");
+          }
           bytes += (await response.arrayBuffer()).byteLength;
         }
         expect(bytes).toBeLessThan(20_000);
@@ -74,3 +78,25 @@ test.each([false, true])(
     }
   },
 );
+
+test("authorized chat startup excludes optional renderers and settings from its download budget", async () => {
+  const directory = join(import.meta.dirname, "../../dist/web/assets");
+  const files = await readdir(directory);
+  const roots = files.filter((file) => /^(?:main|AppShell)-.*\.js$/.test(file));
+  expect(roots).toHaveLength(2);
+  const seen = new Set<string>();
+  let bytes = 0;
+  const visit = async (name: string): Promise<void> => {
+    if (seen.has(name)) return;
+    seen.add(name);
+    const source = await readFile(join(directory, name), "utf8");
+    bytes += Buffer.byteLength(source);
+    const imports = [...source.matchAll(/(?:\bfrom|\bimport)\s*["'`](\.\/[^"'`]+\.js)["'`]/g)];
+    for (const [, path] of imports) await visit(path!.slice(2));
+  };
+  for (const root of roots) await visit(root);
+  expect(bytes).toBeLessThan(650_000);
+  expect(
+    [...seen].some((name) => /SettingsDialog|markdown-math|markdown-highlight/.test(name)),
+  ).toBe(false);
+});

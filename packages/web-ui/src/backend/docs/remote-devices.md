@@ -53,6 +53,8 @@ The private relay still requires service access and terminates browser TLS; it d
 
 With pnpm dev, ingress uses the Web package’s dist/web directory; production keeps the packaged web directory, and an explicit assetsDir overrides the default. The remote entry never serves Vite source modules or HMR. Run `pnpm build` before remote testing and rebuild after frontend changes; pnpm dev alone does not build the remote page. A missing build returns 404 at the remote root even though the local Vite page works. Mobile layout, PWA/background delivery and network recovery polish are deferred.
 
+Static JavaScript, CSS and JSON responses of at least 1 KiB use gzip when explicitly accepted with a nonzero quality value, with Vary: Accept-Encoding; clients without gzip receive the original bytes. HTML remains uncompressed for remote bootstrap injection, and API/SSE responses do not use this static-file compression path. Remote responses remain no-store. Authorization starts parallel chat entry/shell downloads, while settings, math and code-highlighting assets remain optional.
+
 Automated tests use synthetic origins, temporary private stores, injected CLI results and model streams. The business integration test reads successive model deltas over the real loopback HTTP ingress before generation completes, checks the projected phone draft, and reconnects mid-generation before receiving further live updates. It also checks the SSE anti-transformation headers. These checks do not establish real Microsoft sign-in, phone-browser compatibility or relay connectivity.
 
 - [Ingress](../remote-access/remote-ingress.ts) / [security and SSE tests](../remote-access/remote-ingress.test.ts).

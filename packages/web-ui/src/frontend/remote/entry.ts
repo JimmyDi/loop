@@ -1,3 +1,5 @@
 import { mountRemoteBootstrap } from "./remote-bootstrap";
 
-mountRemoteBootstrap(() => import("../main"));
+mountRemoteBootstrap(() =>
+  Promise.all([import("../main"), import("../components/layout/AppShell")]),
+);

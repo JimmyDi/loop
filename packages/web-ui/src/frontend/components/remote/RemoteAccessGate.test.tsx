@@ -5,7 +5,13 @@ import { Window } from "happy-dom";
 import { expect, test, vi } from "vitest";
 
 import "../../i18n/setup";
-import { remoteCsrfHeaders, checkRemoteSession } from "../../lib/remote-session";
+import {
+  remoteCsrfHeaders,
+  checkRemoteSession,
+  setBootstrapSession,
+  takeBootstrapSession,
+  setRemoteCsrf,
+} from "../../lib/remote-session";
 import { useSessions } from "../../state/session-store";
 import { RemoteAccessGate } from "./RemoteAccessGate";
 
@@ -22,6 +28,53 @@ test("local pages render directly without probing remote authorization", () => {
   ).toContain("Local app");
   expect(client.getQueryState(["remote-session"])?.fetchStatus).toBe("idle");
   client.clear();
+});
+
+test("a fresh bootstrap authorization opens chat without a duplicate check and revocation still rechecks", async () => {
+  const window = new Window({ url: "https://example.test/" });
+  window.document.head.innerHTML = '<meta name="loop-remote" content="1">';
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    fetch: globalThis.fetch,
+    Event: globalThis.Event,
+  };
+  Object.assign(globalThis, { window, document: window.document, Event: window.Event });
+  const client = new QueryClient();
+  const fetcher = vi.fn(async () => Response.json({ mode: "remote", authorized: false }));
+  globalThis.fetch = fetcher;
+  setBootstrapSession({
+    mode: "remote",
+    authorized: true,
+    csrf: "synthetic-csrf",
+    device: { id: "phone", name: "Phone", createdAt: 1, expiresAt: 2 },
+  });
+  const { render, cleanup, act } = await import("@testing-library/react/pure");
+  try {
+    const ui = render(
+      <QueryClientProvider client={client}>
+        <RemoteAccessGate>
+          <p>Private chats</p>
+        </RemoteAccessGate>
+      </QueryClientProvider>,
+    );
+    expect(ui.getByText("Private chats")).toBeTruthy();
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(remoteCsrfHeaders("POST")).toEqual({ "X-Loop-CSRF": "synthetic-csrf" });
+    await act(async () => {
+      checkRemoteSession();
+    });
+    await vi.waitFor(() => expect(ui.queryByText("Private chats")).toBeNull());
+    expect(fetcher).toHaveBeenCalled();
+    expect(remoteCsrfHeaders("POST")).toEqual({});
+  } finally {
+    cleanup();
+    client.clear();
+    takeBootstrapSession();
+    setRemoteCsrf();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
 });
 
 test("remote bootstrap mounts no business hooks until approved and clears snapshots after revocation", async () => {

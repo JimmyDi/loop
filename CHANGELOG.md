@@ -12,7 +12,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Web UI: preserve SSE anti-transformation headers on remote device connections so intermediaries are instructed to forward streamed chat updates without compression or response rewriting while keeping responses uncached.
 
-- Web UI: serve a lightweight standalone phone pairing page with the device-name form already in HTML, independent of chat downloads and authorization-check latency. Load the React chat interface and math styles only after authorization; retain localized pairing, comparison codes and retry guidance.
+- Web UI: serve a lightweight standalone phone pairing page with the device-name form already in HTML, independent of chat downloads and authorization-check latency. After authorization, download the chat entry and shell in parallel and reuse the fresh in-memory authorization check. Defer Settings until opened and math/code highlighting until needed, keep ordinary messages readable during renderer downloads, and negotiate gzip for static scripts/styles. Retain localized pairing, comparison codes, retry guidance and ongoing access checks.
 
 - Web UI: serve the built frontend from the workspace Web package when pnpm dev hosts remote pairing, fixing the phone page returning 404 while the local Vite page works.
 

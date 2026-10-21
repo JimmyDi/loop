@@ -1,5 +1,9 @@
 import { readFile, realpath, stat } from "node:fs/promises";
 import { extname, isAbsolute, relative, resolve, sep } from "node:path";
+import { promisify } from "node:util";
+import { gzip } from "node:zlib";
+
+const compress = promisify(gzip);
 
 const types: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -29,12 +33,24 @@ export const staticResponse = async (request: Request, directory: string): Promi
     if (path === ".." || path.startsWith(".." + sep) || isAbsolute(path))
       return new Response(null, { status: 403 });
     if (!(await stat(file)).isFile()) return new Response(null, { status: 404 });
-    return new Response(request.method === "HEAD" ? null : new Uint8Array(await readFile(file)), {
-      headers: {
-        "Content-Type": types[extname(file)] ?? "application/octet-stream",
-        "Cache-Control": "no-cache",
-      },
-    });
+    const type = types[extname(file)] ?? "application/octet-stream";
+    const headers = new Headers({ "Content-Type": type, "Cache-Control": "no-cache" });
+    const text = /^(?:text\/(?:css|javascript)|application\/json)/.test(type);
+    if (text) headers.set("Vary", "Accept-Encoding");
+    let bytes = new Uint8Array(await readFile(file));
+    const accepted = request.headers
+      .get("Accept-Encoding")
+      ?.split(",")
+      .some((value) => {
+        const [name, ...parameters] = value.trim().split(";");
+        const quality = parameters.find((value) => value.trim().startsWith("q="))?.split("=")[1];
+        return name === "gzip" && (quality === undefined || Number(quality) > 0);
+      });
+    if (text && bytes.byteLength >= 1024 && accepted) {
+      bytes = new Uint8Array(await compress(bytes));
+      headers.set("Content-Encoding", "gzip");
+    }
+    return new Response(request.method === "HEAD" ? null : bytes, { headers });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT")
       return new Response(null, { status: 404 });

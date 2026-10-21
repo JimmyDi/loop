@@ -22,6 +22,8 @@ User messages use compact spacing before assistant text, tool calls or the Loopi
 
 Tool calls and results merge by toolCallId instead of creating duplicate cards. A standalone result without a corresponding assistant call can still be displayed. Tools show actual execution state and final output, with no invented progress or interactive terminal.
 
+Ordinary Markdown renders immediately. The browser loads math rendering and its styles only for content containing a dollar marker, and syntax highlighting only for fenced code or preformatted HTML. Until these optional modules arrive, math remains source text and code remains readable without color; download failures preserve that readable fallback. Mermaid keeps its own on-demand renderer. Enhancements do not block the chat shell or replace stored message text.
+
 ## Prompt Duration
 
 

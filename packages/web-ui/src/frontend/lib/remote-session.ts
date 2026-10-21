@@ -1,4 +1,17 @@
+import type { RemoteSession } from "../../shared/remote-devices";
+
 let csrf: string | undefined;
+let bootstrap: { session: RemoteSession; checkedAt: number } | undefined;
+
+export const setBootstrapSession = (session: RemoteSession): void => {
+  bootstrap = { session, checkedAt: Date.now() };
+};
+
+export const takeBootstrapSession = () => {
+  const value = bootstrap;
+  bootstrap = undefined;
+  return value;
+};
 
 export const isRemoteClient = (): boolean =>
   typeof document !== "undefined" && !!document.querySelector('meta[name="loop-remote"]');

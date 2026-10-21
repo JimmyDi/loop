@@ -53,6 +53,9 @@ export const RemoteDevicesSettings = ({ connected = true }: { connected?: boolea
               </span>
             </div>
             <h4>{t("pairing.devices")}</h4>
+            {devices.invite && devices.qr && (
+              <p className="remote-devices-scan">{t("pairing.scan")}</p>
+            )}
           </div>
         </div>
         <div className="remote-devices-settings">
@@ -60,10 +63,6 @@ export const RemoteDevicesSettings = ({ connected = true }: { connected?: boolea
           {devices.invite && devices.qr && (
             <div className="remote-devices-invite">
               <img src={devices.qr} alt={t("pairing.qrAlt")} width={208} height={208} />
-              <p>{t("pairing.scan")}</p>
-              <a href={devices.invite.url} target="_blank" rel="noopener noreferrer">
-                {t("pairing.openLink")}
-              </a>
             </div>
           )}
           {devices.query.data?.pending.map((item) => (

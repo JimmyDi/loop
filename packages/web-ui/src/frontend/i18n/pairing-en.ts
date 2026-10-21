@@ -15,7 +15,6 @@ export const pairingEn = {
   refreshCode: "Refresh pairing code",
   qrAlt: "Device pairing QR code",
   scan: "Scan with your phone. The code expires in five minutes and can be used once.",
-  openLink: "Open pairing link",
   confirmCode: "Confirmation code: {{code}}",
   approvalWarning:
     "Approve only if you requested this and the code matches. This device can read all chats, control the Agent, change session permissions and approve tools.",

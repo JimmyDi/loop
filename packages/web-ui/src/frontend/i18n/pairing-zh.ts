@@ -15,7 +15,6 @@ export const pairingZh = {
   refreshCode: "刷新配对二维码",
   qrAlt: "设备配对二维码",
   scan: "使用手机扫描。二维码五分钟内有效，仅可使用一次。",
-  openLink: "打开配对链接",
   confirmCode: "校验码：{{code}}",
   approvalWarning:
     "仅在本人发起申请且校验码一致时批准。此设备可读取全部对话、控制 Agent、修改会话权限及批准工具执行。",

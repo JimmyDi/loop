@@ -54,7 +54,11 @@ test("desktop generates a QR code and explicitly approves, declines and revokes 
         /^data:image\/png;base64,/,
       ),
     );
-    expect(view.getByRole("link").textContent).toBe("Open pairing link");
+    expect(view.queryByRole("link")).toBeNull();
+    const scan = view.getByText(
+      "Scan with your phone. The code expires in five minutes and can be used once.",
+    );
+    expect(scan.previousElementSibling).toBe(view.getByRole("heading", { name: "Paired devices" }));
     expect(view.container.textContent).not.toContain("example.test");
     const refresh = view.getByRole("button", { name: "Refresh pairing code" }) as HTMLButtonElement;
     expect(refresh.title).toBe("Refresh pairing code");
@@ -64,16 +68,13 @@ test("desktop generates a QR code and explicitly approves, declines and revokes 
       refresh.closest(".remote-access-step-title")?.querySelector("h4")?.previousElementSibling,
     ).toBe(refresh.closest(".remote-access-actions"));
     await vi.waitFor(() => expect(refresh.disabled).toBe(false));
-    const oldUrl = view.getByRole("link").getAttribute("href")!;
     const oldQr = view.getByRole("img", { name: "Device pairing QR code" }).getAttribute("src");
     fireEvent.click(refresh);
     expect(refresh.disabled).toBe(true);
-    await vi.waitFor(() => expect(view.getByRole("link").getAttribute("href")).not.toBe(oldUrl));
-    expect(new URL(view.getByRole("link").getAttribute("href")!).origin).toBe(
-      new URL(oldUrl).origin,
-    );
-    expect(view.getByRole("img", { name: "Device pairing QR code" }).getAttribute("src")).not.toBe(
-      oldQr,
+    await vi.waitFor(() =>
+      expect(
+        view.getByRole("img", { name: "Device pairing QR code" }).getAttribute("src"),
+      ).not.toBe(oldQr),
     );
     expect(invitations).toBe(2);
     pending = true;
@@ -82,6 +83,7 @@ test("desktop generates a QR code and explicitly approves, declines and revokes 
     });
     await vi.waitFor(() => expect(view.getByText("Confirmation code: 123456")).toBeTruthy());
     expect(view.queryByRole("img", { name: "Device pairing QR code" })).toBeNull();
+    expect(view.queryByText(scan.textContent!)).toBeNull();
     expect(refresh.disabled).toBe(true);
     for (const [label, approve] of [
       ["Approve", true],

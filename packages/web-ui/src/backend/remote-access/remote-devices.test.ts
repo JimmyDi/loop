@@ -132,3 +132,18 @@ test("failed revocation preserves access for retry and a save crossing disconnec
     release();
   }
 });
+
+test("connection identity is stable for polling and changes on every reconnect", () => {
+  const devices = new RemoteDevices(new DeviceStore("unused"));
+  devices.connect(origin);
+  const first = devices.status().connectionId;
+  expect(first).toBeTruthy();
+  expect(devices.status().connectionId).toBe(first);
+  const invitation = devices.invite();
+  expect(new URL(invitation.url).origin).toBe(origin);
+  expect(new URL(invitation.url).hash).toMatch(/^#pair=.+/);
+  devices.connect(origin);
+  expect(devices.status().connectionId).not.toBe(first);
+  devices.connect();
+  expect(devices.status().connectionId).toBeUndefined();
+});

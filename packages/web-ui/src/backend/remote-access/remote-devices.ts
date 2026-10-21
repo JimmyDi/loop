@@ -22,6 +22,7 @@ const publicDevice = ({ id, name, createdAt, expiresAt }: DeviceRecord): RemoteD
 export class RemoteDevices {
   readonly pairing = new PairingRequests();
   origin?: string;
+  private connectionId?: string;
   private devices: DeviceRecord[] = [];
   private tail: Promise<void> = Promise.resolve();
   private readonly csrfKey = newCredential();
@@ -35,6 +36,7 @@ export class RemoteDevices {
 
   connect(origin?: string): void {
     this.origin = origin;
+    this.connectionId = origin ? randomUUID() : undefined;
     this.pairing.clear();
     for (const group of this.connections.values()) for (const abort of group) abort.abort();
     this.connections.clear();
@@ -43,6 +45,7 @@ export class RemoteDevices {
   status(): RemoteDevicesStatus {
     return {
       connected: !!this.origin,
+      connectionId: this.connectionId,
       devices: this.devices.filter((item) => item.expiresAt > Date.now()).map(publicDevice),
       pending: this.pairing.list(),
     };

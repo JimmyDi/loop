@@ -14,6 +14,84 @@ test("desktop remote access combines tunnel setup and paired-device management",
   );
   expect(html).toContain("Install Dev Tunnels CLI");
   expect(html).toContain("Paired devices");
-  expect(html).toContain("Pair a device");
+  expect(html).toContain("Step 4");
+  expect(html).toContain("Refresh pairing code");
+  expect(html.match(/<li /g)).toHaveLength(4);
   client.clear();
+});
+
+test("Step 4 generates automatically only after Step 3 completes and hides its code on disconnect", async () => {
+  const { Window } = await import("happy-dom");
+  const { vi } = await import("vitest");
+  const window = new Window();
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    fetch: globalThis.fetch,
+  };
+  Object.assign(globalThis, { window, document: window.document });
+  const client = new QueryClient();
+  let connected = false;
+  const fetcher = vi.fn(async (url) => {
+    if (String(url).startsWith("/api/remote-access?") || url === "/api/remote-access")
+      return Response.json({
+        supported: true,
+        installed: true,
+        signedIn: true,
+        phase: connected ? "connected" : "connecting",
+      });
+    if (url === "/api/remote-access/devices")
+      return Response.json({
+        connected: true,
+        connectionId: "synthetic-connection",
+        devices: [],
+        pending: [],
+      });
+    return Response.json({
+      url: "https://example.test/#pair=synthetic",
+      expiresAt: Date.now() + 300_000,
+    });
+  });
+  globalThis.fetch = fetcher as typeof fetch;
+  const { render, cleanup, act } = await import("@testing-library/react/pure");
+  try {
+    const view = render(
+      <QueryClientProvider client={client}>
+        <RemoteAccessPanel />
+      </QueryClientProvider>,
+    );
+    await vi.waitFor(() =>
+      expect(view.getByRole("progressbar", { name: "Connect Tunnel" })).toBeTruthy(),
+    );
+    expect(view.queryByRole("img", { name: "Device pairing QR code" })).toBeNull();
+    expect(fetcher.mock.calls.filter(([url]) => url === "/api/remote-access/pairing")).toHaveLength(
+      0,
+    );
+    connected = true;
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ["remote-access"] });
+    });
+    await vi.waitFor(() =>
+      expect(view.getByRole("img", { name: "Device pairing QR code" })).toBeTruthy(),
+    );
+    const steps = view.getAllByRole("listitem");
+    expect(steps).toHaveLength(4);
+    expect(steps[3]?.textContent).toContain("Step 4Paired devices");
+    expect(steps[2]?.getAttribute("data-complete")).toBe("true");
+    expect(fetcher.mock.calls.filter(([url]) => url === "/api/remote-access/pairing")).toHaveLength(
+      1,
+    );
+    connected = false;
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ["remote-access"] });
+    });
+    await vi.waitFor(() =>
+      expect(view.queryByRole("img", { name: "Device pairing QR code" })).toBeNull(),
+    );
+  } finally {
+    cleanup();
+    client.clear();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
 });

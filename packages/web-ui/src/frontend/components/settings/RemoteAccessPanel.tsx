@@ -4,7 +4,8 @@ import "./RemoteAccessPanel.css";
 
 export const RemoteAccessPanel = () => (
   <div className="remote-access-panel">
-    <RemoteAccessSettings />
-    <RemoteDevicesSettings />
+    <RemoteAccessSettings>
+      {(connected) => <RemoteDevicesSettings connected={connected} />}
+    </RemoteAccessSettings>
   </div>
 );

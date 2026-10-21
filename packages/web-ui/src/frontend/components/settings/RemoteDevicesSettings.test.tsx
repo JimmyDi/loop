@@ -22,6 +22,7 @@ test("desktop generates a QR code and explicitly approves, declines and revokes 
       });
     return Response.json({
       connected: true,
+      connectionId: "synthetic-connection",
       devices: [{ id: "device", name: "Paired phone", createdAt: 1, expiresAt: 2 }],
       pending: pending
         ? [
@@ -44,9 +45,7 @@ test("desktop generates a QR code and explicitly approves, declines and revokes 
         <RemoteDevicesSettings />
       </QueryClientProvider>,
     );
-    const pair = view.getByRole("button", { name: "Pair a device" }) as HTMLButtonElement;
-    await vi.waitFor(() => expect(pair.disabled).toBe(false));
-    fireEvent.click(pair);
+    expect(view.getByText("Step 4")).toBeTruthy();
     await vi.waitFor(() =>
       expect(view.getByRole("img", { name: "Device pairing QR code" }).getAttribute("src")).toMatch(
         /^data:image\/png;base64,/,
@@ -59,7 +58,7 @@ test("desktop generates a QR code and explicitly approves, declines and revokes 
       await client.refetchQueries({ queryKey: ["remote-devices"] });
     });
     await vi.waitFor(() => expect(view.getByText("Confirmation code: 123456")).toBeTruthy());
-    expect(view.queryByRole("img")).toBeNull();
+    expect(view.queryByRole("img", { name: "Device pairing QR code" })).toBeNull();
     for (const [label, approve] of [
       ["Approve", true],
       ["Decline", false],

@@ -6,9 +6,13 @@ import type { PairingInvite, RemoteDevicesStatus } from "../../shared/remote-dev
 import { api, command } from "../lib/api";
 import { useAsyncAction } from "./useAsyncAction";
 
-export const useRemoteDevices = () => {
-  const [invite, setInvite] = useState<PairingInvite>();
-  const [qr, setQr] = useState<string>();
+export const useRemoteDevices = (connected = true) => {
+  const [invitation, setInvitation] = useState<
+    PairingInvite & { connectionId: string; qr: string }
+  >();
+  const [revision, setRevision] = useState(0);
+  const [generating, setGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<unknown>();
   const action = useAsyncAction();
   const query = useQuery({
     queryKey: ["remote-devices"],
@@ -16,34 +20,48 @@ export const useRemoteDevices = () => {
     retry: false,
     refetchInterval: 1500,
   });
+  const connectionId =
+    connected && query.data?.connected && !query.isError ? query.data.connectionId : undefined;
+  const waiting = !!query.data?.pending.length;
   useEffect(() => {
-    if (!invite) return;
+    setInvitation(undefined);
+    setGenerationError(undefined);
+    if (!connectionId || waiting) {
+      setGenerating(false);
+      return;
+    }
+    const abort = new AbortController();
+    setGenerating(true);
+    void (async () => {
+      try {
+        const next = await api<PairingInvite>("/remote-access/pairing", {
+          method: "POST",
+          signal: abort.signal,
+        });
+        const qr = await QRCode.toDataURL(next.url, {
+          width: 208,
+          margin: 2,
+          errorCorrectionLevel: "M",
+        });
+        if (!abort.signal.aborted) setInvitation({ ...next, connectionId, qr });
+      } catch (error) {
+        if (!abort.signal.aborted) setGenerationError(error);
+      } finally {
+        if (!abort.signal.aborted) setGenerating(false);
+      }
+    })();
+    return () => abort.abort();
+  }, [connectionId, waiting, revision]);
+  useEffect(() => {
+    if (!invitation) return;
     const timer = setTimeout(
-      () => {
-        setInvite(undefined);
-        setQr(undefined);
-      },
-      Math.max(0, invite.expiresAt - Date.now()),
+      () => setInvitation(undefined),
+      Math.max(0, invitation.expiresAt - Date.now()),
     );
     return () => clearTimeout(timer);
-  }, [invite]);
-  useEffect(() => {
-    if (query.data && (!query.data.connected || query.data.pending.length)) {
-      setInvite(undefined);
-      setQr(undefined);
-    }
-  }, [query.data]);
-  const createInvite = () =>
-    action.run(async () => {
-      const next = await command<PairingInvite>("/remote-access/pairing");
-      const image = await QRCode.toDataURL(next.url, {
-        width: 208,
-        margin: 2,
-        errorCorrectionLevel: "M",
-      });
-      setInvite(next);
-      setQr(image);
-    });
+  }, [invitation]);
+  const invite = !waiting && invitation?.connectionId === connectionId ? invitation : undefined;
+  const createInvite = () => setRevision((value) => value + 1);
   const decide = (id: string, approve: boolean) =>
     action.run(async () => {
       await command("/remote-access/pairing/" + id, { approve });
@@ -57,11 +75,12 @@ export const useRemoteDevices = () => {
   return {
     query,
     invite,
-    qr,
+    qr: invite?.qr,
     createInvite,
     decide,
     revoke,
-    pending: action.pending,
-    error: action.error ?? query.error,
+    generating,
+    pending: action.pending || generating,
+    error: generationError ?? action.error ?? query.error,
   };
 };

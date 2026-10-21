@@ -14,6 +14,7 @@ export type PairingRequest = {
 
 export type RemoteDevicesStatus = {
   connected: boolean;
+  connectionId?: string;
   devices: RemoteDevice[];
   pending: PairingRequest[];
 };

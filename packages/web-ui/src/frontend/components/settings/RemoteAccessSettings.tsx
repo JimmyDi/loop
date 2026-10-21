@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { RemoteAccessCommand } from "../../../shared/remote-access";
@@ -13,7 +14,11 @@ import { remoteAccessIcons } from "./remote-access-icons";
 import { remoteAccessProgress } from "./remote-access-progress";
 import "./RemoteAccessSettings.css";
 
-export const RemoteAccessSettings = () => {
+export const RemoteAccessSettings = ({
+  children,
+}: {
+  children?: (connected: boolean) => ReactNode;
+}) => {
   const { t } = useTranslation();
   const { query, execute, checking, pending, error } = useRemoteAccess();
   const [requested, setRequested] = useState<RemoteAccessCommand>();
@@ -181,6 +186,7 @@ export const RemoteAccessSettings = () => {
             </li>
           );
         })}
+        {children?.(connected && !checking && !pending && !query.isError)}
       </ol>
       {!!query.error && <RemoteAccessIssue message="remote.requestFailed" warning />}
       {query.isError && (

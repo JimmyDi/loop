@@ -4,7 +4,7 @@ The Web server opens a separate random loopback ingress for the managed private 
 
 ## Usage and Trust
 
-Connect through [Remote access](remote-access.md), create a pairing invitation on the computer, scan it on the phone, request access and compare the six-digit confirmation codes before approving on the computer. Microsoft service authorization still applies because the tunnel does not enable anonymous access. No Microsoft credentials are exposed to frontend code.
+Connect through [Remote access](remote-access.md), use the invitation automatically generated in Step 4 after connection, scan it on the phone, request access and compare the six-digit confirmation codes before approving on the computer. Microsoft service authorization still applies because the tunnel does not enable anonymous access. No Microsoft credentials are exposed to frontend code.
 
 Approval grants the device the computer owner's chat access across registered projects, with prompt files/images, model and permission selection, queue controls, tool approvals and Agent commands. Existing core permission enforcement remains in force; the device can change a session's permission preset as the desktop can. Pair only trusted devices. No per-project, read-only or separate remote-user roles exist.
 
@@ -14,10 +14,12 @@ All routes below use the desktop listener. GET status sets the process-lifetime 
 
 | Request | Result |
 | --- | --- |
-| `GET /api/remote-access/devices` | Connection state, nonexpired device metadata and pending requests with comparison codes |
+| `GET /api/remote-access/devices` | Connection state and ephemeral connectionId, nonexpired device metadata and pending requests with comparison codes |
 | `POST /api/remote-access/pairing` | Fresh `{url, expiresAt}` invitation; replaces the unused invitation |
 | `POST /api/remote-access/pairing/:id` | Exactly `{approve: boolean}`; approve or decline a pending request |
 | `DELETE /api/remote-access/devices/:id` | Persist revocation, then terminate that device's tracked access |
+
+The random connectionId identifies one ingress lifetime without exposing the public URL or granting access. It is stable during status polling, changes on every reconnect and is absent while disconnected; the desktop uses it to discard stale QR results and generate a fresh code.
 
 Invitations require an active tunnel, expire after five minutes and are consumed by one successful request. Both invitations and device credentials use independent 256-bit random secrets. Invitation URLs carry the secret in the fragment, omitted from HTTP request targets; the frontend removes it from history immediately. The six-digit code is for human comparison, not authentication. A maximum of sixteen pending requests bounds memory. Rejected, expired and already-decided requests cannot be approved.
 

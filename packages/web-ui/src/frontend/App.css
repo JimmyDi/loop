@@ -14,9 +14,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 14px;
   min-height: 100dvh;
   color: var(--ink-muted);
+  font-size: 20px;
+  font-weight: 700;
 }
 button,
 input,

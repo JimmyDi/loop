@@ -25,7 +25,7 @@ export const App = () => {
           <Suspense
             fallback={
               <main className="app-loading" role="status">
-                <LoopIcon />
+                <LoopIcon size={48} />
                 <span>{t("loading")}</span>
               </main>
             }

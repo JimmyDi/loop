@@ -37,7 +37,7 @@ Remote writes require the configured public HTTPS Origin and `X-Loop-CSRF`; fore
 
 The allowlist serves project/session/model lists, session snapshots and SSE, new sessions in existing projects, prompts and attachments, queue/resume/abort/flush/compact, model/title/permission changes, read/pin state and tool approvals. It permits reading the installed skill catalog for the existing composer. Provider credentials, settings administration, MCP/skill installation, directory picking, project registration/removal and archive/delete endpoints are unavailable remotely. New endpoints remain denied until explicitly added. Static application assets and pairing routes are public; the frontend gate mounts business hooks only after authorization.
 
-Responses disable caching; successful responses also suppress referrers, MIME sniffing and framing. Errors use fixed codes without raw backend/CLI diagnostics. Authentication failures return 401, policy/Origin/CSRF failures 403, missing local devices 404, stale decisions/disconnected invitation requests 409, connection/pairing limits 429, unavailable ingress or failed storage 503. Other remote errors use a generic 500 code.
+Responses disable caching; SSE additionally retains no-transform and X-Accel-Buffering: no so intermediaries are instructed to avoid transforming or buffering streamed chat updates. Successful responses also suppress referrers, MIME sniffing and framing. Errors use fixed codes without raw backend/CLI diagnostics. Authentication failures return 401, policy/Origin/CSRF failures 403, missing local devices 404, stale decisions/disconnected invitation requests 409, connection/pairing limits 429, unavailable ingress or failed storage 503. Other remote errors use a generic 500 code.
 
 ## Storage and Lifecycle
 
@@ -51,7 +51,7 @@ Requests and streams are bound to device expiry, revocation, tunnel disconnect a
 
 The private relay still requires service access and terminates browser TLS; it does not provide encryption that hides traffic from Microsoft. Remote ingress serves built frontend assets even when the local listener uses Vite development middleware. With pnpm dev, it uses the Web package’s dist/web directory; production keeps the packaged web directory, and an explicit assetsDir overrides the default. The remote entry never serves Vite source modules or HMR. Run `pnpm build` before remote testing and rebuild after frontend changes; pnpm dev alone does not build the remote page. A missing build returns 404 at the remote root even though the local Vite page works. Mobile layout, PWA/background delivery and network recovery polish are deferred.
 
-Automated tests use synthetic origins, temporary private stores, injected CLI results and model streams. They do not establish real Microsoft sign-in, phone-browser compatibility or relay connectivity.
+Automated tests use synthetic origins, temporary private stores, injected CLI results and model streams. The business integration test reads successive model deltas over the real loopback HTTP ingress before generation completes, checks the projected phone draft, and reconnects mid-generation before receiving further live updates. It also checks the SSE anti-transformation headers. These checks do not establish real Microsoft sign-in, phone-browser compatibility or relay connectivity.
 
 - [Ingress](../remote-access/remote-ingress.ts) / [security and SSE tests](../remote-access/remote-ingress.test.ts).
 - [Existing business integration test](../remote-access/remote-business.test.ts).

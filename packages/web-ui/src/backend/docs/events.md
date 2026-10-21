@@ -29,6 +29,8 @@ The default cache holds at most 256 frames and 4 MiB of serialized data, evictin
 
 SSE comment heartbeats are sent every 15 seconds without a business sequence number. Each connection has a 1 MiB output-buffer target. A client that stops consuming data is disconnected; the frontend reconnects using replay or a snapshot.
 
+SSE responses use text/event-stream with Cache-Control: no-cache, no-transform and X-Accel-Buffering: no to discourage intermediary transformation and buffering. The remote ingress replaces the cache policy with no-store, no-transform, retaining the anti-transformation directive and buffering header. Session updates are forwarded as they arrive rather than waiting for model completion; reconnect uses the same replay/snapshot contract. These headers request streaming behavior but cannot guarantee that every external relay or mobile network honors it.
+
 Aborting a request or cancelling its stream removes only that connection's listeners and timer, without cancelling AgentSession. Disposing an instance closes its connections. Server restart creates a new streamId. Replay is not a durable event log, does not recover unsaved execution, and does not re-execute commands.
 
 ## List Change Notifications

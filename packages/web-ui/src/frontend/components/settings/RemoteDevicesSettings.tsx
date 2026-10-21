@@ -62,11 +62,6 @@ export const RemoteDevicesSettings = ({ connected = true }: { connected?: boolea
         </div>
         <div className="remote-devices-settings">
           {devices.generating && <p role="status">{t("pairing.generating")}</p>}
-          {devices.invite && devices.qr && (
-            <div className="remote-devices-invite">
-              <img src={devices.qr} alt={t("pairing.qrAlt")} width={208} height={208} />
-            </div>
-          )}
           {devices.query.data?.pending.map((item) => (
             <div className="remote-devices-row" key={item.id}>
               <div>
@@ -88,30 +83,58 @@ export const RemoteDevicesSettings = ({ connected = true }: { connected?: boolea
               </ActionButton>
             </div>
           ))}
-          {[...(devices.query.data?.devices ?? []), ...expired].map((item) => {
-            const isExpired = expired.some((device) => device.id === item.id);
-            return (
-              <div className="remote-devices-row" key={item.id} role="group" aria-label={item.name}>
-                <div className="remote-device-summary">
-                  <RemoteAccessMarker complete={!isExpired} loading={false} failed={isExpired} />
-                  <div>
-                    <strong>{item.name}</strong>
-                    <p>
-                      {t(isExpired ? "pairing.deviceExpired" : "pairing.devicePaired", {
-                        date: expiryDate(item.expiresAt),
-                      })}
-                    </p>
-                  </div>
-                </div>
-                <ActionButton
-                  disabled={devices.pending}
-                  onClick={() => void devices.revoke(item.id)}
-                >
-                  {t(isExpired ? "pairing.remove" : "pairing.revoke")}
-                </ActionButton>
+          <div
+            className="remote-devices-pairing"
+            data-has-invite={!!(devices.invite && devices.qr)}
+          >
+            {devices.invite && devices.qr && (
+              <div className="remote-devices-invite">
+                <img src={devices.qr} alt={t("pairing.qrAlt")} width={208} height={208} />
               </div>
-            );
-          })}
+            )}
+            {!!((devices.query.data?.devices.length ?? 0) + expired.length) && (
+              <div
+                className="remote-devices-list"
+                role="region"
+                aria-label={t("pairing.devices")}
+                tabIndex={0}
+              >
+                {[...(devices.query.data?.devices ?? []), ...expired].map((item) => {
+                  const isExpired = expired.some((device) => device.id === item.id);
+                  return (
+                    <div
+                      className="remote-devices-row"
+                      key={item.id}
+                      role="group"
+                      aria-label={item.name}
+                    >
+                      <div className="remote-device-summary">
+                        <RemoteAccessMarker
+                          complete={!isExpired}
+                          loading={false}
+                          failed={isExpired}
+                        />
+                        <div>
+                          <strong>{item.name}</strong>
+                          <p>
+                            {t(isExpired ? "pairing.deviceExpired" : "pairing.devicePaired", {
+                              date: expiryDate(item.expiresAt),
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <ActionButton
+                        disabled={devices.pending}
+                        onClick={() => void devices.revoke(item.id)}
+                      >
+                        {t(isExpired ? "pairing.remove" : "pairing.revoke")}
+                      </ActionButton>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           {devices.error && <p role="alert">{t("pairing.manageFailed")}</p>}
         </div>
       </section>

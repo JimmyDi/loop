@@ -58,6 +58,10 @@ test("desktop generates a QR code and explicitly approves, declines and revokes 
       ),
     );
     expect(view.queryByRole("link")).toBeNull();
+    const qr = view.getByRole("img", { name: "Device pairing QR code" });
+    const list = view.container.querySelector(".remote-devices-list")!;
+    expect(qr.parentElement?.nextElementSibling).toBe(list);
+    expect(list.contains(view.getByRole("group", { name: "Paired phone" }))).toBe(true);
     const scan = view.getByText("Scan with your phone.");
     expect(scan.previousElementSibling).toBe(view.getByRole("heading", { name: "Paired devices" }));
     expect(view.container.textContent).not.toContain("example.test");

@@ -2,6 +2,8 @@ export const pairingEn = {
   title: "Connect to Loop",
   guidance: "Scan a new pairing code from Remote access on your computer, then request access.",
   checking: "Checking device access…",
+  opening: "Opening chats…",
+  retry: "Retry",
   unavailable: "Cannot confirm device access. Check the connection and retry.",
   deviceName: "Device name",
   request: "Request access",

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Loop</title>
+    <link rel="icon" type="image/x-icon" href="./assets/loop-icon.ico" />
+    <link rel="stylesheet" href="./theme.css" />
+    <link rel="stylesheet" href="./remote/remote-bootstrap.css" />
+  </head>
+  <body>
+    <div id="root">
+      <main class="remote-bootstrap">
+        <div class="remote-bootstrap-card">
+          <h1 data-label="title">Connect to Loop</h1>
+          <p data-label="guidance">Scan a new pairing code from Remote access on your computer, then request access.</p>
+          <form>
+            <label>
+              <span data-label="deviceName">Device name</span>
+              <input name="name" maxlength="80" required autocomplete="off" />
+            </label>
+            <button type="submit" data-label="request" disabled>Request access</button>
+          </form>
+          <div role="status" hidden>
+            <p data-status></p>
+            <strong data-code></strong>
+            <p data-label="compare" hidden>Confirm that this code matches the code shown on your computer.</p>
+          </div>
+          <p role="alert" hidden></p>
+          <button type="button" data-retry data-label="retry" hidden>Retry</button>
+        </div>
+      </main>
+    </div>
+    <script type="module" src="./remote/entry.ts"></script>
+  </body>
+</html>

@@ -50,7 +50,7 @@ test("preserved public Host and Origin reach pairing over loopback without trust
       request.end(body);
     });
   try {
-    await writeFile(join(root, "index.html"), "<html><head></head><body>Loop</body></html>");
+    await writeFile(join(root, "remote.html"), "<html><head></head><body>Loop</body></html>");
     for (const host of [new URL(origin).host, "127.0.0.1:" + ingress.port]) {
       const page = await call("/", { host });
       expect(page.status, host).toBe(200);
@@ -106,7 +106,7 @@ test("unpaired ingress exposes only pairing and static bootstrap; exact origin a
   const handle = createRemoteHandler(devices, business, root, () => "127.0.0.1:1234");
   const call = (path: string, init?: RequestInit) => handle(new Request(origin + path, init));
   try {
-    await writeFile(join(root, "index.html"), "<html><head></head><body>Loop</body></html>");
+    await writeFile(join(root, "remote.html"), "<html><head></head><body>Loop</body></html>");
     const page = await call("/");
     expect(await page.text()).toContain('meta name="loop-remote"');
     expect(page.headers.get("cache-control")).toBe("no-store");

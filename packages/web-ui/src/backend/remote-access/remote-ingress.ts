@@ -51,7 +51,9 @@ export const createRemoteHandler =
         }
       }
       if (!response) {
-        response = await staticResponse(request, assets);
+        const page = new URL(request.url);
+        if (["/", "/index.html"].includes(page.pathname)) page.pathname = "/remote.html";
+        response = await staticResponse(new Request(page, request), assets);
         if (
           response.headers.get("content-type")?.startsWith("text/html") &&
           response.ok &&

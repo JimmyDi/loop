@@ -27,7 +27,7 @@ test.each([false, true])(
       if (custom) {
         await mkdir(assets);
         await writeFile(
-          join(assets, "index.html"),
+          join(assets, "remote.html"),
           '<html><head></head><script src="/entry.js"></script></html>',
         );
         await writeFile(join(assets, "entry.js"), 'console.log("synthetic");');
@@ -40,6 +40,18 @@ test.each([false, true])(
       const html = await page.text();
       expect(html).toContain('<meta name="loop-remote" content="1">');
       expect(html).not.toContain("/@vite/client");
+      if (!custom) {
+        expect(html).toContain('name="name"');
+        expect(html).not.toContain("Loop…");
+        expect(html).not.toMatch(/(?:src|href)="[^"]*(?:main-|AppShell-)/);
+        const initialScripts = [...html.matchAll(/(?:src|href)="([^"]+\.js)"/g)];
+        let bytes = 0;
+        for (const [, script] of initialScripts) {
+          const response = await fetch(new URL(script!, remote));
+          bytes += (await response.arrayBuffer()).byteLength;
+        }
+        expect(bytes).toBeLessThan(20_000);
+      }
       const scripts = [...html.matchAll(/src="([^"]+\.js)"/g)];
       expect(scripts.length).toBeGreaterThan(0);
       for (const [, script] of scripts) {

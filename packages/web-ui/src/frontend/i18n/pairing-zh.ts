@@ -2,6 +2,8 @@ export const pairingZh = {
   title: "连接到 Loop",
   guidance: "在电脑的远程访问设置中生成配对二维码，使用手机扫描后申请访问。",
   checking: "正在检查设备权限…",
+  opening: "正在打开对话…",
+  retry: "重试",
   unavailable: "无法确认设备权限，请检查连接后重试。",
   deviceName: "设备名称",
   request: "申请访问",

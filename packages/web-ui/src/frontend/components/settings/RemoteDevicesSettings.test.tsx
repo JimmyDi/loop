@@ -58,9 +58,7 @@ test("desktop generates a QR code and explicitly approves, declines and revokes 
       ),
     );
     expect(view.queryByRole("link")).toBeNull();
-    const scan = view.getByText(
-      "Scan with your phone. The code expires in five minutes and can be used once.",
-    );
+    const scan = view.getByText("Scan with your phone.");
     expect(scan.previousElementSibling).toBe(view.getByRole("heading", { name: "Paired devices" }));
     expect(view.container.textContent).not.toContain("example.test");
     const refresh = view.getByRole("button", { name: "Refresh pairing code" }) as HTMLButtonElement;

@@ -16,7 +16,8 @@ export const remoteBootstrapView = (document: Document) => {
   const form = document.querySelector<HTMLFormElement>(".remote-bootstrap form")!;
   const input = form.querySelector<HTMLInputElement>("input")!;
   const submit = form.querySelector<HTMLButtonElement>("button")!;
-  const status = document.querySelector<HTMLElement>('[role="status"]')!;
+  const status = document.querySelector<HTMLElement>("[data-pairing-status]")!;
+  const loading = document.querySelector<HTMLElement>("[data-loading]")!;
   const caption = status.querySelector<HTMLElement>("[data-status]")!;
   const code = status.querySelector<HTMLElement>("[data-code]")!;
   const compare = status.querySelector<HTMLElement>("[data-label=compare]")!;
@@ -30,6 +31,9 @@ export const remoteBootstrapView = (document: Document) => {
       submit.disabled = value;
     },
     status: (key?: keyof typeof labels, confirmation?: string) => {
+      const opening = key === "checking" || key === "opening";
+      document.documentElement.toggleAttribute("data-pairing", !opening);
+      if (opening) loading.textContent = labels[key];
       form.hidden = !!key;
       status.hidden = !key;
       caption.textContent = key ? labels[key] : "";
@@ -37,6 +41,7 @@ export const remoteBootstrapView = (document: Document) => {
       compare.hidden = !confirmation;
     },
     error: (key?: keyof typeof labels) => {
+      if (key) document.documentElement.setAttribute("data-pairing", "");
       error.textContent = key ? labels[key] : "";
       error.hidden = !key;
       retry.hidden = !key;

@@ -108,6 +108,44 @@ test("an authorized device can retry a failed chat download without re-pairing",
   }
 });
 
+test("refresh keeps pairing hidden through slow authorization and chat downloads", async () => {
+  const page = await setup("");
+  let authorize!: (response: Response) => void;
+  let open!: () => void;
+  globalThis.fetch = vi.fn(
+    () =>
+      new Promise<Response>((resolve) => {
+        authorize = resolve;
+      }),
+  ) as typeof fetch;
+  const loadChat = vi.fn(
+    () =>
+      new Promise<void>((resolve) => {
+        open = resolve;
+      }),
+  );
+  const pairingVisible = () => page.document.documentElement.hasAttribute("data-pairing");
+  expect(pairingVisible()).toBe(false);
+  const dispose = mountRemoteBootstrap(loadChat);
+  try {
+    expect(pairingVisible()).toBe(false);
+    expect(page.form.hidden).toBe(true);
+    expect(page.document.querySelector("[data-loading]")?.textContent).toBe(
+      "Checking device access…",
+    );
+    authorize(Response.json({ mode: "remote", authorized: true }));
+    await vi.waitFor(() => expect(loadChat).toHaveBeenCalledOnce());
+    expect(pairingVisible()).toBe(false);
+    expect(page.form.hidden).toBe(true);
+    expect(page.document.querySelector("[data-loading]")?.textContent).toBe("Opening chats…");
+    open();
+    await Promise.resolve();
+    expect(pairingVisible()).toBe(false);
+  } finally {
+    await page.close(dispose);
+  }
+});
+
 test.each(["rejected", "expired", "unreachable"])(
   "pairing %s stays closed and shows recovery guidance",
   async (state) => {

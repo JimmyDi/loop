@@ -126,7 +126,7 @@ export const mountRemoteBootstrap = (loadChat: () => Promise<unknown>): (() => v
   view.retry.addEventListener("click", retryAction);
   window.addEventListener("pagehide", pagehide);
   view.busy(false);
-  if (!token) view.status("checking");
+  view.status(token ? undefined : "checking");
   void check();
   return dispose;
 };

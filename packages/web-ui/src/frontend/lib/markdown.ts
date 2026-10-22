@@ -1,12 +1,20 @@
 import DOMPurify from "dompurify";
 import { Marked } from "marked";
-import markedKatex from "marked-katex-extension";
-import hljs from "highlight.js";
 
-const parser = new Marked({ gfm: true, breaks: true }, markedKatex({ throwOnError: false }));
+const parser = new Marked({ gfm: true, breaks: true });
 
-export const renderMarkdown = (text: string, copyLabel: string, tableLabel: string): string => {
-  const html = parser.parse(text, { async: false });
+export type MarkdownEnhancements = {
+  math?: Marked;
+  highlight?: (text: string, language: string) => string | undefined;
+};
+
+export const renderMarkdown = (
+  text: string,
+  copyLabel: string,
+  tableLabel: string,
+  enhancements: MarkdownEnhancements = {},
+): string => {
+  const html = (enhancements.math ?? parser).parse(text, { async: false });
   const root = document.createElement("div");
 
   root.innerHTML = DOMPurify(window).sanitize(html, { USE_PROFILES: { html: true, mathMl: true } });
@@ -18,8 +26,8 @@ export const renderMarkdown = (text: string, copyLabel: string, tableLabel: stri
     const language = [...code.classList].find((value) => value.startsWith("language-"))?.slice(9);
     const original = code.textContent ?? "";
 
-    if (language && hljs.getLanguage(language))
-      code.innerHTML = hljs.highlight(original, { language }).value;
+    const highlighted = language && enhancements.highlight?.(original, language);
+    if (highlighted) code.innerHTML = highlighted;
 
     const button = document.createElement("button");
 

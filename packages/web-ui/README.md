@@ -8,6 +8,8 @@ Web is a private pnpm workspace package. Frontend and backend share its package.
 
 Run pnpm dev from the root for development. Vite middleware serves React/CSS with HMR on the same loopback port as the Node HTTP API. A separate `tsx watch` process restarts the Node backend when its loaded source files change; frontend source is excluded from backend watching. Arguments are forwarded: pnpm dev --port 3081 --no-open.
 
+Remote access under pnpm dev serves the built frontend from dist/web in this package, while the desktop keeps Vite HMR. Run pnpm --filter @loop/web-ui build before scanning a remote pairing code, and rebuild after frontend edits.
+
 For production, run pnpm build and node dist/bin.js web from the root. The compiled package serves prebuilt assets without Vite or a source checkout. Help works without opening a server: node dist/bin.js web --help.
 
 The public root package is `@loop-harness/loop` and provides the `web` subcommand. Start the published version with `npx @loop-harness/loop web`. Node.js 24+ is required; Bun and frontend build tools are not required.
@@ -30,7 +32,7 @@ If a sent message stays in the waiting state, check the model endpoint and serve
 - React chat components, editable drafts, model-authored updates, collapsed tool batches, Markdown and code copy.
 - English/Chinese interface, responsive sidebar, session navigation and model selection.
 - Frontend configuration of an OpenAI-compatible custom provider, including local gateways.
-- Experimental private tunnel controls in Settings → Remote access, with a three-step CLI installation, Microsoft sign-in and connection flow, completion checks and license/privacy info tooltip; does not yet expose the remote application. See [setup and limits](src/backend/docs/remote-access.md).
+- Experimental private tunnel controls in Settings → Remote access, with a four-step CLI installation, Microsoft sign-in, connection and automatic QR pairing flow, completion checks and license/privacy info tooltip; one-use QR pairing, desktop approval and revocable remote chat access. See [setup and limits](src/backend/docs/remote-access.md).
 
 Components use arrow functions and have matching CSS/test files. Hooks and utilities are separated by responsibility. `architecture.test.ts` checks public imports, component companions and a 200-line implementation limit.
 

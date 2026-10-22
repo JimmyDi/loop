@@ -81,3 +81,25 @@ test("folder toggles independently and compose creates a session from a collapse
     await window.happyDOM.close();
   }
 });
+
+test("remote projects retain new-chat access without project administration", async () => {
+  const { Window } = await import("happy-dom");
+  const window = new Window();
+  window.document.head.innerHTML = '<meta name="loop-remote" content="1">';
+  const previous = { document: globalThis.document };
+  Object.assign(globalThis, { document: window.document });
+  const client = new QueryClient();
+  try {
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={client}>
+        <ProjectItem project={{ id: "example", name: "Example", cwd: "/example" }} />
+      </QueryClientProvider>,
+    );
+    expect(html).toContain("New session");
+    expect(html).not.toContain("Options for Example");
+  } finally {
+    client.clear();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});

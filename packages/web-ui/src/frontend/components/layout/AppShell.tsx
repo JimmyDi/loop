@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useSidebarWidth } from "../../hooks/useSidebarWidth";
 import { useMobileDrawer } from "../../hooks/useMobileDrawer";
 import { useListEvents } from "../../hooks/useListEvents";
+import { useVisualViewport } from "../../hooks/useVisualViewport";
 import { useWorkspace } from "../../state/workspace-store";
 import { ChatWorkspace } from "../chat/ChatWorkspace";
 import { Sidebar } from "./Sidebar";
@@ -16,6 +17,7 @@ export const AppShell = () => {
   const { active, sidebar, toggleSidebar } = useWorkspace();
   const resize = useSidebarWidth();
   const drawer = useRef<HTMLDivElement>(null);
+  const viewport = useVisualViewport();
 
   useMobileDrawer(drawer, sidebar, toggleSidebar);
   useListEvents();
@@ -23,6 +25,7 @@ export const AppShell = () => {
   return (
     <div
       className="app-shell"
+      ref={viewport}
       data-sidebar={sidebar}
       style={{ "--sidebar-width": resize.width + "px" } as CSSProperties}
     >

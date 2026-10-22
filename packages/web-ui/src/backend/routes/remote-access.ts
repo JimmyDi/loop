@@ -1,15 +1,20 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
-
 import type { RemoteAccessStatus } from "../../shared/remote-access";
 import { HttpError } from "../http/errors";
 import { readBody } from "../http/input";
 import type { RemoteAccessController } from "../remote-access/controller";
+import { createLocalControl } from "../remote-access/local-control";
+import { localDeviceRoutes } from "../remote-access/local-device-routes";
+import type { RemoteDevices } from "../remote-access/remote-devices";
 
-const cookieName = "loop_remote_control";
-
-export const remoteAccessRoutes = (controller: RemoteAccessController) => {
-  const capability = randomBytes(32).toString("hex");
+export const remoteAccessRoutes = (controller: RemoteAccessController, devices?: RemoteDevices) => {
+  const control = createLocalControl();
   return async (request: Request, url: URL): Promise<Response | undefined> => {
+    if (devices && url.pathname.startsWith("/api/remote-access/")) {
+      if (request.method !== "GET") control.assert(request);
+      const response = await localDeviceRoutes(request, devices);
+      if (request.method === "GET") response.headers.set("Set-Cookie", control.cookie);
+      return response;
+    }
     if (url.pathname !== "/api/remote-access") return;
     if (request.method === "GET") {
       let status: RemoteAccessStatus;
@@ -24,22 +29,12 @@ export const remoteAccessRoutes = (controller: RemoteAccessController) => {
       return Response.json(status, {
         headers: {
           "Cache-Control": "no-store",
-          "Set-Cookie": `${cookieName}=${capability}; HttpOnly; SameSite=Strict; Path=/api/remote-access`,
+          "Set-Cookie": control.cookie,
         },
       });
     }
     if (request.method !== "POST") throw new HttpError(405, "method_not_allowed");
-    if (request.headers.get("origin") !== url.origin) throw new HttpError(403, "invalid_origin");
-    const credential =
-      request.headers
-        .get("cookie")
-        ?.split(";")
-        .map((item) => item.trim())
-        .find((item) => item.startsWith(cookieName + "="))
-        ?.slice(cookieName.length + 1) ?? "";
-    const bytes = Buffer.from(credential);
-    if (bytes.length !== capability.length || !timingSafeEqual(bytes, Buffer.from(capability)))
-      throw new HttpError(403, "invalid_control_credential");
+    control.assert(request);
     const body = await readBody(request, 1024);
     const action = body.action;
     if (

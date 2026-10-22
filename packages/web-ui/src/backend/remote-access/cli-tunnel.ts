@@ -5,14 +5,22 @@ import { RemoteAccessError } from "./errors";
 
 export class CliTunnel {
   private child?: CliProcess;
-  private ingress?: Awaited<ReturnType<typeof startClosedIngress>>;
+  private ingress?: { port: number; close(): Promise<void>; connected?(origin: string): void };
   private tunnelId?: string;
   private closing?: Promise<void>;
 
-  constructor(private readonly file: string) {}
+  constructor(
+    private readonly file: string,
+    private readonly ingressFactory = () =>
+      startClosedIngress(0) as Promise<{
+        port: number;
+        close(): Promise<void>;
+        connected?(origin: string): void;
+      }>,
+  ) {}
 
   async start(signal: AbortSignal, failed: () => void): Promise<string> {
-    this.ingress = await startClosedIngress(0);
+    this.ingress = await this.ingressFactory();
     signal.throwIfAborted();
     const port = this.ingress.port;
     let url: string | undefined;
@@ -28,7 +36,19 @@ export class CliTunnel {
     try {
       this.child = startCliProcess(
         this.file,
-        ["host", "--port-number", String(port), "--protocol", "http", "--expiration", "1h"],
+        [
+          "host",
+          "--port-number",
+          String(port),
+          "--protocol",
+          "http",
+          "--expiration",
+          "1h",
+          "--host-header",
+          "unchanged",
+          "--origin-header",
+          "unchanged",
+        ],
         signal,
         (line) => {
           const id = line.match(
@@ -62,6 +82,8 @@ export class CliTunnel {
         },
       );
       const result = await connected;
+      signal.throwIfAborted();
+      this.ingress.connected?.(result);
       established = true;
       return result;
     } finally {
@@ -75,7 +97,11 @@ export class CliTunnel {
 
   private async dispose(): Promise<void> {
     try {
-      await this.child?.stop();
+      try {
+        await this.ingress?.close();
+      } finally {
+        await this.child?.stop();
+      }
       if (this.tunnelId) {
         await runCli(
           this.file,

@@ -2,7 +2,6 @@ import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
 import { initializeTheme } from "./state/theme-store";
-import "katex/dist/katex.min.css";
 
 initializeTheme();
 

@@ -101,6 +101,32 @@ test("new user turns align at the top without following response growth or manua
     expect(scrollTop).toBe(1350);
     expect(scroll!.contentRef.current?.style.minHeight).toBe("0px");
 
+    // Keyboard animation keeps an already-bottomed conversation above the input,
+    // including browsers that dispatch scroll before the resize observer.
+    for (const scrollEventFirst of [false, true]) {
+      for (const height of [350, 200, 350, 500]) {
+        viewportHeight = height;
+        act(() => {
+          if (scrollEventFirst) scroll!.onScroll();
+          for (const callback of resizeCallbacks) callback();
+        });
+        expect(scrollTop).toBe(contentHeight + 50 - height);
+        expect(scroll!.atBottom).toBe(true);
+      }
+    }
+    scrollTop = 1300;
+    act(() => scroll!.onScroll());
+    viewportHeight = 200;
+    act(() => {
+      for (const callback of resizeCallbacks) callback();
+    });
+    expect(scrollTop).toBe(1300);
+    viewportHeight = 500;
+    act(() => {
+      for (const callback of resizeCallbacks) callback();
+    });
+    expect(scrollTop).toBe(1300);
+
     // A short new turn needs enough space below it to actually reach the top.
     userTop = 1800;
     contentHeight = 1950;

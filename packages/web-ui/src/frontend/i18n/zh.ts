@@ -1,3 +1,4 @@
+import { pairingZh } from "./pairing-zh";
 import { projectsZh } from "./projects-zh";
 import { skillsZh } from "./skills-zh";
 import { permissionsZh } from "./permissions-zh";
@@ -5,6 +6,7 @@ import { permissionsZh } from "./permissions-zh";
 import { remoteZh } from "./remote-zh";
 
 export const zh = {
+  pairing: pairingZh,
   connectivity: "连接",
   remoteAccess: "远程访问",
   remote: remoteZh,

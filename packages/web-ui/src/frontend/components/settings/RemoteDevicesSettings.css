@@ -1,0 +1,19 @@
+.remote-devices-settings { display: grid; gap: 12px; width: 100%; }
+.remote-devices-settings p { margin: 0; }
+.remote-devices-pairing { display: grid; gap: 16px; min-width: 0; align-items: start; }
+.remote-devices-pairing[data-has-invite="true"] { grid-template-columns: 208px minmax(0, 1fr); }
+.remote-devices-list { min-width: 0; max-height: 208px; overflow-y: auto; scrollbar-gutter: stable; overscroll-behavior: contain; }
+.remote-devices-list .remote-devices-row:first-child { border-top: 0; padding-top: 0; }
+.remote-devices-list .remote-devices-row:last-child { padding-bottom: 0; }
+.remote-devices-invite { display: grid; justify-items: start; gap: 8px; }
+.remote-devices-invite img { display: block; border-radius: 8px; background: white; }
+.remote-devices-step .remote-access-step-title h4 { flex-shrink: 0; max-width: 45%; }
+.remote-devices-scan { flex: 1; min-width: 0; margin: 0 0 0 6px; color: var(--ink-muted); line-height: 1.5; font-size: 12px; }
+.remote-devices-settings p { color: var(--ink-muted); line-height: 1.5; font-size: 12px; }
+.remote-devices-row { display: flex; align-items: center; gap: 8px; padding-block: 12px; border-top: 1px solid var(--line); }
+.remote-devices-row > :first-child { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.remote-device-summary { display: flex; align-items: center; gap: 8px; }
+.remote-device-summary .remote-access-marker { flex-shrink: 0; margin-top: 0; }
+.remote-device-summary > div { min-width: 0; }
+
+.remote-devices-settings { box-sizing: border-box; padding-inline-start: calc(var(--remote-access-actions-width) + 6px); }

@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { isRemoteClient } from "../../lib/remote-session";
 import { useProjects } from "../../hooks/useProjects";
 import { useWorkspace } from "../../state/workspace-store";
 import { AddProjectDialog } from "../projects/AddProjectDialog";
@@ -9,9 +10,12 @@ import { PinnedSessions } from "../projects/PinnedSessions";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { LoopIcon } from "../ui/LoopIcon";
-import { SettingsDialog } from "../settings/SettingsDialog";
 import { SidebarMenu } from "./SidebarMenu";
 import "./Sidebar.css";
+
+const SettingsDialog = lazy(() =>
+  import("../settings/SettingsDialog").then((module) => ({ default: module.SettingsDialog })),
+);
 
 export const Sidebar = () => {
   const { t } = useTranslation();
@@ -73,22 +77,24 @@ export const Sidebar = () => {
               <path d={projectsExpanded ? "m4 6 4 4 4-4" : "m6 4 4 4-4 4"} />
             </svg>
           </button>
-          <ActionButton
-            className="icon ghost"
-            aria-label={t("addProject")}
-            onClick={() => setAdding(true)}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              aria-hidden="true"
+          {!isRemoteClient() && (
+            <ActionButton
+              className="icon ghost"
+              aria-label={t("addProject")}
+              onClick={() => setAdding(true)}
             >
-              <path d="M12 4v16M4 12h16" />
-            </svg>
-          </ActionButton>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 4v16M4 12h16" />
+              </svg>
+            </ActionButton>
+          )}
         </div>
         <div className="sidebar-projects" id={projectsId} ref={projectList}>
           {projectsExpanded && (
@@ -98,7 +104,7 @@ export const Sidebar = () => {
               {projects.data?.map((project) => (
                 <ProjectItem key={project.id} project={project} />
               ))}
-              {projects.data?.length === 0 && (
+              {projects.data?.length === 0 && !isRemoteClient() && (
                 <ActionButton className="sidebar-empty" onClick={() => setAdding(true)}>
                   {t("noProjects")}
                 </ActionButton>
@@ -120,7 +126,11 @@ export const Sidebar = () => {
           onClose={() => setAdding(false)}
         />
       )}
-      {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && (
+        <Suspense fallback={<p role="status">{t("loading")}</p>}>
+          <SettingsDialog onClose={() => setSettingsOpen(false)} />
+        </Suspense>
+      )}
     </aside>
   );
 };

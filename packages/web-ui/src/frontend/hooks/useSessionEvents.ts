@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { flushSync } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { checkRemoteSession } from "../lib/remote-session";
 import type { Frame, SessionSummary } from "../../shared/protocol";
 import { useSessions } from "../state/session-store";
 
@@ -83,6 +84,7 @@ export const useSessionEvents = (id?: string): void => {
         }
       };
       source.onerror = () => {
+        checkRemoteSession();
         if (disposed) return;
         source.close();
         disconnect();

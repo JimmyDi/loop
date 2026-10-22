@@ -1,0 +1,11 @@
+.remote-access-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 24px;
+  box-sizing: border-box;
+  color: var(--ink);
+  background: var(--surface);
+}

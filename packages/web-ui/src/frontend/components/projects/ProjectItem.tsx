@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import type { Project } from "../../../shared/protocol";
 import { useProjectSessions } from "../../hooks/useProjectSessions";
+import { isRemoteClient } from "../../lib/remote-session";
 import { useWorkspace } from "../../state/workspace-store";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
@@ -64,7 +65,7 @@ export const ProjectItem = ({ project }: { project: Project }) => {
           </svg>
           <span>{project.name}</span>
         </button>
-        <ProjectActions project={project} contextPoint={contextPoint} />
+        {!isRemoteClient() && <ProjectActions project={project} contextPoint={contextPoint} />}
         <ActionButton
           className="project-icon-button icon ghost"
           aria-label={t("newSession")}

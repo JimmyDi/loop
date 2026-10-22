@@ -53,3 +53,27 @@ test("session menu places Pin below Rename and supports Unpin while a session is
     await window.happyDOM.close();
   }
 });
+
+test("remote session menu exposes only rename and pin", async () => {
+  const window = new Window();
+  window.document.head.innerHTML = '<meta name="loop-remote" content="1">';
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, cleanup } = await import("@testing-library/react/pure");
+  const menu = {
+    panel: { current: null },
+    position: {},
+    navigate: () => {},
+    close: () => {},
+  } as unknown as ReturnType<typeof useProjectMenu>;
+  try {
+    const ui = render(
+      <SessionContextMenu menu={menu} title="Example" disabled={false} onChoose={() => {}} />,
+    );
+    expect(ui.getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["Rename", "Pin"]);
+  } finally {
+    cleanup();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});

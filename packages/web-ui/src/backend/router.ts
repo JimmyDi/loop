@@ -1,18 +1,14 @@
 import type { McpManager, SkillManager } from "@loop/coding-agent";
 
-import { mcpRoutes } from "./routes/mcp";
-import { skillRoutes } from "./routes/skills";
 import { errorResponse } from "./http/errors";
 import { assertLocalRequest } from "./http/local-request";
-import { projectRoutes } from "./routes/projects";
-import { sessionRoutes } from "./routes/sessions";
-import { providerRoutes } from "./routes/providers";
-import { generalSettingsRoutes } from "./routes/settings";
 import type { WebSettings } from "./settings/web-settings";
 import type { ProviderSettings } from "./providers/provider-settings";
 import type { SessionRegistry } from "./session-registry";
 import type { RemoteAccessController } from "./remote-access/controller";
 import { remoteAccessRoutes } from "./routes/remote-access";
+import { createBusinessRouter } from "./business-router";
+import type { RemoteDevices } from "./remote-access/remote-devices";
 
 export const createRouter = (
   registry: SessionRegistry,
@@ -21,14 +17,10 @@ export const createRouter = (
   mcp?: McpManager,
   skills?: SkillManager,
   remoteAccess?: RemoteAccessController,
+  devices?: RemoteDevices,
 ) => {
-  const integrations = mcp && mcpRoutes(mcp);
-  const skillIntegrations = skills && skillRoutes(skills, registry);
-  const projects = projectRoutes(registry);
-  const sessions = sessionRoutes(registry);
-  const settings = providers && providerRoutes(registry, providers);
-  const general = webSettings && generalSettingsRoutes(webSettings);
-  const remote = remoteAccess && remoteAccessRoutes(remoteAccess);
+  const business = createBusinessRouter(registry, providers, webSettings, mcp, skills);
+  const remote = remoteAccess && remoteAccessRoutes(remoteAccess, devices);
 
   return async (request: Request): Promise<Response> => {
     try {
@@ -36,14 +28,9 @@ export const createRouter = (
 
       const url = new URL(request.url);
       const response =
-        (await remote?.(request, url)) ??
-        (await integrations?.(request, url)) ??
-        (await skillIntegrations?.(request, url)) ??
-        (await general?.(request, url)) ??
-        (await settings?.(request, url)) ??
-        (await projects(request, url)) ??
-        (await sessions(request, url)) ??
-        Response.json({ code: "not_found" }, { status: 404 });
+        url.pathname === "/api/remote-session" && request.method === "GET"
+          ? Response.json({ mode: "local" })
+          : ((await remote?.(request, url)) ?? (await business(request)));
 
       response.headers.set("Cache-Control", "no-store");
 

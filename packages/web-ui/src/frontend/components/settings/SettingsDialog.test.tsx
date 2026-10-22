@@ -51,7 +51,7 @@ test("Settings opens General outside the mobile drawer and restores focus withou
     trigger.focus();
     fireEvent.click(trigger);
     fireEvent.click(view.getByRole("menuitem", { name: "Settings" }));
-    const dialog = view.getByRole("dialog", { name: "Settings" });
+    const dialog = await view.findByRole("dialog", { name: "Settings" });
 
     expect(dialog.hasAttribute("open")).toBe(true);
     expect(dialog.parentElement).toBe(document.body);
@@ -156,11 +156,14 @@ test("Settings opens General outside the mobile drawer and restores focus withou
     fireEvent.click(view.getByRole("button", { name: "Close" }));
     expect(view.getByRole("button", { name: "More" })).toBe(trigger);
   } finally {
-    cleanup();
-    client.clear();
-    useWorkspace.setState(state, true);
-    useTheme.setState({ theme });
-    await i18n.changeLanguage(language);
+    await act(async () => {
+      cleanup();
+      client.clear();
+      useWorkspace.setState(state, true);
+      useTheme.setState({ theme });
+      await i18n.changeLanguage(language);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

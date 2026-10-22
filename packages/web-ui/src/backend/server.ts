@@ -11,11 +11,19 @@ import { WebSettings } from "./settings/web-settings";
 import { createHttpServer, listen } from "./http/node-server";
 import { staticResponse } from "./http/static-files";
 import { createRemoteAccess } from "./remote-access/create-remote-access";
+import { createBusinessRouter } from "./business-router";
+import { DeviceStore } from "./remote-access/device-store";
+import { RemoteDevices } from "./remote-access/remote-devices";
+import { startRemoteIngress } from "./remote-access/remote-ingress";
 
 export type ServerOptions = { development?: boolean; assetsDir?: string };
 
 export const startServer = async (port = 3080, options: ServerOptions = {}) => {
   const agentDir = getAgentDir();
+  const devices = new RemoteDevices(
+    new DeviceStore(join(agentDir, "web-ui", "remote-access", "devices.json")),
+  );
+  await devices.load();
   const projects = new ProjectStore(join(agentDir, "web-ui", "projects.json"));
   const providers = new ProviderSettings(join(agentDir, "web-ui", "provider.json"));
   const settings = new WebSettings(agentDir);
@@ -26,9 +34,14 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
     projects,
     createLoopBridge(agentDir, providers, settings, mcp, skills),
   );
-  const remoteAccess = await createRemoteAccess(agentDir);
-  const route = createRouter(registry, providers, settings, mcp, skills, remoteAccess);
-  const assetsDir = options.assetsDir ?? fileURLToPath(new URL("./web/", import.meta.url));
+  const assetsDir =
+    options.assetsDir ??
+    fileURLToPath(new URL(options.development ? "../../dist/web/" : "./web/", import.meta.url));
+  const business = createBusinessRouter(registry, providers, settings, mcp, skills);
+  const remoteAccess = await createRemoteAccess(agentDir, () =>
+    startRemoteIngress(devices, business, assetsDir),
+  );
+  const route = createRouter(registry, providers, settings, mcp, skills, remoteAccess, devices);
   const server = createHttpServer((request) =>
     new URL(request.url).pathname.startsWith("/api/")
       ? route(request)

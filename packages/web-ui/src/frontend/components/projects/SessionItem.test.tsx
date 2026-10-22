@@ -21,7 +21,7 @@ test("row archives immediately; context menu preserves selection and only delete
   window.HTMLDialogElement.prototype.close = function () {
     this.removeAttribute("open");
   };
-  const { render, fireEvent, waitFor, cleanup } = await import("@testing-library/react/pure");
+  const { render, fireEvent, waitFor, cleanup, act } = await import("@testing-library/react/pure");
   const client = new QueryClient();
   const calls: unknown[] = [];
   globalThis.fetch = (async (url, init) => {
@@ -78,9 +78,12 @@ test("row archives immediately; context menu preserves selection and only delete
     expect(calls[1]).toEqual(["/api/workspaces/p/sessions/s", "DELETE", undefined]);
     await waitFor(() => expect(ui.queryByRole("dialog")).toBeNull());
   } finally {
-    cleanup();
-    client.clear();
-    useWorkspace.setState(workspace, true);
+    await act(async () => {
+      cleanup();
+      client.clear();
+      useWorkspace.setState(workspace, true);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }
@@ -100,7 +103,7 @@ test("delete failures stay in the confirmation and are cleared when it closes or
   window.HTMLDialogElement.prototype.close = function () {
     this.removeAttribute("open");
   };
-  const { render, fireEvent, waitFor, cleanup } = await import("@testing-library/react/pure");
+  const { render, fireEvent, waitFor, cleanup, act } = await import("@testing-library/react/pure");
   const client = new QueryClient();
   const calls: string[] = [];
   globalThis.fetch = (async (_url, init) => {
@@ -144,8 +147,11 @@ test("delete failures stay in the confirmation and are cleared when it closes or
     }
     expect(calls).toEqual(["POST", "DELETE", "DELETE"]);
   } finally {
-    cleanup();
-    client.clear();
+    await act(async () => {
+      cleanup();
+      client.clear();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

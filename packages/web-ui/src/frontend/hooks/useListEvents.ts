@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { checkRemoteSession } from "../lib/remote-session";
 import type { Cursor, ListFrame } from "../../shared/protocol";
 
 export const useListEvents = (): void => {
@@ -65,6 +66,7 @@ export const useListEvents = (): void => {
         schedule();
       }
     };
+    source.onerror = () => checkRemoteSession();
     // Native EventSource reconnects; every connection begins with a full list invalidation.
     return () => {
       disposed = true;

@@ -15,7 +15,10 @@ export type RemoteRuntime = {
   close(): Promise<void>;
 };
 
-export const createCliRuntime = (directory: string): RemoteRuntime => {
+export const createCliRuntime = (
+  directory: string,
+  ingressFactory?: ConstructorParameters<typeof CliTunnel>[1],
+): RemoteRuntime => {
   const installer = new CliInstaller(directory);
   let tunnel: CliTunnel | undefined;
   return {
@@ -41,7 +44,7 @@ export const createCliRuntime = (directory: string): RemoteRuntime => {
       await runCli(installer.file, ["user", "logout", "--json"], AbortSignal.timeout(30_000));
     },
     start: async (signal, failed) => {
-      tunnel = new CliTunnel(installer.file);
+      tunnel = new CliTunnel(installer.file, ingressFactory);
       return tunnel.start(signal, failed);
     },
     close: async () => {

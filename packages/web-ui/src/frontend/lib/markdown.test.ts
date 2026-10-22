@@ -10,10 +10,12 @@ test("Markdown sanitizer rejects scripts and unsafe links, retaining tables and 
 
   try {
     const { renderMarkdown } = await import("./markdown");
+    const { mathParser } = await import("./markdown-math");
     const html = renderMarkdown(
       "<script>alert(1)</script>\n\n<img src=x onerror=alert(1)>\n\n[bad](javascript:alert(1))\n\n| A |\n| - |\n| B |\n\n$$x^2$$",
       "Copy",
       "Table",
+      { math: mathParser },
     );
 
     expect(html).not.toContain("<script");

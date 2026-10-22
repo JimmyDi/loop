@@ -11,6 +11,10 @@ export default defineConfig({
     minify: true,
     cssMinify: true,
     rolldownOptions: {
+      input: {
+        app: fileURLToPath(new URL("./src/frontend/index.html", import.meta.url)),
+        remote: fileURLToPath(new URL("./src/frontend/remote.html", import.meta.url)),
+      },
       output: { comments: { legal: true, annotation: false, jsdoc: false } },
     },
     outDir: "../../dist/web",

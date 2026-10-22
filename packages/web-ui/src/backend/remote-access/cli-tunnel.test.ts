@@ -37,6 +37,13 @@ test("hosts a temporary private tunnel to isolated 503 ingress and deletes only 
     const args = vi.mocked(startCliProcess).mock.calls[0]![1];
     expect(args).not.toContain("--allow-anonymous");
     expect(args).toContain("1h");
+    expect(args.slice(args.indexOf("--host-header"), args.indexOf("--host-header") + 2)).toEqual([
+      "--host-header",
+      "unchanged",
+    ]);
+    expect(
+      args.slice(args.indexOf("--origin-header"), args.indexOf("--origin-header") + 2),
+    ).toEqual(["--origin-header", "unchanged"]);
     const response = await fetch("http://127.0.0.1:" + port + "/api/remote-access");
     expect(response.status).toBe(503);
     exited({ code: 1, output: "synthetic-private-error" });
@@ -68,4 +75,26 @@ test("early host failure does not report a connected tunnel and can be disposed"
   await tunnel.close();
   expect(failed).not.toHaveBeenCalled();
   expect(runCli).not.toHaveBeenCalled();
+});
+
+test("managed ingress receives the verified origin and closes before the CLI host stops", async () => {
+  const connected = vi.fn();
+  const close = vi.fn(async () => {});
+  const stop = vi.fn(async () => {
+    expect(close).toHaveBeenCalled();
+  });
+  vi.mocked(startCliProcess).mockImplementation((_file, _args, _signal, onLine) => {
+    queueMicrotask(() => {
+      onLine!("Hosting port at https://synthetic-1234.test.devtunnels.ms/");
+      onLine!("Ready to accept connections for tunnel: synthetic.test");
+    });
+    return { done: new Promise(() => {}), stop };
+  });
+  const tunnel = new CliTunnel("synthetic-cli", async () => ({ port: 1234, close, connected }));
+  expect(await tunnel.start(new AbortController().signal, vi.fn())).toBe(
+    "https://synthetic-1234.test.devtunnels.ms",
+  );
+  expect(connected).toHaveBeenCalledWith("https://synthetic-1234.test.devtunnels.ms");
+  await tunnel.close();
+  expect(stop).toHaveBeenCalledOnce();
 });

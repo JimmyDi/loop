@@ -109,8 +109,12 @@ test("MarkdownText renders Mermaid blocks without changing code or response copy
     await i18n.changeLanguage("en");
     const ui = render(<MarkdownText text={text} />);
     await act(() => new Promise((resolve) => setTimeout(resolve, 30)));
-    expect(ui.container.querySelector(".markdown-mermaid-preview svg")).not.toBeNull();
-    expect(ui.container.querySelector(".hljs-keyword")?.textContent).toBe("const");
+    await vi.waitFor(() =>
+      expect(ui.container.querySelector(".hljs-keyword")?.textContent).toBe("const"),
+    );
+    await vi.waitFor(() =>
+      expect(ui.container.querySelector(".markdown-mermaid-preview svg")).not.toBeNull(),
+    );
     expect(ui.container.querySelector("strong")?.textContent).toBe("Response");
     const diagram = ui.container.querySelector(".markdown-mermaid")!;
     const raw = diagram.querySelector("pre")!;
@@ -185,7 +189,9 @@ test("MarkdownText renders Mermaid blocks without changing code or response copy
     expect(response.container.querySelector(".markdown-mermaid")).toBeNull();
     response.rerender(<AssistantMessage message={message} tools={{}} />);
     await act(() => new Promise((resolve) => setTimeout(resolve, 30)));
-    expect(response.container.querySelector(".markdown-mermaid-preview svg")).not.toBeNull();
+    await vi.waitFor(() =>
+      expect(response.container.querySelector(".markdown-mermaid-preview svg")).not.toBeNull(),
+    );
     await act(async () => fireEvent.click(response.getByRole("button", { name: "Copy response" })));
     expect(copied.at(-1)).toBe(text);
 

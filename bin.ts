@@ -17,7 +17,7 @@ try {
       args.filter((arg) => arg !== "--dev"),
       {
         development,
-        assetsDir: fileURLToPath(new URL("./web/", import.meta.url)),
+        assetsDir: development ? undefined : fileURLToPath(new URL("./web/", import.meta.url)),
       },
     );
   } else {

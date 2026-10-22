@@ -1,3 +1,5 @@
+import { checkRemoteSession, remoteCsrfHeaders } from "./remote-session";
+
 export class ApiError extends Error {
   constructor(
     readonly code: string,
@@ -11,10 +13,16 @@ export class ApiError extends Error {
 export const api = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const response = await fetch("/api" + path, {
     ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...remoteCsrfHeaders(init?.method),
+      ...init?.headers,
+    },
   });
 
   if (!response.ok) {
+    if ((response.status === 401 || response.status === 403) && !path.startsWith("/remote-"))
+      checkRemoteSession();
     const body = await response.json().catch(() => ({}));
 
     throw new ApiError(

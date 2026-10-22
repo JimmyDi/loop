@@ -77,3 +77,22 @@ test.each([
     }
   },
 );
+
+test("remote application menu hides desktop settings", async () => {
+  const window = new Window();
+  window.document.head.innerHTML = '<meta name="loop-remote" content="1">';
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, fireEvent, cleanup } = await import("@testing-library/react/pure");
+  try {
+    const view = render(<SidebarMenu onOpenSettings={() => {}} />);
+    fireEvent.click(view.getByRole("button", { name: "More" }));
+    expect(view.getAllByRole("menuitem")).toHaveLength(1);
+    expect(view.queryByRole("menuitem", { name: "Settings" })).toBeNull();
+    expect(view.getByRole("menuitem", { name: "Feedback" })).toBeTruthy();
+  } finally {
+    cleanup();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { useCopy } from "../../hooks/useCopy";
 import { useMermaid } from "../../hooks/useMermaid";
-import { renderMarkdown } from "../../lib/markdown";
+import { useMarkdown } from "../../hooks/useMarkdown";
 import "./MarkdownText.css";
 import "./MarkdownHighlight.css";
 
@@ -16,7 +16,8 @@ export const MarkdownText = ({
 }) => {
   const { t } = useTranslation();
   const { copy, status } = useCopy();
-  const html = useMemo(() => renderMarkdown(text, t("copy"), t("table")), [text, t]);
+  const html = useMarkdown(text, t("copy"), t("table"));
+  const markup = useMemo(() => ({ __html: html }), [html]);
   const ref = useMermaid(html, streaming);
 
   return (
@@ -24,7 +25,7 @@ export const MarkdownText = ({
       <div
         ref={ref}
         className="markdown-text"
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={markup}
         onClick={(event) => {
           const target = event.target as Element;
           const button = target.closest(".markdown-code-copy");

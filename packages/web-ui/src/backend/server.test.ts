@@ -41,6 +41,19 @@ test.each([false, true])(
       expect(html).toContain('<meta name="loop-remote" content="1">');
       expect(html).not.toContain("/@vite/client");
       if (!custom) {
+        for (const [path, type] of [
+          ["/manifest.webmanifest", "application/manifest+json"],
+          ["/sw.js", "javascript"],
+          ["/loop-pwa-192.png", "image/png"],
+          ["/loop-pwa-512.png", "image/png"],
+        ]) {
+          const asset = await fetch(remote + path);
+          expect(asset.status).toBe(200);
+          expect(asset.headers.get("content-type")).toContain(type);
+          expect(asset.headers.get("cache-control")).toBe("no-store");
+        }
+        expect(html).toContain('rel="manifest"');
+        expect(html).toContain('crossorigin="use-credentials"');
         expect(html).toContain('name="name"');
         expect(html).not.toContain("Loop…");
         expect(html).not.toMatch(/(?:src|href)="[^"]*(?:main-|AppShell-)/);

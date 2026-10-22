@@ -5,6 +5,7 @@ export const useMobileDrawer = (
   ref: RefObject<HTMLElement | null>,
   open: boolean,
   close: (open: boolean) => void,
+  background?: RefObject<HTMLElement | null>,
 ) => {
   useEffect(() => {
     const element = ref.current;
@@ -15,6 +16,7 @@ export const useMobileDrawer = (
     const previous = document.activeElement as HTMLElement | null;
     const update = () => {
       element.inert = media.matches && !open;
+      if (background?.current) background.current.inert = media.matches && open;
     };
     const keydown = (event: KeyboardEvent) => {
       if (!open || !media.matches) return;
@@ -50,8 +52,10 @@ export const useMobileDrawer = (
     return () => {
       media.removeEventListener("change", update);
       element.removeEventListener("keydown", keydown);
+      element.inert = false;
+      if (background?.current) background.current.inert = false;
 
       if (open && media.matches) previous?.focus();
     };
-  }, [ref, open, close]);
+  }, [ref, open, close, background]);
 };

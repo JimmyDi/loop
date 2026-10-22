@@ -10,6 +10,7 @@ import { useWorkspace } from "../../state/workspace-store";
 import { ChatWorkspace } from "../chat/ChatWorkspace";
 import { Sidebar } from "./Sidebar";
 import { Welcome } from "./Welcome";
+import { PwaStatus } from "../pwa/PwaStatus";
 import "./AppShell.css";
 
 export const AppShell = () => {
@@ -17,9 +18,10 @@ export const AppShell = () => {
   const { active, sidebar, toggleSidebar } = useWorkspace();
   const resize = useSidebarWidth();
   const drawer = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
   const viewport = useVisualViewport();
 
-  useMobileDrawer(drawer, sidebar, toggleSidebar);
+  useMobileDrawer(drawer, sidebar, toggleSidebar, content);
   useListEvents();
 
   return (
@@ -58,7 +60,10 @@ export const AppShell = () => {
           }
         }}
       />
-      {active ? <ChatWorkspace key={active.id} id={active.id} /> : <Welcome />}
+      <div className="app-shell-content" ref={content}>
+        <PwaStatus />
+        {active ? <ChatWorkspace key={active.id} id={active.id} /> : <Welcome />}
+      </div>
     </div>
   );
 };

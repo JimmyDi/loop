@@ -40,6 +40,8 @@ export const ComposerInput = ({
   useEffect(() => {
     const input = editor.ref.current;
     if (!input) return;
+    if (window.matchMedia("(pointer: coarse)").matches && !input.contains(document.activeElement))
+      return;
 
     input.focus({ preventScroll: true });
     const selection = input.ownerDocument.getSelection();

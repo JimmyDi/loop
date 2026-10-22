@@ -10,6 +10,7 @@ test("static assets enforce package confinement and support HEAD and missing ass
   const root = await mkdtemp(join(tmpdir(), "loop-assets-"));
   const assets = join(root, "web");
   await mkdir(assets);
+  await writeFile(join(assets, "manifest.webmanifest"), '{"name":"Loop"}');
   await writeFile(join(assets, "index.html"), "<title>Loop</title>");
   await writeFile(join(root, "private.txt"), "private");
   await symlink(join(root, "private.txt"), join(assets, "escape.txt"));
@@ -17,6 +18,11 @@ test("static assets enforce package confinement and support HEAD and missing ass
     const response = await staticResponse(new Request("http://localhost/"), assets);
     expect(await response.text()).toBe("<title>Loop</title>");
     expect(response.headers.get("content-type")).toContain("text/html");
+    const manifest = await staticResponse(
+      new Request("http://localhost/manifest.webmanifest"),
+      assets,
+    );
+    expect(manifest.headers.get("content-type")).toContain("application/manifest+json");
     expect((await staticResponse(new Request("http://localhost/escape.txt"), assets)).status).toBe(
       403,
     );

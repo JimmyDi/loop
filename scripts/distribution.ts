@@ -11,13 +11,14 @@ export const inspectDistributionFile = (path: string, text: string): string[] =>
     documents.has(path) ||
     webDocuments.has(path) ||
     /^dist\/[^/]+\.(?:js|d\.ts)$/.test(path) ||
+    path === "dist/web/manifest.webmanifest" ||
     /^dist\/web\/(?:[^/]+\/)*[^/]+\.(?:html|js|css|svg|png|ico|woff2?|ttf)$/.test(path);
 
   if (!safePath || !allowed || /(?:^|\/)(?:src|node_modules|\.[^/]+)(?:\/|$)/.test(path))
     failures.push(path + ": unexpected publication file");
   if (/(?:^|[./-])(?:test|spec|sample|config)\./.test(path))
     failures.push(path + ": development file");
-  if (/\.(?:js|ts|css|html|svg|json)$/.test(path)) {
+  if (/\.(?:js|ts|css|html|svg|json|webmanifest)$/.test(path)) {
     if (/(?:\/\/|\/\*)\s*[#@]\s*(?:sourceMappingURL|sourceURL)\s*=/.test(text))
       failures.push(path + ": source map or source URL directive");
     if (/(?:\/\/|\/\*)\s*#(?:end)?region\b/.test(text))

@@ -86,3 +86,14 @@
     margin: 0 14px 14px;
   }
 }
+
+@media (max-width: 767px) {
+  .approval-card {
+    flex-shrink: 0;
+  }
+  .approval-actions .action-button {
+    flex: 1 1 auto;
+    min-height: 44px;
+    white-space: normal;
+  }
+}

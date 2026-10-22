@@ -222,3 +222,31 @@ test("copying a user message and pasting restores skill tokens, text and existin
     await window.happyDOM.close();
   }
 });
+
+test("touch composer preserves focus outside the editor on mount and session switches", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  window.matchMedia = () => ({ matches: true }) as ReturnType<typeof window.matchMedia>;
+  const { render, cleanup } = await import("@testing-library/react/pure");
+  try {
+    const trigger = window.document.createElement("button");
+    window.document.body.append(trigger);
+    trigger.focus();
+    const props = {
+      value: "Draft",
+      onChange: () => {},
+      onSubmit: () => {},
+      disabled: false,
+      placeholder: "Message",
+    };
+    const view = render(<ComposerInput {...props} />);
+    expect(window.document.activeElement).toBe(trigger);
+    view.rerender(<ComposerInput {...props} focusRequest={1} />);
+    expect(window.document.activeElement).toBe(trigger);
+  } finally {
+    cleanup();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});

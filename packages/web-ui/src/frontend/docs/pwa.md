@@ -21,11 +21,11 @@ On devices with a coarse primary pointer, Enter inserts a newline. Tap Send to s
 
 ## Cache and Offline Behavior
 
-The build produces /manifest.webmanifest, /sw.js, /offline.html and 192px/512px PNG icons. The manifest starts at / without invitation codes or credentials. Its link includes credentials for private tunnel access. Registration occurs only in a production build in a secure context; remote pairing remains a separate lightweight bootstrap.
+The build produces /manifest.webmanifest, /sw.js, /offline.html and 192px/512px PNG icons. Public icons, including the light/dark loading logos, are served directly at the origin root in development and production. The manifest starts at / without invitation codes or credentials. Its link includes credentials for private tunnel access. Registration occurs only in a production build in a secure context; remote pairing remains a separate lightweight bootstrap.
 
 The service worker precaches only the generic offline page, manifest and installation icons. An exact build-generated allowlist permits caching successful JavaScript, CSS, image and font downloads. Query-bearing requests, cross-origin requests, non-GET requests, APIs, authorization endpoints, errors, redirects and HTML returned for scripts are excluded. Conversation HTML, API responses, SSE, invitations and authentication material are never written to this cache. Existing browser draft preferences retain their previous behavior.
 
-Navigations always use the network. On a network failure, an installed worker returns a generic themed offline page with Retry. It does not display cached chats or accept offline commands. HTTP authentication failures retain their real response. The in-app offline message reflects the browser connectivity signal, which does not prove the computer or tunnel is reachable.
+Navigations always use the network. On devtunnels.ms subdomains, the worker leaves document navigation entirely to the browser, including refreshes and Microsoft sign-in redirects. It does not call respondWith or fetch for these navigations, preserving the native navigation and cookie context. Static caching remains available. On other origins, a network failure returns a generic themed offline page with Retry; private tunnel navigation uses the browser's network error page instead. Neither path displays cached chats or accepts offline commands. HTTP authentication failures retain their real response. The in-app offline message reflects the browser connectivity signal, which does not prove the computer or tunnel is reachable.
 
 ## Updates and Limits
 

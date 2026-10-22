@@ -21,9 +21,11 @@ export const createRemoteAccess = async (
     saveSignIn: (signedIn) => signIn.save(signedIn),
     saveConnection: (enabled) => connection.save(enabled),
     runtime: () =>
-      ingressFactory
-        ? createCliRuntime(join(agentDir, "bin", "devtunnel"), ingressFactory)
-        : createCliRuntime(join(agentDir, "bin", "devtunnel")),
+      createCliRuntime(
+        join(agentDir, "bin", "devtunnel"),
+        ingressFactory,
+        join(agentDir, "web-ui", "remote-access", "tunnel.json"),
+      ),
   });
   if (enabled) controller.restore();
   return controller;

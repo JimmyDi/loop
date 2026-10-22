@@ -30,6 +30,10 @@ Development mode enables Vite React/CSS HMR. `pnpm dev` runs a separate `tsx wat
 
 Saving model settings uses the running API and requires no restart. This differs from updating backend source. See [provider configuration](providers.md).
 
+Frontend configuration errors do not shut down the API, session registry or remote ingress. If Vite cannot initialize, development serves the last built frontend from the Web build directory. Without that build, the homepage returns a small unavailable page with HTTP 503 and automatic refresh. Frontend requests retry Vite initialization at most once every two seconds; API and SSE requests bypass these attempts. Fix the configuration, then refresh to return to Vite. Terminal output retains the underlying error. Production still requires a working built homepage before announcing readiness.
+
+The backend watcher excludes frontend source and package-level TypeScript build configuration, including Vite configuration and its PWA plugin. Vite manages its own configuration reloads, keeping the backend and sessions alive. Restart `pnpm dev` once after changing the watcher command itself. Backend/core source updates still restart the process and interrupt active requests; this development setup is not process-crash recovery.
+
 ## Shutdown and Storage
 
 main handles SIGINT/SIGTERM by rejecting new session operations, waiting for registered loading/configuration work, cancelling sessions, attempting pending saves, and closing subscriptions and the server. Failed shutdown saves report an error and set a failing exit code. Closing the server is not proof that data was saved.
@@ -44,6 +48,7 @@ This is a local single-user service with no public listening, login system or ba
 
 - [server.ts](../server.ts), [main.ts](../../main.ts) / [startup tests](../../main.test.ts).
 - [Development watcher regression](../../../../../scripts/dev.test.ts) covers backend restarts, frontend exclusions, Codemode calls and shutdown.
+- [Development frontend](../http/development-frontend.ts) / [tests](../http/development-frontend.test.ts) cover failed configuration, static fallback, streaming continuity and recovery.
 - [Argument parsing](../startup/arguments.ts) / [tests](../startup/arguments.test.ts).
 - [Browser opening](../startup/open-browser.ts) / [tests](../startup/open-browser.test.ts).
 - [Session registry](../session-registry.ts) / [tests](../session-registry.test.ts).

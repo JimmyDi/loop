@@ -3,8 +3,7 @@ import { expect, test, vi } from "vitest";
 import { installWorker } from "./service-worker";
 import type { WorkerScope } from "./service-worker";
 
-const setup = () => {
-  const origin = "https://loop.example";
+const setup = (origin = "https://loop.example") => {
   const entries = new Map<string, Response>();
   const key = (request: Request | string) =>
     new URL(typeof request === "string" ? request : request.url, origin).href;
@@ -108,6 +107,21 @@ test("navigation stays online and only uses generic offline fallback on network 
   scope.fetch.mockRejectedValueOnce(new TypeError("offline"));
   expect(await (await dispatch("fetch", { request }).response)?.text()).toBe("offline");
   expect(cache.put).not.toHaveBeenCalled();
+});
+
+test("private tunnel refresh and sign-in returns use native navigation after worker activation", async () => {
+  const { origin, dispatch, scope, cache } = setup("https://synthetic-1234.test.devtunnels.ms");
+  await dispatch("activate").done();
+  for (const path of ["/", "/index.html", "/remote.html", "/?auth=synthetic"]) {
+    const request = { url: origin + path, method: "GET", mode: "navigate" };
+    expect(dispatch("fetch", { request }).response).toBeUndefined();
+  }
+  expect(scope.fetch).not.toHaveBeenCalled();
+  expect(cache.put).not.toHaveBeenCalled();
+  // The worker still caches allowlisted static files on the same private relay.
+  await dispatch("fetch", { request: new Request(origin + "/assets/app.js") }).done();
+  expect(scope.fetch).toHaveBeenCalledOnce();
+  expect(cache.put).toHaveBeenCalledOnce();
 });
 
 test("installation validates offline assets; activation and updates are scoped", async () => {

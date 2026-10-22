@@ -81,6 +81,9 @@ export const installWorker = (scope: WorkerScope, config: WorkerConfig): void =>
     if (request.method !== "GET" || url.origin !== scope.location.origin) return;
     if (/^\/(?:api|auth)(?:\/|$)/.test(url.pathname)) return;
     if (request.mode === "navigate") {
+      // Private relay navigation can leave this origin for an interactive sign-in.
+      // Preserve the browser's navigation and cookie context throughout that flow.
+      if (url.hostname.endsWith(".devtunnels.ms")) return;
       event.respondWith(
         scope.fetch(request).catch(async () => {
           const cache = await scope.caches.open(cacheName);

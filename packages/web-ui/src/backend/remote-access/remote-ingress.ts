@@ -88,11 +88,12 @@ export const startRemoteIngress = async (
   devices: RemoteDevices,
   business: (request: Request) => Promise<Response>,
   assets: string,
+  port = 0,
 ) => {
   let localHost = "";
   const server = createHttpServer(createRemoteHandler(devices, business, assets, () => localHost));
   try {
-    const address = await listen(server, 0);
+    const address = await listen(server, port);
     localHost = address.host;
     let closing: Promise<void> | undefined;
     return {

@@ -25,14 +25,16 @@ export const pwaPlugin = (): Plugin => ({
       ],
     });
     const icons = ["/loop-pwa-192.png", "/loop-pwa-512.png"];
+    const logos = ["/loop-icon.png", "/loop-icon-light.png"];
     const workerSource = installWorker.toString();
     const version = createHash("sha256").update(manifest).update(offline).update(workerSource);
-    const assets = [...icons, "/manifest.webmanifest"];
+    const assets = [...icons, ...logos, "/manifest.webmanifest"];
     for (const [name, file] of Object.entries(bundle).sort(([a], [b]) => a.localeCompare(b))) {
       version.update(name).update(file.type === "chunk" ? file.code : file.source);
-      if (/^assets\/[^/]+\.(?:js|css|png|svg|ico|woff2?|ttf)$/.test(name)) assets.push("/" + name);
+      if (/^assets[/][^/]+[.](?:js|css|png|svg|ico|woff2?|ttf)$/.test(name))
+        assets.push("/" + name);
     }
-    for (const path of icons) {
+    for (const path of [...icons, ...logos]) {
       version.update(await readFile(new URL("./src/frontend/assets" + path, import.meta.url)));
     }
     const config = {

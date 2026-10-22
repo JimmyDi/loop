@@ -18,7 +18,7 @@ test.each([false, true])(
       | Awaited<ReturnType<NonNullable<Parameters<typeof createRemoteAccess>[1]>>>
       | undefined;
     vi.mocked(createRemoteAccess).mockImplementation(async (_agentDir, factory) => {
-      ingress = await factory!();
+      ingress = await factory!(0);
       ingress.connected?.("https://example.test");
       return new RemoteAccessController({ supported: false, runtime: vi.fn() });
     });
@@ -41,6 +41,17 @@ test.each([false, true])(
       expect(html).toContain('<meta name="loop-remote" content="1">');
       expect(html).not.toContain("/@vite/client");
       if (!custom) {
+        for (const base of [server.url, remote]) {
+          const entry = await (await fetch(base)).text();
+          const images = [...entry.matchAll(/url\(["']?([^"')]+)["']?\)/g)];
+          expect(images.length).toBeGreaterThan(0);
+          for (const [, image] of images) {
+            expect(image).toMatch(/^\/loop-icon(?:-light)?\.png$/);
+            const resource = await fetch(new URL(image!, base));
+            expect(resource.status).toBe(200);
+            expect(resource.headers.get("content-type")).toContain("image/png");
+          }
+        }
         for (const [path, type] of [
           ["/manifest.webmanifest", "application/manifest+json"],
           ["/sw.js", "javascript"],

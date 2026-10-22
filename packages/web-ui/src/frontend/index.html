@@ -9,10 +9,10 @@
       :root[data-theme="dark"] { color-scheme: dark; }
       body { margin: 0; font-size: 13px; }
       .app-loading { display: flex; align-items: center; justify-content: center; gap: 14px; min-height: 100dvh; font-size: 20px; font-weight: 500; }
-      .app-loading .loop-icon { width: 48px; height: 48px; flex-shrink: 0; background: url("./assets/loop-icon.png") center / contain no-repeat; }
-      :root[data-theme="dark"] .app-loading .loop-icon { background-image: url("./assets/loop-icon-light.png"); }
+      .app-loading .loop-icon { width: 48px; height: 48px; flex-shrink: 0; background: url("/loop-icon.png") center / contain no-repeat; }
+      :root[data-theme="dark"] .app-loading .loop-icon { background-image: url("/loop-icon-light.png"); }
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) .app-loading .loop-icon { background-image: url("./assets/loop-icon-light.png"); }
+        :root:not([data-theme="light"]) .app-loading .loop-icon { background-image: url("/loop-icon-light.png"); }
       }
     </style>
     <script data-initial-theme>
@@ -31,11 +31,11 @@
     <meta name="apple-mobile-web-app-title" content="Loop" />
     <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
     <title>Loop</title>
-    <link rel="icon" type="image/x-icon" href="./assets/loop-icon.ico" sizes="16x16 32x32 48x48 256x256" />
-    <link rel="icon" type="image/png" href="./assets/loop-favicon.png" sizes="32x32" />
-    <link rel="icon" type="image/svg+xml" href="./assets/loop-icon.svg" sizes="any" />
-    <link rel="apple-touch-icon" href="./assets/loop-apple-touch-icon.png" sizes="180x180" />
-    <link rel="mask-icon" href="./assets/loop-mask-icon.svg" color="#222428" />
+    <link rel="icon" type="image/x-icon" href="/loop-icon.ico" sizes="16x16 32x32 48x48 256x256" />
+    <link rel="icon" type="image/png" href="/loop-favicon.png" sizes="32x32" />
+    <link rel="icon" type="image/svg+xml" href="/loop-icon.svg" sizes="any" />
+    <link rel="apple-touch-icon" href="/loop-apple-touch-icon.png" sizes="180x180" />
+    <link rel="mask-icon" href="/loop-mask-icon.svg" color="#222428" />
   </head>
   <body>
     <div id="root"><main class="app-loading" role="status"><span class="loop-icon" aria-hidden="true"></span><span>Loading…</span></main></div>

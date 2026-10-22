@@ -1,8 +1,10 @@
 import type { DownloadProgress } from "./cli-download";
+import { join } from "node:path";
 import { CliInstaller } from "./cli-installer";
 import { runCli } from "./cli-process";
 import { CliTunnel } from "./cli-tunnel";
 import { RemoteAccessError } from "./errors";
+import { TunnelStore } from "./tunnel-store";
 
 export type RemoteRuntime = {
   installed(signal: AbortSignal): Promise<boolean>;
@@ -17,7 +19,8 @@ export type RemoteRuntime = {
 
 export const createCliRuntime = (
   directory: string,
-  ingressFactory?: ConstructorParameters<typeof CliTunnel>[1],
+  ingressFactory?: ConstructorParameters<typeof CliTunnel>[2],
+  tunnelFile = join(directory, "tunnel.json"),
 ): RemoteRuntime => {
   const installer = new CliInstaller(directory);
   let tunnel: CliTunnel | undefined;
@@ -44,7 +47,7 @@ export const createCliRuntime = (
       await runCli(installer.file, ["user", "logout", "--json"], AbortSignal.timeout(30_000));
     },
     start: async (signal, failed) => {
-      tunnel = new CliTunnel(installer.file, ingressFactory);
+      tunnel = new CliTunnel(installer.file, new TunnelStore(tunnelFile), ingressFactory);
       return tunnel.start(signal, failed);
     },
     close: async () => {

@@ -1,7 +1,12 @@
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 
 import { installWorker } from "./service-worker";
 import type { WorkerScope } from "./service-worker";
+
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
+});
 
 const setup = (origin = "https://loop.example") => {
   const entries = new Map<string, Response>();
@@ -106,6 +111,35 @@ test("navigation stays online and only uses generic offline fallback on network 
   expect((await dispatch("fetch", { request }).response)?.status).toBe(401);
   scope.fetch.mockRejectedValueOnce(new TypeError("offline"));
   expect(await (await dispatch("fetch", { request }).response)?.text()).toBe("offline");
+  expect(cache.put).not.toHaveBeenCalled();
+});
+
+test("navigation falls back on 503 while preserving authentication responses", async () => {
+  const { origin, entries, dispatch, scope, cache } = setup();
+  entries.set(origin + "/offline.html", new Response("retry"));
+  const request = { url: origin + "/", method: "GET", mode: "navigate" };
+  for (const status of [401, 403, 302]) {
+    scope.fetch.mockResolvedValueOnce(new Response(null, { status }));
+    expect((await dispatch("fetch", { request }).response)?.status).toBe(status);
+  }
+  scope.fetch.mockResolvedValueOnce(new Response("unavailable", { status: 503 }));
+  expect(await (await dispatch("fetch", { request }).response)?.text()).toBe("retry");
+  expect(cache.put).not.toHaveBeenCalled();
+});
+
+test("hung navigation exposes recovery and aborts the download after fifteen seconds", async () => {
+  vi.useFakeTimers();
+  const { origin, entries, dispatch, scope, cache } = setup();
+  entries.set(origin + "/offline.html", new Response("retry"));
+  scope.fetch.mockImplementationOnce(() => new Promise<Response>(() => {}));
+  const event = dispatch("fetch", {
+    request: { url: origin + "/", method: "GET", mode: "navigate" },
+  });
+  const init = (scope.fetch.mock.calls[0] as unknown as [Request, RequestInit])[1];
+  expect(init.signal?.aborted).toBe(false);
+  await vi.advanceTimersByTimeAsync(15_000);
+  expect(await (await event.response)?.text()).toBe("retry");
+  expect(init.signal?.aborted).toBe(true);
   expect(cache.put).not.toHaveBeenCalled();
 });
 

@@ -306,10 +306,16 @@ test("SSE hook requests a fresh snapshot on a gap and closes only its connection
     expect(connections[2]?.closed).toBe(true);
     expect(connections[3]?.url).toBe("/api/sessions/next/events?approvals=1");
     expect(connections[3]?.closed).toBe(false);
-    act(() => useSessions.getState().resync("s"));
-    expect(connections).toHaveLength(4);
-    unmount();
+    act(() => {
+      window.dispatchEvent(new window.Event("offline"));
+    });
     expect(connections[3]?.closed).toBe(true);
+    act(() => window.dispatchEvent(new window.Event("online")));
+    expect(connections[4]?.url).toBe("/api/sessions/next/events?approvals=1");
+    act(() => useSessions.getState().resync("s"));
+    expect(connections).toHaveLength(5);
+    unmount();
+    expect(connections[4]?.closed).toBe(true);
     client.clear();
     cleanup();
     useSessions.setState({ views: {} });

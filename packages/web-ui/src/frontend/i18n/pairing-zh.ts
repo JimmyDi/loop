@@ -5,6 +5,7 @@ export const pairingZh = {
   opening: "正在打开对话…",
   retry: "重试",
   unavailable: "无法确认设备权限，请检查连接后重试。",
+  loadFailed: "对话加载失败或超时，请检查网络后重试以重新加载 Loop。",
   deviceName: "设备名称",
   request: "申请访问",
   waiting: "等待在电脑上批准",

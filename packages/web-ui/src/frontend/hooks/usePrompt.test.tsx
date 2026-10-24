@@ -78,95 +78,101 @@ test("large attachments are submitted intact and API failures preserve drafts fo
   }
 });
 
-test("lost prompt response preserves draft and retries the same identity", async () => {
-  const window = new Window();
-  const previous = {
-    window: globalThis.window,
-    document: globalThis.document,
-    fetch: globalThis.fetch,
-  };
-
-  Object.assign(globalThis, { window, document: window.document });
-
-  try {
-    const { renderHook, act, cleanup } = await import("@testing-library/react/pure");
-    const { usePrompt } = await import("./usePrompt");
-    const { useWorkspace } = await import("../state/workspace-store");
-    const { useRequests } = await import("../state/request-store");
-    const snapshot: SessionSnapshot = {
-      streamId: "stream",
-      sessionId: "s",
-      workspaceId: "p",
-      tools: {},
-      model: { id: "test", provider: "test", name: "Test" },
-      operation: "idle",
-      state: {
-        messages: [],
-        isRunning: false,
-        outcome: "idle",
-        listenerErrors: [],
-        hasPendingSave: false,
-      },
+test.each(["network", "503", "504"])(
+  "lost prompt response (%s) preserves draft and retries the same identity",
+  async (failure) => {
+    const window = new Window();
+    const previous = {
+      window: globalThis.window,
+      document: globalThis.document,
+      fetch: globalThis.fetch,
     };
-    const requests: string[] = [];
 
-    useRequests.setState({ pending: {} });
-    useWorkspace.getState().draft("s", "hello");
-    const skill = { id: "b".repeat(24), name: "Review" };
-    useWorkspace.getState().selectSkill("s", skill);
-    const images = [{ type: "image" as const, mimeType: "image/png", data: "AAAA" }];
-    useWorkspace.getState().attach("s", images);
-    const files = [{ name: "example.ts", text: "const x = 1;" }];
-    useWorkspace.getState().attachFiles("s", files);
-    globalThis.fetch = (async (_url, init) => {
-      if (!init?.method) return Response.json(snapshot);
+    Object.assign(globalThis, { window, document: window.document });
 
-      requests.push(String(init.body));
+    try {
+      const { renderHook, act, cleanup } = await import("@testing-library/react/pure");
+      const { usePrompt } = await import("./usePrompt");
+      const { useWorkspace } = await import("../state/workspace-store");
+      const { useRequests } = await import("../state/request-store");
+      const snapshot: SessionSnapshot = {
+        streamId: "stream",
+        sessionId: "s",
+        workspaceId: "p",
+        tools: {},
+        model: { id: "test", provider: "test", name: "Test" },
+        operation: "idle",
+        state: {
+          messages: [],
+          isRunning: false,
+          outcome: "idle",
+          listenerErrors: [],
+          hasPendingSave: false,
+        },
+      };
+      const requests: string[] = [];
 
-      if (requests.length === 1) throw new Error("Network disconnected");
+      useRequests.setState({ pending: {} });
+      useWorkspace.getState().draft("s", "hello");
+      const skill = { id: "b".repeat(24), name: "Review" };
+      useWorkspace.getState().selectSkill("s", skill);
+      const images = [{ type: "image" as const, mimeType: "image/png", data: "AAAA" }];
+      useWorkspace.getState().attach("s", images);
+      const files = [{ name: "example.ts", text: "const x = 1;" }];
+      useWorkspace.getState().attachFiles("s", files);
+      globalThis.fetch = (async (_url, init) => {
+        if (!init?.method) return Response.json(snapshot);
 
-      return Response.json({ runId: "run" }, { status: 202 });
-    }) as typeof fetch;
+        requests.push(String(init.body));
 
-    const { result, rerender } = renderHook(({ value }) => usePrompt(value), {
-      initialProps: { value: snapshot },
-    });
+        if (requests.length === 1) {
+          if (failure === "network") throw new Error("Network disconnected");
+          return new Response(null, { status: Number(failure) });
+        }
 
-    await act(() => result.current.submit());
-    expect(result.current.uncertain).toBe(true);
-    expect(result.current.pending).toBe(false);
-    expect(result.current.text).toBe("hello");
-    expect(result.current.images).toEqual(images);
-    expect(result.current.files).toEqual(files);
-    expect(useWorkspace.getState().skills.s).toEqual([skill]);
-    act(() => useWorkspace.getState().attachFiles("s", []));
-    expect(result.current.files).toEqual([]);
-    await act(() => result.current.submit(true));
-    expect(requests[0]).toBe(requests[1]);
-    expect(result.current.uncertain).toBe(false);
-    expect(result.current.pending).toBe(false);
-    const request = JSON.parse(requests[0]!);
-    expect(request.images).toEqual(images);
-    expect(request.files).toEqual(files);
-    expect(request.skills).toEqual([skill.id]);
+        return Response.json({ runId: "run" }, { status: 202 });
+      }) as typeof fetch;
 
-    rerender({
-      value: {
-        ...snapshot,
-        requestId: request.requestId,
-        state: { ...snapshot.state, outcome: "success" },
-      },
-    });
-    expect(result.current.text).toBe("");
-    expect(result.current.images).toEqual([]);
-    expect(result.current.files).toEqual([]);
-    expect(result.current.pending).toBe(false);
-    cleanup();
-  } finally {
-    Object.assign(globalThis, previous);
-    await window.happyDOM.close();
-  }
-});
+      const { result, rerender } = renderHook(({ value }) => usePrompt(value), {
+        initialProps: { value: snapshot },
+      });
+
+      await act(() => result.current.submit());
+      expect(result.current.uncertain).toBe(true);
+      expect(result.current.pending).toBe(false);
+      expect(result.current.text).toBe("hello");
+      expect(result.current.images).toEqual(images);
+      expect(result.current.files).toEqual(files);
+      expect(useWorkspace.getState().skills.s).toEqual([skill]);
+      act(() => useWorkspace.getState().attachFiles("s", []));
+      expect(result.current.files).toEqual([]);
+      await act(() => result.current.submit(true));
+      expect(requests[0]).toBe(requests[1]);
+      expect(result.current.uncertain).toBe(false);
+      expect(result.current.pending).toBe(false);
+      const request = JSON.parse(requests[0]!);
+      expect(request.images).toEqual(images);
+      expect(request.files).toEqual(files);
+      expect(request.skills).toEqual([skill.id]);
+
+      rerender({
+        value: {
+          ...snapshot,
+          requestId: request.requestId,
+          state: { ...snapshot.state, outcome: "success" },
+        },
+      });
+      expect(result.current.text).toBe("");
+      expect(result.current.images).toEqual([]);
+      expect(result.current.files).toEqual([]);
+      expect(result.current.pending).toBe(false);
+      cleanup();
+    } finally {
+      Object.assign(globalThis, previous);
+      await window.happyDOM.close();
+    }
+  },
+);
 
 test.each(["accepted", "lost"])(
   "SSE completion before a %s HTTP response does not restore the request or warning",

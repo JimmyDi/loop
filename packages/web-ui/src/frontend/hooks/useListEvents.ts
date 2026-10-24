@@ -2,12 +2,12 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { checkRemoteSession } from "../lib/remote-session";
+import { recoveringEvents } from "../lib/recovering-events";
 import type { Cursor, ListFrame } from "../../shared/protocol";
 
 export const useListEvents = (): void => {
   const query = useQueryClient();
   useEffect(() => {
-    const source = new EventSource("/api/workspaces/events");
     const projects = new Set<string>();
     let reset = false;
     let projectList = false;
@@ -38,36 +38,39 @@ export const useListEvents = (): void => {
         if (reset || projectList || projects.size) schedule();
       }
     };
-    source.onmessage = (event) => {
-      if (disposed) return;
-      try {
-        const frame = JSON.parse(event.data) as ListFrame;
-        if (
-          !frame ||
-          typeof frame.streamId !== "string" ||
-          !Number.isSafeInteger(frame.seq) ||
-          frame.seq < 0 ||
-          !["lists.reset", "sessions.changed", "projects.changed"].includes(frame.type) ||
-          (frame.type !== "lists.reset" && typeof frame.workspaceId !== "string")
-        )
-          return;
-        if (frame.type === "lists.reset") reset = true;
-        else {
-          if (cursor?.streamId === frame.streamId && frame.seq <= cursor.seq) return;
-          if (!cursor || cursor.streamId !== frame.streamId || frame.seq !== cursor.seq + 1)
-            reset = true;
-          projects.add(frame.workspaceId);
-          if (frame.type === "projects.changed") projectList = true;
+    const source = recoveringEvents({
+      url: () => "/api/workspaces/events",
+      message: (event) => {
+        if (disposed) return;
+        try {
+          const frame = JSON.parse(event.data) as ListFrame;
+          if (
+            !frame ||
+            typeof frame.streamId !== "string" ||
+            !Number.isSafeInteger(frame.seq) ||
+            frame.seq < 0 ||
+            !["lists.reset", "sessions.changed", "projects.changed"].includes(frame.type) ||
+            (frame.type !== "lists.reset" && typeof frame.workspaceId !== "string")
+          )
+            return;
+          if (frame.type === "lists.reset") reset = true;
+          else {
+            if (cursor?.streamId === frame.streamId && frame.seq <= cursor.seq) return;
+            if (!cursor || cursor.streamId !== frame.streamId || frame.seq !== cursor.seq + 1)
+              reset = true;
+            projects.add(frame.workspaceId);
+            if (frame.type === "projects.changed") projectList = true;
+          }
+          cursor = { streamId: frame.streamId, seq: frame.seq };
+          schedule();
+        } catch {
+          reset = true;
+          schedule();
         }
-        cursor = { streamId: frame.streamId, seq: frame.seq };
-        schedule();
-      } catch {
-        reset = true;
-        schedule();
-      }
-    };
-    source.onerror = () => checkRemoteSession();
-    // Native EventSource reconnects; every connection begins with a full list invalidation.
+      },
+      disconnected: checkRemoteSession,
+    });
+    // Every connection begins with a full list invalidation.
     return () => {
       disposed = true;
       clearTimeout(timer);

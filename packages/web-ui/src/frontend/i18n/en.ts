@@ -162,6 +162,7 @@ export const en = {
   pendingSave: "Conversation has unsaved changes",
   retrySave: "Retry save",
   reconnecting: "Reconnecting…",
+  connectionOffline: "Offline. Reconnect to sync messages; unsent drafts are retained.",
   loading: "Loading…",
   failed: "Something went wrong",
   retry: "Retry",

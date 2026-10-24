@@ -1,4 +1,10 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { setImmediate as flushScheduledWork } from "node:timers/promises";
+import {
+  defaultScheduler,
+  notifyManager,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
 
@@ -54,6 +60,7 @@ test("Step 4 generates automatically only after Step 3 completes and hides its c
   });
   globalThis.fetch = fetcher as typeof fetch;
   const { render, cleanup, act } = await import("@testing-library/react/pure");
+  notifyManager.setScheduler(queueMicrotask);
   try {
     const view = render(
       <QueryClientProvider client={client}>
@@ -89,8 +96,14 @@ test("Step 4 generates automatically only after Step 3 completes and hides its c
       expect(view.queryByRole("img", { name: "Device pairing QR code" })).toBeNull(),
     );
   } finally {
-    cleanup();
-    client.clear();
+    await act(async () => {
+      await client.cancelQueries();
+      cleanup();
+      client.clear();
+      // React's scheduler can retain an immediate callback after unmount.
+      await flushScheduledWork();
+    });
+    notifyManager.setScheduler(defaultScheduler);
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

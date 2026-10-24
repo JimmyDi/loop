@@ -9,3 +9,17 @@
   color: var(--ink);
   background: var(--surface);
 }
+.remote-connection-notice {
+  position: fixed;
+  z-index: 100;
+  top: env(safe-area-inset-top, 0px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(90vw, 600px);
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-size: 13px;
+}

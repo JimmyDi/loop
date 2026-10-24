@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import type { SessionSnapshot } from "../../shared/protocol";
 import { SessionEvents } from "../session-events";
@@ -17,6 +17,28 @@ test("SSE carries cursors and cancels cleanly without terminating the session st
   await reader.cancel();
   expect(() => events.publish({ type: "run.accepted", runId: "a", requestId: "b" })).not.toThrow();
   events.close();
+});
+
+test("observable heartbeats leave the business cursor unchanged", async () => {
+  vi.useFakeTimers();
+  const events = new ListEvents();
+  const reader = eventResponse(
+    events,
+    new Request("http://localhost/api/events"),
+  ).body!.getReader();
+  try {
+    const first = new TextDecoder().decode((await reader.read()).value);
+    const pulse = reader.read();
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(new TextDecoder().decode((await pulse).value)).toBe("event: heartbeat\ndata: {}\n\n");
+    events.publish({ type: "sessions.changed", workspaceId: "example" });
+    const next = new TextDecoder().decode((await reader.read()).value);
+    expect(first).toContain(":0");
+    expect(next).toContain(":1");
+  } finally {
+    await reader.cancel();
+    vi.useRealTimers();
+  }
 });
 
 test("list SSE abort, cancellation and shutdown close only the intended streams", async () => {

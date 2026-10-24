@@ -15,17 +15,21 @@ Installation is optional. Dismiss hides the hint for the current page. Browser p
 
 The sidebar becomes a drawer below 768px. Opening it moves focus inside and makes the conversation inert; Tab stays within its controls, Escape and the scrim close it. Returning to a desktop width restores access to the conversation.
 
+Below 768px, session rows hide the inline pin button. Pinning and unpinning remain available in the session context menu.
+
 Header, sidebar and composer account for safe-area insets. Primary chat and approval controls use at least 44px touch heights. Permission and model menus remain scrollable, and approvals have a bounded scrolling area above the composer. The toolbar wraps when both Stop and Send are available.
 
 On devices with a coarse primary pointer, Enter inserts a newline. Tap Send to submit, or use Ctrl/Command+Enter on an attached keyboard. IME composition never submits. Opening or switching chats does not automatically open the touch keyboard. The existing visual-viewport adjustment keeps bottom-aligned messages above the composer when the keyboard appears.
 
 ## Cache and Offline Behavior
 
+The shared theme suppresses the browser's transient tap-highlight overlay on touch screens, including the pairing page. Interface labels, navigation, session lists, menus and action controls do not support long-press text selection or native touch callouts on controls. Message bodies, code, file contents, error details and text inputs remain selectable. Keyboard focus indicators, scrolling and component interaction states remain available.
+
 The build produces /manifest.webmanifest, /sw.js, /offline.html and 192px/512px PNG icons. Public icons, including the light/dark loading logos, are served directly at the origin root in development and production. The manifest starts at / without invitation codes or credentials. Its link includes credentials for private tunnel access. Registration occurs only in a production build in a secure context; remote pairing remains a separate lightweight bootstrap.
 
 The service worker precaches only the generic offline page, manifest and installation icons. An exact build-generated allowlist permits caching successful JavaScript, CSS, image and font downloads. Query-bearing requests, cross-origin requests, non-GET requests, APIs, authorization endpoints, errors, redirects and HTML returned for scripts are excluded. Conversation HTML, API responses, SSE, invitations and authentication material are never written to this cache. Existing browser draft preferences retain their previous behavior.
 
-Navigations always use the network. On devtunnels.ms subdomains, the worker leaves document navigation entirely to the browser, including refreshes and Microsoft sign-in redirects. It does not call respondWith or fetch for these navigations, preserving the native navigation and cookie context. Static caching remains available. On other origins, a network failure returns a generic themed offline page with Retry; private tunnel navigation uses the browser's network error page instead. Neither path displays cached chats or accepts offline commands. HTTP authentication failures retain their real response. The in-app offline message reflects the browser connectivity signal, which does not prove the computer or tunnel is reachable.
+Navigations always use the network. On devtunnels.ms subdomains, the worker leaves document navigation entirely to the browser, including refreshes and Microsoft sign-in redirects. It does not call respondWith or fetch for these navigations, preserving the native navigation and cookie context. Static caching remains available. On other origins, a network failure, HTTP 503 or a navigation that has not returned headers within 15 seconds returns a generic themed offline page with Retry; timed-out downloads are aborted. Private tunnel navigation uses the browser's network error page instead. Neither path displays cached chats or accepts offline commands. HTTP authentication failures retain their real response. The in-app offline message reflects the browser connectivity signal, which does not prove the computer or tunnel is reachable.
 
 ## Updates and Limits
 
@@ -33,7 +37,22 @@ Frontend builds publish staged assets before atomically replacing HTML entries a
 
 A downloaded update shows **Reload to update** and **Later**. Finish unsent input or approval before choosing reload. The worker does not force-reload an existing chat; only an explicit update action requests activation and reloads that page. The browser checks for updates on registration, when the page becomes visible and when it goes online. Failed registration or update checks leave normal browser use available.
 
-Installation is tied to the exact public hostname. If a new tunnel has a different address, add a new home-screen entry and pair again. Installation cannot keep the computer awake, bypass tunnel sign-in or preserve a connection while the computer sleeps. Background streaming and network-recovery improvements are separate work.
+Explicit updates reload at most once even if the worker emits repeated activation events. If activation does not respond within two seconds, or posting the activation message fails, the page reloads anyway. If the old document still runs 250 milliseconds after requesting reload, it replaces the current entry with the root URL as a recovery attempt. This fallback neither clears device authorization nor guarantees completion of an external sign-in flow.
+
+Installation is tied to the exact public hostname. If a new tunnel has a different address, add a new home-screen entry and pair again. Installation cannot keep the computer awake, bypass tunnel sign-in or preserve a connection while the computer sleeps. Foreground and network recovery use the shared [stream lifecycle](events.md). Transient authorization-check network/5xx failures preserve already-loaded chats with a retry notice; explicit denial, expiry or revocation clears access and cached session state. First authorization still fails closed. Background streaming and notifications are not provided.
+
+## Device Verification
+
+Remote startup bounds authorization checks, including body reads, to 10 seconds and chat downloads to 30 seconds. Failures expose Retry; module-load failures reload the root URL so the browser can request current entry assets. The HTML loading placeholder also exposes a root-page retry after 35 seconds if startup scripts have not replaced it. This recovery does not clear device cookies, unregister the worker or automatically repeat pairing commands.
+
+Use a production frontend build and an approved device. These checks require real Android/iOS browsers and the deployed tunnel; automated tests do not establish carrier, regional connectivity or Microsoft sign-in behavior.
+
+1. Start a response, background the browser, then return: the stream catches up without a new prompt.
+2. Disable the phone network: offline status appears and sending is disabled. Restore connectivity or switch Wi-Fi/mobile data: messages and lists synchronize without replaying commands.
+3. Interrupt connectivity after sending but before acceptance: the request stays recoverable. Check and retry confirms acceptance or reuses its ID within the same server stream.
+4. Restart the backend between confirmation and submission: the obsolete stream is rejected; inspect history before manually sending anew.
+5. Sleep and wake the computer: it is unreachable while asleep; the page catches up after network/tunnel recovery.
+6. Revoke the device from the desktop: streams end and private chat data is removed. Pair again to reconnect.
 
 ## Source and Tests
 

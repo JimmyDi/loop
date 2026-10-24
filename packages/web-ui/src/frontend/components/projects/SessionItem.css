@@ -132,3 +132,8 @@
     pointer-events: auto;
   }
 }
+@media (max-width: 767px) {
+  .session-item-pin.action-button {
+    display: none;
+  }
+}

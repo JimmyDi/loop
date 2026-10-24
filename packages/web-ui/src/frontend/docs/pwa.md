@@ -15,6 +15,8 @@ Installation is optional. Dismiss hides the hint for the current page. Browser p
 
 The sidebar becomes a drawer below 768px. Opening it moves focus inside and makes the conversation inert; Tab stays within its controls, Escape and the scrim close it. Returning to a desktop width restores access to the conversation.
 
+Below 768px, session rows hide the inline pin button. Pinning and unpinning remain available in the session context menu.
+
 Header, sidebar and composer account for safe-area insets. Primary chat and approval controls use at least 44px touch heights. Permission and model menus remain scrollable, and approvals have a bounded scrolling area above the composer. The toolbar wraps when both Stop and Send are available.
 
 On devices with a coarse primary pointer, Enter inserts a newline. Tap Send to submit, or use Ctrl/Command+Enter on an attached keyboard. IME composition never submits. Opening or switching chats does not automatically open the touch keyboard. The existing visual-viewport adjustment keeps bottom-aligned messages above the composer when the keyboard appears.

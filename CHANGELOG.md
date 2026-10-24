@@ -16,7 +16,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Web UI: bound remote startup authorization checks and chat downloads, exposing a retry action instead of waiting indefinitely. Reload the root page after a failed module download and provide an HTML fallback when startup scripts stall. Bound explicit PWA update activation with a reload fallback; on origins other than private Dev Tunnels, show the generic recovery page on navigation timeout or HTTP 503 as well as network failure. Preserve native private-tunnel navigation and authentication responses.
 
-- Web UI: remove the browser's brief touch-tap highlight on mobile and prevent long-press text selection across navigation, session lists, menus and action controls. Retain keyboard focus indicators and selection in messages, code, file contents, error details and text inputs.
+- Web UI: remove the browser's brief touch-tap highlight on mobile and prevent long-press text selection across navigation, session lists, menus and action controls. Hide inline session pin buttons below 768px while retaining pin actions in the context menu. Retain keyboard focus indicators and selection in messages, code, file contents, error details and text inputs.
 
 - Web UI: recover session and list streams after foreground return, network restoration and stale heartbeats, using bounded backoff and existing cursor replay/snapshots without replaying commands. Preserve loaded chats on transient authorization-check failures, show offline/retry guidance, and retain unconfirmed prompt identities after timeouts or HTTP 5xx. Reject browser prompt submissions targeting an obsolete server stream before execution.
 

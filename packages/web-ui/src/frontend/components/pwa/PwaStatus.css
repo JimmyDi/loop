@@ -1,0 +1,28 @@
+.pwa-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-raised);
+  color: var(--ink-muted);
+  font-size: 12px;
+  flex-shrink: 0;
+  max-height: min(35%, 96px);
+  overflow-y: auto;
+  padding-top: max(8px, env(safe-area-inset-top));
+}
+.pwa-status p {
+  flex: 1 1 180px;
+  margin: 0;
+  line-height: 1.5;
+}
+.pwa-status .pwa-instructions {
+  flex-basis: 100%;
+}
+@media (max-width: 767px) {
+  .pwa-status .action-button {
+    min-height: 44px;
+  }
+}

@@ -9,6 +9,7 @@ test("development watcher restarts backend sources without breaking Codemode or 
   const root = join(import.meta.dirname, "..");
   const directory = await mkdtemp(join(import.meta.dirname, "dev-watch-fixture-"));
   const frontend = join(root, "packages/web-ui/src/frontend", basename(directory) + ".ts");
+  const config = join(root, "packages/web-ui", basename(directory) + ".ts");
   const backend = join(directory, "backend.ts");
   const entry = join(directory, "entry.ts");
   const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
@@ -21,12 +22,15 @@ test("development watcher restarts backend sources without breaking Codemode or 
   expect(entryIndex).toBeGreaterThan(1);
   await writeFile(backend, 'export const value = "first";\n');
   await writeFile(frontend, 'export const frontend = "first";\n');
+  await writeFile(config, 'export const config = "first";\n');
   await writeFile(
     entry,
     [
       'import { CodemodeSandbox } from "@earendil-works/pi-codemode";',
       'import { value } from "./backend.ts";',
       "import { frontend } from " + JSON.stringify(frontend) + ";",
+      "import { config } from " + JSON.stringify(config) + ";",
+      "console.log(config);",
       'const sandbox = new CodemodeSandbox({ tools: [{ name: "read", execute: () => ({ value, frontend }) }] });',
       'const result = await sandbox.execute("text(await tools.read({}));");',
       "await sandbox.close();",
@@ -86,6 +90,7 @@ test("development watcher restarts backend sources without breaking Codemode or 
       expect(stopped).toBeLessThan(events().findIndex((event) => event.pid === second.pid));
     }
     await writeFile(frontend, 'export const frontend = "second";\n');
+    await writeFile(config, 'export const config = "second";\n');
     await new Promise((resolve) => setTimeout(resolve, 750));
     expect(starts()).toHaveLength(2);
     child.kill("SIGINT");
@@ -107,5 +112,6 @@ test("development watcher restarts backend sources without breaking Codemode or 
     await exited;
     await rm(directory, { recursive: true, force: true });
     await rm(frontend, { force: true });
+    await rm(config, { force: true });
   }
 });

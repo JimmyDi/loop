@@ -75,7 +75,14 @@ export const runSetup = async (
     }
     step = "start";
     context.update({ ...context.read(), phase: "connecting" });
-    const url = await runtime.start(signal, context.failed);
+    const url = await runtime.start(signal, context.failed, (url) => {
+      if (signal.aborted) return;
+      context.update({
+        ...context.read(),
+        phase: url ? "connected" : "connecting",
+        url,
+      });
+    });
     signal.throwIfAborted();
     await context.saveConnection?.(true);
     signal.throwIfAborted();

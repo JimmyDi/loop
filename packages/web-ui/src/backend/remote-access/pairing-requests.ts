@@ -6,7 +6,7 @@ import { credentialHash, newCredential } from "./device-credentials";
 
 export type PendingDevice = PairingRequest & {
   credentialHash: string;
-  state: PairingStatus["state"];
+  state: Exclude<PairingStatus["state"], "unpaired">;
 };
 
 export class PairingRequests {

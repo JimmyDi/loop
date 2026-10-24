@@ -1,9 +1,21 @@
 .session-approvals {
   display: grid;
+  grid-auto-rows: max-content;
   gap: 8px;
   max-width: 860px;
   max-height: 45dvh;
   overflow-y: auto;
   margin: 0 auto;
   padding: 8px 24px;
+}
+
+@media (max-width: 767px) {
+  .session-approvals {
+    flex-shrink: 1;
+    width: 100%;
+    min-height: 0;
+    max-height: min(40dvh, max(72px, calc(var(--app-viewport-height, 100dvh) - 340px)));
+    padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+    overscroll-behavior: contain;
+  }
 }

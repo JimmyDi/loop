@@ -98,7 +98,11 @@ test("stores the managed CLI under the supplied data root's bin/devtunnel direct
   const controller = await createRemoteAccess(root);
   try {
     expect(await controller.refresh()).toMatchObject({ installed: true, phase: "off" });
-    expect(createCliRuntime).toHaveBeenCalledExactlyOnceWith(join(root, "bin", "devtunnel"));
+    expect(createCliRuntime).toHaveBeenCalledExactlyOnceWith(
+      join(root, "bin", "devtunnel"),
+      undefined,
+      join(root, "web-ui", "remote-access", "tunnel.json"),
+    );
   } finally {
     await controller.close();
   }

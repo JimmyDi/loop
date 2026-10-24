@@ -8,6 +8,7 @@ import { api } from "../../lib/api";
 import { isRemoteClient, setRemoteCsrf, takeBootstrapSession } from "../../lib/remote-session";
 import { useSessions } from "../../state/session-store";
 import { RemotePairing } from "./RemotePairing";
+import { capturePairingInvitation, clearPairingInvitation } from "../../remote/pairing-invitation";
 import "./RemoteAccessGate.css";
 
 export const RemoteAccessGate = ({ children }: { children: ReactNode }) => {
@@ -17,9 +18,7 @@ export const RemoteAccessGate = ({ children }: { children: ReactNode }) => {
   const client = useQueryClient();
   const [token, setToken] = useState(() => {
     if (!remote) return "";
-    const value = new URLSearchParams(window.location.hash.slice(1)).get("pair") ?? "";
-    if (window.location.hash) window.history.replaceState(null, "", window.location.pathname);
-    return value;
+    return capturePairingInvitation();
   });
   const query = useQuery({
     queryKey: ["remote-session"],
@@ -45,7 +44,10 @@ export const RemoteAccessGate = ({ children }: { children: ReactNode }) => {
     return () => window.removeEventListener("loop-remote-check", check);
   }, [client, remote]);
   useEffect(() => {
-    if (authorized) setToken("");
+    if (authorized) {
+      setToken("");
+      clearPairingInvitation();
+    }
     if (!remote || authorized || query.isPending) return;
     void client.cancelQueries({
       predicate: (item) => !["remote-session", "remote-pairing"].includes(String(item.queryKey[0])),

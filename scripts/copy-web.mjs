@@ -1,4 +1,7 @@
 import { cp, chmod, readdir, readFile, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
+import { publishFrontend } from "../packages/web-ui/publish-frontend.ts";
 
 // Declaration bundling emits source-location regions even with comments disabled.
 const output = new URL("../dist/", import.meta.url);
@@ -9,10 +12,9 @@ for (const name of await readdir(output)) {
   await writeFile(file, text.replace(/^\s*\/\/#(?:end)?region\b[^\r\n]*\r?\n/gm, ""));
 }
 
-await cp(
-  new URL("../packages/web-ui/dist/web/", import.meta.url),
-  new URL("../dist/web/", import.meta.url),
-  { recursive: true },
+await publishFrontend(
+  fileURLToPath(new URL("../packages/web-ui/dist/web/", import.meta.url)),
+  fileURLToPath(new URL("../dist/web/", import.meta.url)),
 );
 await chmod(new URL("../dist/bin.js", import.meta.url), 0o755);
 

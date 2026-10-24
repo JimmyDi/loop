@@ -9,6 +9,7 @@ export const pairingEn = {
   request: "Request access",
   waiting: "Waiting for approval on your computer",
   compare: "Confirm that this code matches the code shown on your computer.",
+  unpaired: "This browser is not paired. Scan the current pairing code on your computer.",
   expired: "Pairing expired or access was revoked. Scan a new code from your computer.",
   rejected: "The request was declined. Scan a new code to try again.",
   requestFailed: "Pairing could not be completed. Check the connection or scan a new code.",

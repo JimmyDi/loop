@@ -21,6 +21,8 @@ export const useComposerInput = (
   }, [value]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const touch = window.matchMedia("(pointer: coarse)").matches;
+    if (touch && !event.ctrlKey && !event.metaKey) return;
     if (
       shouldSubmit(
         event.key,

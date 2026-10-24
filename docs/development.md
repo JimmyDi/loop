@@ -13,6 +13,8 @@ The browser opens when the local service is ready. Configure a provider in Setti
 
 For the terminal, configure the environment described in [models](../packages/coding-agent/src/docs/models.md), then run pnpm coding-agent. The application entry loads the working directory's .env; inherited environment variables take precedence. SDK imports do not load environment files.
 
+Vite initialization errors leave the API and sessions running. Development falls back to the last Web build, or shows a retrying unavailable page if no build exists; page requests retry initialization after the configuration is fixed. Frontend source and package-level TypeScript build configuration are excluded from backend restarts. See [server recovery](../packages/web-ui/src/backend/docs/server.md#readiness-and-development-updates) for the retry and restart limits. Restart `pnpm dev` after updating its watcher command.
+
 ## Build and launch
 
 ```bash

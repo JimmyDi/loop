@@ -117,3 +117,15 @@
     display: inline-flex;
   }
 }
+
+@media (max-width: 767px) {
+  .sidebar {
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    padding-left: max(8px, env(safe-area-inset-left));
+  }
+  .sidebar .action-button, .sidebar-projects-toggle {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

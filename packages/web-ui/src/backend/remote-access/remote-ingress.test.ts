@@ -25,6 +25,41 @@ const setup = async () => {
 const credential = (response: Response) =>
   response.headers.get("set-cookie")!.split(";")[0]!.split("=")[1]!;
 
+test("the same origin and port retain device authorization across backend restart", async () => {
+  const root = await mkdtemp(join(import.meta.dirname, ".remote-restart-"));
+  const storeFile = join(root, "devices.json");
+  const first = new RemoteDevices(new DeviceStore(storeFile));
+  await first.load();
+  const ingress = await startRemoteIngress(first, async () => Response.json({ ok: true }), root);
+  ingress.connected(origin);
+  const pending = first.pairing.request(origin, new URL(first.invite().url).hash.slice(6), "Phone");
+  await first.decide(pending.pending.id, true);
+  const oldCsrf = first.csrf(pending.credential);
+  await ingress.close();
+  const second = new RemoteDevices(new DeviceStore(storeFile));
+  await second.load();
+  const restarted = await startRemoteIngress(
+    second,
+    async () => Response.json({ ok: true }),
+    root,
+    ingress.port,
+  );
+  restarted.connected(origin);
+  try {
+    expect(restarted.port).toBe(ingress.port);
+    const session = await fetch("http://127.0.0.1:" + restarted.port + "/api/remote-session", {
+      headers: { cookie: deviceCookie + "=" + pending.credential },
+    });
+    const result = await session.json();
+    expect(result.authorized).toBe(true);
+    expect(result.csrf).not.toBe(oldCsrf);
+    expect(second.status().pending).toEqual([]);
+  } finally {
+    await restarted.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("preserved public Host and Origin reach pairing over loopback without trusting relay rewrites", async () => {
   const root = await mkdtemp(join(import.meta.dirname, ".remote-ingress-"));
   const devices = await setup();
@@ -128,6 +163,7 @@ test("unpaired ingress exposes only pairing and static bootstrap; exact origin a
       mode: "remote",
       authorized: false,
     });
+    expect(await (await call("/api/remote-pairing")).json()).toEqual({ state: "unpaired" });
     for (const path of [
       "/api/workspaces",
       "/api/sessions/example",

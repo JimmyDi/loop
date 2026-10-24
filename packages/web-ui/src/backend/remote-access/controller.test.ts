@@ -837,3 +837,60 @@ test("shutdown cancels restoration without clearing the reconnect preference", a
   expect(controller.status().phase).toBe("off");
   expect(controller.status().url).toBeUndefined();
 });
+
+test("automatic recovery rejects overlapping setup commands and Disconnect cancels it", async () => {
+  const { controller, runtime } = setup({ value: true });
+  runtime.installed = vi.fn(async () => true);
+  let changed = (_url?: string) => {};
+  runtime.start = vi.fn(async (_signal, _failed, update) => {
+    changed = update!;
+    return "https://example.test";
+  });
+  try {
+    controller.command("start");
+    await vi.waitFor(() => expect(controller.status().phase).toBe("connected"));
+    changed();
+    expect(controller.status().phase).toBe("connecting");
+    for (const action of ["start", "login", "install", "uninstall"] as const)
+      expect(() => controller.command(action)).toThrow("busy");
+    controller.command("stop");
+    await vi.waitFor(() => expect(controller.status().phase).toBe("off"));
+    changed("https://example.test");
+    expect(controller.status().phase).toBe("off");
+    expect(runtime.start).toHaveBeenCalledOnce();
+    expect(runtime.close).toHaveBeenCalledOnce();
+  } finally {
+    await controller.close();
+  }
+});
+
+test("a late installation check cannot restore stale connected state during recovery", async () => {
+  const { controller, runtime } = setup({ value: true });
+  runtime.installed = vi.fn(async () => true);
+  let changed = (_url?: string) => {};
+  runtime.start = vi.fn(async (_signal, _failed, update) => {
+    changed = update!;
+    return "https://example.test";
+  });
+  try {
+    controller.command("start");
+    await vi.waitFor(() => expect(controller.status().phase).toBe("connected"));
+    let finish!: (installed: boolean) => void;
+    runtime.installed = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const checking = controller.refresh();
+    changed();
+    finish(true);
+    await checking;
+    expect(controller.status().phase).toBe("connecting");
+    expect(controller.status().url).toBeUndefined();
+    changed("https://example.test");
+    expect(controller.status().phase).toBe("connected");
+  } finally {
+    await controller.close();
+  }
+});

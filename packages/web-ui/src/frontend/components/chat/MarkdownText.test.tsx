@@ -67,6 +67,22 @@ test("MarkdownText renders safe markup and a copy control", async () => {
 
     expect(html).toContain("<strong>Hello</strong>");
     expect(html).toContain("markdown-code-copy");
+    const { MessageImageContext } = await import("../../lib/message-image-context");
+    const image = renderToStaticMarkup(
+      <MessageImageContext value="example">
+        <MarkdownText text="![Screenshot](shots/result.png)" />
+      </MessageImageContext>,
+    );
+    expect(image).toContain("/api/sessions/example/images?path=shots%2Fresult.png");
+    const files = renderToStaticMarkup(
+      <MessageImageContext value="example">
+        <MarkdownText text="[Movie](artifacts/movie.mp4)\n\n[Report](artifacts/report.pdf)" />
+      </MessageImageContext>,
+    );
+    expect(files).toContain("<video");
+    expect(files).toContain("/api/sessions/example/files?path=artifacts%2Fmovie.mp4&amp;preview=1");
+    expect(files).toContain("Preview PDF");
+    expect(files).toContain('download="report.pdf"');
   } finally {
     Object.assign(globalThis, previous);
     await window.happyDOM.close();

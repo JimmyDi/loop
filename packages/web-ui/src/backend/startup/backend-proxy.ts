@@ -23,7 +23,34 @@ export const createBackendProxy =
         signal: request.signal,
         redirect: "manual",
       } as RequestInit);
-      return new Response(response.body, {
+      const reader = response.body?.getReader();
+      const eventStream =
+        response.headers.get("content-type")?.split(";")[0]?.trim() === "text/event-stream";
+      let cancelled = false;
+      const body = reader
+        ? new ReadableStream<Uint8Array>({
+            async pull(controller) {
+              try {
+                const chunk = await reader.read();
+                if (cancelled) return;
+                if (chunk.done) controller.close();
+                else controller.enqueue(chunk.value);
+              } catch (error) {
+                if (cancelled) return;
+                // A browser reload cancels the upstream fetch as well as its response stream.
+                // Worker replacement intentionally disconnects SSE; EOF triggers browser recovery.
+                if (request.signal.aborted || (eventStream && target()?.token !== backend.token))
+                  controller.close();
+                else controller.error(error);
+              }
+            },
+            cancel(reason) {
+              cancelled = true;
+              return reader.cancel(reason).catch(() => {});
+            },
+          })
+        : null;
+      return new Response(body, {
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,

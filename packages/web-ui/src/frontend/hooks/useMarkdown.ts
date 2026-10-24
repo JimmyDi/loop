@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 
 import { renderMarkdown } from "../lib/markdown";
 import type { MarkdownEnhancements } from "../lib/markdown";
+import { MessageImageContext } from "../lib/message-image-context";
 
 export const useMarkdown = (text: string, copyLabel: string, tableLabel: string): string => {
+  const sessionId = useContext(MessageImageContext);
   const [enhancements, setEnhancements] = useState<MarkdownEnhancements>({});
   const math = text.includes("$");
   const code = /```|~~~|<pre[\s>]/i.test(text);
@@ -28,7 +30,7 @@ export const useMarkdown = (text: string, copyLabel: string, tableLabel: string)
     };
   }, [math, code]);
   return useMemo(
-    () => renderMarkdown(text, copyLabel, tableLabel, enhancements),
-    [text, copyLabel, tableLabel, enhancements],
+    () => renderMarkdown(text, copyLabel, tableLabel, enhancements, sessionId),
+    [text, copyLabel, tableLabel, enhancements, sessionId],
   );
 };

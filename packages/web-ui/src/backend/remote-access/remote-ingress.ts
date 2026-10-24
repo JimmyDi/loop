@@ -70,7 +70,11 @@ export const createRemoteHandler =
       response.headers.set("Cache-Control", streaming ? "no-store, no-transform" : "no-store");
       response.headers.set("Referrer-Policy", "no-referrer");
       response.headers.set("X-Content-Type-Options", "nosniff");
-      response.headers.set("Content-Security-Policy", "frame-ancestors 'none'");
+      const policy = response.headers.get("Content-Security-Policy");
+      response.headers.set(
+        "Content-Security-Policy",
+        (policy ? policy + "; " : "") + "frame-ancestors 'none'",
+      );
       return response;
     } catch (error) {
       const known = error instanceof HttpError;

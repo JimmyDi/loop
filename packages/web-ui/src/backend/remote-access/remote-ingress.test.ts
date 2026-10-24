@@ -25,6 +25,41 @@ const setup = async () => {
 const credential = (response: Response) =>
   response.headers.get("set-cookie")!.split(";")[0]!.split("=")[1]!;
 
+test("remote file responses preserve content policy and range metadata", async () => {
+  const devices = await setup();
+  const pending = devices.pairing.request(
+    origin,
+    new URL(devices.invite().url).hash.slice(6),
+    "Phone",
+  );
+  await devices.decide(pending.pending.id, true);
+  const handler = createRemoteHandler(
+    devices,
+    async () =>
+      new Response("123", {
+        status: 206,
+        headers: {
+          "Content-Type": "video/mp4",
+          "Content-Range": "bytes 1-3/10",
+          "Content-Security-Policy": "default-src 'none'; sandbox",
+        },
+      }),
+    "unused",
+    () => "localhost",
+  );
+  const response = await handler(
+    new Request(origin + "/api/sessions/example/files?path=movie.mp4", {
+      headers: { cookie: deviceCookie + "=" + pending.credential, range: "bytes=1-3" },
+    }),
+  );
+  expect(response.status).toBe(206);
+  expect(response.headers.get("content-range")).toBe("bytes 1-3/10");
+  expect(response.headers.get("content-security-policy")).toBe(
+    "default-src 'none'; sandbox; frame-ancestors 'none'",
+  );
+  expect(await response.text()).toBe("123");
+});
+
 test("the same origin and port retain device authorization across backend restart", async () => {
   const root = await mkdtemp(join(import.meta.dirname, ".remote-restart-"));
   const storeFile = join(root, "devices.json");
@@ -167,6 +202,8 @@ test("unpaired ingress exposes only pairing and static bootstrap; exact origin a
     for (const path of [
       "/api/workspaces",
       "/api/sessions/example",
+      "/api/sessions/example/images?path=shot.png",
+      "/api/sessions/example/files?path=report.pdf",
       "/api/models",
       "/api/settings/providers",
       "/api/remote-access/devices",

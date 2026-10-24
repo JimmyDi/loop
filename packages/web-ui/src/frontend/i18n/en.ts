@@ -7,6 +7,21 @@ import { remoteEn } from "./remote-en";
 import { pwaEn } from "./pwa-en";
 
 export const en = {
+  filePreview: {
+    open: "Preview PDF",
+    download: "Download",
+    failed: "Playback failed. Download the file to open it on your device.",
+  },
+  imagePreview: {
+    images: "Images",
+    open: "Preview image {{index}}",
+    title: "Image preview",
+    previous: "Previous image",
+    next: "Next image",
+    actual: "View actual size",
+    fit: "Fit image to window",
+    failed: "Image could not be loaded.",
+  },
   pwa: pwaEn,
   pairing: pairingEn,
   connectivity: "Connectivity",

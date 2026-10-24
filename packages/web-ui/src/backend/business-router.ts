@@ -4,6 +4,8 @@ import { mcpRoutes } from "./routes/mcp";
 import { skillRoutes } from "./routes/skills";
 import { projectRoutes } from "./routes/projects";
 import { sessionRoutes } from "./routes/sessions";
+import { sessionImageRoutes } from "./routes/session-images";
+import { sessionFileRoutes } from "./routes/session-files";
 import { providerRoutes } from "./routes/providers";
 import { generalSettingsRoutes } from "./routes/settings";
 import type { WebSettings } from "./settings/web-settings";
@@ -23,6 +25,8 @@ export const createBusinessRouter = (
     webSettings && generalSettingsRoutes(webSettings),
     providers && providerRoutes(registry, providers),
     projectRoutes(registry),
+    sessionImageRoutes(registry),
+    sessionFileRoutes(registry),
     sessionRoutes(registry),
   ];
   return async (request: Request): Promise<Response> => {

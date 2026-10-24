@@ -7,6 +7,21 @@ import { remoteZh } from "./remote-zh";
 import { pwaZh } from "./pwa-zh";
 
 export const zh = {
+  filePreview: {
+    open: "预览 PDF",
+    download: "下载",
+    failed: "播放失败，请下载文件后在设备上打开。",
+  },
+  imagePreview: {
+    images: "图片",
+    open: "预览第 {{index}} 张图片",
+    title: "图片预览",
+    previous: "上一张图片",
+    next: "下一张图片",
+    actual: "查看原始大小",
+    fit: "适应窗口",
+    failed: "图片无法加载。",
+  },
   pwa: pwaZh,
   pairing: pairingZh,
   connectivity: "连接",

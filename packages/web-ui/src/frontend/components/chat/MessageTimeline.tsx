@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { SessionSnapshot } from "../../../shared/protocol";
 import { useAutoScroll } from "../../hooks/useAutoScroll";
 import { useReadReceipt } from "../../hooks/useReadReceipt";
+import { MessageImageContext } from "../../lib/message-image-context";
 import { AssistantTurn } from "./AssistantTurn";
 import { groupTimelineTurns } from "./timeline-turns";
 import { UserMessage } from "./UserMessage";
@@ -56,78 +57,82 @@ export const MessageTimeline = ({
     : -1;
 
   return (
-    <div className="timeline-region">
-      <div
-        className="message-timeline"
-        ref={scroll.ref}
-        onScroll={scroll.onScroll}
-        role="log"
-        aria-live="off"
-      >
-        <div className="timeline-content" ref={scroll.contentRef}>
-          {!messages.length && !looping && <p className="timeline-empty">{t("emptySession")}</p>}
-          {turns.map((turn, position) => {
-            const timing = timingForTurn(timings, turn);
-            const neighbor = turns[position + (timing?.stopped ? -1 : 1)];
-            const assistantTiming =
-              neighbor?.type === "assistant" && timingForTurn(timings, neighbor) === timing
-                ? undefined
-                : timing;
-            const key = `${snapshot.sessionId}:${turn.index}`;
+    <MessageImageContext value={snapshot.sessionId}>
+      <div className="timeline-region">
+        <div
+          className="message-timeline"
+          ref={scroll.ref}
+          onScroll={scroll.onScroll}
+          role="log"
+          aria-live="off"
+        >
+          <div className="timeline-content" ref={scroll.contentRef}>
+            {!messages.length && !looping && <p className="timeline-empty">{t("emptySession")}</p>}
+            {turns.map((turn, position) => {
+              const timing = timingForTurn(timings, turn);
+              const neighbor = turns[position + (timing?.stopped ? -1 : 1)];
+              const assistantTiming =
+                neighbor?.type === "assistant" && timingForTurn(timings, neighbor) === timing
+                  ? undefined
+                  : timing;
+              const key = `${snapshot.sessionId}:${turn.index}`;
 
-            if (turn.type === "user") {
-              const skills =
-                snapshot.state.skillLoads?.find(
-                  (row) =>
-                    row.userTurn ===
-                    messages.slice(0, turn.index).filter((message) => message.role === "user")
-                      .length,
-                )?.skills ?? [];
+              if (turn.type === "user") {
+                const skills =
+                  snapshot.state.skillLoads?.find(
+                    (row) =>
+                      row.userTurn ===
+                      messages.slice(0, turn.index).filter((message) => message.role === "user")
+                        .length,
+                  )?.skills ?? [];
+                return (
+                  <Fragment key={key}>
+                    <UserMessage
+                      message={turn.message}
+                      skills={skills}
+                      workspaceId={snapshot.workspaceId}
+                      ref={turn.index === userMessageIndex ? scroll.userMessageRef : undefined}
+                    />
+                    {snapshot.operation === "prompt" &&
+                      turn.index === userMessageIndex &&
+                      timing &&
+                      timing.finishedAt === undefined && <PromptDuration timing={timing} />}
+                    {timing?.finishedAt !== undefined &&
+                      turns[position + 1]?.type !== "assistant" && (
+                        <PromptDuration timing={timing} />
+                      )}
+                    {position === compactedPosition && <CompactionStatus key={checkpoint?.id} />}
+                  </Fragment>
+                );
+              }
+
               return (
                 <Fragment key={key}>
-                  <UserMessage
-                    message={turn.message}
-                    skills={skills}
-                    workspaceId={snapshot.workspaceId}
-                    ref={turn.index === userMessageIndex ? scroll.userMessageRef : undefined}
+                  <AssistantTurn
+                    messages={turn.messages}
+                    tools={snapshot.tools}
+                    timing={assistantTiming}
+                    draftIndex={draftIndex}
+                    running={snapshot.operation === "prompt" && turn === turns.at(-1)}
                   />
-                  {snapshot.operation === "prompt" &&
-                    turn.index === userMessageIndex &&
-                    timing &&
-                    timing.finishedAt === undefined && <PromptDuration timing={timing} />}
-                  {timing?.finishedAt !== undefined &&
-                    turns[position + 1]?.type !== "assistant" && <PromptDuration timing={timing} />}
                   {position === compactedPosition && <CompactionStatus key={checkpoint?.id} />}
                 </Fragment>
               );
-            }
-
-            return (
-              <Fragment key={key}>
-                <AssistantTurn
-                  messages={turn.messages}
-                  tools={snapshot.tools}
-                  timing={assistantTiming}
-                  draftIndex={draftIndex}
-                  running={snapshot.operation === "prompt" && turn === turns.at(-1)}
-                />
-                {position === compactedPosition && <CompactionStatus key={checkpoint?.id} />}
-              </Fragment>
-            );
-          })}
-          {looping && <LoopingIndicator />}
-          {compacting && (
-            <CompactionStatus
-              key={`${snapshot.sessionId}:${compactStartedAt}`}
-              running
-              connected={connected}
-              startedAt={compactStartedAt}
-            />
-          )}
-          <div ref={scroll.endRef} aria-hidden="true" />
+            })}
+            {looping && <LoopingIndicator />}
+            {compacting && (
+              <CompactionStatus
+                key={`${snapshot.sessionId}:${compactStartedAt}`}
+                running
+                connected={connected}
+                startedAt={compactStartedAt}
+              />
+            )}
+            <div ref={scroll.endRef} aria-hidden="true" />
+          </div>
         </div>
+        {!scroll.atBottom && <JumpToLatestButton running={looping} onClick={scroll.jump} />}
       </div>
-      {!scroll.atBottom && <JumpToLatestButton running={looping} onClick={scroll.jump} />}
-    </div>
+    </MessageImageContext>
   );
 };

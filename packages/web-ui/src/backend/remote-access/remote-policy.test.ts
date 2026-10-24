@@ -2,6 +2,15 @@ import { expect, test } from "vitest";
 
 import { assertRemoteOrigin, allowsRemoteBusiness } from "./remote-policy";
 
+test("paired devices can read session images but cannot write them", () => {
+  expect(allowsRemoteBusiness("/api/sessions/example/images", "GET")).toBe(true);
+  expect(allowsRemoteBusiness("/api/sessions/example/images", "HEAD")).toBe(true);
+  expect(allowsRemoteBusiness("/api/sessions/example/images", "POST")).toBe(false);
+  expect(allowsRemoteBusiness("/api/sessions/example/files", "GET")).toBe(true);
+  expect(allowsRemoteBusiness("/api/sessions/example/files", "HEAD")).toBe(true);
+  expect(allowsRemoteBusiness("/api/sessions/example/files", "POST")).toBe(false);
+});
+
 test("remote pairing documents allow cross-site top-level navigation after browser or sign-in handoff", () => {
   const origin = "https://example.test";
   for (const path of ["/", "/index.html", "/remote.html"]) {

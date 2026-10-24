@@ -1,0 +1,44 @@
+.message-files {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  min-width: 0;
+}
+
+.message-file {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.message-file-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.message-file-header span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.message-file-header a {
+  color: var(--accent);
+  padding: 6px 0;
+}
+
+.message-file audio,
+.message-file video {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.message-file video {
+  max-height: 60dvh;
+  background: #000;
+}

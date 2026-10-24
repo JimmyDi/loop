@@ -2,6 +2,12 @@
 
 One Node HTTP service provides the React page and same-origin API, listening only on the IPv4 loopback address `127.0.0.1`. Vite middleware provides frontend development assets and HMR on the same HTTP server. Production reads prebuilt assets.
 
+`GET /api/sessions/:id/images?path=...` serves local PNG, JPEG, GIF and WebP images explicitly referenced by Markdown in that session's assistant messages or streaming draft. Relative paths resolve against the project. Canonical files must remain within the project, the system temporary directory or `/tmp` on POSIX; outside symlink targets, non-regular files, unsupported signatures and files larger than 32 MiB return a sanitized 404. HEAD returns the same metadata without a body. Responses disable caching and MIME sniffing. Remote ingress requires a valid paired-device credential before invoking this route.
+
+`GET /api/sessions/:id/files?path=...` downloads regular files up to 512 MiB explicitly linked in assistant Markdown history or the current draft. It uses the same project/temporary-directory boundaries and remote device authentication. User messages alone do not authorize access. Missing, outside-root and oversized files return `404 file_not_found`. Files stream from disk without buffering the full body; HEAD returns metadata only. Single byte ranges return 206 and Content-Range; invalid or multiple ranges return 416.
+
+Downloads use `application/octet-stream` and attachment disposition with a UTF-8 filename. Add `preview=1` for inline MP3, WAV, M4A, AAC, OGG/OGA, FLAC, MP4, WebM, MOV, OGV or PDF; unsupported extensions still download. PDF previews require a PDF header. All responses disable caching and MIME sniffing and apply restrictive content policies; PDF responses allow the native viewer without the HTML sandbox directive. Media decoding and PDF rendering depend on the browser; no conversion or transcoding is provided.
+
 ## Start
 
 Run these commands from the project root:

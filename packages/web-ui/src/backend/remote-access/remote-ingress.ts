@@ -1,6 +1,7 @@
 import { createHttpServer, listen } from "../http/node-server";
 import { HttpError } from "../http/errors";
 import { staticResponse } from "../http/static-files";
+import { restartingResponse } from "../http/restarting-response";
 import { deviceCookie, readCredential } from "./device-credentials";
 import type { RemoteDevices } from "./remote-devices";
 import { assertRemoteOrigin, allowsRemoteBusiness } from "./remote-policy";
@@ -13,6 +14,7 @@ export const createRemoteHandler =
     business: (request: Request) => Promise<Response>,
     assets: string,
     localHost: () => string,
+    ready: () => boolean = () => true,
   ) =>
   async (request: Request): Promise<Response> => {
     try {
@@ -23,6 +25,8 @@ export const createRemoteHandler =
       if (![new URL(origin).host, localHost()].includes(host))
         throw new HttpError(403, "invalid_host");
       assertRemoteOrigin(request, origin);
+      if (["/", "/index.html", "/remote.html"].includes(url.pathname) && !ready())
+        return restartingResponse(request);
       const pairing = await remotePairingRoutes(request, devices);
       let response = pairing;
       if (!response && url.pathname.startsWith("/api/")) {
@@ -93,9 +97,12 @@ export const startRemoteIngress = async (
   business: (request: Request) => Promise<Response>,
   assets: string,
   port = 0,
+  ready: () => boolean = () => true,
 ) => {
   let localHost = "";
-  const server = createHttpServer(createRemoteHandler(devices, business, assets, () => localHost));
+  const server = createHttpServer(
+    createRemoteHandler(devices, business, assets, () => localHost, ready),
+  );
   try {
     const address = await listen(server, port);
     localHost = address.host;

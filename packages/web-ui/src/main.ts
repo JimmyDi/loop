@@ -6,6 +6,10 @@ import type { ServerOptions } from "./backend/server";
 export const main = async (
   args = process.argv.slice(2),
   serverOptions: ServerOptions = {},
+  start?: (
+    port: number,
+    options: ServerOptions,
+  ) => Promise<{ url: string; close(): Promise<void> }>,
 ): Promise<void> => {
   const options = parseArguments(args);
 
@@ -16,7 +20,7 @@ export const main = async (
   }
 
   const { startServer } = await import("./backend/server");
-  const server = await startServer(options.port, serverOptions);
+  const server = await (start ?? startServer)(options.port, serverOptions);
 
   try {
     const ready = await fetch(server.url);

@@ -45,7 +45,8 @@ export const remotePairingRoutes = async (
   }
   if (path === "/api/remote-pairing" && request.method === "GET") {
     const credential = readCredential(request, pairingCookie);
-    const pending = credential && devices.pairing.find(credential);
+    if (!credential) return Response.json({ state: "unpaired" });
+    const pending = devices.pairing.find(credential);
     if (!pending) return Response.json({ state: "expired" });
     if (pending.state !== "approved")
       return Response.json({ state: pending.state, confirmation: pending.confirmation });

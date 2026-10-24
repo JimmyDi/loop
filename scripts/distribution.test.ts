@@ -14,6 +14,7 @@ test.each([
   "dist/web/src/main.js",
   "dist/web/.env",
   "dist/web/config.json",
+  "dist/web/other.webmanifest",
   "dist/../private.js",
   "dist/web/assets/source.zip",
 ])("rejects source and unexpected publication files: %s", (path) => {
@@ -32,6 +33,7 @@ test.each([
 
 test.each([
   ["dist/bin.js", '#!/usr/bin/env node\nconsole.log("Loop");'],
+  ["dist/web/manifest.webmanifest", '{"start_url":"/"}'],
   ["dist/sdk.d.ts", "export declare const createAgentSession: () => void;"],
   ["dist/web/assets/main.js", '/*! @license MIT */ const words = "#region";'],
   ["dist/web/assets/main.css", "body{margin:0}"],

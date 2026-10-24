@@ -6,6 +6,7 @@ import type { PairingStatus } from "../../../shared/remote-devices";
 import { api, command } from "../../lib/api";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { ActionButton } from "../ui/ActionButton";
+import { clearPairingInvitation } from "../../remote/pairing-invitation";
 import "./RemotePairing.css";
 
 export const RemotePairing = ({ token, onApproved }: { token: string; onApproved(): void }) => {
@@ -27,6 +28,12 @@ export const RemotePairing = ({ token, onApproved }: { token: string; onApproved
   }, [query.data?.state, onApproved]);
   const state = submitted || !token ? query.data?.state : undefined;
   const waiting = state === "pending" || (submitted && !state);
+  const status =
+    state === "rejected" || state === "expired" || state === "unpaired"
+      ? state
+      : !token && !state && !query.error
+        ? "checking"
+        : undefined;
   return (
     <main className="remote-pairing">
       <div className="remote-pairing-card">
@@ -40,9 +47,10 @@ export const RemotePairing = ({ token, onApproved }: { token: string; onApproved
             </strong>
             <p>{t("pairing.compare")}</p>
           </div>
-        ) : state === "rejected" || state === "expired" || (!token && state !== "approved") ? (
-          <p role="status">{t("pairing." + (state === "rejected" ? "rejected" : "expired"))}</p>
+        ) : status ? (
+          <p role="status">{t("pairing." + status)}</p>
         ) : (
+          token &&
           state !== "approved" && (
             <form
               onSubmit={(event) => {
@@ -53,6 +61,7 @@ export const RemotePairing = ({ token, onApproved }: { token: string; onApproved
                     name: name.trim(),
                   });
                   setConfirmation(result.confirmation);
+                  clearPairingInvitation();
                   setSubmitted(true);
                   await query.refetch();
                 });

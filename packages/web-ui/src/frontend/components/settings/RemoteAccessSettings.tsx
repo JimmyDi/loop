@@ -47,7 +47,7 @@ export const RemoteAccessSettings = ({
   const blocked = checking || pending || query.isError || !status?.supported;
   const progress = remoteAccessProgress(status, requested, requestStep);
   const { phase, active, connected, installing, accountActivity, activities } = progress;
-  const { current, busyStep } = progress;
+  const { current, busyStep, canDisconnect } = progress;
   const installTitle = status?.installed ? "uninstall" : "install";
   const accountAction = status?.signedIn || accountActivity === "signing-out" ? "logout" : "login";
   const errorStep = remoteAccessErrorStep(status);
@@ -109,7 +109,7 @@ export const RemoteAccessSettings = ({
                               },
                             ]
                           : []),
-                        ...(index === 2 && (connected || phase === "stopping")
+                        ...(index === 2 && canDisconnect
                           ? [
                               {
                                 action: "stop" as const,

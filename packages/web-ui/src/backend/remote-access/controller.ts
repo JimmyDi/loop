@@ -1,9 +1,8 @@
 import type { RemoteAccessCommand, RemoteAccessStatus } from "../../shared/remote-access";
 import type { RemoteRuntime } from "./cli-runtime";
-import type { SetupCommand } from "./command-phase";
-import { commandPhase } from "./command-phase";
+import { commandPhase, type SetupCommand } from "./command-phase";
 import { RemoteAccessError } from "./errors";
-import { checkInstallation } from "./status-check";
+import { applyInstallationCheck, checkInstallation } from "./status-check";
 import { runSetup } from "./setup-operation";
 import { runStop } from "./stop-operation";
 import { stepError, updateStepFailures } from "./step-failures";
@@ -58,7 +57,13 @@ export class RemoteAccessController {
 
   async refresh(): Promise<RemoteAccessStatus> {
     if (this.closed) throw new Error("Remote access is closed");
-    if (!this.state.supported || this.operation || this.stopping) return this.status();
+    if (
+      !this.state.supported ||
+      this.operation ||
+      this.stopping ||
+      this.state.phase === "connecting"
+    )
+      return this.status();
     if (!this.checking) {
       const abort = new AbortController();
       const promise = this.check(abort.signal).finally(() => {
@@ -88,7 +93,13 @@ export class RemoteAccessController {
       });
       return;
     }
-    if (this.operation || this.stopping || this.checking || this.state.phase === "connected")
+    if (
+      this.operation ||
+      this.stopping ||
+      this.checking ||
+      this.state.phase === "connected" ||
+      this.state.phase === "connecting"
+    )
       throw new Error("Remote access is busy");
     if (!this.state.supported) {
       this.state = { ...this.state, phase: "error", error: "unsupported_platform" };
@@ -115,16 +126,15 @@ export class RemoteAccessController {
   }
 
   private async check(signal: AbortSignal): Promise<void> {
+    this.runtime ??= this.dependencies.runtime();
     try {
-      this.runtime ??= this.dependencies.runtime();
-      const checked = await checkInstallation(this.runtime, this.state, signal);
-      signal.throwIfAborted();
-      if (!checked.installed) {
+      const { installed } = await checkInstallation(this.runtime, this.state, signal);
+      if (!installed) {
         await this.dependencies.saveConnection?.(false);
         await this.signIn(false);
       }
       signal.throwIfAborted();
-      this.state = checked;
+      this.state = applyInstallationCheck(this.state, installed);
     } catch (error) {
       if (!signal.aborted)
         throw new RemoteAccessError(error instanceof RemoteAccessError ? error.code : "cli_failed");
@@ -136,9 +146,7 @@ export class RemoteAccessController {
       command,
       {
         read: () => this.status(),
-        update: (state) => {
-          this.state = state;
-        },
+        update: (state) => (this.state = state),
         runtime: () => (this.runtime ??= this.dependencies.runtime()),
         signIn: (signedIn) => this.signIn(signedIn),
         saveConnection: this.dependencies.saveConnection,

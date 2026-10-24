@@ -21,7 +21,7 @@ export const main = async (
   try {
     const ready = await fetch(server.url);
 
-    if (!ready.ok)
+    if (!ready.ok && !serverOptions.development)
       throw new Error("Frontend could not be built; check Web dependency requirements");
 
     await ready.arrayBuffer();

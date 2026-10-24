@@ -32,5 +32,6 @@
   }
   .composer-input-area {
     min-height: 64px;
+    max-height: max(64px, min(220px, calc(var(--app-viewport-height, 100dvh) * 0.2)));
   }
 }

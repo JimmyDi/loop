@@ -59,3 +59,33 @@
     font-size: 12px;
   }
 }
+
+@media (max-width: 767px) {
+  .composer-region {
+    width: calc(100% - max(12px, env(safe-area-inset-left)) - max(12px, env(safe-area-inset-right)));
+    margin-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  .composer-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding-bottom: 6px;
+  }
+  .composer-toolbar .session-permissions {
+    order: -1;
+    flex: 1 0 100%;
+  }
+  .composer-toolbar .composer-model-settings {
+    flex: 1 1 0;
+    margin-left: auto;
+    max-width: 100%;
+  }
+  .composer-toolbar .action-button {
+    min-height: 44px;
+  }
+  .composer-toolbar .composer-send, .composer-toolbar .composer-add-trigger {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+  }
+}

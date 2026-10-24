@@ -4,8 +4,10 @@ import { skillsZh } from "./skills-zh";
 import { permissionsZh } from "./permissions-zh";
 
 import { remoteZh } from "./remote-zh";
+import { pwaZh } from "./pwa-zh";
 
 export const zh = {
+  pwa: pwaZh,
   pairing: pairingZh,
   connectivity: "连接",
   remoteAccess: "远程访问",

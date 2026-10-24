@@ -41,6 +41,7 @@ export const remoteAccessProgress = (
     phase,
     active,
     connected,
+    canDisconnect: phase === "connected" || phase === "connecting" || phase === "stopping",
     current,
     busyStep,
     accountActivity,

@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, writeFile, readdir, readFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
 
@@ -18,7 +18,7 @@ test.each([false, true])(
       | Awaited<ReturnType<NonNullable<Parameters<typeof createRemoteAccess>[1]>>>
       | undefined;
     vi.mocked(createRemoteAccess).mockImplementation(async (_agentDir, factory) => {
-      ingress = await factory!();
+      ingress = await factory!(0);
       ingress.connected?.("https://example.test");
       return new RemoteAccessController({ supported: false, runtime: vi.fn() });
     });
@@ -41,6 +41,30 @@ test.each([false, true])(
       expect(html).toContain('<meta name="loop-remote" content="1">');
       expect(html).not.toContain("/@vite/client");
       if (!custom) {
+        for (const base of [server.url, remote]) {
+          const entry = await (await fetch(base)).text();
+          const images = [...entry.matchAll(/url\(["']?([^"')]+)["']?\)/g)];
+          expect(images.length).toBeGreaterThan(0);
+          for (const [, image] of images) {
+            expect(image).toMatch(/^\/loop-icon(?:-light)?\.png$/);
+            const resource = await fetch(new URL(image!, base));
+            expect(resource.status).toBe(200);
+            expect(resource.headers.get("content-type")).toContain("image/png");
+          }
+        }
+        for (const [path, type] of [
+          ["/manifest.webmanifest", "application/manifest+json"],
+          ["/sw.js", "javascript"],
+          ["/loop-pwa-192.png", "image/png"],
+          ["/loop-pwa-512.png", "image/png"],
+        ]) {
+          const asset = await fetch(remote + path);
+          expect(asset.status).toBe(200);
+          expect(asset.headers.get("content-type")).toContain(type);
+          expect(asset.headers.get("cache-control")).toBe("no-store");
+        }
+        expect(html).toContain('rel="manifest"');
+        expect(html).toContain('crossorigin="use-credentials"');
         expect(html).toContain('name="name"');
         expect(html).not.toContain("Loop…");
         expect(html).not.toMatch(/(?:src|href)="[^"]*(?:main-|AppShell-)/);
@@ -81,8 +105,13 @@ test.each([false, true])(
 
 test("authorized chat startup excludes optional renderers and settings from its download budget", async () => {
   const directory = join(import.meta.dirname, "../../dist/web/assets");
-  const files = await readdir(directory);
-  const roots = files.filter((file) => /^(?:main|AppShell)-.*\.js$/.test(file));
+  const html = await readFile(join(directory, "../remote.html"), "utf8");
+  const entry = html.match(/src="[/]assets[/](remote-[^"]+\.js)"/)?.[1];
+  expect(entry).toBeDefined();
+  const bootstrap = await readFile(join(directory, entry!), "utf8");
+  const roots = [...bootstrap.matchAll(/assets[/]((?:main|AppShell)-[\w-]+\.js)/g)].map(
+    (match) => match[1]!,
+  );
   expect(roots).toHaveLength(2);
   const seen = new Set<string>();
   let bytes = 0;

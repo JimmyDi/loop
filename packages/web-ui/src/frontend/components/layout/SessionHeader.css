@@ -30,3 +30,13 @@
     padding: 5px 12px;
   }
 }
+
+@media (max-width: 767px) {
+  .session-header {
+    padding: max(5px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 5px max(12px, env(safe-area-inset-left));
+  }
+  .session-header .action-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

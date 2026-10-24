@@ -248,7 +248,7 @@ test.each([
   ],
   ["Connect Tunnel", "start", "connecting", 2, "Connecting…"],
 ] as const)(
-  "%s shows progress in its step with cancellation only for installation",
+  "%s shows progress in its step and connection supports cancellation",
   async (label, action, waiting, index, message) => {
     const window = new Window();
     const previous = {
@@ -330,14 +330,23 @@ test.each([
         expect(view.queryByRole("button", { name: "Stop and delete download" })).toBeNull();
         if (index === 2) {
           const tunnel = view.getAllByRole("listitem")[2]!;
-          expect(tunnel.querySelectorAll("button")).toHaveLength(1);
+          await vi.waitFor(() => {
+            expect(tunnel.querySelectorAll("button")).toHaveLength(2);
+            expect(
+              (view.getByRole("button", { name: "Disconnect Tunnel" }) as HTMLButtonElement)
+                .disabled,
+            ).toBe(false);
+          });
           expect(tunnel.querySelector("path")?.getAttribute("d")).not.toBe("M6 6h12v12H6Z");
         }
         await act(async () => {
           await new Promise<void>((resolve) => setTimeout(resolve, 0));
         });
-        phase = "off";
-        await client.refetchQueries({ queryKey: ["remote-access"] });
+        if (index === 2) fireEvent.click(view.getByRole("button", { name: "Disconnect Tunnel" }));
+        else {
+          phase = "off";
+          await client.refetchQueries({ queryKey: ["remote-access"] });
+        }
       } else {
         fireEvent.click(
           view.getByRole("button", {
@@ -348,7 +357,7 @@ test.each([
       await vi.waitFor(() => expect(view.queryByRole("status")).toBeNull());
       expect(view.queryByRole("img", { name: "Loading" })).toBeNull();
       expect(view.queryByRole("progressbar")).toBeNull();
-      expect(requests).toEqual(index === 0 ? [{ action }, { action: "stop" }] : [{ action }]);
+      expect(requests).toEqual(index !== 1 ? [{ action }, { action: "stop" }] : [{ action }]);
     } finally {
       cleanup();
       client.clear();

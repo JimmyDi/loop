@@ -4,8 +4,10 @@ import { permissionsEn } from "./permissions-en";
 import { mcpEn } from "./mcp-en";
 import { skillsEn } from "./skills-en";
 import { remoteEn } from "./remote-en";
+import { pwaEn } from "./pwa-en";
 
 export const en = {
+  pwa: pwaEn,
   pairing: pairingEn,
   connectivity: "Connectivity",
   remoteAccess: "Remote access",

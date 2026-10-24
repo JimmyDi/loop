@@ -1,11 +1,11 @@
 import type { PairingStatus, RemoteSession } from "../../shared/remote-devices";
 import { setBootstrapSession } from "../lib/remote-session";
 import { remoteBootstrapView } from "./remote-bootstrap-view";
+import { capturePairingInvitation, clearPairingInvitation } from "./pairing-invitation";
 
 export const mountRemoteBootstrap = (loadChat: () => Promise<unknown>): (() => void) => {
   const view = remoteBootstrapView(document);
-  let token = new URLSearchParams(window.location.hash.slice(1)).get("pair") ?? "";
-  if (window.location.hash) window.history.replaceState(null, "", window.location.pathname);
+  let token = capturePairingInvitation();
   const abort = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   let disposed = false;
@@ -28,6 +28,7 @@ export const mountRemoteBootstrap = (loadChat: () => Promise<unknown>): (() => v
   const open = async (session: RemoteSession) => {
     if (disposed || opening) return;
     opening = true;
+    clearPairingInvitation();
     clearTimeout(timer);
     view.error();
     view.status("opening");
@@ -90,6 +91,7 @@ export const mountRemoteBootstrap = (loadChat: () => Promise<unknown>): (() => v
       (pairing) => {
         if (disposed) return;
         token = "";
+        clearPairingInvitation();
         submitted = false;
         view.status("waiting", pairing.confirmation);
         timer = setTimeout(() => void poll(), 1500);

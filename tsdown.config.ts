@@ -10,7 +10,7 @@ export default defineConfig({
   minify: true,
   outputOptions: { comments: { legal: true, annotation: false, jsdoc: false } },
   fixedExtension: false,
-  clean: true,
+  clean: ["dist/*.js", "dist/*.d.ts"],
   deps: {
     alwaysBundle: [/^@loop\//],
     neverBundle: ["vite", "@hono/node-server", "which", "@earendil-works/pi-codemode"],

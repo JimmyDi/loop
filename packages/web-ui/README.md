@@ -6,9 +6,9 @@ Browser application over the public coding-agent SDK. All implementation, styles
 
 Web is a private pnpm workspace package. Frontend and backend share its package.json and the root pnpm-lock.yaml. Install from the repository root with pnpm install.
 
-Run pnpm dev from the root for development. Vite middleware serves React/CSS with HMR on the same loopback port as the Node HTTP API. A separate `tsx watch` process restarts the Node backend when its loaded source files change; frontend source is excluded from backend watching. Arguments are forwarded: pnpm dev --port 3081 --no-open.
+Run pnpm dev from the root for development. Vite middleware serves React/CSS with HMR on the same loopback port as the Node HTTP API. A stable development gateway owns the local listener, private tunnel and device authorization. Backend, shared protocol and core TypeScript edits restart only its business worker; frontend changes use Vite HMR. Arguments are forwarded: pnpm dev --port 3081 --no-open.
 
-Remote access under pnpm dev serves the built frontend from dist/web in this package, while the desktop keeps Vite HMR. Run pnpm --filter @loop/web-ui build before scanning a remote pairing code, and rebuild after frontend edits.
+Remote access under pnpm dev serves the built frontend from dist/web in this package, while the desktop keeps Vite HMR. The development command builds the phone frontend on startup and watches frontend sources, shared protocol and build configuration. Continuous edits are debounced and builds run sequentially; failed builds preserve the last successful version. Refresh the phone after publication, or choose Reload to update when offered. Manual builds remain available with pnpm --filter @loop/web-ui build:frontend.
 
 For production, run pnpm build and node dist/bin.js web from the root. The compiled package serves prebuilt assets without Vite or a source checkout. Help works without opening a server: node dist/bin.js web --help.
 

@@ -33,13 +33,15 @@ Navigations always use the network. On devtunnels.ms subdomains, the worker leav
 
 ## Updates and Limits
 
-Frontend builds publish staged assets before atomically replacing HTML entries and publishing the worker last. Failed builds leave the previous frontend available, and old hashed resources remain readable by open tabs until the output is explicitly cleaned while stopped. Rebuild the remote frontend with pnpm --filter @loop/web-ui build:frontend; pnpm dev alone does not publish it.
+Frontend builds publish staged assets before atomically replacing HTML entries and publishing the worker last. Failed builds leave the previous frontend available, and old hashed resources remain readable by open tabs until the output is explicitly cleaned while stopped. The pnpm dev command builds the remote frontend on startup and automatically rebuilds after frontend source, shared protocol or build configuration edits. Changes debounce for 500 milliseconds; edits during a build queue one subsequent build. Failures preserve the last successful release and the next edit retries. Refresh the phone after publication or choose Reload to update when offered. Manual builds remain available with pnpm --filter @loop/web-ui build:frontend.
 
 A downloaded update shows **Reload to update** and **Later**. Finish unsent input or approval before choosing reload. The worker does not force-reload an existing chat; only an explicit update action requests activation and reloads that page. The browser checks for updates on registration, when the page becomes visible and when it goes online. Failed registration or update checks leave normal browser use available.
 
 Explicit updates reload at most once even if the worker emits repeated activation events. If activation does not respond within two seconds, or posting the activation message fails, the page reloads anyway. If the old document still runs 250 milliseconds after requesting reload, it replaces the current entry with the root URL as a recovery attempt. This fallback neither clears device authorization nor guarantees completion of an external sign-in flow.
 
 Installation is tied to the exact public hostname. If a new tunnel has a different address, add a new home-screen entry and pair again. Installation cannot keep the computer awake, bypass tunnel sign-in or preserve a connection while the computer sleeps. Foreground and network recovery use the shared [stream lifecycle](events.md). Transient authorization-check network/5xx failures preserve already-loaded chats with a retry notice; explicit denial, expiry or revocation clears access and cached session state. First authorization still fails closed. Background streaming and notifications are not provided.
+
+When launched with `pnpm dev`, backend source edits restart a separate business worker while the gateway, private Tunnel and pairing stay alive. Opening the remote document during that interval displays a retrying recovery page. Existing chats reconnect after the worker is ready; active generation is interrupted and commands are not replayed. Stopping the whole development command still disconnects the Tunnel.
 
 ## Device Verification
 

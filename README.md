@@ -12,6 +12,12 @@
 </p>
 
 <p align="center">
+  <a href="https://jimmydi.github.io/loop/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/website-dark.svg">
+      <img src="docs/assets/readme/website-light.svg" alt="Loop website">
+    </picture>
+  </a>
   <a href="https://nodejs.org/">
     <img src="https://img.shields.io/badge/runtime-Node.js%2024%2B-5FA04E?style=flat&amp;logo=nodedotjs&amp;logoColor=white" alt="Runtime: Node.js 24 or newer">
   </a>
@@ -74,7 +80,7 @@ pnpm dev
 ```
 The browser opens when the loopback service is ready. Configure providers in Settings → Models.
 
-Development serves React through Vite middleware on the same port as the API; frontend changes use HMR. A separate `tsx watch` process restarts the Node backend when its loaded source files change.
+Development serves React through Vite middleware on the same port as the API; frontend changes use HMR. A stable development gateway keeps the private tunnel and device authorization alive while backend source edits restart only the business worker.
 
 For the CLI, configure LOOP_AI_PROVIDER, LOOP_MODEL and LOOP_AI_API_KEY in the environment or a local .env, then run pnpm coding-agent. See [models](packages/coding-agent/src/docs/models.md) for compatible gateways and configuration.
 

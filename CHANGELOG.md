@@ -14,6 +14,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Web development: keep the gateway, private Tunnel and device authorization alive across backend source reloads under `pnpm dev`. Restart only the business worker, return a retrying recovery page during startup, and reject unavailable API calls without queuing or replaying commands. Automatically build the phone frontend on startup and rebuild after source or build configuration edits, debounce and serialize updates, and preserve the last successful frontend on failure. Browser disconnects and SSE termination during worker replacement avoid spurious abort/termination errors; unexpected failures and incomplete data responses still fail. Running generation is interrupted; production and direct Web startup retain their existing lifecycle.
+
 - Web UI: bound remote startup authorization checks and chat downloads, exposing a retry action instead of waiting indefinitely. Reload the root page after a failed module download and provide an HTML fallback when startup scripts stall. Bound explicit PWA update activation with a reload fallback; on origins other than private Dev Tunnels, show the generic recovery page on navigation timeout or HTTP 503 as well as network failure. Preserve native private-tunnel navigation and authentication responses.
 
 - Web UI: remove the browser's brief touch-tap highlight on mobile and prevent long-press text selection across navigation, session lists, menus and action controls. Hide inline session pin buttons below 768px while retaining pin actions in the context menu. Retain keyboard focus indicators and selection in messages, code, file contents, error details and text inputs.

@@ -84,6 +84,7 @@ export const usePrompt = (snapshot: SessionSnapshot, hasProject = true) => {
       }
       await command("/sessions/" + id + "/prompt", {
         requestId: next.requestId,
+        streamId: next.streamId,
         text: next.text,
         images: next.images,
         files: next.files,
@@ -93,7 +94,7 @@ export const usePrompt = (snapshot: SessionSnapshot, hasProject = true) => {
     } catch (error) {
       if (useRequests.getState().pending[id]?.requestId !== next.requestId) return;
       setError(error);
-      if (error instanceof ApiError) useRequests.getState().put(id);
+      if (error instanceof ApiError && error.status < 500) useRequests.getState().put(id);
       else useRequests.getState().markDelivery(id, next.requestId);
     }
   };

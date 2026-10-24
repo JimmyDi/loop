@@ -1,8 +1,13 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  defaultScheduler,
+  notifyManager,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { useEffect } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
-import { expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import "../../i18n/setup";
 import {
@@ -14,6 +19,15 @@ import {
 } from "../../lib/remote-session";
 import { useSessions } from "../../state/session-store";
 import { RemoteAccessGate } from "./RemoteAccessGate";
+
+beforeEach(() => {
+  // Flush query notifications inside async act, before the test window is restored.
+  notifyManager.setScheduler(queueMicrotask);
+});
+
+afterEach(() => {
+  notifyManager.setScheduler(defaultScheduler);
+});
 
 test("local pages render directly without probing remote authorization", () => {
   const client = new QueryClient();
@@ -41,7 +55,12 @@ test("a fresh bootstrap authorization opens chat without a duplicate check and r
   };
   Object.assign(globalThis, { window, document: window.document, Event: window.Event });
   const client = new QueryClient();
-  const fetcher = vi.fn(async () => Response.json({ mode: "remote", authorized: false }));
+  let unavailable = true;
+  const fetcher = vi.fn(async () =>
+    unavailable
+      ? new Response(null, { status: 503 })
+      : Response.json({ mode: "remote", authorized: false }),
+  );
   globalThis.fetch = fetcher;
   setBootstrapSession({
     mode: "remote",
@@ -50,11 +69,18 @@ test("a fresh bootstrap authorization opens chat without a duplicate check and r
     device: { id: "phone", name: "Phone", createdAt: 1, expiresAt: 2 },
   });
   const { render, cleanup, act } = await import("@testing-library/react/pure");
+  const mounted = vi.fn();
+  const Business = () => {
+    useEffect(() => {
+      mounted();
+    }, []);
+    return <p>Private chats</p>;
+  };
   try {
     const ui = render(
       <QueryClientProvider client={client}>
         <RemoteAccessGate>
-          <p>Private chats</p>
+          <Business />
         </RemoteAccessGate>
       </QueryClientProvider>,
     );
@@ -64,12 +90,23 @@ test("a fresh bootstrap authorization opens chat without a duplicate check and r
     await act(async () => {
       checkRemoteSession();
     });
+    await vi.waitFor(() => expect(client.getQueryState(["remote-session"])?.status).toBe("error"));
+    expect(ui.getByText("Private chats")).toBeTruthy();
+    expect(mounted).toHaveBeenCalledOnce();
+    expect(remoteCsrfHeaders("POST")).toEqual({ "X-Loop-CSRF": "synthetic-csrf" });
+    unavailable = false;
+    await act(async () => {
+      checkRemoteSession();
+    });
     await vi.waitFor(() => expect(ui.queryByText("Private chats")).toBeNull());
     expect(fetcher).toHaveBeenCalled();
     expect(remoteCsrfHeaders("POST")).toEqual({});
   } finally {
-    cleanup();
-    client.clear();
+    await act(async () => {
+      await client.cancelQueries();
+      cleanup();
+      client.clear();
+    });
     takeBootstrapSession();
     setRemoteCsrf();
     Object.assign(globalThis, previous);
@@ -135,7 +172,6 @@ test("remote bootstrap mounts no business hooks until approved and clears snapsh
     authorized = false;
     await act(async () => {
       checkRemoteSession();
-      await new Promise((resolve) => setTimeout(resolve, 20));
     });
     await vi.waitFor(() => expect(view.queryByText("Private chats")).toBeNull());
     expect(client.getQueryData(["sessions", "example"])).toBeUndefined();
@@ -143,8 +179,11 @@ test("remote bootstrap mounts no business hooks until approved and clears snapsh
     expect(remoteCsrfHeaders("POST")).toEqual({});
     expect(view.queryByRole("button", { name: "Request access" })).toBeNull();
   } finally {
-    cleanup();
-    client.clear();
+    await act(async () => {
+      await client.cancelQueries();
+      cleanup();
+      client.clear();
+    });
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }
@@ -162,7 +201,7 @@ test("an unreachable authorization endpoint stays closed with a retry action", a
   Object.assign(globalThis, { window, document: window.document, Event: window.Event });
   globalThis.fetch = vi.fn(async () => new Response(null, { status: 503 })) as typeof fetch;
   const client = new QueryClient();
-  const { render, cleanup } = await import("@testing-library/react/pure");
+  const { render, cleanup, act } = await import("@testing-library/react/pure");
   try {
     const view = render(
       <QueryClientProvider client={client}>
@@ -175,8 +214,11 @@ test("an unreachable authorization endpoint stays closed with a retry action", a
     expect(view.queryByText("Private chats")).toBeNull();
     expect(view.getByRole("button", { name: "Retry" })).toBeTruthy();
   } finally {
-    cleanup();
-    client.clear();
+    await act(async () => {
+      await client.cancelQueries();
+      cleanup();
+      client.clear();
+    });
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

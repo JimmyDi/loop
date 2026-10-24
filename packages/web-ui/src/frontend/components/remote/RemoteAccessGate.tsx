@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import type { RemoteSession } from "../../../shared/remote-devices";
-import { api } from "../../lib/api";
+import { api, ApiError } from "../../lib/api";
 import { isRemoteClient, setRemoteCsrf, takeBootstrapSession } from "../../lib/remote-session";
 import { useSessions } from "../../state/session-store";
 import { RemotePairing } from "./RemotePairing";
@@ -34,7 +34,8 @@ export const RemoteAccessGate = ({ children }: { children: ReactNode }) => {
     void query.refetch();
   }, [query.refetch]);
   const session = query.data;
-  const authorized = !query.isError && session?.mode === "remote" && session.authorized;
+  const denied = query.error instanceof ApiError && [401, 403].includes(query.error.status);
+  const authorized = !denied && session?.mode === "remote" && session.authorized;
   if (authorized) setRemoteCsrf(session.csrf);
   else if (remote) setRemoteCsrf();
   useEffect(() => {
@@ -64,7 +65,7 @@ export const RemoteAccessGate = ({ children }: { children: ReactNode }) => {
         {t("pairing.checking")}
       </main>
     );
-  if (query.isError)
+  if (query.isError && !authorized)
     return (
       <main className="remote-access-gate">
         <p role="alert">{t("pairing.unavailable")}</p>
@@ -74,5 +75,17 @@ export const RemoteAccessGate = ({ children }: { children: ReactNode }) => {
       </main>
     );
   if (!authorized) return <RemotePairing token={token} onApproved={refresh} />;
-  return children;
+  return (
+    <>
+      {query.isError && (
+        <div className="remote-connection-notice" role="status">
+          {t("pairing.unavailable")}
+          <button type="button" onClick={refresh}>
+            {t("retry")}
+          </button>
+        </div>
+      )}
+      {children}
+    </>
+  );
 };

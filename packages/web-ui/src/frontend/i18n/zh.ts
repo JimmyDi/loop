@@ -160,6 +160,7 @@ export const zh = {
   pendingSave: "会话有尚未保存的内容",
   retrySave: "重试保存",
   reconnecting: "正在重新连接…",
+  connectionOffline: "当前离线，联网后将同步消息；未发送的草稿会保留。",
   loading: "加载中…",
   failed: "出现错误",
   retry: "重试",

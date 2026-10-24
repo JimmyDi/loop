@@ -69,5 +69,17 @@
       </main>
     </div>
     <script type="module" src="./remote/entry.ts"></script>
+    <script>
+      setTimeout(() => {
+        const loading = document.querySelector("#root .app-loading");
+        if (!loading || document.documentElement.hasAttribute("data-pairing")) return;
+        const button = document.createElement("button");
+        const chinese = document.documentElement.lang.startsWith("zh") || navigator.language.startsWith("zh");
+        button.textContent = chinese ? "加载超时，点击重试" : "Loading timed out. Retry";
+        button.type = "button";
+        button.onclick = () => location.replace("/");
+        loading.append(button);
+      }, 35000);
+    </script>
   </body>
 </html>

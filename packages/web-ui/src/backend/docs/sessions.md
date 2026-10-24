@@ -62,6 +62,8 @@ The controller deduplicates up to 256 recent request IDs. The same ID and prompt
 
 ## Cancellation, Failure, and Disposal
 
+Browser prompt requests include the observed streamId. When supplied, it must match the current controller stream after asynchronous skill preparation and immediately before prompt acceptance; a mismatch returns 409 delivery_unknown without executing. Older clients may omit the field. This closes the restart window between a browser status check and submission, without adding durable request deduplication.
+
 abort is independent of ordinary command locking and can stop an accepted request. It waits for SDK cancellation and the active operation. Disconnecting SSE does not call abort. Lower layers handle model/tool cancellation through signals; completed side effects cannot be undone.
 
 SDK save failures retain hasPendingSave. flush neither requests the model nor executes tools again, and another save failure leaves recoverable state intact. Preflight or unexpected errors also settle to idle with error details, preventing the UI from remaining permanently busy.

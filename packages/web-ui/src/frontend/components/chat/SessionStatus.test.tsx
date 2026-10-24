@@ -1,4 +1,5 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
+import { Window } from "happy-dom";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -59,11 +60,41 @@ test("routine session states leave no status row above the input", () => {
   expect(renderToStaticMarkup(<SessionStatus snapshot={snapshot} connected />)).toBe("");
 });
 
-test("connection loss still explains why the composer is unavailable", () => {
+test("brief session connection does not show a reconnect warning", () => {
   const html = renderToStaticMarkup(<SessionStatus snapshot={snapshot} connected={false} />);
 
-  expect(html).toContain("Reconnecting");
-  expect(html).not.toContain("Looping...");
+  expect(html).toBe("");
+});
+
+test("persistent disconnection shows retry after a grace period and resets on session switch", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, act, cleanup } = await import("@testing-library/react/pure");
+  vi.useFakeTimers();
+  try {
+    const view = render(<SessionStatus snapshot={snapshot} connected={false} />);
+    expect(view.queryByText("Reconnecting…")).toBeNull();
+    act(() => vi.advanceTimersByTime(2_000));
+    expect(view.getByRole("button", { name: "Retry" })).toBeTruthy();
+    view.rerender(
+      <SessionStatus snapshot={{ ...snapshot, sessionId: "other" }} connected={false} />,
+    );
+    expect(view.queryByRole("button", { name: "Retry" })).toBeNull();
+    act(() => vi.advanceTimersByTime(1_000));
+    view.rerender(<SessionStatus snapshot={{ ...snapshot, sessionId: "other" }} connected />);
+    act(() => vi.advanceTimersByTime(2_000));
+    expect(view.queryByRole("button", { name: "Retry" })).toBeNull();
+    Object.defineProperty(window.navigator, "onLine", { configurable: true, value: false });
+    act(() => window.dispatchEvent(new window.Event("offline")));
+    view.rerender(<SessionStatus snapshot={snapshot} connected={false} />);
+    expect(view.getByRole("button", { name: "Retry" }).hasAttribute("disabled")).toBe(true);
+  } finally {
+    cleanup();
+    vi.useRealTimers();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
 });
 
 test("a failed model connection leaves the running state and shows configuration guidance", () => {

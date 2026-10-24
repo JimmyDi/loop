@@ -15,7 +15,17 @@ let state: PwaState = { enabled: false, installed: false, offline: false };
 let registration: ServiceWorkerRegistration | undefined;
 let started = false;
 let updating = false;
+let reloaded = false;
+let reloadTimer: ReturnType<typeof setTimeout> | undefined;
 const listeners = new Set<() => void>();
+
+const reloadUpdatedPage = (): void => {
+  if (reloaded) return;
+  reloaded = true;
+  clearTimeout(reloadTimer);
+  window.location.reload();
+  setTimeout(() => window.location.replace("/"), 250);
+};
 
 const publish = (next: Partial<PwaState>): void => {
   state = { ...state, ...next };
@@ -56,7 +66,7 @@ export const startPwa = (): void => {
   window.addEventListener("appinstalled", () => publish({ installed: true, install: undefined }));
   if (!("serviceWorker" in navigator)) return;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (updating) window.location.reload();
+    if (updating) reloadUpdatedPage();
   });
   void navigator.serviceWorker
     .register("/sw.js", { scope: "/", updateViaCache: "none" })
@@ -86,7 +96,12 @@ export const installPwa = async (): Promise<void> => {
 };
 
 export const updatePwa = (): void => {
-  if (!state.waiting) return;
+  if (!state.waiting || updating) return;
   updating = true;
-  state.waiting.postMessage({ type: "ACTIVATE_UPDATE" });
+  reloadTimer = setTimeout(reloadUpdatedPage, 2_000);
+  try {
+    state.waiting.postMessage({ type: "ACTIVATE_UPDATE" });
+  } catch {
+    reloadUpdatedPage();
+  }
 };

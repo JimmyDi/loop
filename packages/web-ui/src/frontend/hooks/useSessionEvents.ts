@@ -3,6 +3,7 @@ import { flushSync } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { checkRemoteSession } from "../lib/remote-session";
+import { recoveringEvents } from "../lib/recovering-events";
 import type { Frame, SessionSummary } from "../../shared/protocol";
 import { useSessions } from "../state/session-store";
 
@@ -12,8 +13,6 @@ export const useSessionEvents = (id?: string): void => {
   useEffect(() => {
     if (!id) return;
 
-    let source: EventSource;
-    let timer: ReturnType<typeof setTimeout>;
     let disposed = false;
     const disconnect = () => {
       const view = useSessions.getState().views[id];
@@ -42,18 +41,16 @@ export const useSessionEvents = (id?: string): void => {
       }
       useSessions.getState().connection(id, false);
     };
-    const connect = (fresh = false) => {
-      if (disposed) return;
+    const source = recoveringEvents({
+      url: () => {
+        const cursor = useSessions.getState().views[id]?.cursor;
+        const suffix = cursor
+          ? "&cursor=" + encodeURIComponent(cursor.streamId + ":" + cursor.seq)
+          : "";
 
-      const cursor = fresh ? undefined : useSessions.getState().views[id]?.cursor;
-      const suffix = cursor
-        ? "&cursor=" + encodeURIComponent(cursor.streamId + ":" + cursor.seq)
-        : "";
-
-      source = new EventSource(
-        "/api/sessions/" + encodeURIComponent(id) + "/events?approvals=1" + suffix,
-      );
-      source.onmessage = (event) => {
+        return "/api/sessions/" + encodeURIComponent(id) + "/events?approvals=1" + suffix;
+      },
+      message: (event) => {
         if (disposed) return;
         try {
           const frame = JSON.parse(event.data) as Frame;
@@ -70,34 +67,22 @@ export const useSessionEvents = (id?: string): void => {
           }
 
           if (!accepted) {
-            source.close();
-            disconnect();
-            connect(true);
+            useSessions.getState().resync(id);
 
             return;
           }
         } catch {
-          source.close();
-          disconnect();
-
-          if (!disposed) timer = setTimeout(() => connect(true), 1500);
+          useSessions.getState().resync(id);
         }
-      };
-      source.onerror = () => {
-        checkRemoteSession();
-        if (disposed) return;
-        source.close();
+      },
+      disconnected: () => {
         disconnect();
-
-        if (!disposed) timer = setTimeout(() => connect(), 1500);
-      };
-    };
-
-    connect();
+        checkRemoteSession();
+      },
+    });
 
     return () => {
       disposed = true;
-      clearTimeout(timer);
       source.close();
       disconnect();
     };

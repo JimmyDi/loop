@@ -13,7 +13,10 @@
 
 <p align="center">
   <a href="https://jimmydi.github.io/loop/">
-    <img src="https://img.shields.io/badge/website-Loop-5865F2?style=flat" alt="Loop website">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/website-dark.svg">
+      <img src="docs/assets/readme/website-light.svg" alt="Loop website">
+    </picture>
   </a>
   <a href="https://nodejs.org/">
     <img src="https://img.shields.io/badge/runtime-Node.js%2024%2B-5FA04E?style=flat&amp;logo=nodedotjs&amp;logoColor=white" alt="Runtime: Node.js 24 or newer">

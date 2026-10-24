@@ -37,7 +37,8 @@ test("invalid Vite configuration preserves APIs, streams and built pages and rec
     await writeFile(pluginFile, "export const label = ;");
     await writeFile(
       configFile,
-      'import { label } from "./plugin.mjs"; export default { root: import.meta.dirname, optimizeDeps: { noDiscovery: true, include: [] }, plugins: [{ name: "fixture", transformIndexHtml: (html) => html + label }] };',
+      // Poll this fixture so rapid edits are not coalesced by native macOS file events.
+      'import { label } from "./plugin.mjs"; export default { root: import.meta.dirname, server: { watch: { usePolling: true, interval: 50 } }, optimizeDeps: { noDiscovery: true, include: [] }, plugins: [{ name: "fixture", transformIndexHtml: (html) => html + label }] };',
     );
     frontend = await createDevelopmentFrontend(server, configFile);
     const url = await listen(server, 0);

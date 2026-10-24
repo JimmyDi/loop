@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, writeFile, readdir, readFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
 
@@ -105,8 +105,13 @@ test.each([false, true])(
 
 test("authorized chat startup excludes optional renderers and settings from its download budget", async () => {
   const directory = join(import.meta.dirname, "../../dist/web/assets");
-  const files = await readdir(directory);
-  const roots = files.filter((file) => /^(?:main|AppShell)-.*\.js$/.test(file));
+  const html = await readFile(join(directory, "../remote.html"), "utf8");
+  const entry = html.match(/src="[/]assets[/](remote-[^"]+\.js)"/)?.[1];
+  expect(entry).toBeDefined();
+  const bootstrap = await readFile(join(directory, entry!), "utf8");
+  const roots = [...bootstrap.matchAll(/assets[/]((?:main|AppShell)-[\w-]+\.js)/g)].map(
+    (match) => match[1]!,
+  );
   expect(roots).toHaveLength(2);
   const seen = new Set<string>();
   let bytes = 0;

@@ -59,6 +59,9 @@ test("the HTML form is available before authorization; late checks preserve an a
   try {
     expect(page.form.hidden).toBe(false);
     expect(page.window.location.hash).toBe("");
+    expect(page.window.sessionStorage.getItem("loop.pending-pairing")).toContain(
+      "synthetic-invite",
+    );
     expect(loadChat).not.toHaveBeenCalled();
     page.input.value = "Example phone";
     page.form.dispatchEvent(new page.window.Event("submit", { cancelable: true }));
@@ -71,6 +74,7 @@ test("the HTML form is available before authorization; late checks preserve an a
       }),
     );
     expect(page.status.textContent).toBe("Waiting for approval on your computer");
+    expect(page.window.sessionStorage.getItem("loop.pending-pairing")).toBeNull();
     expect(page.document.querySelector("[data-code]")?.textContent).toBe("123456");
     initial(Response.json({ mode: "remote", authorized: true }));
     await vi.advanceTimersByTimeAsync(1500);
@@ -103,6 +107,45 @@ test("an authorized device can retry a failed chat download without re-pairing",
     page.retry.click();
     await vi.waitFor(() => expect(loadChat).toHaveBeenCalledTimes(2));
     expect(page.form.hidden).toBe(true);
+  } finally {
+    await page.close(dispose);
+  }
+});
+
+test("refresh before submission restores the invitation and authorized entry clears it", async () => {
+  const page = await setup();
+  let authorized = false;
+  const fetcher = vi.fn(async (_path: string, init?: RequestInit) =>
+    Response.json(
+      init?.method === "POST"
+        ? { state: "pending", confirmation: "123456" }
+        : { mode: "remote", authorized },
+    ),
+  );
+  globalThis.fetch = fetcher as typeof fetch;
+  const loadChat = vi.fn(async () => {});
+  let dispose = mountRemoteBootstrap(loadChat);
+  try {
+    dispose();
+    expect(page.window.location.hash).toBe("");
+    dispose = mountRemoteBootstrap(loadChat);
+    expect(page.form.hidden).toBe(false);
+    page.input.value = "Example phone";
+    page.form.dispatchEvent(new page.window.Event("submit", { cancelable: true }));
+    await vi.waitFor(() => expect(page.status.textContent).toContain("Waiting"));
+    expect(fetcher).toHaveBeenCalledWith(
+      "/api/remote-pairing",
+      expect.objectContaining({
+        body: JSON.stringify({ token: "synthetic-invite", name: "Example phone" }),
+      }),
+    );
+    expect(page.window.sessionStorage.getItem("loop.pending-pairing")).toBeNull();
+    dispose();
+    page.window.location.hash = "pair=synthetic-unused";
+    authorized = true;
+    dispose = mountRemoteBootstrap(loadChat);
+    await vi.waitFor(() => expect(loadChat).toHaveBeenCalledOnce());
+    expect(page.window.sessionStorage.getItem("loop.pending-pairing")).toBeNull();
   } finally {
     await page.close(dispose);
   }
@@ -141,6 +184,60 @@ test("refresh keeps pairing hidden through slow authorization and chat downloads
     open();
     await Promise.resolve();
     expect(pairingVisible()).toBe(false);
+  } finally {
+    await page.close(dispose);
+  }
+});
+
+test("a browser without an invitation or pairing cookie is unpaired, not expired", async () => {
+  const page = await setup("");
+  const fetcher = vi.fn(async (path: string, _init?: RequestInit) =>
+    Response.json(
+      path.endsWith("remote-session")
+        ? { mode: "remote", authorized: false }
+        : { state: "unpaired" },
+    ),
+  );
+  globalThis.fetch = fetcher as typeof fetch;
+  const loadChat = vi.fn(async () => {});
+  vi.useFakeTimers();
+  const dispose = mountRemoteBootstrap(loadChat);
+  try {
+    expect(page.form.hidden).toBe(true);
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(page.status.textContent).toBe(
+      "This browser is not paired. Scan the current pairing code on your computer.",
+    );
+    expect(page.form.hidden).toBe(true);
+    expect(loadChat).not.toHaveBeenCalled();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher.mock.calls.every(([, init]) => init?.method === "GET")).toBe(true);
+  } finally {
+    await page.close(dispose);
+  }
+});
+
+test("refresh resumes pending approval without another invitation", async () => {
+  const page = await setup("");
+  let approved = false;
+  globalThis.fetch = vi.fn(async (path: string) =>
+    Response.json(
+      path.endsWith("remote-session")
+        ? { mode: "remote", authorized: approved }
+        : { state: approved ? "approved" : "pending", confirmation: "123456" },
+    ),
+  ) as typeof fetch;
+  const loadChat = vi.fn(async () => {});
+  vi.useFakeTimers();
+  const dispose = mountRemoteBootstrap(loadChat);
+  try {
+    await vi.advanceTimersByTimeAsync(0);
+    expect(page.status.textContent).toBe("Waiting for approval on your computer");
+    expect(page.document.querySelector("[data-code]")?.textContent).toBe("123456");
+    expect(page.form.hidden).toBe(true);
+    approved = true;
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(loadChat).toHaveBeenCalledOnce();
   } finally {
     await page.close(dispose);
   }

@@ -28,6 +28,6 @@ export type RemoteSession =
   | { mode: "remote"; authorized: true; csrf: string; device: RemoteDevice };
 
 export type PairingStatus = {
-  state: "pending" | "approved" | "rejected" | "expired";
+  state: "unpaired" | "pending" | "approved" | "rejected" | "expired";
   confirmation?: string;
 };

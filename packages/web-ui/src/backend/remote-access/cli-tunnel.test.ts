@@ -137,3 +137,48 @@ test("occupied saved port fails without replacing the tunnel or picking another 
   expect(startCliProcess).not.toHaveBeenCalled();
   await tunnel.close();
 });
+
+test("cloud health probes use the exact persisted tunnel and reject invalid results", async () => {
+  const store = new TunnelStore("unused");
+  vi.spyOn(store, "read").mockResolvedValue({
+    tunnelId: "synthetic.test",
+    port: 1234,
+    configured: true,
+    origin: "https://synthetic-1234.test.devtunnels.ms",
+  });
+  vi.mocked(runCli).mockResolvedValue(
+    JSON.stringify({ ports: [{ portNumber: 1234, protocol: "http" }] }),
+  );
+  vi.mocked(startCliProcess).mockImplementation((_file, _args, _signal, line) => {
+    queueMicrotask(() => {
+      line!("Hosting at https://synthetic-1234.test.devtunnels.ms");
+      line!("Ready to accept connections for tunnel: synthetic.test");
+    });
+    return { done: new Promise(() => {}), stop: vi.fn(async () => {}) };
+  });
+  const tunnel = new CliTunnel("synthetic-cli", store, async () => ({
+    port: 1234,
+    close: async () => {},
+  }));
+  const signal = new AbortController().signal;
+  await tunnel.start(signal, vi.fn());
+  try {
+    for (const [hostConnections, expected] of [
+      [1, true],
+      [0, false],
+    ] as const) {
+      vi.mocked(runCli).mockResolvedValueOnce(JSON.stringify({ tunnel: { hostConnections } }));
+      expect(await tunnel.healthy(signal)).toBe(expected);
+    }
+    expect(runCli).toHaveBeenLastCalledWith(
+      "synthetic-cli",
+      ["show", "synthetic.test", "--json"],
+      signal,
+      8000,
+    );
+    vi.mocked(runCli).mockResolvedValueOnce("{}");
+    await expect(tunnel.healthy(signal)).rejects.toMatchObject({ code: "tunnel_failed" });
+  } finally {
+    await tunnel.close();
+  }
+});

@@ -1,5 +1,5 @@
 import { startClosedIngress } from "./closed-ingress";
-import { startCliProcess } from "./cli-process";
+import { runCli, startCliProcess } from "./cli-process";
 import type { CliProcess } from "./cli-process";
 import { RemoteAccessError } from "./errors";
 import { newTunnelRecord, prepareTunnel } from "./persistent-tunnel";
@@ -9,6 +9,7 @@ export class CliTunnel {
   private child?: CliProcess;
   private ingress?: { port: number; close(): Promise<void>; connected?(origin: string): void };
   private closing?: Promise<void>;
+  private tunnelId?: string;
 
   constructor(
     private readonly file: string,
@@ -35,6 +36,7 @@ export class CliTunnel {
     record = await prepareTunnel(this.file, this.store, record, signal);
     signal.throwIfAborted();
     const tunnelId = record.tunnelId;
+    this.tunnelId = tunnelId;
     let url: string | undefined;
     let ready = false;
     let established = false;
@@ -99,6 +101,16 @@ export class CliTunnel {
 
   close(): Promise<void> {
     return (this.closing ??= this.dispose());
+  }
+
+  async healthy(signal: AbortSignal): Promise<boolean> {
+    if (!this.tunnelId || this.closing) return false;
+    const result = JSON.parse(
+      await runCli(this.file, ["show", this.tunnelId, "--json"], signal, 8000),
+    );
+    const count = result.tunnel?.hostConnections;
+    if (!Number.isInteger(count) || count < 0) throw new RemoteAccessError("tunnel_failed");
+    return count > 0;
   }
 
   private async dispose(): Promise<void> {

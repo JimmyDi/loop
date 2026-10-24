@@ -9,6 +9,7 @@ export const pairingZh = {
   request: "申请访问",
   waiting: "等待在电脑上批准",
   compare: "请确认此校验码与电脑上显示的一致。",
+  unpaired: "此浏览器尚未配对，请扫描电脑上当前的配对二维码。",
   expired: "配对已过期或访问权限已撤销，请扫描电脑上生成的新二维码。",
   rejected: "申请已被拒绝，请扫描新二维码后重试。",
   requestFailed: "无法完成配对，请检查连接或扫描新二维码。",

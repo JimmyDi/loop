@@ -8,5 +8,5 @@ export default defineConfig({
   dts: true,
   fixedExtension: false,
   deps: { neverBundle: ["vite"] },
-  clean: true,
+  clean: ["dist/*.js", "dist/*.d.ts"],
 });

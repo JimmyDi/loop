@@ -163,6 +163,7 @@ test("unpaired ingress exposes only pairing and static bootstrap; exact origin a
       mode: "remote",
       authorized: false,
     });
+    expect(await (await call("/api/remote-pairing")).json()).toEqual({ state: "unpaired" });
     for (const path of [
       "/api/workspaces",
       "/api/sessions/example",

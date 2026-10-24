@@ -29,6 +29,8 @@ Navigations always use the network. On devtunnels.ms subdomains, the worker leav
 
 ## Updates and Limits
 
+Frontend builds publish staged assets before atomically replacing HTML entries and publishing the worker last. Failed builds leave the previous frontend available, and old hashed resources remain readable by open tabs until the output is explicitly cleaned while stopped. Rebuild the remote frontend with pnpm --filter @loop/web-ui build:frontend; pnpm dev alone does not publish it.
+
 A downloaded update shows **Reload to update** and **Later**. Finish unsent input or approval before choosing reload. The worker does not force-reload an existing chat; only an explicit update action requests activation and reloads that page. The browser checks for updates on registration, when the page becomes visible and when it goes online. Failed registration or update checks leave normal browser use available.
 
 Installation is tied to the exact public hostname. If a new tunnel has a different address, add a new home-screen entry and pair again. Installation cannot keep the computer awake, bypass tunnel sign-in or preserve a connection while the computer sleeps. Background streaming and network-recovery improvements are separate work.

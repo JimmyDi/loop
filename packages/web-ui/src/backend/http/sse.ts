@@ -50,7 +50,7 @@ export const eventResponse = <T extends Cursor>(
         );
 
         if (closed) unsubscribe();
-        else heartbeat = setInterval(() => send(": heartbeat\n\n"), 15000);
+        else heartbeat = setInterval(() => send("event: heartbeat\ndata: {}\n\n"), 15000);
 
         stop = close;
         request.signal.addEventListener("abort", abort, { once: true });

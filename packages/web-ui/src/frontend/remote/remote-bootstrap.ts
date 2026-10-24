@@ -13,17 +13,35 @@ export const mountRemoteBootstrap = (loadChat: () => Promise<unknown>): (() => v
   let opening = false;
   let revision = 0;
   let retry = () => {};
+  const bounded = async <T>(work: Promise<T>, milliseconds: number): Promise<T> => {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        work,
+        new Promise<never>((_resolve, reject) => {
+          timeout = setTimeout(() => reject(new Error("Startup timed out")), milliseconds);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
   const request = async <T>(path: string, body?: unknown): Promise<T> => {
-    const response = await fetch("/api/" + path, {
-      method: body ? "POST" : "GET",
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.any([abort.signal, AbortSignal.timeout(10_000)]),
-      credentials: "same-origin",
-      cache: "no-store",
-    });
-    if (!response.ok) throw new Error("Pairing request failed");
-    return response.json();
+    return bounded(
+      (async () => {
+        const response = await fetch("/api/" + path, {
+          method: body ? "POST" : "GET",
+          headers: body ? { "Content-Type": "application/json" } : undefined,
+          body: body ? JSON.stringify(body) : undefined,
+          signal: AbortSignal.any([abort.signal, AbortSignal.timeout(10_000)]),
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error("Pairing request failed");
+        return response.json();
+      })(),
+      10_000,
+    );
   };
   const open = async (session: RemoteSession) => {
     if (disposed || opening) return;
@@ -34,13 +52,13 @@ export const mountRemoteBootstrap = (loadChat: () => Promise<unknown>): (() => v
     view.status("opening");
     try {
       setBootstrapSession(session);
-      await loadChat();
+      await bounded(loadChat(), 30_000);
       dispose();
     } catch {
       opening = false;
       if (!disposed) {
-        view.error("unavailable");
-        retry = () => void check();
+        view.error("loadFailed");
+        retry = () => window.location.replace("/");
       }
     }
   };

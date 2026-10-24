@@ -41,7 +41,12 @@ test("a fresh bootstrap authorization opens chat without a duplicate check and r
   };
   Object.assign(globalThis, { window, document: window.document, Event: window.Event });
   const client = new QueryClient();
-  const fetcher = vi.fn(async () => Response.json({ mode: "remote", authorized: false }));
+  let unavailable = true;
+  const fetcher = vi.fn(async () =>
+    unavailable
+      ? new Response(null, { status: 503 })
+      : Response.json({ mode: "remote", authorized: false }),
+  );
   globalThis.fetch = fetcher;
   setBootstrapSession({
     mode: "remote",
@@ -50,11 +55,18 @@ test("a fresh bootstrap authorization opens chat without a duplicate check and r
     device: { id: "phone", name: "Phone", createdAt: 1, expiresAt: 2 },
   });
   const { render, cleanup, act } = await import("@testing-library/react/pure");
+  const mounted = vi.fn();
+  const Business = () => {
+    useEffect(() => {
+      mounted();
+    }, []);
+    return <p>Private chats</p>;
+  };
   try {
     const ui = render(
       <QueryClientProvider client={client}>
         <RemoteAccessGate>
-          <p>Private chats</p>
+          <Business />
         </RemoteAccessGate>
       </QueryClientProvider>,
     );
@@ -64,11 +76,22 @@ test("a fresh bootstrap authorization opens chat without a duplicate check and r
     await act(async () => {
       checkRemoteSession();
     });
+    await vi.waitFor(() => expect(client.getQueryState(["remote-session"])?.status).toBe("error"));
+    expect(ui.getByText("Private chats")).toBeTruthy();
+    expect(mounted).toHaveBeenCalledOnce();
+    expect(remoteCsrfHeaders("POST")).toEqual({ "X-Loop-CSRF": "synthetic-csrf" });
+    unavailable = false;
+    await act(async () => {
+      checkRemoteSession();
+    });
     await vi.waitFor(() => expect(ui.queryByText("Private chats")).toBeNull());
     expect(fetcher).toHaveBeenCalled();
     expect(remoteCsrfHeaders("POST")).toEqual({});
   } finally {
-    cleanup();
+    await act(async () => {
+      cleanup();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
     client.clear();
     takeBootstrapSession();
     setRemoteCsrf();

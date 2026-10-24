@@ -10,7 +10,7 @@ export class ApiError extends Error {
   }
 }
 
-export const api = async <T>(path: string, init?: RequestInit): Promise<T> => {
+const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const response = await fetch("/api" + path, {
     ...init,
     headers: {
@@ -33,6 +33,30 @@ export const api = async <T>(path: string, init?: RequestInit): Promise<T> => {
   }
 
   return response.status === 204 ? (undefined as T) : response.json();
+};
+
+export const api = async <T>(path: string, init?: RequestInit): Promise<T> => {
+  if (!["GET", "HEAD"].includes(init?.method?.toUpperCase() ?? "GET") && !path.endsWith("/prompt"))
+    return request<T>(path, init);
+  const abort = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error("Request timed out; delivery may be unconfirmed."));
+      abort.abort();
+    }, 30_000);
+  });
+  try {
+    return await Promise.race([
+      request<T>(path, {
+        ...init,
+        signal: init?.signal ? AbortSignal.any([init.signal, abort.signal]) : abort.signal,
+      }),
+      timeout,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 };
 
 export const command = <T>(path: string, body?: unknown, method = "POST") =>

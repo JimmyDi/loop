@@ -5,6 +5,7 @@ export const pairingEn = {
   opening: "Opening chats…",
   retry: "Retry",
   unavailable: "Cannot confirm device access. Check the connection and retry.",
+  loadFailed: "Chats could not be loaded. Check the connection and retry to reload Loop.",
   deviceName: "Device name",
   request: "Request access",
   waiting: "Waiting for approval on your computer",

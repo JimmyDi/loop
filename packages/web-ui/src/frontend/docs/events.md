@@ -21,7 +21,7 @@ Drafts preserve the cumulative native assistant message at draftIndex, without a
 
 Each view records a streamId/seq cursor. Duplicate frames are ignored. A sequence gap or changed stream in incremental frames closes the connection and requests a full snapshot. Older snapshots behind the current cursor in the same stream are ignored.
 
-After a network error, mark the view disconnected and reconnect with its cursor after about 1.5 seconds. Parse errors request a fresh snapshot. Existing content remains visible while disconnected, but normal sending and model switching are disabled. See [the SSE service](../../backend/docs/events.md) for replay limits.
+After a network error, mark the view disconnected and reconnect with its cursor using exponential delays from 1.5 to 30 seconds. Messages and heartbeats reset the delay. Parse errors request a fresh snapshot. Existing content remains visible while disconnected, but normal sending and model switching are disabled. See [the SSE service](../../backend/docs/events.md) for replay limits.
 
 Switching sessions closes only the previous view's EventSource. Backend sessions continue, and reopening synchronizes their latest results. If every interactive view disconnects, existing approvals remain pending until a decision, cancellation or session shutdown; reconnecting restores them. New disconnected requests fail closed. Session snapshots/state frames update the open conversation and its header title, including asynchronous title updates that preserve the current operation. See [permissions and approvals](permissions.md).
 
@@ -31,11 +31,13 @@ Before disconnecting, useSessionEvents copies the last connected snapshot's gene
 
 ## List Synchronization
 
+Session and list streams rebuild when the page returns from hidden to visible, a network-online event arrives, or a page is restored from the back/forward cache. Offline events close streams while preserving loaded content and drafts. A visible-page watchdog checks every 15 seconds and rebuilds connections after more than 45 seconds without a message or observable heartbeat. Late callbacks from closed connections are ignored. Session recovery reuses the cursor; unavailable replay falls back to a snapshot. Retry in the session status requests a fresh snapshot. These paths never resubmit commands. Browser connectivity signals cannot distinguish a sleeping computer from a disconnected tunnel; recovery waits until reachable.
+
 AppShell mounts useListEvents once per page, connecting to `/api/workspaces/events`. This subscription stays open when switching sessions. The backend watches all loaded sessions, allowing background generation status and late titles to update every connected page without five-second polling. Project and archive changes use the same stream.
 
 sessions.changed invalidates the affected project's session query and archived chats. projects.changed also invalidates the project list. lists.reset invalidates all three list caches. Active queries refetch; collapsed or unmounted lists remain stale until used. A 50ms window coalesces bursts of notifications; token deltas do not produce list events. This is change-driven batching, not a periodic refresh.
 
-Before invalidating, the hook cancels older in-flight list requests using AbortSignal. Notifications arriving during a refresh are retained for another batch, preventing a stale response from swallowing a newer change. Native EventSource reconnects automatically, and every connection begins with lists.reset. Duplicate incremental frames are ignored; sequence gaps, changed stream identities or malformed JSON force a full list refresh. Unmount closes the connection and cancels pending batches.
+Before invalidating, the hook cancels older in-flight list requests using AbortSignal. Notifications arriving during a refresh are retained for another batch, preventing a stale response from swallowing a newer change. The shared recovery transport reconnects automatically, and every connection begins with lists.reset. Duplicate incremental frames are ignored; sequence gaps, changed stream identities or malformed JSON force a full list refresh. Unmount closes the connection and cancels pending batches.
 
 The list stream does not change the selected conversation or discard unsent drafts on other pages. It covers this Web process's changes; external CLI or filesystem edits require a reload.
 

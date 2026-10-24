@@ -1,12 +1,15 @@
 import { afterEach, expect, test, vi } from "vitest";
 
 afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   vi.resetModules();
 });
 
 test("production install, waiting updates and explicit reload lifecycle", async () => {
+  vi.useFakeTimers();
   vi.stubEnv("PROD", true);
   const events = new EventTarget();
   const document = Object.assign(new EventTarget(), { visibilityState: "visible" });
@@ -24,7 +27,7 @@ test("production install, waiting updates and explicit reload lifecycle", async 
     "window",
     Object.assign(events, {
       isSecureContext: true,
-      location: { reload },
+      location: { reload, replace: vi.fn() },
       matchMedia: () => Object.assign(new EventTarget(), { matches: false }),
     }),
   );
@@ -62,6 +65,10 @@ test("production install, waiting updates and explicit reload lifecycle", async 
   expect(worker.postMessage).toHaveBeenCalledWith({ type: "ACTIVATE_UPDATE" });
   serviceWorker.dispatchEvent(new Event("controllerchange"));
   expect(reload).toHaveBeenCalledTimes(1);
+  serviceWorker.dispatchEvent(new Event("controllerchange"));
+  await vi.advanceTimersByTimeAsync(2_000);
+  expect(reload).toHaveBeenCalledTimes(1);
+  expect(window.location.replace).toHaveBeenCalledExactlyOnceWith("/");
   expect(listener).toHaveBeenCalled();
   unsubscribe();
 });
@@ -112,3 +119,41 @@ test("insecure contexts do not register a worker", async () => {
   client.startPwa();
   expect(client.getPwaState().enabled).toBe(false);
 });
+
+test.each(["unresponsive", "throws"])(
+  "explicit update reloads even when worker activation %s",
+  async (behavior) => {
+    vi.useFakeTimers();
+    vi.stubEnv("PROD", true);
+    const worker = {
+      postMessage: vi.fn(() => {
+        if (behavior === "throws") throw new Error("Worker is redundant");
+      }),
+    };
+    const container = Object.assign(new EventTarget(), {
+      register: vi.fn(async () => Object.assign(new EventTarget(), { waiting: worker })),
+    });
+    const location = { reload: vi.fn(), replace: vi.fn() };
+    vi.stubGlobal(
+      "window",
+      Object.assign(new EventTarget(), {
+        isSecureContext: true,
+        location,
+        matchMedia: () => Object.assign(new EventTarget(), { matches: false }),
+      }),
+    );
+    vi.stubGlobal("navigator", { onLine: true, serviceWorker: container });
+    vi.stubGlobal("document", new EventTarget());
+    const client = await import("./pwa-client");
+    client.startPwa();
+    await Promise.resolve();
+    client.updatePwa();
+    client.updatePwa();
+    expect(worker.postMessage).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(2_250);
+    expect(location.reload).toHaveBeenCalledTimes(1);
+    expect(location.replace).toHaveBeenCalledExactlyOnceWith("/");
+    container.dispatchEvent(new Event("controllerchange"));
+    expect(location.reload).toHaveBeenCalledTimes(1);
+  },
+);

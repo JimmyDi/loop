@@ -122,6 +122,8 @@ export const sessionRoutes =
       if (typeof body.text !== "string" || (!body.text.trim() && !images.length && !files.length))
         throw new HttpError(400, "invalid_text");
       await controller.prepareSkills(requestId, skills as string[], request.signal);
+      if (body.streamId !== undefined && body.streamId !== controller.snapshot.streamId)
+        throw new HttpError(409, "delivery_unknown");
       const runId = controller.prompt(requestId, body.text, images, files, skills as string[]);
 
       return Response.json({ runId }, { status: 202 });

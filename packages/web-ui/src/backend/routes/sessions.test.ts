@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 
@@ -13,6 +13,7 @@ import { createRouter } from "../router";
 import { createLoopBridge } from "../loop";
 import { ProviderSettings } from "../providers/provider-settings";
 import type { ListFrame } from "../../shared/protocol";
+import { sessionRoutes } from "./sessions";
 
 test("HTTP permissions persist per session and an exact file write waits for a live human decision", async () => {
   const root = await mkdtemp(join(import.meta.dirname, ".permissions-http-"));
@@ -389,4 +390,37 @@ test("HTTP pins live in session headers, synchronize lists and survive restart w
     await registry.close();
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("a restart between checking and submitting rejects an obsolete stream before execution", async () => {
+  const controller = {
+    workspaceId: "project",
+    snapshot: { streamId: "new-stream" },
+    prepareSkills: vi.fn(async () => {}),
+    prompt: vi.fn(() => "run"),
+  };
+  const registry = {
+    get: vi.fn(async () => controller),
+    assertAvailable: vi.fn(),
+  } as unknown as SessionRegistry;
+  const route = sessionRoutes(registry);
+  const call = (streamId?: string) => {
+    const url = new URL("http://localhost/api/sessions/example/prompt");
+    return route(
+      new Request(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestId: "request",
+          text: "Synthetic input",
+          streamId,
+        }),
+      }),
+      url,
+    );
+  };
+  await expect(call("old-stream")).rejects.toMatchObject({ status: 409, code: "delivery_unknown" });
+  expect(controller.prompt).not.toHaveBeenCalled();
+  expect((await call("new-stream"))?.status).toBe(202);
+  expect((await call())?.status).toBe(202);
 });

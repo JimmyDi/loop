@@ -91,7 +91,7 @@ test("the HTML form is available before authorization; late checks preserve an a
   }
 });
 
-test("an authorized device can retry a failed chat download without re-pairing", async () => {
+test("an authorized device reloads the root after a failed chat download without re-pairing", async () => {
   const page = await setup("");
   globalThis.fetch = vi.fn(async () =>
     Response.json({ mode: "remote", authorized: true }),
@@ -101,16 +101,39 @@ test("an authorized device can retry a failed chat download without re-pairing",
     .mockRejectedValueOnce(new Error("Synthetic offline"))
     .mockResolvedValueOnce(undefined);
   const dispose = mountRemoteBootstrap(loadChat);
+  const reload = vi.spyOn(page.window.location, "replace").mockImplementation(() => {});
   try {
     await vi.waitFor(() => expect(page.retry.hidden).toBe(false));
-    expect(page.error.textContent).toContain("Cannot confirm");
+    expect(page.error.textContent).toContain("Chats could not be loaded");
     page.retry.click();
-    await vi.waitFor(() => expect(loadChat).toHaveBeenCalledTimes(2));
+    expect(reload).toHaveBeenCalledWith("/");
     expect(page.form.hidden).toBe(true);
   } finally {
     await page.close(dispose);
   }
 });
+
+test.each(["authorization", "chat"])(
+  "stalled %s leaves loading and exposes retry",
+  async (stage) => {
+    const page = await setup("");
+    globalThis.fetch = vi.fn(() =>
+      stage === "authorization"
+        ? new Promise<Response>(() => {})
+        : Promise.resolve(Response.json({ mode: "remote", authorized: true })),
+    ) as typeof fetch;
+    vi.useFakeTimers();
+    const dispose = mountRemoteBootstrap(() => new Promise(() => {}));
+    try {
+      await vi.advanceTimersByTimeAsync(stage === "authorization" ? 10_000 : 30_000);
+      expect(page.retry.hidden).toBe(false);
+      expect(page.error.hidden).toBe(false);
+      expect(page.document.documentElement.hasAttribute("data-pairing")).toBe(true);
+    } finally {
+      await page.close(dispose);
+    }
+  },
+);
 
 test("refresh before submission restores the invitation and authorized entry clears it", async () => {
   const page = await setup();

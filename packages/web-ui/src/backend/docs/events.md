@@ -4,7 +4,7 @@ The server pushes session snapshots and coding-agent events to the browser using
 
 ## Connections and Frames
 
-Connect to `GET /api/sessions/:id/events`. SSE data is a JSON Frame and its id is `streamId:seq`. There is no custom SSE event field; browsers consume messages through onmessage.
+Connect to `GET /api/sessions/:id/events`. SSE data is a JSON Frame and its id is `streamId:seq`. Business frames have no custom SSE event field; browsers consume them through onmessage. Named heartbeat events are transport-only and have no business sequence.
 
 | Frame type | Content |
 | --- | --- |
@@ -27,7 +27,7 @@ The default cache holds at most 256 frames and 4 MiB of serialized data, evictin
 
 ## Connection Lifecycle
 
-SSE comment heartbeats are sent every 15 seconds without a business sequence number. Each connection has a 1 MiB output-buffer target. A client that stops consuming data is disconnected; the frontend reconnects using replay or a snapshot.
+Named heartbeat events with an empty JSON object are sent every 15 seconds without an id or business sequence number. Each connection has a 1 MiB output-buffer target. A client that stops consuming data is disconnected; the frontend reconnects using replay or a snapshot.
 
 SSE responses use text/event-stream with Cache-Control: no-cache, no-transform and X-Accel-Buffering: no to discourage intermediary transformation and buffering. The remote ingress replaces the cache policy with no-store, no-transform, retaining the anti-transformation directive and buffering header. Session updates are forwarded as they arrive rather than waiting for model completion; reconnect uses the same replay/snapshot contract. These headers request streaming behavior but cannot guarantee that every external relay or mobile network honors it.
 
@@ -45,7 +45,7 @@ Connect once per page to `GET /api/workspaces/events` independently of the selec
 
 Incremental notifications contain only workspaceId and cursor metadata, without messages or snapshots. They are published after project registration/rename/removal and archive/restore/deletion operations, on accepted runs, first user messages, command-state changes, run settlement, asynchronous title updates and durable read receipts. All loaded controllers are observed, even without a per-session browser connection. Token deltas and tool events do not trigger list refreshes. Operations that partially complete before failing also notify clients so completed changes remain visible.
 
-Each new connection always receives lists.reset at the current sequence, even if Last-Event-ID is supplied. The list stream retains no replay buffer; clients reload lists to recover missed changes. It shares the transport's 15-second comment heartbeat, backpressure and disconnect cleanup. Heartbeats do not read history or refresh lists. Controller disposal removes its watcher; registry shutdown closes all list connections.
+Each new connection always receives lists.reset at the current sequence, even if Last-Event-ID is supplied. The list stream retains no replay buffer; clients reload lists to recover missed changes. It shares the transport's 15-second named heartbeat, backpressure and disconnect cleanup. Heartbeats do not read history or refresh lists. Controller disposal removes its watcher; registry shutdown closes all list connections.
 
 Notifications cover changes made through this Web process. They do not watch external CLI writes or filesystem edits; reload the page to pick up those changes. This stream synchronizes list queries, not another page's selected session or unsent drafts.
 

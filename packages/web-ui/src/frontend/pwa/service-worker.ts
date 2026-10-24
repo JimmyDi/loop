@@ -9,7 +9,7 @@ type WorkerEvent = {
 export type WorkerScope = {
   location: { origin: string };
   caches: CacheStorage;
-  fetch(request: Request): Promise<Response>;
+  fetch(request: Request, init?: RequestInit): Promise<Response>;
   skipWaiting(): Promise<void>;
   clients: { claim(): Promise<void> };
   addEventListener(type: string, callback: (event: WorkerEvent) => void): void;
@@ -27,6 +27,30 @@ export const installWorker = (scope: WorkerScope, config: WorkerConfig): void =>
   const prefix = "loop-static-v1-";
   const cacheName = prefix + config.version;
   const assets = new Set(config.assets);
+  const navigationResponse = async (request: Request): Promise<Response> => {
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const timeout = new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error("Navigation timed out"));
+          controller.abort();
+        }, 15_000);
+      });
+      const response = await Promise.race([
+        scope.fetch(request, { signal: controller.signal }),
+        timeout,
+      ]);
+      if (response.status !== 503) return response;
+    } catch {
+      // A generic recovery page is safe even when the origin cannot be reached.
+    } finally {
+      clearTimeout(timer);
+    }
+    const cache = await scope.caches.open(cacheName);
+    return (await cache.match("/offline.html")) ?? new Response(null, { status: 503 });
+  };
+
   const usable = (request: Request, response: Response): boolean => {
     if (response.status !== 200 || response.redirected || response.type === "opaque") return false;
     const path = new URL(request.url).pathname;
@@ -84,12 +108,7 @@ export const installWorker = (scope: WorkerScope, config: WorkerConfig): void =>
       // Private relay navigation can leave this origin for an interactive sign-in.
       // Preserve the browser's navigation and cookie context throughout that flow.
       if (url.hostname.endsWith(".devtunnels.ms")) return;
-      event.respondWith(
-        scope.fetch(request).catch(async () => {
-          const cache = await scope.caches.open(cacheName);
-          return (await cache.match("/offline.html")) ?? new Response(null, { status: 503 });
-        }),
-      );
+      event.respondWith(navigationResponse(request));
       return;
     }
     if (url.search || !assets.has(url.pathname)) return;

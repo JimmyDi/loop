@@ -81,6 +81,7 @@ export const zh = {
   welcome: "想要构建什么？",
   welcomeDetail: "选择项目，与 Loop 开始对话。",
   noSessions: "还没有会话",
+  loadingMoreMessages: "正在加载更多消息…",
   emptySession: "提出问题，或描述想要做的改动。",
   send: "发送消息",
   stop: "停止生成",

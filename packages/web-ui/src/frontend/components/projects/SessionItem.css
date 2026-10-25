@@ -132,8 +132,12 @@
     pointer-events: auto;
   }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .session-item-pin.action-button {
     display: none;
   }
+}
+
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .session-item-open { font-size: 16px; }
 }

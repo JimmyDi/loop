@@ -16,6 +16,8 @@ Automatic compaction uses the same timeline status during the existing prompt ru
 
 The timeline displays completed history and the current streaming draft. Drafts replace content at a message position; each text delta does not become a separate history entry.
 
+Opening a session renders only its latest three user rounds, including their assistant replies, tool activity and streaming draft. Scrolling upward near the top reveals three earlier rounds at a time until the whole conversation is rendered. Prepending history preserves the viewport position; newly arriving messages remain visible without hiding already revealed history. Switching sessions resets the rendered window. The server sends only the latest three rounds in initial and reconnect snapshots. Earlier rounds load from a same-origin history endpoint, three at a time; failed page requests expose Retry. Loaded history is preserved across live state updates, with absolute message indexes for streaming, timing, Skills and read receipts. A new server stream discards stale pages. The backend/model instance still holds the full conversation.
+
 User messages use compact spacing before assistant text, tool calls or the Looping indicator. The timestamp and copy controls keep their reserved space, so revealing them does not shift the conversation.
 
 ## Supported Content
@@ -109,3 +111,9 @@ Complete snapshots come from the server. The browser maintains display state onl
 - [useMermaid](../hooks/useMermaid.ts) / [streaming, theme and lifecycle tests](../hooks/useMermaid.test.tsx).
 - [useAutoScroll](../hooks/useAutoScroll.ts) / [tests](../hooks/useAutoScroll.test.tsx).
 - [Tool projection](../../shared/tool-projection.ts) / [tests](../../shared/tool-projection.test.ts).
+
+While fetching earlier history, the conversation shows a spinner and localized loading status at the top of the viewport. The indicator overlays the list without changing message positions and disappears after success or failure. Scrolling pauses during the request; after prepending, the first visible message stays at the same viewport position before scrolling resumes. Existing assistant messages retain their component identity and expanded tool state through pagination. Reduced-motion preferences disable its rotation.
+
+Local file links within a sentence remain inline download links so surrounding text stays complete. Standalone local file links render as download or media cards. Image Markdown continues to render in the thumbnail gallery.
+
+History requests use high fetch priority. During paging, thumbnail image sources are detached and restored after the page is rendered; thumbnails use lazy, low-priority fetching and asynchronous decoding. Uploaded images and video players reserve preview space so media arrival does not resize earlier history. Video/audio retain preload=none and load playback data on user interaction. Browser networking ultimately controls cancellation and request scheduling.

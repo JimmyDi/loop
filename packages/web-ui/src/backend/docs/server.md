@@ -32,7 +32,7 @@ startServer asynchronously creates project storage, provider settings, a session
 
 Safari can retain icons from a previous application hosted at the same address, separately from ordinary page caching. A correct icon response does not prove that an existing Safari tab or bookmark has refreshed. After changing icon routes, restart the service and reload the page. Use a private window to compare before clearing browser data; clearing website storage can also remove local drafts and preferences. Existing pinned tabs or bookmarks may retain their own icon until recreated.
 
-Development mode enables Vite React/CSS HMR. `pnpm dev` runs a separate `tsx watch` process that restarts the Node backend when its loaded source files change. Frontend source is excluded from backend watching and continues to use Vite HMR. The backend runs without Node's `--watch`, avoiding dependency-tracking messages on the Codemode Worker channel. The watcher sends SIGTERM and waits for the old backend to exit before starting the next one; a backend that does not exit within five seconds is forcibly stopped. Ctrl+C stops the watcher and backend. A newly updated frontend connected to an old backend may receive 404 for new APIs.
+Development mode enables Vite React/CSS HMR. The pnpm dev command runs a stable gateway with a separate business worker. Backend, shared and core source edits restart the worker while the gateway retains its local listener, Tunnel and device authorization. Frontend changes use local HMR and rebuild remote assets. Worker replacement interrupts active requests and generation; browsers recover using their event cursors. See [development remote access](remote-access.md#development-restarts).
 
 Saving model settings uses the running API and requires no restart. This differs from updating backend source. See [provider configuration](providers.md).
 
@@ -53,8 +53,12 @@ This is a local single-user service with no public listening, login system or ba
 ## Source and Tests
 
 - [server.ts](../server.ts), [main.ts](../../main.ts) / [startup tests](../../main.test.ts).
-- [Development watcher regression](../../../../../scripts/dev.test.ts) covers backend restarts, frontend exclusions, Codemode calls and shutdown.
+- [Development watcher regression](../../../dev.test.ts) covers backend restarts, frontend exclusions, Codemode calls and shutdown.
 - [Development frontend](../http/development-frontend.ts) / [tests](../http/development-frontend.test.ts) cover failed configuration, static fallback, streaming continuity and recovery.
 - [Argument parsing](../startup/arguments.ts) / [tests](../startup/arguments.test.ts).
 - [Browser opening](../startup/open-browser.ts) / [tests](../startup/open-browser.test.ts).
 - [Session registry](../session-registry.ts) / [tests](../session-registry.test.ts).
+
+## Paged session history
+
+GET /api/sessions/:id and session event snapshots include the latest three user rounds and history metadata (start, total, userStart). Message and timing indexes in events remain absolute. GET /api/sessions/:id/history?before=<message-index>&streamId=<stream-id> returns up to three preceding rounds with start, end, total, userStart and messages. Invalid boundaries return 400 invalid_history_cursor; a replaced server stream returns 409 history_changed. Authenticated remote devices may read this endpoint under the existing device and origin policy. The route pages the live controller history so pending saves and active messages remain consistent; core SessionManager.readHistory separately supports indexed disk reads. Pagination does not replay commands or reduce the model's context.

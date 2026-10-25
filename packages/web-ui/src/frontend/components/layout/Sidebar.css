@@ -112,13 +112,13 @@
   display: none;
   margin-left: auto;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .sidebar-close {
     display: inline-flex;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .sidebar {
     padding-top: max(16px, env(safe-area-inset-top));
     padding-bottom: max(8px, env(safe-area-inset-bottom));

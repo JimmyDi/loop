@@ -54,3 +54,7 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .session-name-button, .session-name-input { font-size: 16px; }
+}

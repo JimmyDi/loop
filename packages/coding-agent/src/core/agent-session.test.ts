@@ -1104,7 +1104,7 @@ test("save failure retains pending history, blocks new work and flush never reru
     expect(session.state.unread).toBe(true);
     expect(manager.getSystemPromptCheckpoints()).toHaveLength(1);
     expect(session.state.messages).toHaveLength(2);
-    expect(await readFile(join(store + "-old", manager.getSessionId()) + ".jsonl", "utf8")).toBe(
+    expect(await readFile(join(store + "-old", manager.getSessionId(), "meta.json"), "utf8")).toBe(
       before,
     );
     await expect(session.prompt("blocked")).rejects.toThrow("Pending session save");

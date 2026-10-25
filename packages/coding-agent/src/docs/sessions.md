@@ -7,7 +7,7 @@ A coding session keeps conversation history across prompts. Each prompt creates 
 ```bash
 pnpm run coding-agent
 pnpm run coding-agent --continue
-pnpm run coding-agent --session /path/to/session.jsonl
+pnpm run coding-agent --session /path/to/session-id/meta.json
 pnpm run coding-agent --no-session
 ```
 
@@ -34,7 +34,7 @@ Malformed session files reject rather than being silently repaired or skipped. A
 
 Read `session.state.messages` after finalization for user, assistant, and matching tool-result messages. It returns the full history, not just this prompt's additions. Live streaming drafts remain separate; explicit Stop retains visible partial text as an aborted assistant history entry without unfinished tools or thinking, and neither system prompt nor tool declarations accumulate as conversation entries.
 
-The manager commits one full snapshot at the end of each prompt, including model errors and cancellation. It writes a temporary sibling and renames it over the session file. A `message_end` event does not mean that snapshot has been persisted.
+The manager commits one full snapshot at the end of each prompt, including model errors and cancellation. New storage appends message bytes, then atomically publishes metadata describing the committed range. Metadata-only saves leave messages and indexes unchanged. Legacy JSONL sessions migrate on explicit open; see [session storage](session-format.md). A `message_end` event does not mean that snapshot has been persisted.
 
 New completed output also sets header unread to true; runs without output and repeated saves preserve it. Read session.state.unread or manager.unread for the current flag, and use manager.markRead(messageCount) after viewing completed output. It preserves timestamps and rejects pending saves; hosts can publish their own UI notifications after success. See [session format](session-format.md) for stale-receipt handling.
 
@@ -52,7 +52,7 @@ The prompt_timing event publishes start and finish snapshots. SessionManager.get
 
 ## Save failure
 
-If storage fails, the old file remains intact and the attempted snapshot stays in memory. `state.hasPendingSave` becomes true; new prompts, model changes, session replacement, and disposal reject until saving succeeds.
+If storage fails before metadata publication, the previous committed range remains readable and the attempted snapshot stays in memory. An uncommitted tail is ignored and truncated on retry. `state.hasPendingSave` becomes true; new prompts, model changes, session replacement, and disposal reject until saving succeeds.
 
 Keep the live session, repair the directory or storage issue, and call `await session.flush()`. This writes the retained snapshot without running tools or requesting the model again. If execution and saving both fail, `prompt()` rejects with an `AggregateError` containing both failures.
 

@@ -47,9 +47,17 @@ export class SessionArchive {
             );
             if (restore) restoreTraces.push(restore);
           }
-          const staged = join(staging, record.id + ".jsonl");
-          await rename(record.path, staged);
-          moved.push({ original: record.path, staged });
+          const original =
+            basename(record.path) === "meta.json" ? dirname(record.path) : record.path;
+          const staged = join(staging, record.id);
+          await rename(original, staged);
+          moved.push({ original, staged });
+          const legacy = join(this.sessionDir, record.id + ".jsonl");
+          if (original !== legacy && existsSync(legacy)) {
+            const backup = join(staging, record.id + ".jsonl");
+            await rename(legacy, backup);
+            moved.push({ original: legacy, staged: backup });
+          }
         }
         for (const id of selected) entries.delete(id);
         await atomicWrite(this.file, JSON.stringify([...entries]) + "\n");

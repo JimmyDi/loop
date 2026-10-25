@@ -382,9 +382,9 @@ test("failed checkpoint save can be flushed without generating the summary again
     expect(manager.messages).toEqual(history);
     expect(manager.hasPendingSave).toBe(true);
     expect(manager.getCompactions()).toHaveLength(1);
-    expect(await readFile(join(storage + "-old", manager.getSessionId() + ".jsonl"), "utf8")).toBe(
-      before,
-    );
+    expect(
+      await readFile(join(storage + "-old", manager.getSessionId(), "meta.json"), "utf8"),
+    ).toBe(before);
     await rm(storage);
     await rename(storage + "-old", storage);
     await manager.flush();

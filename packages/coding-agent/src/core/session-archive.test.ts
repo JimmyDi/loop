@@ -1,5 +1,5 @@
-import { join } from "node:path";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { expect, test } from "vitest";
 import { TraceRecorder } from "@loop/telemetry";
@@ -73,6 +73,12 @@ test("delete restores staged history when updating archive metadata fails", asyn
     const traceDir = join(root, "traces");
     const archive = new SessionArchive(root, traceDir);
     const id = session.getSessionId();
+    const directory = dirname(session.sessionFile!);
+    const files = ["meta.json", "messages.jsonl", "index.json"];
+    const saved = await Promise.all(files.map((name) => readFile(join(directory, name), "utf8")));
+    const legacy = join(root, id + ".jsonl");
+    const backup = JSON.stringify(session.getHeader()) + "\n";
+    await writeFile(legacy, backup);
     const recorder = await TraceRecorder.open(join(traceDir, id), id);
     recorder.record({ type: "synthetic.event" });
     await recorder.close();
@@ -92,6 +98,11 @@ test("delete restores staged history when updating archive metadata fails", asyn
     }
     expect(await existsSync(session.sessionFile!)).toBe(true);
     expect((await SessionManager.open(session.sessionFile!)).getSessionId()).toBe(id);
+    expect(await Promise.all(files.map((name) => readFile(join(directory, name), "utf8")))).toEqual(
+      saved,
+    );
+    expect(await readFile(legacy, "utf8")).toBe(backup);
+    expect((await readdir(root)).some((name) => name.startsWith(".delete-"))).toBe(false);
     expect(await readFile(join(traceDir, id, "events-000001.jsonl"), "utf8")).toBe(history);
     expect(existsSync(join(traceDir, id, "writer.lock"))).toBe(false);
   } finally {
@@ -161,6 +172,69 @@ test("active trace writers block deletion and restore earlier staged history and
     expect(existsSync(join(traceDir, secondId))).toBe(false);
   } finally {
     await active?.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("archive and restore preserve all split files across subsequent history saves", async () => {
+  const root = await mkdtemp(join(import.meta.dirname, ".archive-split-test-"));
+  try {
+    const manager = await SessionManager.create(root, root);
+    const id = manager.getSessionId();
+    const directory = dirname(manager.sessionFile!);
+    const archive = new SessionArchive(root);
+    const files = ["meta.json", "messages.jsonl", "index.json"];
+    const before = await Promise.all(files.map((name) => readFile(join(directory, name), "utf8")));
+    await archive.set([id], true);
+    expect(await Promise.all(files.map((name) => readFile(join(directory, name), "utf8")))).toEqual(
+      before,
+    );
+    const messages = [{ role: "user" as const, content: "Synthetic request", timestamp: 1 }];
+    await manager.commit(messages);
+    expect(await archive.list()).toEqual(new Set([id]));
+    const saved = await Promise.all(files.map((name) => readFile(join(directory, name), "utf8")));
+    await archive.set([id], false);
+    expect(await archive.list()).toEqual(new Set());
+    expect(await Promise.all(files.map((name) => readFile(join(directory, name), "utf8")))).toEqual(
+      saved,
+    );
+    const restored = await SessionManager.open(manager.sessionFile!);
+    expect(restored.messages).toEqual(messages);
+    expect((await restored.readHistory()).messages).toEqual(messages);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("deletion removes split directories and migration backups without resurrecting legacy history", async () => {
+  const root = await mkdtemp(join(import.meta.dirname, ".archive-migrated-test-"));
+  try {
+    for (const archivedOnly of [true, false]) {
+      const memory = SessionManager.inMemory(root);
+      const id = memory.getSessionId();
+      const legacy = join(root, id + ".jsonl");
+      const messages = [{ role: "user" as const, content: "Synthetic request", timestamp: 1 }];
+      await writeFile(
+        legacy,
+        [memory.getHeader(), ...messages].map((row) => JSON.stringify(row)).join("\n") + "\n",
+      );
+      const manager = await SessionManager.open(legacy);
+      const directory = dirname(manager.sessionFile!);
+      expect((await readdir(directory)).sort()).toEqual([
+        "index.json",
+        "messages.jsonl",
+        "meta.json",
+      ]);
+      const archive = new SessionArchive(root);
+      if (archivedOnly) await archive.set([id], true);
+      await archive.delete(root, [id], { archivedOnly });
+      expect(existsSync(directory)).toBe(false);
+      expect(existsSync(legacy)).toBe(false);
+      expect(await archive.list()).toEqual(new Set());
+      expect(await SessionManager.list(root, root)).toEqual([]);
+      expect((await readdir(root)).some((name) => name.startsWith(".delete-"))).toBe(false);
+    }
+  } finally {
     await rm(root, { recursive: true, force: true });
   }
 });

@@ -8,12 +8,14 @@ import { PromptDuration } from "./PromptDuration";
 
 export const AssistantTurn = ({
   messages,
+  offset = 0,
   tools,
   draftIndex,
   running,
   timing,
 }: {
   messages: TurnMessage[];
+  offset?: number;
   tools: Record<string, ToolView>;
   draftIndex?: number;
   running: boolean;
@@ -42,12 +44,12 @@ export const AssistantTurn = ({
         const { index, message } = entry;
         if (message.role === "toolResult")
           return tools[message.toolCallId] ? (
-            <ToolCard key={index} tool={tools[message.toolCallId]!} />
+            <ToolCard key={index + offset} tool={tools[message.toolCallId]!} />
           ) : null;
 
         return (
           <AssistantMessage
-            key={index}
+            key={index + offset}
             message={message}
             timing={!completed?.stopped && entry === final ? completed : undefined}
             hideError={!!completed?.stopped}

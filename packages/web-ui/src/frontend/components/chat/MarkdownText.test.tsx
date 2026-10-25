@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
 import { vi, expect, test } from "vitest";
-import { Window } from "happy-dom";
 import { JSDOM } from "jsdom";
 
 import * as renderer from "../../lib/mermaid";
@@ -50,7 +49,7 @@ test("Mermaid preview is borderless and its copy icon appears on hover, focus or
 });
 
 test("MarkdownText renders safe markup and a copy control", async () => {
-  const window = new Window();
+  const { window } = new JSDOM("<!doctype html><html><body></body></html>");
   const previous = { window: globalThis.window, document: globalThis.document };
 
   Object.assign(globalThis, { window, document: window.document });
@@ -76,7 +75,7 @@ test("MarkdownText renders safe markup and a copy control", async () => {
     expect(image).toContain("/api/sessions/example/images?path=shots%2Fresult.png");
     const files = renderToStaticMarkup(
       <MessageImageContext value="example">
-        <MarkdownText text="[Movie](artifacts/movie.mp4)\n\n[Report](artifacts/report.pdf)" />
+        <MarkdownText text={"[Movie](artifacts/movie.mp4)\n\n[Report](artifacts/report.pdf)"} />
       </MessageImageContext>,
     );
     expect(files).toContain("<video");
@@ -85,7 +84,7 @@ test("MarkdownText renders safe markup and a copy control", async () => {
     expect(files).toContain('download="report.pdf"');
   } finally {
     Object.assign(globalThis, previous);
-    await window.happyDOM.close();
+    window.close();
   }
 });
 
@@ -223,6 +222,39 @@ test("MarkdownText renders Mermaid blocks without changing code or response copy
     await i18n.changeLanguage(language);
     Object.assign(globalThis, { window: previous.window, document: previous.document });
     if (previous.navigator) Object.defineProperty(globalThis, "navigator", previous.navigator);
+    window.close();
+  }
+});
+
+test("inline image file links stay in their sentence without duplicate download cards", async () => {
+  const { window } = new JSDOM("<!doctype html><html><body></body></html>");
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  try {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { MarkdownText } = await import("./MarkdownText");
+    const { MessageImageContext } = await import("../../lib/message-image-context");
+    const html = renderToStaticMarkup(
+      <MessageImageContext value="example">
+        <MarkdownText
+          text={
+            "Preview ready. You can [open the image](shots/result.png).\n\n![Preview](shots/result.png)"
+          }
+        />
+      </MessageImageContext>,
+    );
+    const root = window.document.createElement("div");
+    root.innerHTML = html;
+    expect(root.querySelector(".markdown-text")?.textContent?.trim()).toBe(
+      "Preview ready. You can open the image.",
+    );
+    const link = root.querySelector(".markdown-text a")!;
+    expect(link.getAttribute("href")).toBe("/api/sessions/example/files?path=shots%2Fresult.png");
+    expect(link.hasAttribute("download")).toBe(true);
+    expect(root.querySelectorAll(".message-file")).toHaveLength(0);
+    expect(root.querySelectorAll("img")).toHaveLength(1);
+  } finally {
+    Object.assign(globalThis, previous);
     window.close();
   }
 });

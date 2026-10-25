@@ -4,9 +4,19 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- coding-agent: persist sessions in version-3 directories containing meta.json, messages.jsonl and index.json. Explicitly opening a valid legacy session migrates it and retains its original JSONL backup; listing alone does not migrate. Older Loop versions cannot read new history. Session file accessors now identify meta.json; use SessionManager for reads and the collection accessor for session creation. See [session storage](packages/coding-agent/src/docs/session-format.md).
+
 ### Added
 
-- Web UI: turn assistant Markdown links to local files into download cards, with native audio/video controls and PDF previews in a new browser tab. Serve session-referenced project and temporary files up to 512 MiB with device authentication, streaming and byte-range seeking; force other file types to download. Playback and PDF display depend on browser support.
+- Web UI: add a folder-icon Reveal action to the local session context menu, opening the saved session’s storage folder in the host file manager.
+
+- coding-agent: add indexed three-round history reads, append message bytes on ordinary saves, commit metadata separately, recover uncommitted tails and rebuild missing or stale indexes. Use writable positioned file handles for append and truncation on Windows. Preserve full-history model execution. Archive and restore retain all three storage files and legacy backups; deletion removes complete session directories, migration backups and traces together, restoring staged files if the archive update fails.
+
+- Web UI: load only the latest three conversation rounds in HTTP and event snapshots, fetching three earlier rounds per upward scroll with viewport preservation, retry and stream-change protection. Show a localized spinner and pause scrolling while fetching earlier messages; restore the visible message position before resuming, and preserve assistant component identity and tool expansion across prepends. Prioritize history requests, pause thumbnail sources during paging, decode images asynchronously and reserve media space to reduce loading contention and layout shifts. Keep live messages, timing and read receipts aligned with absolute history indexes; switching sessions resets the loaded window.
+
+- Web UI: preserve inline local-file links within their sentences as downloads, and turn standalone assistant Markdown links to local files into download cards, with native audio/video controls and PDF previews in a new browser tab. Serve session-referenced project and temporary files up to 512 MiB with device authentication, streaming and byte-range seeking; force other file types to download. Playback and PDF display depend on browser support.
 
 - Web UI: add installable production PWA metadata and icons, home-screen guidance, optional browser installation, explicit update/reload prompts and a themed offline page. Cache only validated static build assets; keep navigation, chat APIs, authentication and SSE online. Leave document navigation on private Dev Tunnels addresses to the browser so refreshes and Microsoft sign-in redirects retain the native navigation context; generic offline navigation remains available on other origins. Improve mobile safe areas, touch controls, scrollable approvals, wrapping composer controls and drawer focus isolation. Touch-keyboard Enter inserts a newline, with Send or Ctrl/Command+Enter to submit; switching chats no longer opens the touch keyboard automatically. See [mobile layout and PWA](packages/web-ui/src/frontend/docs/pwa.md).
 
@@ -18,7 +28,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Web UI: bound remote startup authorization checks and chat downloads, exposing a retry action instead of waiting indefinitely. Reload the root page after a failed module download and provide an HTML fallback when startup scripts stall. Bound explicit PWA update activation with a reload fallback; on origins other than private Dev Tunnels, show the generic recovery page on navigation timeout or HTTP 503 as well as network failure. Preserve native private-tunnel navigation and authentication responses.
 
-- Web UI: remove the browser's brief touch-tap highlight on mobile and prevent long-press text selection across navigation, session lists, menus and action controls. Hide inline session pin buttons below 768px while retaining pin actions in the context menu. Retain keyboard focus indicators and selection in messages, code, file contents, error details and text inputs.
+- Web UI: remove the browser's brief touch-tap highlight on mobile and prevent long-press text selection across navigation, session lists, menus and action controls. Use the mobile layout below 768px and on coarse-pointer touch viewports up to 1024px, keeping portrait phones and unfolded compact foldables consistent across the sidebar, composer and Settings. Use a fixed mobile viewport and 16px base, message, session title and tool text, a larger composer and header, 44px toolbar controls and keyboard-resizing viewport metadata. Hide inline session pin buttons in mobile layouts while retaining pin actions in the context menu. Retain keyboard focus indicators and selection in messages, code, file contents, error details and text inputs.
 
 - Web UI: recover session and list streams after foreground return, network restoration and stale heartbeats, using bounded backoff and existing cursor replay/snapshots without replaying commands. Preserve loaded chats on transient authorization-check failures, show offline/retry guidance, and retain unconfirmed prompt identities after timeouts or HTTP 5xx. Delay reconnect guidance for two seconds so ordinary session switches do not flash warnings; show offline guidance immediately. Reject browser prompt submissions targeting an obsolete server stream before execution.
 

@@ -48,8 +48,18 @@ test("row archives immediately; context menu preserves selection and only delete
     );
     const row = ui.getByTitle("Example");
     fireEvent.contextMenu(row, { clientX: 200, clientY: 300 });
-    expect(ui.getAllByRole("menuitem")).toHaveLength(4);
+    expect(ui.getAllByRole("menuitem")).toHaveLength(5);
     expect(useWorkspace.getState().active?.id).toBe("other");
+    fireEvent.click(ui.getByRole("menuitem", { name: "Reveal" }));
+    await waitFor(() => expect(calls).toEqual([["/api/sessions/s/reveal", "POST", undefined]]));
+    await waitFor(() =>
+      expect(
+        (ui.getByRole("button", { name: "Archive Example" }) as HTMLButtonElement).disabled,
+      ).toBe(false),
+    );
+    calls.length = 0;
+    expect(useWorkspace.getState().active?.id).toBe("other");
+    fireEvent.contextMenu(row);
     fireEvent.click(ui.getByRole("menuitem", { name: "Rename" }));
     expect(ui.getByRole("textbox")).toBeTruthy();
     expect(ui.queryByRole("dialog")).toBeNull();

@@ -25,18 +25,33 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .session-header {
     padding: 5px 12px;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .session-header {
     padding: max(5px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 5px max(12px, env(safe-area-inset-left));
   }
   .session-header .action-button {
     min-width: 44px;
     min-height: 44px;
+  }
+}
+
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .session-name-placeholder { font-size: 16px; }
+}
+
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .session-header {
+    min-height: 56px;
+  }
+  .session-header .session-folder {
+    width: 44px;
+    height: 44px;
+    padding: 10px;
   }
 }

@@ -1,6 +1,8 @@
+import { revealSession } from "./session-reveal";
 import { queueRoute } from "./session-queue";
+import { pageSnapshot } from "../../shared/session-history";
 import { readBody, requiredString } from "../http/input";
-import { eventResponse } from "../http/sse";
+import { historyRoute } from "./session-history";
 import { HttpError } from "../http/errors";
 import type { SessionRegistry } from "../session-registry";
 import { isModelEffort, isPermissionPreset } from "@loop/coding-agent";
@@ -35,12 +37,12 @@ export const sessionRoutes =
         const body = await readBody(request);
         const controller = await registry.create(requiredString(body, "workspaceId"));
 
-        return Response.json(controller.snapshot, { status: 201 });
+        return Response.json(pageSnapshot(controller.snapshot), { status: 201 });
       }
     }
 
     const match = url.pathname.match(
-      /^\/api\/sessions\/([^/]+)(?:\/(prompt|queue|resume|abort|flush|compact|model|events|title|permission|approvals|read|pin)(?:\/([^/]+))?)?$/,
+      /^\/api\/sessions\/([^/]+)(?:\/(reveal|history|prompt|queue|resume|abort|flush|compact|model|events|title|permission|approvals|read|pin)(?:\/([^/]+))?)?$/,
     );
 
     if (!match) return;
@@ -82,15 +84,18 @@ export const sessionRoutes =
 
     registry.assertAvailable(controller.workspaceId);
 
+    if (action === "reveal") {
+      if (method !== "POST") throw new HttpError(405, "method_not_allowed");
+      await revealSession(controller.session.sessionManager.getSessionFile());
+      return new Response(null, { status: 204 });
+    }
+
     if (action === "queue" || action === "resume") return queueRoute(request, action, controller);
 
-    if (!action && method === "GET") return Response.json(controller.snapshot);
+    if (!action && method === "GET") return Response.json(pageSnapshot(controller.snapshot));
 
-    if (action === "events" && method === "GET")
-      return eventResponse(
-        url.searchParams.get("approvals") === "1" ? controller.approvals : controller.events,
-        request,
-      );
+    const history = historyRoute(request, url, action, controller);
+    if (history) return history;
 
     if (action === "approvals" && method === "POST") {
       if (
@@ -100,7 +105,7 @@ export const sessionRoutes =
       )
         throw new HttpError(400, "invalid_approval_decision");
       controller.approvals.respond(requestId!, body.decision);
-      return Response.json(controller.snapshot);
+      return Response.json(pageSnapshot(controller.snapshot));
     }
 
     if (action === "prompt" && method === "POST") {
@@ -166,5 +171,5 @@ export const sessionRoutes =
       );
     } else throw new HttpError(405, "method_not_allowed");
 
-    return Response.json(controller.snapshot);
+    return Response.json(pageSnapshot(controller.snapshot));
   };

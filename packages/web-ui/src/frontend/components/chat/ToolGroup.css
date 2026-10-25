@@ -113,7 +113,7 @@
   pointer-events: none;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .tool-group-calls {
     padding-left: 14px;
   }
@@ -142,4 +142,8 @@
   animation: none;
   background: none;
   color: var(--ink);
+}
+
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .tool-group { font-size: 16px; }
 }

@@ -105,7 +105,11 @@ export const writeSessionFiles = async (
   const generation = digest(text);
   let start = previous?.start ?? 0;
   if (previous?.generation !== generation) {
-    const file = await open(join(directory, "messages.jsonl"), "a+", 0o600);
+    const messagesPath = join(directory, "messages.jsonl");
+    const file = await open(messagesPath, "r+").catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== "ENOENT") throw error;
+      return open(messagesPath, "w+", 0o600);
+    });
     try {
       const committedEnd = previous ? previous.start + previous.bytes : 0;
       await file.truncate(committedEnd);
@@ -119,7 +123,18 @@ export const writeSessionFiles = async (
         if (text.startsWith(old)) suffix = text.slice(old.length);
         else start = committedEnd;
       }
-      await file.writeFile(suffix);
+      const bytes = Buffer.from(suffix);
+      let written = 0;
+      while (written < bytes.length) {
+        const result = await file.write(
+          bytes,
+          written,
+          bytes.length - written,
+          committedEnd + written,
+        );
+        if (!result.bytesWritten) throw new Error("Incomplete session write");
+        written += result.bytesWritten;
+      }
       await file.sync();
     } finally {
       await file.close();

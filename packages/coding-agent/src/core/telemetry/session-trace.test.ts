@@ -142,7 +142,8 @@ test("core records idle changes, inputs, checkpoints and title calls without cha
           const text = JSON.parse(
             (await readFile(manager.getSessionFile()!, "utf8")).split("\n")[0],
           );
-          expect(text.version).toBe(2);
+          expect(text.version).toBe(3);
+          expect(text.header.version).toBe(2);
           expect(text).not.toHaveProperty("trace");
         }
       } finally {

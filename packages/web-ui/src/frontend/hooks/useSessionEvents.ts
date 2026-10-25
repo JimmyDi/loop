@@ -12,6 +12,7 @@ export const useSessionEvents = (id?: string): void => {
   const revision = useSessions((state) => (id ? state.views[id]?.revision : undefined));
   useEffect(() => {
     if (!id) return;
+    useSessions.getState().latest(id);
 
     let disposed = false;
     const disconnect = () => {

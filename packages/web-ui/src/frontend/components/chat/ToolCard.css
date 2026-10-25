@@ -92,7 +92,7 @@
 .tool-card[data-status="error"] .tool-value:last-child pre {
   border-color: var(--error-line);
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .tool-content {
     grid-template-columns: minmax(0, 1fr);
   }

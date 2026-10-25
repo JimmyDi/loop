@@ -33,6 +33,24 @@ test("MessageTimeline renders the session state without unsupported controls", (
   expect(html).toContain("message-timeline");
 });
 
+test("opening long history renders the latest three user rounds", () => {
+  const messages: Message[] = Array.from({ length: 8 }, (_, index) => ({
+    role: "user",
+    content: `History request ${index}`,
+    timestamp: index,
+  }));
+  const html = renderToStaticMarkup(
+    <MessageTimeline
+      snapshot={{ ...snapshot, operation: "idle", state: { ...snapshot.state, messages } }}
+      connected
+    />,
+  );
+  expect(html).not.toContain("History request 4");
+  expect(html).toContain("History request 5");
+  expect(html).toContain("History request 6");
+  expect(html).toContain("History request 7");
+});
+
 test("sending aligns the actual user message and keeps it steady through snapshot updates", async () => {
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };

@@ -197,7 +197,7 @@ test("new Web sessions remain drafts until the first user message, appear during
     expect(await (await call("/sessions/" + first.sessionId + "/prompt", body)).json()).toEqual(
       await accepted.json(),
     );
-    expect(await existsSync(join(getSessionDir(root, root), first.sessionId + ".jsonl"))).toBe(
+    expect(await existsSync(join(getSessionDir(root, root), first.sessionId, "meta.json"))).toBe(
       false,
     );
     const beforeAbort = changes.length;
@@ -206,7 +206,7 @@ test("new Web sessions remain drafts until the first user message, appear during
     expect((await (await call(endpoint)).json())[0].isGenerating).toBe(false);
     expect((await (await call(endpoint)).json())[0].unread).toBe(false);
     expect(otherPage).toEqual(changes);
-    expect(await existsSync(join(getSessionDir(root, root), first.sessionId + ".jsonl"))).toBe(
+    expect(await existsSync(join(getSessionDir(root, root), first.sessionId, "meta.json"))).toBe(
       true,
     );
     await registry.close();

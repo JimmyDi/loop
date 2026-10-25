@@ -156,5 +156,10 @@ export const useAutoScroll = ({
     return () => observer.disconnect();
   }, []);
 
-  return { ref, contentRef, userMessageRef, endRef, onScroll, atBottom, jump };
+  const releaseAnchor = () => {
+    followingUser.current = false;
+    bottomPinned.current = false;
+  };
+
+  return { ref, contentRef, userMessageRef, endRef, onScroll, atBottom, jump, releaseAnchor };
 };

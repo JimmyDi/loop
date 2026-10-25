@@ -1,0 +1,4 @@
+.message-thumbnail {
+  display: block;
+  object-fit: contain;
+}

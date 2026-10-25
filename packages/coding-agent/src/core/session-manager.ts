@@ -1,10 +1,15 @@
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { realpathSync } from "node:fs";
 import { readFile, readdir, stat } from "node:fs/promises";
 import type { Message } from "@earendil-works/pi-ai";
 
 import { getSessionDir } from "../config";
-import { atomicWrite } from "../utils/atomic-write";
+import {
+  readSessionFiles,
+  writeSessionFiles,
+  migrateSessionFiles,
+  readHistoryPage,
+} from "./storage/session-files";
 import { validateMessages } from "./messages";
 import { isModelEffort } from "./models/model-effort";
 import { fallbackTitle, titleInputs, validTitle } from "./titles/title-text";
@@ -91,7 +96,7 @@ export class SessionManager {
     const memory = SessionManager.inMemory(cwd);
     const manager = new SessionManager(
       memory.data,
-      join(resolve(sessionDir), memory.data.header.id + ".jsonl"),
+      join(resolve(sessionDir), memory.data.header.id, "meta.json"),
     );
 
     await manager.write(manager.data);
@@ -103,13 +108,28 @@ export class SessionManager {
     const memory = SessionManager.inMemory(cwd);
     return new SessionManager(
       memory.data,
-      join(resolve(sessionDir), memory.data.header.id + ".jsonl"),
+      join(resolve(sessionDir), memory.data.header.id, "meta.json"),
       true,
     );
   }
 
-  static async open(path: string): Promise<SessionManager> {
-    const lines = (await readFile(path, "utf8")).trim().split("\n");
+  static async open(path: string, migrate = true): Promise<SessionManager> {
+    const split = basename(path) === "meta.json";
+    if (!split && migrate) {
+      const next = join(path.slice(0, -6), "meta.json");
+      let exists = false;
+      try {
+        await stat(next);
+        exists = true;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      }
+      if (exists) return SessionManager.open(next);
+    }
+    const data = split ? await readSessionFiles(path) : undefined;
+    const lines = data
+      ? [JSON.stringify(data.header), ...data.messages.map((message) => JSON.stringify(message))]
+      : (await readFile(path, "utf8")).trim().split("\n");
     const storedHeader = JSON.parse(lines.shift() ?? "") as SessionHeader & {
       runTimings?: unknown;
     };
@@ -154,7 +174,8 @@ export class SessionManager {
     validateCompactions(header.compactions, messages);
     validateSystemPromptState(header.systemPromptCheckpoints, messages);
 
-    return new SessionManager({ header, messages }, resolve(path), false, true);
+    const file = !split && migrate ? await migrateSessionFiles(path, { header, messages }) : path;
+    return new SessionManager({ header, messages }, resolve(file), false, true);
   }
 
   static async list(cwd: string, sessionDir = getSessionDir(cwd)): Promise<SessionInfo[]> {
@@ -170,12 +191,21 @@ export class SessionManager {
 
     const sessions: SessionInfo[] = [];
 
-    for (const name of names.filter((name) => name.endsWith(".jsonl"))) {
+    const paths = names
+      .filter((name) => name.endsWith(".jsonl") && !names.includes(name.slice(0, -6)))
+      .map((name) => join(sessionDir, name));
+    for (const name of names.filter((name) => /^[a-f0-9-]{36}$/.test(name)))
+      paths.push(join(sessionDir, name, "meta.json"));
+    for (const path of paths) {
       let manager: SessionManager;
       try {
-        manager = await SessionManager.open(join(sessionDir, name));
+        manager = await SessionManager.open(path, false);
       } catch (error) {
-        if (error instanceof UnsupportedSessionFormatError) continue;
+        if (
+          error instanceof UnsupportedSessionFormatError ||
+          (error instanceof Error && error.message === "Unsupported session format or version")
+        )
+          continue;
         throw error;
       }
       const header = manager.getHeader();
@@ -205,6 +235,28 @@ export class SessionManager {
 
   get messages(): Message[] {
     return structuredClone((this.pending ?? this.data).messages);
+  }
+
+  async readHistory(before?: number, revision?: string) {
+    await this.waitForWrites();
+    if (!this.sessionFile || this.pending || this.draft) {
+      const messages = this.messages;
+      const end = before ?? messages.length;
+      if (!Number.isSafeInteger(end) || end < 0 || end > messages.length)
+        throw new Error("Invalid history cursor");
+      const starts = messages.flatMap((message, index) =>
+        message.role === "user" && index < end ? [index] : [],
+      );
+      const start = starts.length <= 3 ? 0 : starts.at(-3)!;
+      return {
+        messages: messages.slice(start, end),
+        start,
+        end,
+        total: messages.length,
+        revision: "memory",
+      };
+    }
+    return this.serialize(() => readHistoryPage(this.sessionFile!, before, revision));
   }
 
   get hasPendingSave(): boolean {
@@ -297,7 +349,11 @@ export class SessionManager {
   }
 
   getSessionDir(): string | undefined {
-    return this.sessionFile ? dirname(this.sessionFile) : undefined;
+    return this.sessionFile
+      ? basename(this.sessionFile) === "meta.json"
+        ? dirname(dirname(this.sessionFile))
+        : dirname(this.sessionFile)
+      : undefined;
   }
 
   async commit(
@@ -450,10 +506,7 @@ export class SessionManager {
     this.notifyWrite({ type: "session.save.started", ...event });
     try {
       if (this.sessionFile)
-        await atomicWrite(
-          this.sessionFile,
-          [data.header, ...data.messages].map((entry) => JSON.stringify(entry)).join("\n") + "\n",
-        );
+        await writeSessionFiles(this.sessionFile, data, data.messages === this.data.messages);
       this.draft = false;
       this.notifyWrite({ type: "session.save.completed", ...event, outcome: "success" });
     } catch (error) {

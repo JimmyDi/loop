@@ -23,7 +23,7 @@
 .sidebar-scrim {
   display: none;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .app-shell {
     grid-template-columns: minmax(0, 1fr);
     position: fixed;
@@ -67,7 +67,7 @@
   min-height: 0;
   height: auto;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .sidebar-container, .sidebar-scrim {
     position: absolute;
   }

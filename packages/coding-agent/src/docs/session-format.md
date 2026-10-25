@@ -1,11 +1,13 @@
 # Session File Format
 
-Loop persists a linear JSONL snapshot: one metadata header followed by complete conversation messages. Loop defines its own session format and record versions.
+Loop persists each session in three files: version-3 storage metadata, JSONL messages and a rebuildable round index. The public SessionHeader retains its version-2 schema; the storage envelope has its own version. Version-2 single-file sessions remain readable and migrate on explicit open.
 
 ## Location
 
 ```text
-<agentDir>/sessions/<workspace-hash>/<session-id>.jsonl
+<agentDir>/sessions/<workspace-hash>/<session-id>/meta.json
+<agentDir>/sessions/<workspace-hash>/<session-id>/messages.jsonl
+<agentDir>/sessions/<workspace-hash>/<session-id>/index.json
 ```
 
 The agent directory defaults to `~/.loop`. The workspace hash is the first 24 hexadecimal characters of SHA-256 over canonical cwd. The session ID is a UUID. Explicit storage directories are supported through the CLI and SessionManager.
@@ -35,17 +37,17 @@ Omitted effort uses Default. Unknown effort values reject; supported levels depe
 
 The header accessor and session list derive a fallback from the first eligible user message when stored title metadata is absent; reading does not rewrite the file or call a model. Stored titles live only in the header; auxiliary prompts and responses are not conversation records. Title-only writes preserve activity timestamps and serialize with history/model writes. Malformed title metadata rejects on load.
 
-Obsolete execution-section timing metadata in existing version-2 headers is ignored on load and omitted from later saves. Opening a session does not rewrite its file.
+Obsolete execution-section timing metadata in existing version-2 headers is ignored on load and omitted from later saves. Opening a legacy session validates it and publishes a new three-file directory using a staging directory and rename; its original JSONL remains unchanged as a backup. Listing sessions does not migrate them. A valid published directory takes precedence over its legacy backup; an invalid published directory reports an error instead of falling back to stale history. Do not open migrated sessions with older Loop versions, which cannot see newer history in the directory.
 
 ## Messages
 
-Each subsequent line is a `Message` directly, not an entry wrapper with `id` or `parentId`. Roles are `user`, `assistant`, and `toolResult`. Message timestamps are numeric milliseconds, unlike the header's ISO strings.
+Each line of messages.jsonl is a `Message` directly, not an entry wrapper with `id` or `parentId`. Roles are `user`, `assistant`, and `toolResult`. Message timestamps are numeric milliseconds, unlike the header's ISO strings.
 
 Assistant messages retain content blocks, API/provider/model identity, usage, stop reason, and any model error. Tool results retain `toolCallId`, `toolName`, `content`, and `isError`. New MCP results additionally preserve the host-generated `details.loopDisplayName` (server name and original tool name) for historical display, including after disabling or removing the server. This optional presentation metadata does not change call/result pairing or the model tool identifier. Matching results must follow completed assistant tool calls before a new conversation turn. The loader rejects unsupported message shapes or incomplete pairing; error/aborted assistant calls are excluded from pairing validation because request normalization filters those assistants on replay.
 
 User content may contain text and base64 image blocks. Images persist inside the same session JSONL; there is no separate attachment file.
 
-There are no stored streaming deltas, drafts, tool functions, or model-change entry records. Optional `systemPromptCheckpoints` retain initial rendered sections and subsequent changes; optional `compactions` retain summaries, original-history boundaries, model identity and native summary usage. New explicit Skill snapshots use `placement: "user"`; absent placement preserves legacy replay. Changing the model updates header metadata. Storage remains a rewritten full snapshot, not an append-only journal.
+There are no stored streaming deltas, drafts, tool functions, or model-change entry records. Optional `systemPromptCheckpoints` retain initial rendered sections and subsequent changes; optional `compactions` retain summaries, original-history boundaries, model identity and native summary usage. New explicit Skill snapshots use `placement: "user"`; absent placement preserves legacy replay. Changing the model updates header metadata. Ordinary saves append new messages without moving existing records. Metadata is published atomically after message bytes are written. If a caller replaces an earlier message or truncates history, storage appends a new complete generation and switches the committed range; older bytes remain unreachable in the same file. This preserves the complete-history commit API without exposing partial replacements.
 
 `commit(messages, runtimeContexts?, promptTimings?, context?)` accepts optional complete `context.compactions` and `context.systemPromptCheckpoints` arrays; omitted arrays preserve existing metadata. `getCompactions()` and `getSystemPromptCheckpoints()` return cloned committed or pending state. Boundaries reference unchanged message indexes; checkpoint validation rejects invalid anchors before write and on restore.
 
@@ -57,8 +59,20 @@ Unread is stored only in the header. commit() sets unread when newly appended hi
 
 Use `SessionManager.open(path)` and its snapshot accessors rather than editing live files. `commit(messages, runtimeContexts?, promptTimings?, context?)` expects complete history and preserves existing metadata when optional arguments are omitted. `getRuntimeContexts()` returns a cloned snapshot, including pending state after a save failure. Runtime snapshots require strictly increasing user-turn ordinals referencing actual user messages, nonempty content, and nonnegative safe integer timestamps. New snapshots record explicitly selected Skills; current permission guidance belongs to the system prompt. On failure, `flush()` retries the same pending snapshot; see [sessions and recovery](sessions.md).
 
-All storage constructors produce version 2 with a read-only permission preset. The managed factory applies explicit selections or new-session settings before enabling tools. Opening a file requires valid permission metadata and never converts unsupported formats. Session discovery skips files with an unsupported format or version without modifying them, so they cannot block supported sessions. Invalid JSON, invalid current-format metadata and storage read errors still report failures. Share only synthetic fixtures: real session cwd and conversation/tool content can disclose local information.
+All storage constructors expose a version-2 SessionHeader with a read-only permission preset and persist a version-3 storage envelope. The managed factory applies explicit selections or new-session settings before enabling tools. Opening a file requires valid permission metadata and never converts unsupported formats. Session discovery skips files with an unsupported format or version without modifying them, so they cannot block supported sessions. Invalid JSON, invalid current-format metadata and storage read errors still report failures. Share only synthetic fixtures: real session cwd and conversation/tool content can disclose local information.
 
 ## Source
 
 [Storage types](../core/types/storage.ts), [session-manager.ts](../core/session-manager.ts), [message validation](../core/messages.ts), and [atomic-write.ts](../utils/atomic-write.ts).
+
+## Commit and index recovery
+
+meta.json contains format, version: 3, header, a SHA-256 generation of the committed message bytes, start, bytes and messageCount. Only that committed byte range is visible. A crash before metadata publication leaves an ignored tail; the next save truncates the uncommitted tail before appending. Metadata-only changes do not rewrite message bytes. The directory uses private permissions and files are created with mode 0600 where supported. A single SessionManager owns writes; independent processes must not write the same session concurrently.
+
+index.json records the generation and each user round's messageIndex and UTF-8 byteOffset relative to the committed range. Missing, malformed or stale indexes are rebuilt from committed messages on a page read. Index publication failure does not roll back an already committed save. Full session open validates the message checksum and existing message/metadata contracts. Archiving and restoring update only archive membership, leaving all three files and any legacy backup in place. History saves preserve archive membership. Deletion stages the entire directory and any legacy backup together with traces; failure before the archive membership commit restores the staged files. Successful deletion removes all staged content so a legacy backup cannot reappear as a session.
+
+## History pages
+
+SessionManager.readHistory(before?, revision?) returns messages, start, end, total and revision. The default page contains the latest three user rounds; before is an exclusive global message index at a user-round boundary, and revision optionally rejects changed message generations. A round includes the user message and all assistant/toolResult records up to the next user. Requests read only the indexed byte range. In-memory or pending sessions page their current messages instead; the core/model session still holds its complete conversation for execution. Opening a session and current list discovery still validate complete histories, so this API is not a lazy model-context loader.
+
+Legacy migration retains a backup and replacement generations retain old bytes, increasing disk use. There is no automatic backup removal or generation compaction. getSessionFile()/sessionFile now identify meta.json, while getSessionDir() continues to identify the project session collection. Consumers that parse a session path directly must use SessionManager instead.

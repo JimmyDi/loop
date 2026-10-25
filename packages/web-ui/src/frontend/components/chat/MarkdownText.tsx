@@ -27,11 +27,23 @@ export const MarkdownText = ({
       alt: image.getAttribute("alt") ?? "",
     }));
     for (const image of root.querySelectorAll("img[src]")) image.remove();
-    const files = [...root.querySelectorAll("a[data-session-file]")].map((anchor) => ({
-      href: anchor.getAttribute("href")!,
-      label: anchor.textContent ?? "",
-    }));
-    for (const anchor of root.querySelectorAll("a[data-session-file]")) anchor.remove();
+    const files: { href: string; label: string }[] = [];
+    for (const anchor of root.querySelectorAll("a[data-session-file]")) {
+      const paragraph = anchor.parentElement;
+      const standalone =
+        paragraph?.tagName.toLowerCase() === "p" &&
+        [...paragraph.childNodes].every((node) =>
+          node.nodeType === 3
+            ? !node.textContent?.trim()
+            : node.nodeType === 1 && (node as Element).matches("a[data-session-file], br"),
+        );
+      if (standalone) {
+        files.push({ href: anchor.getAttribute("href")!, label: anchor.textContent ?? "" });
+        anchor.remove();
+      } else {
+        anchor.setAttribute("download", "");
+      }
+    }
     for (const element of root.querySelectorAll("p,a"))
       if (!element.textContent?.trim() && !element.children.length) element.remove();
     return { markup: { __html: root.innerHTML }, images, files };

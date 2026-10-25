@@ -21,8 +21,18 @@
 .pwa-status .pwa-instructions {
   flex-basis: 100%;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .pwa-status .action-button {
     min-height: 44px;
+  }
+}
+
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .pwa-status {
+    font-size: 14px;
+  }
+  .pwa-status button {
+    min-height: 44px;
+    font-size: 14px;
   }
 }

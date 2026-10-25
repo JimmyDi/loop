@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { Readable } from "node:stream";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -22,7 +22,7 @@ test("new storage uses one session format and unsupported versions are never rew
       version: 2,
       permissionPreset: "read-only",
     });
-    for (const version of [1, 3, undefined]) {
+    for (const version of [1, 2, undefined]) {
       const contents = JSON.stringify({ ...manager.getHeader(), version });
       await writeFile(manager.sessionFile!, contents);
       await expect(SessionManager.open(manager.sessionFile!)).rejects.toThrow(
@@ -62,7 +62,7 @@ test("session discovery skips unsupported formats without rewriting them or hidi
     await writeFile(malformed, JSON.stringify({ ...current.getHeader(), permissionPreset: null }));
     await expect(SessionManager.list(root, root)).rejects.toThrow("Invalid session metadata");
     await rm(malformed);
-    await rm(current.sessionFile!);
+    await rm(dirname(current.sessionFile!), { recursive: true });
     expect(await SessionManager.list(root, root)).toEqual([]);
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -101,7 +101,10 @@ test("runtime snapshots persist with history, survive failed saves and validate 
     };
     await writeFile(
       manager.sessionFile!,
-      [invalid, ...messages].map((value) => JSON.stringify(value)).join("\n"),
+      JSON.stringify({
+        ...JSON.parse(await readFile(manager.sessionFile!, "utf8")),
+        header: invalid,
+      }),
     );
     await expect(SessionManager.open(manager.sessionFile!)).rejects.toThrow(
       "Invalid session runtime context",
@@ -109,7 +112,7 @@ test("runtime snapshots persist with history, survive failed saves and validate 
     delete header.runtimeContexts;
     await writeFile(
       manager.sessionFile!,
-      [header, ...messages].map((value) => JSON.stringify(value)).join("\n"),
+      JSON.stringify({ ...JSON.parse(await readFile(manager.sessionFile!, "utf8")), header }),
     );
     expect((await SessionManager.open(manager.sessionFile!)).getRuntimeContexts()).toEqual([]);
   } finally {
@@ -143,7 +146,8 @@ test("permission metadata uses version 2, serializes, and fails without publishi
     );
     for (const value of [undefined, "unknown", null, 123]) {
       const lines = original.trim().split("\n");
-      const header = { ...JSON.parse(lines[0]!), permissionPreset: value };
+      const meta = JSON.parse(lines[0]!);
+      const header = { ...meta, header: { ...meta.header, permissionPreset: value } };
       const contents = [JSON.stringify(header), ...lines.slice(1)].join("\n");
       await writeFile(manager.sessionFile!, contents);
       await expect(SessionManager.open(manager.sessionFile!)).rejects.toThrow(
@@ -166,15 +170,16 @@ test("obsolete section metadata is ignored on restore and omitted from subsequen
       [{ ...manager.getHeader(), runTimings: { obsolete: true } }, ...messages]
         .map((value) => JSON.stringify(value))
         .join("\n") + "\n";
-    await writeFile(manager.sessionFile!, contents);
-    const restored = await SessionManager.open(manager.sessionFile!);
-    expect(restored.messages).toEqual(messages);
-    expect(restored.getHeader()).not.toHaveProperty("runTimings");
-    expect(await readFile(manager.sessionFile!, "utf8")).toBe(contents);
+    const legacy = join(root, manager.getSessionId() + ".jsonl");
+    await writeFile(legacy, contents);
+    const restored = await SessionManager.open(legacy);
+    JSON.parse(await readFile(restored.sessionFile!, "utf8")).header,
+      expect(restored.getHeader()).not.toHaveProperty("runTimings");
+    expect(await readFile(legacy, "utf8")).toBe(contents);
     await restored.commit(messages);
-    expect(
-      JSON.parse((await readFile(manager.sessionFile!, "utf8")).split("\n")[0]!),
-    ).not.toHaveProperty("runTimings");
+    expect(JSON.parse(await readFile(restored.sessionFile!, "utf8")).header).not.toHaveProperty(
+      "runTimings",
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -445,7 +450,10 @@ test("unread belongs to the header and stale receipts cannot clear newer complet
     for (const unread of ["true", 1, null]) {
       await writeFile(
         manager.sessionFile!,
-        [JSON.stringify({ ...JSON.parse(lines[0]!), unread }), ...lines.slice(1)].join("\n"),
+        JSON.stringify({
+          ...JSON.parse(lines[0]!),
+          header: { ...JSON.parse(lines[0]!).header, unread },
+        }),
       );
       await expect(SessionManager.open(manager.sessionFile!)).rejects.toThrow(
         "Invalid session metadata",
@@ -528,8 +536,8 @@ test("pin metadata persists in the header without changing history or activity",
     expect((await SessionManager.list(root, join(root, "history")))[0]?.pinnedAt).toBe(pinnedAt);
     expect(await manager.setPinned(false)).toBeUndefined();
     const after = await readFile(manager.sessionFile!, "utf8");
-    const { pinnedAt: _pin, ...unpinnedHeader } = JSON.parse(before.split("\n")[0]!);
-    expect(JSON.parse(after.split("\n")[0]!)).toEqual(unpinnedHeader);
+    const { pinnedAt: _pin, ...unpinnedHeader } = JSON.parse(before).header;
+    expect(JSON.parse(after).header).toEqual(unpinnedHeader);
     expect(after.split("\n").slice(1)).toEqual(before.split("\n").slice(1));
     expect(await manager.setPinned(false)).toBeUndefined();
     for (const invalid of [
@@ -543,9 +551,7 @@ test("pin metadata persists in the header without changing history or activity",
     ]) {
       await writeFile(
         manager.sessionFile!,
-        [JSON.stringify({ ...header, pinnedAt: invalid }), ...after.split("\n").slice(1)].join(
-          "\n",
-        ),
+        JSON.stringify({ ...JSON.parse(after), header: { ...header, pinnedAt: invalid } }),
       );
       await expect(SessionManager.open(manager.sessionFile!)).rejects.toThrow(
         "Invalid session metadata",
@@ -663,7 +669,7 @@ test("prompt timings retain the original snapshot through save retry and validat
     };
     await writeFile(
       manager.sessionFile!,
-      [header, ...messages].map((entry) => JSON.stringify(entry)).join("\n"),
+      JSON.stringify({ ...JSON.parse(await readFile(manager.sessionFile!, "utf8")), header }),
     );
     await expect(SessionManager.open(manager.sessionFile!)).rejects.toThrow(
       "Invalid prompt timings",

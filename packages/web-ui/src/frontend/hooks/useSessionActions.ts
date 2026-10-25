@@ -66,7 +66,12 @@ export const useSessionActions = (session: SessionSummary) => {
     });
     return saved;
   };
+  const reveal = () =>
+    action.run(async () => {
+      await command("/sessions/" + encodeURIComponent(session.id) + "/reveal");
+    });
   return {
+    reveal,
     change,
     setPinned,
     pending: action.pending,

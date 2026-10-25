@@ -51,6 +51,7 @@ export type ToolView = {
 };
 
 export type SessionSnapshot = {
+  history?: { start: number; total: number; userStart: number };
   acceptedRequestIds?: string[];
   streamId: string;
   sessionId: string;
@@ -68,6 +69,15 @@ export type SessionSnapshot = {
   draftIndex?: number;
   tools: Record<string, ToolView>;
   commandError?: string;
+};
+
+export type SessionHistoryPage = {
+  streamId: string;
+  start: number;
+  end: number;
+  total: number;
+  userStart: number;
+  messages: Message[];
 };
 
 export type FrameBody =

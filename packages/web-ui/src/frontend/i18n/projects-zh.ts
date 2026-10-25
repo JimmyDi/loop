@@ -23,6 +23,7 @@ export const projectsZh = {
   sessionOptions: "{{name}} 的选项",
   archiveSession: "归档",
   archiveChat: "归档 {{name}}",
+  revealSession: "Reveal",
   permanentlyDelete: "永久删除",
   deleteSessionTitle: "删除会话？",
   deleteSessionDescription: "这将永久删除该会话及其已保存的消息，且无法撤销。",

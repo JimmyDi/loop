@@ -11,7 +11,7 @@ export const useReadReceipt = (
   viewport: RefObject<HTMLDivElement | null>,
   end: RefObject<HTMLDivElement | null>,
 ): void => {
-  const messageCount = snapshot.state.messages.length;
+  const messageCount = snapshot.history?.total ?? snapshot.state.messages.length;
   const unread = snapshot.state.unread === true;
   const settled = connected && snapshot.operation === "idle" && !snapshot.state.hasPendingSave;
 

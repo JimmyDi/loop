@@ -39,6 +39,7 @@
 }
 
 .message-file video {
+  aspect-ratio: 16 / 9;
   max-height: 60dvh;
   background: #000;
 }

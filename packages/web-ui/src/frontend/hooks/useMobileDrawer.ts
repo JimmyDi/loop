@@ -12,7 +12,9 @@ export const useMobileDrawer = (
 
     if (!element) return;
 
-    const media = window.matchMedia("(max-width: 767px)");
+    const media = window.matchMedia(
+      "(max-width: 767px), (pointer: coarse) and (max-width: 1024px)",
+    );
     const previous = document.activeElement as HTMLElement | null;
     const update = () => {
       element.inert = media.matches && !open;

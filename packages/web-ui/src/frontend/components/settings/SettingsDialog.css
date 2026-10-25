@@ -33,7 +33,7 @@
   overflow: auto;
   padding: 6px 4px 12px;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .modal.settings-dialog {
     width: calc(100vw - 24px);
     height: min(720px, calc(100dvh - 24px));

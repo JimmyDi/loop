@@ -447,3 +447,39 @@ test("tool-only turns and standalone results do not invent replies, and partial 
     await window.happyDOM.close();
   }
 });
+
+test("prepending history retains assistant DOM and expanded tool groups", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, cleanup, fireEvent } = await import("@testing-library/react/pure");
+  const { AssistantTurn } = await import("./AssistantTurn");
+  const message: typeof draft = {
+    ...draft,
+    stopReason: "toolUse",
+    content: [
+      { type: "text", text: "Synthetic progress" },
+      { type: "toolCall", id: "synthetic", name: "read", arguments: {} },
+    ],
+  };
+  const tools = projectTools([message]);
+  try {
+    const ui = render(
+      <AssistantTurn messages={[{ index: 1, message }]} offset={6} tools={tools} running={false} />,
+    );
+    const article = ui.container.querySelector(".assistant-message");
+    const group = ui.container.querySelector<HTMLDetailsElement>(".tool-group")!;
+    group.open = true;
+    fireEvent(group, new globalThis.window.Event("toggle"));
+    ui.rerender(
+      <AssistantTurn messages={[{ index: 4, message }]} offset={3} tools={tools} running={false} />,
+    );
+    expect(ui.container.querySelector(".assistant-message")).toBe(article);
+    expect(ui.container.querySelector(".tool-group")).toBe(group);
+    expect(group.open).toBe(true);
+  } finally {
+    cleanup();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});

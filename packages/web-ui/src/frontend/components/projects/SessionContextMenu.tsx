@@ -19,7 +19,7 @@ export const SessionContextMenu = ({
   disabled: boolean;
   pinned?: boolean;
   pinDisabled?: boolean;
-  onChoose(action: "rename" | "pin" | "archive" | "delete"): void;
+  onChoose(action: "rename" | "pin" | "reveal" | "archive" | "delete"): void;
 }) => {
   const { t } = useTranslation();
   return createPortal(
@@ -42,6 +42,11 @@ export const SessionContextMenu = ({
           ["rename", "rename", "M16 3a2.1 2.1 0 0 1 3 3L8 17l-5 1 1-5L16 3Zm-2 2 3 3"],
           ["pin", pinned ? "unpinSession" : "pinSession", ""],
           [
+            "reveal",
+            "revealSession",
+            "M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z",
+          ],
+          [
             "archive",
             "archiveSession",
             "M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M3 4h18v4H3zM9 12h6",
@@ -56,7 +61,7 @@ export const SessionContextMenu = ({
             type="button"
             role="menuitem"
             tabIndex={-1}
-            disabled={action === "pin" ? pinDisabled : disabled}
+            disabled={action === "pin" || action === "reveal" ? pinDisabled : disabled}
             onClick={() => onChoose(action)}
           >
             {action === "pin" ? (

@@ -252,8 +252,8 @@ test("HTTP unread headers survive restart and reject stale receipts across brows
     expect(modelCalls).toBe(beforeRead);
     expect(controller.snapshot.state.unread).toBe(false);
     const saved = await readFile(file, "utf8");
-    expect(JSON.parse(saved.split("\n")[0]!)).toEqual({
-      ...JSON.parse(original.split("\n")[0]!),
+    expect(JSON.parse(saved).header).toEqual({
+      ...JSON.parse(original).header,
       unread: false,
     });
     expect(saved.split("\n").slice(1)).toEqual(original.split("\n").slice(1));
@@ -354,8 +354,8 @@ test("HTTP pins live in session headers, synchronize lists and survive restart w
     expect(await (await pin(true)).json()).toEqual({ pinnedAt });
     expect((await list())[0]).toMatchObject({ id, pinnedAt });
     const saved = await readFile(manager.sessionFile!, "utf8");
-    expect(JSON.parse(saved.split("\n")[0]!)).toEqual({
-      ...JSON.parse(original.split("\n")[0]!),
+    expect(JSON.parse(saved).header).toEqual({
+      ...JSON.parse(original).header,
       pinnedAt,
     });
     expect(saved.split("\n").slice(1)).toEqual(original.split("\n").slice(1));

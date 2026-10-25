@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { useImageGestures } from "../../hooks/useImageGestures";
 
+import { MessageThumbnail } from "./MessageThumbnail";
 import { Modal } from "../ui/Modal";
 import "./MessageImageGallery.css";
 
@@ -30,7 +31,7 @@ export const MessageImageGallery = ({ images }: { images: MessageImage[] }) => {
             aria-label={t("imagePreview.open", { index: index + 1 })}
             onClick={() => select(index)}
           >
-            <img src={item.src} alt={item.alt} loading="lazy" />
+            <MessageThumbnail src={item.src} alt={item.alt} />
           </button>
         ))}
       </div>
@@ -69,6 +70,7 @@ export const MessageImageGallery = ({ images }: { images: MessageImage[] }) => {
                   key={image.src}
                   src={image.src}
                   alt={image.alt}
+                  decoding="async"
                   draggable={false}
                   onError={() => setFailed(image.src)}
                 />

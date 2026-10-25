@@ -29,9 +29,12 @@ test("session menu places Pin below Rename and supports Unpin while a session is
     expect(ui.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
       "Rename",
       "Pin",
+      "Reveal",
       "Archive",
       "Permanently delete",
     ]);
+    fireEvent.click(ui.getByRole("menuitem", { name: "Reveal" }));
+    expect(chosen.pop()).toBe("reveal");
     fireEvent.click(ui.getByRole("menuitem", { name: "Archive" }));
     expect(chosen).toEqual(["archive"]);
     ui.rerender(

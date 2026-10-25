@@ -1,4 +1,4 @@
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { realpathSync } from "node:fs";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import { TraceRecorder, pruneTraces } from "@loop/telemetry";
@@ -125,7 +125,7 @@ export async function createAgentSession(
     {
       protectedPaths: [
         services.agentDir,
-        ...(sessionManager.sessionFile ? [dirname(sessionManager.sessionFile)] : []),
+        ...(sessionManager.getSessionDir() ? [sessionManager.getSessionDir()!] : []),
       ],
     },
     () => sessionManager.getHeader().permissionPreset,

@@ -1,5 +1,6 @@
 import type { Frame, SessionEvent, SessionSnapshot } from "./protocol";
 import { updateTools } from "./tool-projection";
+import { mergeHistorySnapshot } from "./session-history";
 
 export const applyEvent = (
   snapshot: SessionSnapshot,
@@ -65,8 +66,12 @@ export const applyEvent = (
   } else if (event.type === "message_end" && messageIndex !== undefined) {
     const messages = [...next.state.messages];
 
-    messages[messageIndex] = event.message;
+    const localIndex = messageIndex - (snapshot.history?.start ?? 0);
+    if (localIndex < 0 || localIndex > messages.length) return next;
+    messages[localIndex] = event.message;
     next.state.messages = messages;
+    if (next.history)
+      next.history = { ...next.history, total: Math.max(next.history.total, messageIndex + 1) };
 
     if (event.message.role === "assistant") {
       next.state.draft = undefined;
@@ -81,7 +86,8 @@ export const applyEvent = (
 };
 
 export const applyFrame = (snapshot: SessionSnapshot | undefined, frame: Frame) => {
-  if (frame.type === "session.snapshot" || frame.type === "session.state") return frame.snapshot;
+  if (frame.type === "session.snapshot" || frame.type === "session.state")
+    return mergeHistorySnapshot(snapshot, frame.snapshot);
 
   if (!snapshot) return undefined;
 

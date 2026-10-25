@@ -23,6 +23,7 @@ export const projectsEn = {
   sessionOptions: "Options for {{name}}",
   archiveSession: "Archive",
   archiveChat: "Archive {{name}}",
+  revealSession: "Reveal",
   permanentlyDelete: "Permanently delete",
   deleteSessionTitle: "Delete chat?",
   deleteSessionDescription:

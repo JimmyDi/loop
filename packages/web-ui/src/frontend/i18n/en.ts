@@ -82,6 +82,7 @@ export const en = {
   welcome: "What would you like to build?",
   welcomeDetail: "Choose a project and start a conversation with Loop.",
   noSessions: "No chats",
+  loadingMoreMessages: "Loading more messages…",
   emptySession: "Ask a question or describe a change.",
   send: "Send message",
   stop: "Stop generating",

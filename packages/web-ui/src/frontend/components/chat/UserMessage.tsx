@@ -7,6 +7,7 @@ import { messageText } from "../../../shared/message-text";
 import { readFileContent } from "../../../shared/prompt-files";
 import { IMAGE_TYPES } from "../../../shared/prompt-images";
 import { copySkillMessage } from "../../lib/skill-clipboard";
+import { MessageThumbnail } from "./MessageThumbnail";
 import { MessageFooter } from "./MessageFooter";
 import { TextFileAttachment } from "./TextFileAttachment";
 import { UserMessageSkill } from "./UserMessageSkill";
@@ -51,11 +52,10 @@ export const UserMessage = ({
           {images.map(
             (image, index) =>
               image.type === "image" && (
-                <img
+                <MessageThumbnail
                   key={index}
                   src={"data:" + image.mimeType + ";base64," + image.data}
                   alt={t("imageAttachment", { index: index + 1 })}
-                  loading="lazy"
                 />
               ),
           )}

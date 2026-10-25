@@ -47,11 +47,12 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
       menu.trigger.current?.focus();
     }
   }, [editing, menu.trigger]);
-  const choose = (next: "rename" | "pin" | "archive" | "delete") => {
+  const choose = (next: "rename" | "pin" | "reveal" | "archive" | "delete") => {
     menu.close();
     action.clearError();
     if (next === "rename") setEditing(true);
     else if (next === "pin") togglePin();
+    else if (next === "reveal") void action.reveal();
     else if (next === "delete") setDeleting(true);
     else void action.change("archive");
   };

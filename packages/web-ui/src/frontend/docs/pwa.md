@@ -63,3 +63,9 @@ Use a production frontend build and an approved device. These checks require rea
 - [Browser lifecycle](../pwa/pwa-client.ts) / [tests](../pwa/pwa-client.test.ts).
 - [Installation and update status](../components/pwa/PwaStatus.tsx) / [tests](../components/pwa/PwaStatus.test.tsx).
 - [Remote pairing](remote-access.md), [chat input](chat.md), [approvals](permissions.md).
+
+Mobile layout applies to viewports below 768 CSS pixels and to devices with a coarse primary pointer up to 1024 CSS pixels. The sidebar drawer, focus isolation, composer and Settings share this condition and update automatically when folding, unfolding or rotating changes the viewport. Wider viewports retain the desktop layout.
+
+Mobile conversations, session titles, list entries and tool summaries use 16px text; secondary controls use 13–14px. Browser text autosizing is kept at 100% so folding or rotation does not apply inconsistent text enlargement. Browser desktop-site mode or a saved page zoom can still scale the entire page.
+
+Mobile HTML enables interactive-widget=resizes-content where supported. The document and root are constrained to the viewport, with a 16px body baseline. The composer reserves a 72px text area, uses 44px minimum toolbar targets and 22px send/attachment icons; the header reserves 56px. VisualViewport continues to manage the visible shell height during keyboard changes.

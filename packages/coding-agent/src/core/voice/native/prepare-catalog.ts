@@ -30,6 +30,14 @@ const source =
   JSON.stringify(models, null, 2) +
   ";\n";
 await writeFile(join(directory, "published-catalog.ts"), source);
+await writeFile(
+  join(directory, "manifest.json"),
+  JSON.stringify(
+    { schemaVersion: 1, protocolVersion: 1, version: tag.slice(7), engines, models },
+    null,
+    2,
+  ) + "\n",
+);
 console.log(
   "Prepared reviewed catalog candidate for " +
     targets.join(", ") +

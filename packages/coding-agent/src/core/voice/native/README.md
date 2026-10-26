@@ -54,8 +54,10 @@ change on main, or on voice-vX.Y.Z tag pushes. Watched inputs include native sou
 dependency locks, patches, model catalog, download validation, resource/protocol
 contracts and the workflow itself. Native tests and documentation are excluded;
 retained licenses are included. Ordinary frontend and Agent changes do not trigger it.
-Each matching main push rebuilds all engine and model bundles and uses the unique
-voice-v0.0.RUN_ID release tag, targeting that exact source commit. Reruns keep the
+Each matching main push rebuilds all engine and model bundles using the semantic
+version in resources/release-version.ts, targeting that exact source commit.
+Bump major for incompatible contracts, minor for compatible features/models and
+patch for fixes before publishing changed resources. Reruns keep the
 same tag and cannot overwrite an existing release. This monitors checked-in inputs,
 not upstream releases; upstream updates require changing the pinned inputs first.
 Manual runs accept a comma-separated targets allowlist, defaulting to
@@ -86,11 +88,17 @@ dependencies with compiler prefix mapping (for example -ffile-prefix-map,
 content scan and real inference tests. The workflow does not imply release
 readiness merely because a platform binary was compiled.
 
-The catalog remains empty until those artifacts are reviewed and made available
-under the chosen public release tag. Ordinary install/update reports unavailable
-assets meanwhile. After testing and reviewing a tag release, verify public
-availability and replace resources/published-catalog.ts
-with the generated candidate. No application implementation is needed then.
+Loop derives the versioned Release URL from VOICE_RELEASE_VERSION and downloads
+manifest.json during resource discovery, with a 15-second timeout, 1 MiB limit and
+one-minute retry/cache interval. It validates the schema, protocol, engine version,
+paths and executable, exact archive URLs and pinned model identities. Downloads
+retain archive and expanded-file size/SHA-256 verification. HTTPS and the public
+Release repository are the trust root; checksums are not independent signatures.
+Failures preserve use of installed resources. No generated TypeScript catalog
+needs to be copied into the repository. Updating resources requires bumping the
+supported version and any model pins in Loop; arbitrary upstream models are never
+automatically adopted. Loop does not use GitHub latest-release discovery.
+Unpublished versions remain unavailable until their manifest and packages exist.
 
 The builder and packers can also be run individually:
 

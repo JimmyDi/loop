@@ -1,3 +1,5 @@
+import type { VoiceReleaseManifest } from "./release-manifest-types";
+
 export type VoicePlatform =
   | "darwin-arm64"
   | "darwin-x64"
@@ -67,6 +69,8 @@ export type VoiceEngineSelection = {
 };
 
 export type VoiceResourceOperationState = {
+  release?: VoiceReleaseManifest;
+  releaseCheckedAt?: number;
   phase: VoiceResourceStatus["phase"];
   download?: VoiceResourceStatus["download"];
   error?: string;

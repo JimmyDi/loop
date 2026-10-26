@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { publishedVoiceEngines, voicePlatform } from "./catalog";
 import { validateEngineManifest, engineComponent } from "./engine-manifest";
 import { readJson } from "./json-storage";
+import { loadReleaseManifest } from "./load-release-manifest";
 import type { VoiceEngineSelection, VoiceResourceOperationState } from "./resource-types";
 
 export const resolveVoiceEngine = async (
@@ -19,7 +20,20 @@ export const resolveVoiceEngine = async (
     }
   }
   const platform = voicePlatform();
-  const component = platform && publishedVoiceEngines[platform];
+  if (
+    platform &&
+    !publishedVoiceEngines[platform] &&
+    Date.now() - (state.releaseCheckedAt ?? 0) > 60_000
+  ) {
+    state.releaseCheckedAt = Date.now();
+    try {
+      state.release = await loadReleaseManifest();
+    } catch {
+      // Failed discovery must not prevent use of already installed resources.
+    }
+  }
+  const component =
+    platform && (state.release?.engines[platform] ?? publishedVoiceEngines[platform]);
   return component
     ? { component, executable: platform === "win32-x64" ? "loop-voice.exe" : "loop-voice" }
     : undefined;

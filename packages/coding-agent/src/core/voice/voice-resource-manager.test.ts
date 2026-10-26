@@ -15,6 +15,11 @@ import type { VoiceComponent, VoiceEngineManifest } from "./resources/resource-t
 import { VoiceResourceManager } from "./voice-resource-manager";
 
 const directories: string[] = [];
+vi.mock("./resources/load-release-manifest", () => ({
+  loadReleaseManifest: vi.fn(async () => {
+    throw new Error("voice_release_unavailable");
+  }),
+}));
 afterEach(async () => {
   vi.unstubAllGlobals();
   delete publishedVoiceEngines[voicePlatform()!];

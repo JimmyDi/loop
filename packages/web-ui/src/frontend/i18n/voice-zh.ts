@@ -13,6 +13,7 @@ export const voiceZh = {
   conversationProfileHint: "同时安装本地朗读组件，用于持续语音通话。",
   testHint: "选择麦克风并说一句话，收到最终转写后完成此步骤。",
   testLocked: "先安装所选语音组件，再进行测试。",
+  setupRequired: "请前往设置 → 语音查看详情并完成所有设置步骤。",
   loading: "正在加载",
   completed: "已完成",
   incomplete: "未完成",

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 
-import { saveVoiceDevice, voiceDevice } from "../voice/device";
+import { useVoiceSetupState } from "../voice/setup-state";
 import type { VoiceDevicesControl } from "./voice-devices-types";
 
 export const useVoiceDevices = (): VoiceDevicesControl => {
-  const [selected, setSelected] = useState(voiceDevice);
+  const selected = useVoiceSetupState((state) => state.deviceId);
+  const select = useVoiceSetupState((state) => state.setDevice);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   useEffect(() => {
     let active = true;
@@ -29,9 +30,6 @@ export const useVoiceDevices = (): VoiceDevicesControl => {
   return {
     devices,
     selected,
-    select: (id: string) => {
-      saveVoiceDevice(id);
-      setSelected(id);
-    },
+    select,
   };
 };

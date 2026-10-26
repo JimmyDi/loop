@@ -26,12 +26,12 @@ import { ComposerSendButton } from "./ComposerSendButton";
 import { ApiError } from "../../lib/api";
 import { useQueuedComposer } from "../../hooks/useQueuedComposer";
 import { VoiceControls } from "./VoiceControls";
-import { VoiceInputButton } from "./VoiceInputButton";
+import { ComposerSubmitActions } from "./ComposerSubmitActions";
 import { useVoiceComposer } from "../../hooks/useVoiceComposer";
 import { useComposerHeight } from "../../hooks/useComposerHeight";
 import "./ChatComposer.css";
 
-export const ChatComposer = ({ snapshot, connected, voiceActions }: ChatComposerProps) => {
+export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
   const { t } = useTranslation();
   const region = useComposerHeight();
   const [focusRequest, setFocusRequest] = useState(0);
@@ -141,7 +141,6 @@ export const ChatComposer = ({ snapshot, connected, voiceActions }: ChatComposer
           }
           onFiles={(files) => void attachments.add(files)}
           placeholder={t("placeholder")}
-          action={!inputValue.trim() ? <VoiceInputButton control={voice} /> : undefined}
         />
         <ComposerSkills
           sessionId={snapshot.sessionId}
@@ -179,16 +178,20 @@ export const ChatComposer = ({ snapshot, connected, voiceActions }: ChatComposer
             error={model.error}
             select={model.change}
           />
-          <ComposerSendButton
-            running={running && !queue.editing && !queueing}
-            stopping={stopping.pending}
-            disabled={blocked || !project.hasProject || unsupportedImages || !hasContent}
-            resume={snapshot.state.canResume && !queue.editing ? { disabled: blocked } : undefined}
-            onResume={() => control("resume")}
-            onStop={() => control("abort")}
-          />
+          <ComposerSubmitActions control={voice} showVoiceInput={!inputValue.trim()}>
+            <ComposerSendButton
+              running={running && !queue.editing && !queueing}
+              stopping={stopping.pending}
+              disabled={blocked || !project.hasProject || unsupportedImages || !hasContent}
+              resume={
+                snapshot.state.canResume && !queue.editing ? { disabled: blocked } : undefined
+              }
+              onResume={() => control("resume")}
+              onStop={() => control("abort")}
+            />
+          </ComposerSubmitActions>
         </div>
-        <VoiceControls control={voice} running={snapshot.state.isRunning} actions={voiceActions} />
+        <VoiceControls control={voice} running={snapshot.state.isRunning} />
       </form>
     </div>
   );

@@ -1,10 +1,56 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Window } from "happy-dom";
 import { renderToStaticMarkup } from "react-dom/server";
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import type { SessionSnapshot } from "../../../shared/protocol";
+import type { VoiceStatus } from "../../../shared/voice";
+import { useVoiceComposer } from "../../hooks/useVoiceComposer";
+import type { VoiceControl, VoiceOptions } from "../../hooks/voice-hook-types";
 import { i18n } from "../../i18n/setup";
+import { useVoiceSetupState } from "../../voice/setup-state";
+import { VoiceCallButton } from "../chat/VoiceCallButton";
+import { VoiceInputButton } from "../chat/VoiceInputButton";
 import { VoiceSettings } from "./VoiceSettings";
+
+const microphone = vi.hoisted(() => ({
+  options: undefined as VoiceOptions | undefined,
+  start: vi.fn(async () => {}),
+}));
+
+vi.mock("../../hooks/useVoice", () => ({
+  useVoice: (options: VoiceOptions): VoiceControl => {
+    if (!options.sessionId) microphone.options = options;
+    return {
+      status: "idle",
+      text: "",
+      muted: false,
+      readingPaused: false,
+      start: microphone.start,
+      stop: async () => {},
+      endInput: async () => {},
+      speak: () => {},
+      finish: () => {},
+      interrupt: () => {},
+      mute: () => {},
+      pauseReading: () => {},
+    };
+  },
+}));
+
+const setup = useVoiceSetupState.getState();
+
+beforeEach(() => {
+  useVoiceSetupState.setState({
+    profile: "conversation",
+    deviceId: "",
+    verifiedSignature: undefined,
+  });
+  microphone.options = undefined;
+  microphone.start.mockClear();
+});
+
+afterEach(() => useVoiceSetupState.setState(setup, true));
 
 test("remote settings describe local management and disable installation", () => {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
@@ -70,6 +116,125 @@ test("remote input-only installation can choose voice input and test the microph
       ).toBe(true);
     expect(view.getAllByRole("listitem")).toHaveLength(3);
     expect(view.getByRole("alert").closest("li")).toBe(view.getAllByRole("listitem")[1]);
+  } finally {
+    cleanup();
+    client.clear();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("a final microphone test unlocks the real composer controls until setup changes", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const client = new QueryClient({ defaultOptions: { queries: { enabled: false } } });
+  const status: VoiceStatus = {
+    supported: true,
+    installed: true,
+    ttsInstalled: true,
+    engineAvailable: true,
+    localManagement: true,
+    phase: "idle",
+    version: "1",
+    components: (["engine", "asr", "vad", "tts"] as const).map((kind) => ({
+      id: kind,
+      name: kind,
+      kind,
+      installed: true,
+      downloadBytes: 1,
+      installedBytes: 1,
+      license: "MIT",
+      version: "1",
+    })),
+  };
+  client.setQueryData(["voice-status"], status);
+  const snapshot = {
+    sessionId: "setup-session",
+    streamId: "stream",
+    operation: "idle",
+    tools: {},
+    state: { messages: [], hasPendingSave: false },
+  } as unknown as SessionSnapshot;
+  const ComposerControls = () => {
+    const control = useVoiceComposer(snapshot, true, true);
+    return (
+      <>
+        <VoiceInputButton control={control} />
+        <VoiceCallButton control={control} />
+      </>
+    );
+  };
+  const content = (open: boolean) => (
+    <QueryClientProvider client={client}>
+      {open && <VoiceSettings />}
+      <ComposerControls />
+    </QueryClientProvider>
+  );
+  const { render, cleanup, fireEvent, act, waitFor } = await import("@testing-library/react/pure");
+  try {
+    const view = render(content(true));
+    const input = view.getByRole("button", {
+      name: i18n.t("voice.dictation"),
+    }) as HTMLButtonElement;
+    const call = view.getByRole("button", { name: "Call" }) as HTMLButtonElement;
+    const expectBlocked = (disabled: boolean) => {
+      const currentInput = view.getByRole("button", {
+        name: i18n.t("voice.dictation"),
+      }) as HTMLButtonElement;
+      const currentCall = view.getByRole("button", { name: "Call" }) as HTMLButtonElement;
+      expect(currentInput.disabled).toBe(disabled);
+      expect(currentCall.disabled).toBe(disabled);
+      expect(currentCall.closest(".voice-setup-hint")?.getAttribute("title")).toBe(
+        disabled ? i18n.t("voice.setupRequired") : undefined,
+      );
+    };
+    const transcript = async (text: string, final: boolean) =>
+      act(async () => {
+        microphone.options?.transcript(text, final, "test", "test");
+      });
+    const finishTest = async () => {
+      fireEvent.click(view.getByRole("button", { name: i18n.t("voice.microphone") }));
+      await transcript("Microphone works", true);
+      expectBlocked(false);
+    };
+    expectBlocked(true);
+    fireEvent.click(input);
+    fireEvent.click(call);
+    expect(microphone.start).not.toHaveBeenCalled();
+    fireEvent.click(view.getByRole("button", { name: i18n.t("voice.microphone") }));
+    expect(microphone.start).toHaveBeenCalledExactlyOnceWith("test");
+    await transcript("Partial phrase", false);
+    expectBlocked(true);
+    await transcript("  ", true);
+    expectBlocked(true);
+    await transcript("Microphone works", true);
+    expectBlocked(false);
+    expect(view.getAllByRole("listitem")[2]?.getAttribute("data-complete")).toBe("true");
+
+    view.rerender(content(false));
+    view.rerender(content(true));
+    expectBlocked(false);
+    expect(view.getAllByRole("listitem")[2]?.getAttribute("data-complete")).toBe("true");
+    fireEvent.change(view.getByRole("combobox", { name: i18n.t("voice.chooseProfile") }), {
+      target: { value: "input" },
+    });
+    expectBlocked(true);
+    await finishTest();
+    act(() => useVoiceSetupState.getState().setDevice("other-microphone"));
+    expectBlocked(true);
+    await finishTest();
+    act(() => client.setQueryData(["voice-status"], { ...status, phase: "updating" }));
+    await waitFor(() => expectBlocked(true));
+    act(() => client.setQueryData(["voice-status"], status));
+    await waitFor(() => {
+      expect(
+        (view.getByRole("button", { name: i18n.t("voice.microphone") }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(false);
+    });
+    expectBlocked(true);
+    await finishTest();
   } finally {
     cleanup();
     client.clear();

@@ -12,6 +12,7 @@ import { command } from "../lib/api";
 import { appendVoiceDraft } from "../voice/draft";
 import { useVoiceSubmission } from "./useVoiceSubmission";
 import type { VoiceComposerControl } from "./voice-composer-types";
+import { useVoiceSetup } from "./useVoiceSetup";
 
 export const useVoiceComposer = (
   snapshot: SessionSnapshot,
@@ -20,6 +21,7 @@ export const useVoiceComposer = (
 ): VoiceComposerControl => {
   const { t } = useTranslation();
   const prompt = usePrompt(snapshot, hasProject);
+  const setup = useVoiceSetup();
   const editing = useQueueEdits((state) => !!state.edits[snapshot.sessionId]);
   const [steering, setSteering] = useState(false);
   const [notice, setNotice] = useState("");
@@ -74,6 +76,7 @@ export const useVoiceComposer = (
   });
   const resetNarration = useVoiceNarration(snapshot, voice);
   const start = (mode: "dictation" | "conversation") => {
+    if (!setup.complete) return;
     submission.clear();
     const draft = useWorkspace.getState().drafts[snapshot.sessionId] ?? "";
     base.current = draft + (draft && !/\s$/.test(draft) ? " " : "");
@@ -126,6 +129,7 @@ export const useVoiceComposer = (
     stopTask,
     editing,
     prompt,
+    setupComplete: setup.complete,
     blocked:
       !connected ||
       !hasProject ||

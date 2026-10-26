@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 
 import { ActionButton } from "../ui/ActionButton";
 import type { VoiceCallProps } from "./voice-call-types";
+import { VoiceSetupHint } from "./VoiceSetupHint";
 import "./VoiceCallActions.css";
 
 export const VoiceCallActions = ({ control, running }: VoiceCallProps) => {
@@ -12,12 +13,15 @@ export const VoiceCallActions = ({ control, running }: VoiceCallProps) => {
   return (
     <div className="voice-call-actions">
       {paused ? (
-        <ActionButton
-          disabled={control.blocked}
-          onClick={() => control.start(voice.mode === "dictation" ? "dictation" : "conversation")}
-        >
-          {t("voice.resume")}
-        </ActionButton>
+        <VoiceSetupHint required={!control.setupComplete}>
+          <ActionButton
+            disabled={control.blocked || !control.setupComplete}
+            title={!control.setupComplete ? t("voice.setupRequired") : undefined}
+            onClick={() => control.start(voice.mode === "dictation" ? "dictation" : "conversation")}
+          >
+            {t("voice.resume")}
+          </ActionButton>
+        </VoiceSetupHint>
       ) : (
         <>
           <ActionButton disabled={busy} onClick={() => voice.mute(!voice.muted)}>

@@ -1,27 +1,22 @@
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 import type { VoiceInstallCommand, VoiceStatus } from "../../shared/voice";
-import { api, command } from "../lib/api";
+import { command } from "../lib/api";
 import { useAsyncAction } from "./useAsyncAction";
 import type { VoiceSettingsControl } from "./voice-settings-types";
+import { useVoiceStatus } from "./useVoiceStatus";
+import { useVoiceSetupState } from "../voice/setup-state";
 
 export const useVoiceSettings = (): VoiceSettingsControl => {
   const client = useQueryClient();
   const action = useAsyncAction();
   const [requested, setRequested] = useState<VoiceInstallCommand["action"]>();
-  const query = useQuery({
-    queryKey: ["voice-status"],
-    queryFn: () => api<VoiceStatus>("/voice/status"),
-    retry: false,
-    refetchInterval: (query) =>
-      ["installing", "updating", "uninstalling"].includes(query.state.data?.phase ?? "")
-        ? 750
-        : false,
-  });
+  const query = useVoiceStatus();
   const execute = (value: VoiceInstallCommand) =>
     action.run(async () => {
       setRequested(value.action);
+      if (value.action !== "cancel") useVoiceSetupState.getState().clearVerification();
       try {
         const status = await command<VoiceStatus>("/voice/install", value);
         client.setQueryData(["voice-status"], status);

@@ -1,12 +1,14 @@
-.voice-call-button.action-button {
-  flex-shrink: 0;
-  gap: 6px;
-  white-space: nowrap;
+.voice-call-button.action-button.icon {
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
   color: light-dark(#000, var(--ink));
 }
 
-.voice-call-button svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .voice-call-button.action-button.icon {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
 }

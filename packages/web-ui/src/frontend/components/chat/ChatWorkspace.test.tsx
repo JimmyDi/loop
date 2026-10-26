@@ -10,6 +10,9 @@ import { useWorkspace } from "../../state/workspace-store";
 import { useRequests } from "../../state/request-store";
 import { useQueueEdits } from "../../state/queue-edit-store";
 import { ChatWorkspace } from "./ChatWorkspace";
+import { useVoiceSetupState } from "../../voice/setup-state";
+import { voiceSetupSignature } from "../../voice/setup-readiness";
+import type { VoiceStatus } from "../../../shared/voice";
 
 test("ChatWorkspace exposes its accessible content and state", () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -25,7 +28,7 @@ test("ChatWorkspace exposes its accessible content and state", () => {
   client.clear();
 });
 
-test("header voice call follows connection and session changes without duplicate composer controls", async () => {
+test("composer voice actions follow connection and session changes without header controls", async () => {
   const window = new Window();
   const previous = {
     window: globalThis.window,
@@ -37,6 +40,7 @@ test("header voice call follows connection and session changes without duplicate
   const sessions = useSessions.getState();
   const requests = useRequests.getState();
   const edits = useQueueEdits.getState();
+  const setup = useVoiceSetupState.getState();
   const connections: LocalSource[] = [];
   class LocalSource {
     onmessage?: (event: { data: string }) => void;
@@ -74,6 +78,30 @@ test("header voice call follows connection and session changes without duplicate
   for (const snapshot of snapshots) client.setQueryData(["session", snapshot.sessionId], snapshot);
   client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
   client.setQueryData(["models"], [snapshots[0]!.model]);
+  const voiceStatus: VoiceStatus = {
+    supported: true,
+    installed: true,
+    ttsInstalled: true,
+    localManagement: true,
+    phase: "idle",
+    version: "synthetic-1",
+    components: (["engine", "asr", "vad", "tts"] as const).map((kind) => ({
+      id: kind,
+      name: kind,
+      kind,
+      version: "1",
+      installed: true,
+      downloadBytes: 1,
+      installedBytes: 1,
+      license: "MIT",
+    })),
+  };
+  client.setQueryData(["voice-status"], voiceStatus);
+  useVoiceSetupState.setState({
+    profile: "conversation",
+    deviceId: "",
+    verifiedSignature: voiceSetupSignature(voiceStatus, "conversation", ""),
+  });
   const fetched: string[] = [];
   globalThis.fetch = (async (input) => {
     fetched.push(String(input));
@@ -104,20 +132,29 @@ test("header voice call follows connection and session changes without duplicate
     const ui = render(page("first"));
     const header = ui.container.querySelector<HTMLElement>(".session-header")!;
     const composer = () => ui.container.querySelector<HTMLElement>(".chat-composer")!;
-    await waitFor(() => expect(within(header).getByRole("button", { name: "Call" })).toBeTruthy());
-    const firstCall = within(header).getByRole("button", { name: "Call" }) as HTMLButtonElement;
+    await waitFor(() =>
+      expect(within(composer()).getByRole("button", { name: "Call" })).toBeTruthy(),
+    );
+    const firstCall = within(composer()).getByRole("button", { name: "Call" }) as HTMLButtonElement;
+    const firstInput = within(composer()).getByRole("button", { name: "Voice input" });
+    const submitActions = composer().querySelector<HTMLElement>(".composer-submit-actions")!;
     expect(firstCall.disabled).toBe(false);
-    expect(firstCall.parentElement).toBe(header.lastElementChild);
-    expect(firstCall.parentElement?.className).toBe("session-header-actions");
-    expect(within(composer()).queryByRole("button", { name: "Call" })).toBeNull();
-    expect(within(composer()).getByRole("button", { name: "Voice input" })).toBeTruthy();
+    expect(submitActions).toBeTruthy();
+    expect(within(submitActions).getAllByRole("button")).toEqual([
+      firstInput,
+      firstCall,
+      within(composer()).getByRole("button", { name: "Send message" }),
+    ]);
+    expect(within(header).queryByRole("button", { name: "Call" })).toBeNull();
+    expect(within(header).queryByRole("button", { name: "Voice input" })).toBeNull();
+    expect(composer().querySelector(".composer-input-row .voice-input-button")).toBeNull();
     expect(ui.getAllByRole("button", { name: "Call" })).toHaveLength(1);
 
     const firstSource = connections.find((source) => source.url.includes("/first/events"))!;
     expect(firstSource).toBeTruthy();
     act(() => firstSource.onerror?.());
     await waitFor(() => expect(firstCall.disabled).toBe(true));
-    expect(within(header).getByRole("button", { name: "Call" })).toBe(firstCall);
+    expect(within(composer()).getByRole("button", { name: "Call" })).toBe(firstCall);
 
     act(() => useWorkspace.getState().open({ id: "second", workspaceId: "project" }));
     ui.rerender(page("second"));
@@ -125,14 +162,16 @@ test("header voice call follows connection and session changes without duplicate
       expect(within(header).getByRole("button", { name: "second conversation" })).toBeTruthy();
       expect(ui.getAllByRole("button", { name: "Call" })).toHaveLength(1);
     });
-    const secondCall = within(header).getByRole("button", { name: "Call" }) as HTMLButtonElement;
+    const secondCall = within(composer()).getByRole("button", {
+      name: "Call",
+    }) as HTMLButtonElement;
     expect(secondCall).not.toBe(firstCall);
     expect(secondCall.disabled).toBe(false);
-    expect(secondCall.parentElement).toBe(header.lastElementChild);
+    expect(composer().querySelector(".composer-submit-actions")?.contains(secondCall)).toBe(true);
     expect(firstCall.isConnected).toBe(false);
     expect(firstSource.closed).toBe(true);
     expect(connections.some((source) => source.url.includes("/second/events"))).toBe(true);
-    expect(within(composer()).queryByRole("button", { name: "Call" })).toBeNull();
+    expect(within(header).queryByRole("button", { name: "Call" })).toBeNull();
     expect(within(composer()).getByRole("button", { name: "Voice input" })).toBeTruthy();
     expect(fetched).toEqual([]);
   } finally {
@@ -142,6 +181,7 @@ test("header voice call follows connection and session changes without duplicate
     useSessions.setState(sessions, true);
     useRequests.setState(requests, true);
     useQueueEdits.setState(edits, true);
+    useVoiceSetupState.setState(setup, true);
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

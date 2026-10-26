@@ -12,7 +12,7 @@ export const VoiceTest = ({ disabled, speechDisabled = false, onStateChange }: V
   const verified = useRef(false);
   const voice = useVoice({
     transcript: (text, final) => {
-      if (final && text.trim()) {
+      if (!disabled && final && text.trim()) {
         verified.current = true;
         onStateChange?.("verified");
       }

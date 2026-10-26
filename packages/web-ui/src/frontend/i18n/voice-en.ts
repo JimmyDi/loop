@@ -13,6 +13,7 @@ export const voiceEn = {
   conversationProfileHint: "Add local spoken replies for continuous voice calls.",
   testHint: "Choose a microphone and say a short phrase. A final transcript completes this step.",
   testLocked: "Install the selected voice components before testing.",
+  setupRequired: "Complete Voice setup in Settings → Voice and review the details.",
   loading: "Loading",
   completed: "Completed",
   incomplete: "Not completed",

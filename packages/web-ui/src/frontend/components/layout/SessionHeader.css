@@ -19,13 +19,6 @@
   flex: 0 1 auto;
   min-width: 0;
 }
-.session-header-actions {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  margin-inline-start: auto;
-  padding-inline-start: 8px;
-}
 .session-name-placeholder {
   min-width: 0;
   padding: 4px 8px;

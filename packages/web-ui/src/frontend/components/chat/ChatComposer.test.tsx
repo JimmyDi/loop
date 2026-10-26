@@ -1,10 +1,14 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import type { SessionSnapshot } from "../../../shared/protocol";
 import "../../i18n/setup";
 import { ChatComposer } from "./ChatComposer";
+
+vi.mock("../../hooks/useVoiceSetup", () => ({
+  useVoiceSetup: () => ({ complete: true }),
+}));
 
 const snapshot: SessionSnapshot = {
   streamId: "stream",
@@ -85,8 +89,8 @@ test.each([
       expect(input.textContent).toBe(operation === "compact" ? "" : draft);
       expect(useWorkspace.getState().drafts.test).toBe(draft);
       expect(ui.getByRole("button", { name: "Voice input" })).toBeTruthy();
-      expect(ui.container.querySelector(".composer-input-action")).toBeTruthy();
-      expect(ui.queryByRole("button", { name: "Call" })).toBeNull();
+      expect(ui.container.querySelector(".composer-input-action")).toBeNull();
+      expect(ui.getByRole("button", { name: "Call" })).toBeTruthy();
       expect(ui.container.querySelector(".voice-controls")).toBeNull();
 
       input.textContent = "Synthetic draft";
@@ -94,13 +98,13 @@ test.each([
       expect(useWorkspace.getState().drafts.test).toBe("Synthetic draft");
       expect(ui.queryByRole("button", { name: "Voice input" })).toBeNull();
       expect(ui.container.querySelector(".composer-input-action")).toBeNull();
-      expect(ui.queryByRole("button", { name: "Call" })).toBeNull();
+      expect(ui.getByRole("button", { name: "Call" })).toBeTruthy();
 
       input.textContent = "";
       fireEvent.input(input);
       expect(useWorkspace.getState().drafts.test).toBe("");
       expect(ui.getByRole("button", { name: "Voice input" })).toBeTruthy();
-      expect(ui.container.querySelector(".composer-input-action")).toBeTruthy();
+      expect(ui.container.querySelector(".composer-input-action")).toBeNull();
 
       for (const [value, stored] of [
         ["  ", "  "],
@@ -110,8 +114,8 @@ test.each([
         fireEvent.input(input);
         expect(useWorkspace.getState().drafts.test).toBe(stored);
         expect(ui.getByRole("button", { name: "Voice input" })).toBeTruthy();
-        expect(ui.container.querySelector(".composer-input-action")).toBeTruthy();
-        expect(ui.queryByRole("button", { name: "Call" })).toBeNull();
+        expect(ui.container.querySelector(".composer-input-action")).toBeNull();
+        expect(ui.getByRole("button", { name: "Call" })).toBeTruthy();
       }
 
       for (const placeholder of ["<br>", "<div><br></div>"]) {
@@ -122,8 +126,8 @@ test.each([
         fireEvent.input(input);
         expect(useWorkspace.getState().drafts.test!.trim()).toBe("");
         expect(ui.getByRole("button", { name: "Voice input" })).toBeTruthy();
-        expect(ui.container.querySelector(".composer-input-action")).toBeTruthy();
-        expect(ui.queryByRole("button", { name: "Call" })).toBeNull();
+        expect(ui.container.querySelector(".composer-input-action")).toBeNull();
+        expect(ui.getByRole("button", { name: "Call" })).toBeTruthy();
       }
     } finally {
       cleanup();
@@ -137,7 +141,7 @@ test.each([
   },
 );
 
-test("composer owns the header Call action through connection changes and removes it on unmount", async () => {
+test("composer keeps icon-only voice actions immediately before send through connection changes", async () => {
   const { Window } = await import("happy-dom");
   const { useWorkspace } = await import("../../state/workspace-store");
   const { useRequests } = await import("../../state/request-store");
@@ -163,11 +167,9 @@ test("composer owns the header Call action through connection changes and remove
       isRunning: false,
     },
   };
-  const header = document.createElement("header");
-  document.body.append(header);
   const composer = (connected: boolean) => (
     <QueryClientProvider client={client}>
-      <ChatComposer snapshot={current} connected={connected} voiceActions={header} />
+      <ChatComposer snapshot={current} connected={connected} />
     </QueryClientProvider>
   );
   try {
@@ -175,9 +177,16 @@ test("composer owns the header Call action through connection changes and remove
     useRequests.setState({ pending: {}, delivery: {} });
     useQueueEdits.setState({ edits: {} });
     const ui = render(composer(true));
-    const call = within(header).getByRole("button", { name: "Call" }) as HTMLButtonElement;
+    const actions = ui.container.querySelector<HTMLElement>(".composer-submit-actions")!;
+    const call = within(actions).getByRole("button", { name: "Call" }) as HTMLButtonElement;
     expect(call.disabled).toBe(false);
-    expect(within(ui.container).queryByRole("button", { name: "Call" })).toBeNull();
+    expect(
+      within(actions)
+        .getAllByRole("button")
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual(["Voice input", "Call", "Send message"]);
+    expect(call.textContent).toBe("");
+    expect(ui.container.querySelector(".composer-input-area button")).toBeNull();
     expect(ui.container.querySelector(".voice-controls")).toBeNull();
     expect(ui.getByRole("button", { name: "Voice input" })).toBeTruthy();
 
@@ -186,7 +195,12 @@ test("composer owns the header Call action through connection changes and remove
     fireEvent.input(input);
     expect(useWorkspace.getState().drafts.test).toBe("Synthetic draft");
     expect(within(ui.container).queryByRole("button", { name: "Voice input" })).toBeNull();
-    expect(within(header).getByRole("button", { name: "Call" })).toBe(call);
+    expect(within(actions).getByRole("button", { name: "Call" })).toBe(call);
+    expect(
+      within(actions)
+        .getAllByRole("button")
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual(["Call", "Send message"]);
     expect(call.disabled).toBe(false);
 
     ui.rerender(composer(false));
@@ -194,10 +208,9 @@ test("composer owns the header Call action through connection changes and remove
     ui.rerender(composer(true));
     expect(call.disabled).toBe(false);
     ui.unmount();
-    expect(header.childElementCount).toBe(0);
+    expect(call.isConnected).toBe(false);
   } finally {
     cleanup();
-    header.remove();
     client.clear();
     useWorkspace.setState(workspace, true);
     useRequests.setState(requests, true);

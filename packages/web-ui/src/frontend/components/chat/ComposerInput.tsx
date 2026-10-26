@@ -18,7 +18,6 @@ export const ComposerInput = ({
   focusRequest = 0,
   sessionId,
   hideSkills = false,
-  action,
 }: ComposerInputProps) => {
   const editor = useComposerInput(value, onChange, onSubmit);
   const skills = useWorkspace((state) => (sessionId ? state.skills[sessionId] : undefined));
@@ -45,80 +44,77 @@ export const ComposerInput = ({
   }, [editor.ref, focusRequest]);
 
   return (
-    <div className="composer-input-row">
-      <div className="composer-input-area">
-        <ComposerSkillTokens skills={visibleSkills} disabled={disabled} />
-        <div
-          {...editor}
-          onKeyDown={(event) => {
+    <div className="composer-input-area">
+      <ComposerSkillTokens skills={visibleSkills} disabled={disabled} />
+      <div
+        {...editor}
+        onKeyDown={(event) => {
+          if (
+            !disabled &&
+            skills?.length &&
+            event.key === "Backspace" &&
+            !event.shiftKey &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !event.altKey &&
+            !event.nativeEvent.isComposing &&
+            event.keyCode !== 229
+          ) {
+            const selection = event.currentTarget.ownerDocument.getSelection();
             if (
-              !disabled &&
-              skills?.length &&
-              event.key === "Backspace" &&
-              !event.shiftKey &&
-              !event.ctrlKey &&
-              !event.metaKey &&
-              !event.altKey &&
-              !event.nativeEvent.isComposing &&
-              event.keyCode !== 229
+              selection?.isCollapsed &&
+              selection.rangeCount &&
+              event.currentTarget.contains(selection.anchorNode)
             ) {
-              const selection = event.currentTarget.ownerDocument.getSelection();
-              if (
-                selection?.isCollapsed &&
-                selection.rangeCount &&
-                event.currentTarget.contains(selection.anchorNode)
-              ) {
-                const before = selection.getRangeAt(0).cloneRange();
-                before.selectNodeContents(event.currentTarget);
-                before.setEnd(selection.anchorNode!, selection.anchorOffset);
-                if (!before.toString()) {
-                  event.preventDefault();
-                  removeSkill(skills[skills.length - 1]!.id);
-                  return;
-                }
+              const before = selection.getRangeAt(0).cloneRange();
+              before.selectNodeContents(event.currentTarget);
+              before.setEnd(selection.anchorNode!, selection.anchorOffset);
+              if (!before.toString()) {
+                event.preventDefault();
+                removeSkill(skills[skills.length - 1]!.id);
+                return;
               }
             }
-            editor.onKeyDown(event);
-          }}
-          onPaste={(event) => {
-            if (disabled) return;
-            const files = [...event.clipboardData.files];
-            if (files.length && onFiles) {
-              event.preventDefault();
-              onFiles(files);
-              return;
-            }
-            const copied = sessionId
-              ? readSkillMessage(
-                  event.clipboardData.getData("text/html"),
-                  event.clipboardData.getData("text/plain"),
-                )
-              : undefined;
-            const merged = new Set([...(skills ?? []), ...(copied?.skills ?? [])].map((s) => s.id));
-            if (copied && sessionId && merged.size <= 8 && editor.ref.current) {
-              event.preventDefault();
-              for (const skill of copied.skills)
-                useWorkspace.getState().selectSkill(sessionId, skill);
-              insertPlainText(editor.ref.current, copied.text);
-              editor.onInput();
-              return;
-            }
-            editor.onPaste(event);
-          }}
-          className="composer-input"
-          contentEditable={!disabled}
-          tabIndex={disabled ? -1 : 0}
-          role="textbox"
-          aria-label={placeholder}
-          aria-multiline="true"
-          aria-disabled={disabled}
-          data-placeholder={placeholder}
-          data-empty={!value && !visibleSkills.length}
-          suppressContentEditableWarning
-          spellCheck
-        />
-      </div>
-      {action && <div className="composer-input-action">{action}</div>}
+          }
+          editor.onKeyDown(event);
+        }}
+        onPaste={(event) => {
+          if (disabled) return;
+          const files = [...event.clipboardData.files];
+          if (files.length && onFiles) {
+            event.preventDefault();
+            onFiles(files);
+            return;
+          }
+          const copied = sessionId
+            ? readSkillMessage(
+                event.clipboardData.getData("text/html"),
+                event.clipboardData.getData("text/plain"),
+              )
+            : undefined;
+          const merged = new Set([...(skills ?? []), ...(copied?.skills ?? [])].map((s) => s.id));
+          if (copied && sessionId && merged.size <= 8 && editor.ref.current) {
+            event.preventDefault();
+            for (const skill of copied.skills)
+              useWorkspace.getState().selectSkill(sessionId, skill);
+            insertPlainText(editor.ref.current, copied.text);
+            editor.onInput();
+            return;
+          }
+          editor.onPaste(event);
+        }}
+        className="composer-input"
+        contentEditable={!disabled}
+        tabIndex={disabled ? -1 : 0}
+        role="textbox"
+        aria-label={placeholder}
+        aria-multiline="true"
+        aria-disabled={disabled}
+        data-placeholder={placeholder}
+        data-empty={!value && !visibleSkills.length}
+        suppressContentEditableWarning
+        spellCheck
+      />
     </div>
   );
 };

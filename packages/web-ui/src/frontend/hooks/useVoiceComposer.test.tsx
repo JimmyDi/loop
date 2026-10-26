@@ -17,6 +17,10 @@ const voice = vi.hoisted(() => ({
   mute: vi.fn(),
   interrupt: vi.fn(),
   speak: vi.fn(),
+  setupComplete: true,
+}));
+vi.mock("./useVoiceSetup", () => ({
+  useVoiceSetup: () => ({ complete: voice.setupComplete }),
 }));
 vi.mock("./useVoice", () => ({
   useVoice: (options: unknown) => {
@@ -130,6 +134,53 @@ test("dictation replaces only its partial phrase and pauses before manual edits"
   } finally {
     cleanup();
     voice.mode = undefined;
+    useWorkspace.setState(workspace, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("incomplete setup prevents starting or resuming either voice mode", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { renderHook, act, cleanup } = await import("@testing-library/react/pure");
+  const workspace = useWorkspace.getState();
+  const snapshot = {
+    sessionId: "voice",
+    streamId: "stream",
+    operation: "idle",
+    tools: {},
+    state: { messages: [], hasPendingSave: false },
+  } as unknown as SessionSnapshot;
+  try {
+    voice.setupComplete = false;
+    voice.mode = undefined;
+    voice.start.mockClear();
+    useWorkspace.setState({ drafts: { voice: "Preserved draft" } });
+    const hook = renderHook(() => useVoiceComposer(snapshot, true, true));
+    expect(hook.result.current.setupComplete).toBe(false);
+    act(() => {
+      hook.result.current.start("dictation");
+      hook.result.current.start("conversation");
+    });
+    expect(voice.start).not.toHaveBeenCalled();
+    voice.mode = "conversation";
+    voice.status = "paused";
+    hook.rerender();
+    act(() => hook.result.current.start("conversation"));
+    expect(voice.start).not.toHaveBeenCalled();
+    voice.setupComplete = true;
+    hook.rerender();
+    expect(hook.result.current.setupComplete).toBe(true);
+    act(() => hook.result.current.start("conversation"));
+    expect(voice.start).toHaveBeenCalledExactlyOnceWith("conversation");
+    expect(useWorkspace.getState().drafts.voice).toBe("Preserved draft");
+  } finally {
+    cleanup();
+    voice.setupComplete = true;
+    voice.mode = undefined;
+    voice.status = "listening";
     useWorkspace.setState(workspace, true);
     Object.assign(globalThis, previous);
     await window.happyDOM.close();

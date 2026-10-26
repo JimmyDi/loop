@@ -12,4 +12,5 @@ export interface VoiceComposerControl {
   editing: boolean;
   prompt: PromptControl;
   blocked: boolean;
+  setupComplete: boolean;
 }

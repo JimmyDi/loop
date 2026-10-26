@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SessionSnapshot } from "../../../shared/protocol";
@@ -19,7 +19,6 @@ import "./ChatWorkspace.css";
 
 export const ChatWorkspace = ({ id }: { id: string }) => {
   const { t } = useTranslation();
-  const [voiceActions, setVoiceActions] = useState<HTMLDivElement | null>(null);
   const view = useSessions((state) => state.views[id]);
   const query = useQuery({
     queryKey: ["session", id],
@@ -48,7 +47,7 @@ export const ChatWorkspace = ({ id }: { id: string }) => {
 
   return (
     <main className="chat-workspace">
-      <SessionHeader snapshot={snapshot} actionsRef={snapshot ? setVoiceActions : undefined} />
+      <SessionHeader snapshot={snapshot} />
       {query.error && (
         <div className="workspace-error">
           <ErrorNotice error={query.error} />
@@ -69,12 +68,7 @@ export const ChatWorkspace = ({ id }: { id: string }) => {
           <div className="chat-workspace-input">
             <SessionStatus snapshot={snapshot} connected={connected} />
             <SessionApprovals snapshot={snapshot} connected={connected} />
-            <ChatComposer
-              key={snapshot.sessionId}
-              snapshot={snapshot}
-              connected={connected}
-              voiceActions={voiceActions}
-            />
+            <ChatComposer key={snapshot.sessionId} snapshot={snapshot} connected={connected} />
           </div>
         </div>
       )}

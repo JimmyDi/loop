@@ -6,7 +6,7 @@ import { SessionName } from "./SessionName";
 import type { SessionHeaderProps } from "./session-header-types";
 import "./SessionHeader.css";
 
-export const SessionHeader = ({ snapshot, actionsRef }: SessionHeaderProps) => {
+export const SessionHeader = ({ snapshot }: SessionHeaderProps) => {
   const { t } = useTranslation();
   const toggle = useWorkspace((state) => state.toggleSidebar);
 
@@ -36,7 +36,6 @@ export const SessionHeader = ({ snapshot, actionsRef }: SessionHeaderProps) => {
       ) : (
         <span className="session-name-placeholder">{t("newSession")}</span>
       )}
-      {actionsRef && <div className="session-header-actions" ref={actionsRef} />}
     </header>
   );
 };

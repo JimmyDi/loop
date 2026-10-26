@@ -1,17 +1,5 @@
-const KEY = "loop.voice.microphone";
+import { useVoiceSetupState } from "./setup-state";
 
-export const voiceDevice = (): string => {
-  try {
-    return localStorage.getItem(KEY) ?? "";
-  } catch {
-    return "";
-  }
-};
+export const voiceDevice = (): string => useVoiceSetupState.getState().deviceId;
 
-export const saveVoiceDevice = (id: string): void => {
-  try {
-    localStorage.setItem(KEY, id);
-  } catch {
-    /* Capture still works with the default device when storage is unavailable. */
-  }
-};
+export const saveVoiceDevice = (id: string): void => useVoiceSetupState.getState().setDevice(id);

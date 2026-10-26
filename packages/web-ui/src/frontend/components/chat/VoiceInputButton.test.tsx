@@ -6,17 +6,28 @@ import { i18n } from "../../i18n/setup";
 import { VoiceInputButton } from "./VoiceInputButton";
 
 test.each([
-  ["idle starts dictation", undefined, "idle", false, false, "start"],
-  ["active finishes input", "dictation", "listening", false, false, "finish"],
-  ["paused resumes dictation", "dictation", "paused", false, false, "start"],
-  ["blocked cannot start", undefined, "idle", true, true, "none"],
-  ["conversation cannot start dictation", "conversation", "listening", false, true, "none"],
-  ["blocked active input can finish", "dictation", "listening", true, false, "finish"],
-  ["blocked paused input cannot resume", "dictation", "paused", true, true, "none"],
-  ["live transcribing input can finish", "dictation", "transcribing", false, false, "finish"],
+  ["idle starts dictation", undefined, "idle", true, false, false, "start"],
+  ["active finishes input", "dictation", "listening", true, false, false, "finish"],
+  ["paused resumes dictation", "dictation", "paused", true, false, false, "start"],
+  ["blocked cannot start", undefined, "idle", true, true, true, "none"],
+  ["conversation cannot start dictation", "conversation", "listening", true, false, true, "none"],
+  ["blocked active input can finish", "dictation", "listening", true, true, false, "finish"],
+  ["blocked paused input cannot resume", "dictation", "paused", true, true, true, "none"],
+  ["live transcribing input can finish", "dictation", "transcribing", true, false, false, "finish"],
+  ["incomplete setup cannot start", undefined, "idle", false, false, true, "none"],
+  ["incomplete setup cannot resume", "dictation", "paused", false, false, true, "none"],
+  [
+    "incomplete setup active input can finish",
+    "dictation",
+    "listening",
+    false,
+    false,
+    false,
+    "finish",
+  ],
 ] as const)(
   "dictation button: %s without sending the prompt",
-  async (_name, mode, status, blocked, disabled, action) => {
+  async (_name, mode, status, setupComplete, blocked, disabled, action) => {
     const window = new Window();
     const previous = { window: globalThis.window, document: globalThis.document };
     Object.assign(globalThis, { window, document: window.document });
@@ -56,6 +67,7 @@ test.each([
         uncertain: false,
       },
       blocked,
+      setupComplete,
     };
     const { render, fireEvent, cleanup } = await import("@testing-library/react/pure");
     try {
@@ -69,7 +81,10 @@ test.each([
       const button = view.getByRole("button", { name: i18n.t(label) }) as HTMLButtonElement;
       expect(button.disabled).toBe(disabled);
       expect(button.textContent).toBe("");
-      expect(button.title).toBe(i18n.t(label));
+      const setupRequired = !setupComplete && (mode !== "dictation" || status === "paused");
+      expect(button.title).toBe(i18n.t(setupRequired ? "voice.setupRequired" : label));
+      const hint = button.closest(".voice-setup-hint") as HTMLElement | null;
+      expect(hint?.title).toBe(setupRequired ? i18n.t("voice.setupRequired") : undefined);
       expect(button.getAttribute("aria-pressed")).toBe(String(mode === "dictation"));
       fireEvent.click(button);
       if (action === "start") {

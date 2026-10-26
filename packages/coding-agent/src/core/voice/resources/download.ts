@@ -36,6 +36,7 @@ const trustedDownload = (url: URL): boolean =>
     "huggingface.co",
     "cdn-lfs.huggingface.co",
     "cdn-lfs-us-1.hf.co",
+    "us.aws.cdn.hf.co",
     "cas-bridge.xethub.hf.co",
     "github.com",
     "raw.githubusercontent.com",

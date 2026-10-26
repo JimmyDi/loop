@@ -44,7 +44,7 @@ test("manual workflow passes selected targets through validated prepare output a
   const prepare = workflow.jobs.prepare;
   expect(prepare.outputs.matrix).toBe("$" + "{{ steps.targets.outputs.matrix }}");
   const step = prepare.steps.find((item: { id?: string }) => item.id === "targets");
-  expect(step.env.VOICE_RELEASE_TARGETS).toBe("$" + "{{ inputs.targets }}");
+  expect(step.env.VOICE_RELEASE_TARGETS).toBe("$" + "{{ inputs.targets || 'darwin-arm64' }}");
   expect(step.run).toContain("prepare-workflow.ts");
   expect(step.run).not.toContain("inputs.targets");
   expect(workflow.jobs.build.needs).toEqual(["prepare"]);
@@ -59,4 +59,25 @@ test("manual workflow passes selected targets through validated prepare output a
   expect(catalog.env.VOICE_RELEASE_TARGETS).toBe("$" + "{{ needs.prepare.outputs.targets }}");
   expect(catalog.run).toContain('--targets "$VOICE_RELEASE_TARGETS"');
   expect(catalog.run).not.toContain("inputs.");
+  expect(catalog.env.VOICE_RELEASE_TAG).toBe("$" + "{{ needs.prepare.outputs.release_tag }}");
+  expect(workflow.on.push.branches).toEqual(["main"]);
+  expect(workflow.on.push.tags).toEqual(["voice-v*"]);
+  expect(workflow.on.push.paths).toContain(
+    "packages/coding-agent/src/core/voice/resources/catalog.ts",
+  );
+  expect(workflow.on.push.paths).toContain(
+    "!packages/coding-agent/src/core/voice/native/**/*.test.ts",
+  );
+  const version = prepare.steps.find((item: { id?: string }) => item.id === "version");
+  expect(version.run).toContain('tag="voice-v0.0.$GITHUB_RUN_ID"');
+  expect(workflow.jobs.publish.needs).toEqual(["prepare", "catalog"]);
+  expect(workflow.jobs.publish.if).toBe("github.event_name == 'push'");
+  expect(workflow.permissions.contents).toBe("read");
+  expect(workflow.jobs.publish.permissions.contents).toBe("write");
+  const publish = workflow.jobs.publish.steps.find(
+    (item: { name?: string }) => item.name === "Publish verified voice assets",
+  );
+  expect(publish.env.VOICE_RELEASE_TAG).toBe("$" + "{{ needs.prepare.outputs.release_tag }}");
+  expect(publish.run).toContain('--target "$GITHUB_SHA"');
+  expect(publish.run).toContain("--draft=false --latest=false");
 });

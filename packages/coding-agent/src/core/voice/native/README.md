@@ -46,12 +46,25 @@ and reviewed dependencies.
 
 ## Release assets
 
-The manually dispatched voice-native workflow accepts a comma-separated targets
-allowlist, defaulting to darwin-arm64. It validates the list before generating
+The voice-native workflow builds darwin-arm64 automatically when resource inputs
+change on main, or on voice-vX.Y.Z tag pushes. Watched inputs include native source,
+dependency locks, patches, model catalog, download validation, resource/protocol
+contracts and the workflow itself. Native tests and documentation are excluded;
+retained licenses are included. Ordinary frontend and Agent changes do not trigger it.
+Each matching main push rebuilds all engine and model bundles and uses the unique
+voice-v0.0.RUN_ID release tag, targeting that exact source commit. Reruns keep the
+same tag and cannot overwrite an existing release. This monitors checked-in inputs,
+not upstream releases; upstream updates require changing the pinned inputs first.
+Manual runs accept a comma-separated targets allowlist, defaulting to
+darwin-arm64, and only prepare artifacts. It validates the list before generating
 the build matrix for selected macOS/Linux x64 and ARM64 or Windows x64 CPU bundles,
 three model bundles, SHA-256 and expanded
 file manifests, and a published-catalog.ts candidate. It uploads CI artifacts
-only; it never creates a GitHub release or publishes an npm package.
+for all entry points. Main and tag pushes additionally publish verified archives, manifests,
+SHA256SUMS and the catalog candidate to GitHub Releases. Publication stages a draft
+before making it public and refuses to replace an existing release. Review failed
+drafts before retrying. Voice releases are not marked as the latest application
+release. The workflow never publishes an npm package.
 The catalog generator verifies every compressed archive's size and SHA-256,
 extracts its exact allowed file list, verifies every expanded file, and checks
 model metadata against the pinned source catalog before emitting download URLs.
@@ -72,8 +85,8 @@ readiness merely because a platform binary was compiled.
 
 The catalog remains empty until those artifacts are reviewed and made available
 under the chosen public release tag. Ordinary install/update reports unavailable
-assets meanwhile. To finish an authorized release, upload all verified tar.gz
-assets, verify public availability, and replace resources/published-catalog.ts
+assets meanwhile. After testing and reviewing a tag release, verify public
+availability and replace resources/published-catalog.ts
 with the generated candidate. No application implementation is needed then.
 
 The builder and packers can also be run individually:

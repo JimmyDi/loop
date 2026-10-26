@@ -68,16 +68,44 @@ test("rejects mismatched data and removes its corrupt partial file", async () =>
   await expect(readFile(destination + ".partial")).rejects.toMatchObject({ code: "ENOENT" });
 });
 
-test("does not follow downloads to untrusted hosts", async () => {
+test("resumes pinned Hugging Face models through its AWS CDN and verifies the digest", async () => {
+  const { bytes, file, destination } = await fixture();
+  file.url = "https://huggingface.co/loop-test/voice/resolve/v1/model.onnx";
+  const cdnUrl = "https://us.aws.cdn.hf.co/model.onnx";
+  await writeFile(destination + ".partial", bytes.subarray(0, 5));
+  const fetcher = vi.fn(async (url: URL, options: RequestInit) => {
+    expect(options.redirect).toBe("manual");
+    expect(new Headers(options.headers).get("range")).toBe("bytes=5-");
+    if (url.href === file.url) {
+      return new Response(null, { status: 302, headers: { location: cdnUrl } });
+    }
+    expect(url.href).toBe(cdnUrl);
+    return new Response(bytes.subarray(5), {
+      status: 206,
+      headers: {
+        "content-range": "bytes 5-" + (bytes.length - 1) + "/" + bytes.length,
+        "content-length": String(bytes.length - 5),
+      },
+    });
+  });
+  vi.stubGlobal("fetch", fetcher);
+  await downloadResource(file, destination, new AbortController().signal, () => {});
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(await readFile(destination)).toEqual(bytes);
+});
+
+test.each([
+  "https://example.test/private",
+  "https://us.aws.cdn.hf.co.example.test/model.onnx",
+  "https://untrusted.hf.co/model.onnx",
+  "http://us.aws.cdn.hf.co/model.onnx",
+  "https://user:password@us.aws.cdn.hf.co/model.onnx",
+])("does not follow downloads to untrusted sources: %s", async (location) => {
   const { file, destination } = await fixture();
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(
-      async () =>
-        new Response(null, { status: 302, headers: { location: "https://example.test/private" } }),
-    ),
-  );
+  const fetcher = vi.fn(async () => new Response(null, { status: 302, headers: { location } }));
+  vi.stubGlobal("fetch", fetcher);
   await expect(
     downloadResource(file, destination, new AbortController().signal, () => {}),
   ).rejects.toThrow("source_rejected");
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });

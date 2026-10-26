@@ -1,9 +1,24 @@
-name: Prepare native voice assets
+name: Build and release native voice assets
 on:
+  push:
+    branches:
+      - main
+    tags:
+      - "voice-v*"
+    paths:
+      - ".github/workflows/voice-native.yml"
+      - "packages/coding-agent/src/core/voice/native/**"
+      - "!packages/coding-agent/src/core/voice/native/**/*.test.ts"
+      - "!packages/coding-agent/src/core/voice/native/**/*.md"
+      - "packages/coding-agent/src/core/voice/native/licenses/**"
+      - "packages/coding-agent/src/core/voice/resources/catalog.ts"
+      - "packages/coding-agent/src/core/voice/resources/download.ts"
+      - "packages/coding-agent/src/core/voice/resources/resource-types.ts"
+      - "packages/coding-agent/src/core/voice/protocol-*.ts"
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Planned voice asset tag (does not publish)
+        description: Planned voice asset tag (manual runs build only)
         required: true
         default: voice-v1.0.0
       targets:
@@ -12,12 +27,16 @@ on:
         default: darwin-arm64
 permissions:
   contents: read
+concurrency:
+  group: voice-assets-${{ github.event.inputs.release_tag || github.ref_name }}
+  cancel-in-progress: false
 jobs:
   prepare:
     runs-on: ubuntu-22.04
     outputs:
       matrix: ${{ steps.targets.outputs.matrix }}
       targets: ${{ steps.targets.outputs.targets }}
+      release_tag: ${{ steps.version.outputs.release_tag }}
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: pnpm/action-setup@v6.1.0
@@ -26,9 +45,25 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - id: version
+        name: Resolve voice resource release version
+        env:
+          REQUESTED_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            tag="$REQUESTED_TAG"
+          elif [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            tag="$GITHUB_REF_NAME"
+          else
+            tag="voice-v0.0.$GITHUB_RUN_ID"
+          fi
+          [[ "$tag" =~ ^voice-v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          echo "release_tag=$tag" >> "$GITHUB_OUTPUT"
       - id: targets
         env:
-          VOICE_RELEASE_TARGETS: ${{ inputs.targets }}
+          VOICE_RELEASE_TARGETS: ${{ inputs.targets || 'darwin-arm64' }}
         run: node --import tsx packages/coding-agent/src/core/voice/native/prepare-workflow.ts
   build:
     needs: [prepare]
@@ -76,7 +111,7 @@ jobs:
           merge-multiple: true
           path: .tools/voice/release-assets
       - env:
-          VOICE_RELEASE_TAG: ${{ inputs.release_tag }}
+          VOICE_RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
           VOICE_RELEASE_TARGETS: ${{ needs.prepare.outputs.targets }}
         run: node --import tsx packages/coding-agent/src/core/voice/native/prepare-catalog.ts .tools/voice/release-assets "$VOICE_RELEASE_TAG" --targets "$VOICE_RELEASE_TARGETS"
       - uses: actions/upload-artifact@v7.0.1
@@ -104,3 +139,30 @@ jobs:
             .tools/voice/release-assets/reviewed-model-assets.json
           if-no-files-found: error
           retention-days: 7
+  publish:
+    if: github.event_name == 'push'
+    needs: [prepare, catalog]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          name: voice-complete-release
+          path: release-assets
+      - name: Publish verified voice assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VOICE_RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$VOICE_RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release already exists; refusing to replace its assets."
+            exit 1
+          fi
+          cd release-assets
+          sha256sum -- *.tar.gz > SHA256SUMS
+          gh release create "$VOICE_RELEASE_TAG" --target "$GITHUB_SHA" --draft --title "$VOICE_RELEASE_TAG" --notes "Local voice engine and model bundles. See attached manifests, catalog and SHA256SUMS." -- *.tar.gz reviewed-*.json published-catalog.ts SHA256SUMS
+          gh release edit "$VOICE_RELEASE_TAG" --draft=false --latest=false

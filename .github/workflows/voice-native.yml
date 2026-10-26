@@ -14,6 +14,7 @@ on:
       - "packages/coding-agent/src/core/voice/resources/catalog.ts"
       - "packages/coding-agent/src/core/voice/resources/download.ts"
       - "packages/coding-agent/src/core/voice/resources/resource-types.ts"
+      - "packages/coding-agent/src/core/voice/resources/release-version.ts"
       - "packages/coding-agent/src/core/voice/protocol-*.ts"
   workflow_dispatch:
     inputs:
@@ -57,7 +58,8 @@ jobs:
           elif [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
             tag="$GITHUB_REF_NAME"
           else
-            tag="voice-v0.0.$GITHUB_RUN_ID"
+            version=$(node --import tsx --input-type=module -e 'import { VOICE_RELEASE_VERSION } from "./packages/coding-agent/src/core/voice/resources/release-version.ts"; console.log(VOICE_RELEASE_VERSION);')
+            tag="voice-v$version"
           fi
           [[ "$tag" =~ ^voice-v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
           echo "release_tag=$tag" >> "$GITHUB_OUTPUT"
@@ -164,5 +166,5 @@ jobs:
           fi
           cd release-assets
           sha256sum -- *.tar.gz > SHA256SUMS
-          gh release create "$VOICE_RELEASE_TAG" --target "$GITHUB_SHA" --draft --title "$VOICE_RELEASE_TAG" --notes "Local voice engine and model bundles. See attached manifests, catalog and SHA256SUMS." -- *.tar.gz reviewed-*.json published-catalog.ts SHA256SUMS
+          gh release create "$VOICE_RELEASE_TAG" --target "$GITHUB_SHA" --draft --title "$VOICE_RELEASE_TAG" --notes "Local voice engine and model bundles. See attached manifests, catalog and SHA256SUMS." -- *.tar.gz reviewed-*.json published-catalog.ts manifest.json SHA256SUMS
           gh release edit "$VOICE_RELEASE_TAG" --draft=false --latest=false

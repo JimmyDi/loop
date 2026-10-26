@@ -69,7 +69,7 @@ test("manual workflow passes selected targets through validated prepare output a
     "!packages/coding-agent/src/core/voice/native/**/*.test.ts",
   );
   const version = prepare.steps.find((item: { id?: string }) => item.id === "version");
-  expect(version.run).toContain('tag="voice-v0.0.$GITHUB_RUN_ID"');
+  expect(version.run).toContain('tag="voice-v$version"');
   expect(workflow.jobs.publish.needs).toEqual(["prepare", "catalog"]);
   expect(workflow.jobs.publish.if).toBe("github.event_name == 'push'");
   expect(workflow.permissions.contents).toBe("read");

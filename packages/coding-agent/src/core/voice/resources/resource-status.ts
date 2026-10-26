@@ -46,8 +46,10 @@ export const voiceResourceStatus = async (
         ...metadata,
         installed,
         downloadBytes:
-          (component.kind === "engine" ? component : publishedVoiceModels[component.id])?.archive
-            ?.bytes ?? bytes,
+          (component.kind === "engine"
+            ? component
+            : (state.release?.models[component.id] ?? publishedVoiceModels[component.id])
+          )?.archive?.bytes ?? bytes,
         requiredBytes: bytes,
         installedBytes: installed ? bytes : 0,
       };

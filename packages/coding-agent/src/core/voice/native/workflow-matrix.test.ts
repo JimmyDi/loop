@@ -78,6 +78,8 @@ test("manual workflow passes selected targets through validated prepare output a
     (item: { name?: string }) => item.name === "Publish verified voice assets",
   );
   expect(publish.env.VOICE_RELEASE_TAG).toBe("$" + "{{ needs.prepare.outputs.release_tag }}");
+  expect(publish.env.GH_TOKEN).toBe("$" + "{{ secrets.VOICE_RELEASE_TOKEN }}");
+  expect(publish.run).toContain('if [[ -z "$GH_TOKEN" ]]');
   expect(publish.run).toContain('--target "$GITHUB_SHA"');
   expect(publish.run).toContain("--draft=false --latest=false");
 });

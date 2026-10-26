@@ -379,8 +379,10 @@ test("the real device expiry timer ends an established call and its native lease
     const client = await fixture.connect(ticket);
     await ready(client);
     await vi.waitFor(() => expect(client.socket.readyState).toBe(WebSocket.CLOSED));
-    expect(fixture.runtime.isActive).toBe(false);
-    expect(fixture.release).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => {
+      expect(fixture.runtime.isActive).toBe(false);
+      expect(fixture.release).toHaveBeenCalledTimes(1);
+    });
     expect(() => fixture.service.reconnect(ticket.callId, owner, "tab")).toThrow(
       "voice_call_expired",
     );

@@ -6,7 +6,7 @@ import { createGzip } from "node:zlib";
 import { pipeline } from "node:stream/promises";
 import { pack } from "tar-stream";
 import { sourceVoiceModels } from "../resources/catalog";
-import { downloadResource, matchesResource } from "../resources/download";
+import { prepareModelFiles } from "./prepare-model-files";
 import type { ReviewedVoiceComponent } from "./release-assets-types";
 
 const output = resolve(process.argv[2] ?? ".tools/voice/model-assets");
@@ -15,15 +15,7 @@ const prepared: ReviewedVoiceComponent[] = [];
 for (const component of sourceVoiceModels) {
   const directory = join(output, "models", component.id);
   await mkdir(directory, { recursive: true });
-  for (const file of component.files) {
-    if (!(await matchesResource(join(directory, file.path), file)))
-      await downloadResource(
-        file,
-        join(directory, file.path),
-        AbortSignal.timeout(900_000),
-        () => {},
-      );
-  }
+  await prepareModelFiles(directory, component.files);
   const archive = join(output, component.id + ".tar.gz");
   const tar = pack();
   const writing = pipeline(tar, createGzip({ level: 9 }), createWriteStream(archive));

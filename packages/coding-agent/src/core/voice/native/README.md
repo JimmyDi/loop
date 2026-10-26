@@ -70,6 +70,12 @@ SHA256SUMS and the catalog candidate to GitHub Releases. Publication stages a dr
 before making it public and refuses to replace an existing release. Review failed
 drafts before retrying. Voice releases are not marked as the latest application
 release. The workflow never publishes an npm package.
+Configure the repository Actions secret VOICE_RELEASE_TOKEN before publishing.
+Use a repository-scoped fine-grained token with Contents and Workflows read/write
+permissions, or an equivalent GitHub App token, to support creating release tags
+for commits that modify workflows. Keep credentials only in Actions secrets and
+replace the secret before its token expires. Publication fails explicitly when
+the secret is missing; build jobs do not receive this credential.
 The catalog generator verifies every compressed archive's size and SHA-256,
 extracts its exact allowed file list, verifies every expanded file, and checks
 model metadata against the pinned source catalog before emitting download URLs.

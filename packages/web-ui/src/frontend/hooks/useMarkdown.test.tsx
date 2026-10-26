@@ -23,21 +23,27 @@ test("ordinary messages render immediately and math/highlighting download only w
   const View = ({ text }: { text: string }) => (
     <div dangerouslySetInnerHTML={{ __html: useMarkdown(text, "Copy", "Table") }} />
   );
-  const { render, cleanup } = await import("@testing-library/react/pure");
+  const { render, cleanup, act } = await import("@testing-library/react/pure");
   try {
     const ui = render(<View text="**Example**" />);
     expect(ui.container.querySelector("strong")?.textContent).toBe("Example");
     expect(loaded.math).not.toHaveBeenCalled();
     expect(loaded.highlight).not.toHaveBeenCalled();
-    ui.rerender(<View text={"```typescript\nconst x = 1;\n```"} />);
+    await act(async () => {
+      ui.rerender(<View text={"```typescript\nconst x = 1;\n```"} />);
+      await import("../lib/markdown-highlight");
+    });
     await vi.waitFor(() => expect(ui.container.innerHTML).toContain("fixture-highlight"));
     expect(loaded.math).not.toHaveBeenCalled();
-    ui.rerender(<View text="$x^2$" />);
+    await act(async () => {
+      ui.rerender(<View text="$x^2$" />);
+      await import("../lib/markdown-math");
+    });
     await vi.waitFor(() => expect(ui.container.querySelector(".fixture-math")).not.toBeNull());
     expect(loaded.math).toHaveBeenCalledOnce();
     expect(loaded.highlight).toHaveBeenCalledOnce();
   } finally {
-    cleanup();
+    await act(async () => cleanup());
     Object.assign(globalThis, previous);
     window.close();
   }

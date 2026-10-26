@@ -19,6 +19,9 @@ export const assertRemoteOrigin = (request: Request, origin: string): void => {
 
 /** Explicitly approved business routes. New endpoints remain closed by default. */
 export const allowsRemoteBusiness = (path: string, method: string): boolean => {
+  if (path === "/api/voice/status") return method === "GET";
+  if (path === "/api/voice/calls") return method === "POST";
+  if (/^\/api\/voice\/calls\/[a-f0-9-]{36}\/(connect|close)$/.test(path)) return method === "POST";
   if (
     method === "GET" &&
     [

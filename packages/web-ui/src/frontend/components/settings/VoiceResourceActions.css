@@ -1,0 +1,4 @@
+.voice-settings-actions { display: flex; flex-shrink: 0; gap: 2px; }
+.voice-settings-action { display: inline-flex; cursor: pointer; }
+.voice-settings-action:has(button:disabled) { cursor: not-allowed; }
+.voice-settings-action > button:disabled { pointer-events: none; }

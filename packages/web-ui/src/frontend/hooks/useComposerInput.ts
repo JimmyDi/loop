@@ -11,6 +11,7 @@ export const useComposerInput = (
   const ref = useRef<HTMLDivElement>(null);
   const composing = useRef(false);
   const update = () => {
+    window.dispatchEvent(new window.Event("loop-voice-edit"));
     if (ref.current) onChange(readComposer(ref.current));
   };
 

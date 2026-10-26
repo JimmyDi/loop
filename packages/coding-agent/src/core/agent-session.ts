@@ -344,7 +344,10 @@ export class AgentSession {
     return this.start(content, options.skills ?? []);
   }
 
-  enqueue(content: PromptContent, options: { skills?: string[]; id?: string } = {}): string {
+  enqueue(
+    content: PromptContent,
+    options: { skills?: string[]; id?: string; steering?: boolean } = {},
+  ): string {
     if (this.disposed) throw new Error("Session is disposed");
     if (this.sessionManager.hasPendingSave)
       throw new Error("Pending session save; call flush first");
@@ -354,7 +357,10 @@ export class AgentSession {
       !this.selected.input.includes("image")
     )
       throw new Error("Model does not support image input");
+    if (options.steering !== undefined && typeof options.steering !== "boolean")
+      throw new Error("Invalid steering option");
     const id = this.queue.add(content, options.skills, options.id);
+    if (options.steering) this.queue.steer(id);
     this.emit({ type: "queue_changed" });
     this.drain();
     return id;

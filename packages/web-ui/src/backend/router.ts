@@ -9,6 +9,8 @@ import type { RemoteAccessController } from "./remote-access/controller";
 import { remoteAccessRoutes } from "./routes/remote-access";
 import { createBusinessRouter } from "./business-router";
 import type { RemoteDevices } from "./remote-access/remote-devices";
+import type { VoiceService } from "./voice/voice-service";
+import type { BusinessHandler } from "./http/business-context";
 
 export const createRouter = (
   registry: SessionRegistry,
@@ -18,8 +20,11 @@ export const createRouter = (
   skills?: SkillManager,
   remoteAccess?: RemoteAccessController,
   devices?: RemoteDevices,
+  voice?: VoiceService,
+  businessOverride?: BusinessHandler,
 ) => {
-  const business = createBusinessRouter(registry, providers, webSettings, mcp, skills);
+  const business =
+    businessOverride ?? createBusinessRouter(registry, providers, webSettings, mcp, skills, voice);
   const remote = remoteAccess && remoteAccessRoutes(remoteAccess, devices);
 
   return async (request: Request): Promise<Response> => {

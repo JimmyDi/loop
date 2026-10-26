@@ -1,5 +1,5 @@
 export const settingsGroups = [
-  { label: "personal", items: ["general", "models", "appearance"] },
+  { label: "personal", items: ["general", "models", "appearance", "voice"] },
   { label: "integrations", items: ["mcps", "skills"] },
   { label: "connectivity", items: ["remoteAccess"] },
   { label: "archived", items: ["archivedChats"] },

@@ -1,0 +1,3 @@
+.voice-settings { display: grid; align-content: start; gap: 20px; color: var(--ink); }
+.voice-settings p { margin: 0; line-height: 1.6; }
+.voice-setup-steps { display: grid; align-content: start; gap: 12px; width: 100%; margin: 0; padding: 0; list-style: none; }

@@ -1,0 +1,7 @@
+.voice-call-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.voice-call-actions button { min-height: 36px; font-size: 12px; }
+.voice-hangup { margin-left: auto; }
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .voice-call-actions { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 3px; }
+  .voice-call-actions button { min-height: 44px; flex: 0 0 auto; }
+}

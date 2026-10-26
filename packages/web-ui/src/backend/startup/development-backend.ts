@@ -1,11 +1,12 @@
 import { fork } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { watch } from "node:fs";
 import { once } from "node:events";
 import { fileURLToPath } from "node:url";
 
 import { createBackendProxy } from "./backend-proxy";
+import { createVoiceProxy } from "./voice-proxy";
 
 export const startDevelopmentBackend = () => {
   let child: ChildProcess | undefined;
@@ -13,6 +14,22 @@ export const startDevelopmentBackend = () => {
   let closed = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let operation = Promise.resolve();
+  const invalidated = new Set<string>();
+  const revocations = new Map<
+    string,
+    {
+      child: ChildProcess;
+      resolve: () => void;
+      timer: ReturnType<typeof setTimeout>;
+    }
+  >();
+  const settleRevocation = (requestId: string) => {
+    const pending = revocations.get(requestId);
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    revocations.delete(requestId);
+    pending.resolve();
+  };
   const stop = async () => {
     target = undefined;
     const current = child;
@@ -37,6 +54,16 @@ export const startDevelopmentBackend = () => {
     child = current;
     current.on("message", (message: unknown) => {
       if (closed || current !== child || !message || typeof message !== "object") return;
+      if (
+        "type" in message &&
+        message.type === "voice.revoked" &&
+        "requestId" in message &&
+        typeof message.requestId === "string" &&
+        revocations.get(message.requestId)?.child === current
+      ) {
+        settleRevocation(message.requestId);
+        return;
+      }
       const port = "port" in message ? message.port : undefined;
       if (typeof port === "number" && Number.isInteger(port) && port > 0 && port <= 65535)
         target = { port, token };
@@ -47,8 +74,10 @@ export const startDevelopmentBackend = () => {
     });
     current.on("exit", () => {
       if (current === child) target = undefined;
+      for (const [requestId, pending] of revocations)
+        if (pending.child === current) settleRevocation(requestId);
     });
-    current.send({ token }, (error) => {
+    current.send({ token, invalidated: [...invalidated] }, (error) => {
       if (error && current === child) target = undefined;
     });
   };
@@ -70,6 +99,30 @@ export const startDevelopmentBackend = () => {
   start();
   return {
     handle: createBackendProxy(() => target),
+    voice: createVoiceProxy(() => target),
+    revokeVoice: (principal: string): Promise<void> => {
+      invalidated.add(principal);
+      const current = child;
+      if (!current || current.exitCode !== null || current.signalCode !== null)
+        return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        const requestId = randomUUID();
+        const timer = setTimeout(() => current.kill("SIGKILL"), 5_000);
+        revocations.set(requestId, { child: current, resolve, timer });
+        const failed = () => {
+          current.kill("SIGTERM");
+        };
+        try {
+          if (!current.connected) failed();
+          else
+            current.send({ type: "voice.revoke", principal, requestId }, (error) => {
+              if (error) failed();
+            });
+        } catch {
+          failed();
+        }
+      });
+    },
     ready: () => !!target,
     restart,
     close: async () => {

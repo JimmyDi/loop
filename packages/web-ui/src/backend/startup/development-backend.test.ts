@@ -30,13 +30,28 @@ test("business worker restarts behind the same proxy without retrying commands",
       headers: { cookie: deviceCookie + "=" + pending.credential },
     });
   const request = () => new Request("http://localhost/api/workspaces");
+  const revokedPrincipal = crypto.randomUUID();
+  const voiceRequest = () =>
+    new Request("http://localhost/api/voice/calls", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId: crypto.randomUUID(), mode: "test" }),
+    });
+  const revokedContext = {
+    principal: revokedPrincipal,
+    remote: true,
+    expiresAt: Date.now() + 60_000,
+  };
   try {
     expect((await backend.handle(request())).status).toBe(503);
     await vi.waitFor(() => expect(backend.ready()).toBe(true), { timeout: 15_000 });
     expect((await backend.handle(request())).status).toBe(200);
     expect((await remote("/api/workspaces")).status).toBe(200);
+    await backend.revokeVoice(revokedPrincipal);
+    expect((await backend.handle(voiceRequest(), revokedContext)).status).toBe(401);
     backend.restart();
     await vi.waitFor(() => expect(backend.ready()).toBe(false));
+    await backend.revokeVoice(revokedPrincipal);
     const during = await backend.handle(
       new Request("http://localhost/api/sessions", { method: "POST", body: "{}" }),
     );
@@ -50,6 +65,7 @@ test("business worker restarts behind the same proxy without retrying commands",
       csrf,
     });
     await vi.waitFor(() => expect(backend.ready()).toBe(true), { timeout: 15_000 });
+    expect((await backend.handle(voiceRequest(), revokedContext)).status).toBe(401);
     expect((await backend.handle(request())).status).toBe(200);
     expect((await remote("/")).status).toBe(200);
     expect((await remote("/api/workspaces")).status).toBe(200);

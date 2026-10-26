@@ -20,7 +20,7 @@ test("settings groups expose separate keyboard entry points and archive selectio
     );
     expect(
       ui.getByRole("tablist", { name: "Personal" }).querySelectorAll('[role="tab"]'),
-    ).toHaveLength(3);
+    ).toHaveLength(4);
     const archived = ui.getByRole("tab", { name: "Archived chats" });
     const mcps = ui.getByRole("tab", { name: "MCPs" });
     const skills = ui.getByRole("tab", { name: "Skills" });

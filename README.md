@@ -70,6 +70,8 @@ npx @loop-harness/loop web
 
 The browser opens when the local service is ready. Configure providers in Settings → Models. The published package includes the CLI, SDK and prebuilt Web UI; no Bun or frontend build tools are required.
 
+Optional local speech input and calls are configured in Settings → Voice. Resources are installed explicitly on the backend computer; see [voice setup and limits](packages/web-ui/src/frontend/docs/voice.md).
+
 ## Local development
 
 Requires Node.js 24+ and pnpm 11. Install dependencies and start the Web UI:

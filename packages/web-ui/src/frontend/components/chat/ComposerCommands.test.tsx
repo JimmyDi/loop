@@ -4,12 +4,20 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test, vi } from "vitest";
 
 import type { SessionSnapshot } from "../../../shared/protocol";
+import type { VoiceStatus } from "../../../shared/voice";
 import { i18n } from "../../i18n/setup";
 import { useRequests } from "../../state/request-store";
 import { useSessions } from "../../state/session-store";
 import { useWorkspace } from "../../state/workspace-store";
 import { ChatComposer } from "./ChatComposer";
 import { ComposerCommands } from "./ComposerCommands";
+
+const voiceStatus: VoiceStatus = {
+  supported: false,
+  installed: false,
+  localManagement: true,
+  phase: "idle",
+};
 
 const snapshot: SessionSnapshot = {
   sessionId: "test",
@@ -100,6 +108,7 @@ test("short-context command is unavailable before clicking and explains why on h
   });
   client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
   client.setQueryData(["models"], [snapshot.model]);
+  client.setQueryData(["voice-status"], voiceStatus);
   globalThis.fetch = vi.fn();
   try {
     useWorkspace.setState({ drafts: { test: "/" }, images: {}, files: {}, skills: {} });
@@ -215,6 +224,7 @@ test.each(["click", "enter", "submit", "prefix", "trailing"])(
     });
     client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/workspace" }]);
     client.setQueryData(["models"], [snapshot.model]);
+    client.setQueryData(["voice-status"], voiceStatus);
     let pending = Promise.withResolvers<Response>();
     globalThis.fetch = vi.fn(() => pending.promise);
     try {

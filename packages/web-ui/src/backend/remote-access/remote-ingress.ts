@@ -7,11 +7,14 @@ import type { RemoteDevices } from "./remote-devices";
 import { assertRemoteOrigin, allowsRemoteBusiness } from "./remote-policy";
 import { remotePairingRoutes } from "./remote-pairing-routes";
 import { remoteResponse } from "./remote-response";
+import type { BusinessHandler } from "../http/business-context";
+import type { VoiceUpgradeHandler } from "../http/voice-upgrade-types";
+import { attachRemoteVoice } from "./remote-voice";
 
 export const createRemoteHandler =
   (
     devices: RemoteDevices,
-    business: (request: Request) => Promise<Response>,
+    business: BusinessHandler,
     assets: string,
     localHost: () => string,
     ready: () => boolean = () => true,
@@ -43,7 +46,11 @@ export const createRemoteHandler =
         const release = devices.track(device, abort);
         const signal = AbortSignal.any([request.signal, abort.signal]);
         try {
-          const result = await business(new Request(request, { signal }));
+          const result = await business(new Request(request, { signal }), {
+            principal: device.id,
+            remote: true,
+            expiresAt: device.expiresAt,
+          });
           if (signal.aborted) {
             await result.body?.cancel();
             throw new HttpError(401, "device_unauthorized");
@@ -94,15 +101,17 @@ export const createRemoteHandler =
 
 export const startRemoteIngress = async (
   devices: RemoteDevices,
-  business: (request: Request) => Promise<Response>,
+  business: BusinessHandler,
   assets: string,
   port = 0,
   ready: () => boolean = () => true,
+  voice?: VoiceUpgradeHandler,
 ) => {
   let localHost = "";
   const server = createHttpServer(
     createRemoteHandler(devices, business, assets, () => localHost, ready),
   );
+  const closeVoice = voice && attachRemoteVoice(server, devices, () => localHost, voice);
   try {
     const address = await listen(server, port);
     localHost = address.host;
@@ -113,11 +122,13 @@ export const startRemoteIngress = async (
       close: () =>
         (closing ??= new Promise<void>((resolve, reject) => {
           devices.connect();
+          closeVoice?.();
           server.close((error) => (error ? reject(error) : resolve()));
           server.closeAllConnections();
         })),
     };
   } catch (error) {
+    closeVoice?.();
     server.close();
     throw error;
   }

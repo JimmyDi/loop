@@ -37,7 +37,12 @@ test("approval persists across restart, revocation ends active requests and expi
     expect(restarted.csrf(credential)).not.toBe(devices.csrf(credential));
     const abort = new AbortController();
     const release = restarted.track(device, abort);
+    const invalidated: string[] = [];
+    restarted.subscribeInvalidation(async (id) => {
+      invalidated.push(id);
+    });
     await restarted.revoke(device.id);
+    expect(invalidated).toEqual([device.id]);
     expect(abort.signal.aborted).toBe(true);
     release();
     expect(() => restarted.authenticate(credential)).toThrow();

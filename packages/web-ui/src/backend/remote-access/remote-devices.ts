@@ -27,6 +27,12 @@ export class RemoteDevices {
   private tail: Promise<void> = Promise.resolve();
   private readonly csrfKey = newCredential();
   private readonly connections = new Map<string, Set<AbortController>>();
+  private readonly invalidations = new Set<(id: string) => void | Promise<void>>();
+
+  subscribeInvalidation(listener: (id: string) => void | Promise<void>): () => void {
+    this.invalidations.add(listener);
+    return () => this.invalidations.delete(listener);
+  }
 
   constructor(private readonly store: DeviceStore) {}
 
@@ -107,6 +113,7 @@ export class RemoteDevices {
       this.devices = next;
       for (const abort of this.connections.get(id) ?? []) abort.abort();
       this.connections.delete(id);
+      await Promise.allSettled([...this.invalidations].map((listener) => listener(id)));
     });
   }
 

@@ -1,0 +1,137 @@
+import { expect, test, vi } from "vitest";
+import { Window } from "happy-dom";
+
+import type { SessionSnapshot } from "../../shared/protocol";
+import { useWorkspace } from "../state/workspace-store";
+import { useRequests } from "../state/request-store";
+import { useQueueEdits } from "../state/queue-edit-store";
+import { useVoiceComposer } from "./useVoiceComposer";
+import "../i18n/setup";
+
+const voice = vi.hoisted(() => ({
+  options: undefined as any,
+  mode: undefined as string | undefined,
+  status: "listening",
+  start: vi.fn(),
+  stop: vi.fn(),
+  mute: vi.fn(),
+  interrupt: vi.fn(),
+  speak: vi.fn(),
+}));
+vi.mock("./useVoice", () => ({
+  useVoice: (options: unknown) => {
+    voice.options = options;
+    return voice;
+  },
+}));
+
+test("conversation dispatch preserves the typed draft, attachments and steering request identity", async () => {
+  const window = new Window();
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    fetch: globalThis.fetch,
+  };
+  Object.assign(globalThis, { window, document: window.document });
+  const { renderHook, act, cleanup } = await import("@testing-library/react/pure");
+  const workspace = useWorkspace.getState();
+  const requests = useRequests.getState();
+  const edits = useQueueEdits.getState();
+  const snapshot = {
+    sessionId: "voice",
+    streamId: "stream",
+    operation: "prompt",
+    tools: {},
+    state: { messages: [], hasPendingSave: false },
+  } as unknown as SessionSnapshot;
+  const bodies: Record<string, unknown>[] = [];
+  globalThis.fetch = (async (_url, init) => {
+    bodies.push(JSON.parse(String(init?.body)));
+    return Response.json({ runId: "run" }, { status: 202 });
+  }) as typeof fetch;
+  try {
+    voice.mode = "conversation";
+    useWorkspace.setState({
+      drafts: { voice: "Typed draft" },
+      files: { voice: [{ name: "draft.ts", text: "kept" }] },
+    });
+    useRequests.setState({ pending: {}, delivery: {} });
+    useQueueEdits.setState({ edits: {} });
+    const { result } = renderHook(() => useVoiceComposer(snapshot, true, true));
+    act(() => result.current.setSteering(true));
+    await act(async () => {
+      voice.options.transcript("Check the current direction", true, "utterance", "conversation");
+    });
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0]).toMatchObject({
+      text: "Check the current direction",
+      streamId: "stream",
+      steering: true,
+    });
+    expect(bodies[0]?.requestId).toEqual(expect.any(String));
+    expect(bodies[0]?.files).toBeUndefined();
+    expect(useWorkspace.getState().drafts.voice).toBe("Typed draft");
+    expect(useWorkspace.getState().files.voice).toEqual([{ name: "draft.ts", text: "kept" }]);
+    expect(result.current.notice).toContain("current tool batch");
+    await act(async () => {
+      voice.options.transcript("调整要求：仅检查类型", true, "prefix", "conversation");
+    });
+    expect(bodies[1]).toMatchObject({ text: "仅检查类型", steering: true });
+    await act(async () => {
+      voice.options.transcript("停止任务", false, "partial-control", "conversation");
+    });
+    expect(bodies).toHaveLength(2);
+    act(() => {
+      useQueueEdits.setState({
+        edits: { voice: { id: "q", backup: { text: "", files: [], images: [], skills: [] } } },
+      });
+    });
+    await act(async () => {
+      voice.options.transcript("Do not send", true, "held", "conversation");
+    });
+    expect(bodies).toHaveLength(2);
+  } finally {
+    cleanup();
+    useWorkspace.setState(workspace, true);
+    useRequests.setState(requests, true);
+    useQueueEdits.setState(edits, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("dictation replaces only its partial phrase and pauses before manual edits", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { renderHook, act, cleanup } = await import("@testing-library/react/pure");
+  const workspace = useWorkspace.getState();
+  const snapshot = {
+    sessionId: "voice",
+    streamId: "stream",
+    operation: "idle",
+    tools: {},
+    state: { messages: [], hasPendingSave: false },
+  } as unknown as SessionSnapshot;
+  try {
+    voice.mode = "dictation";
+    voice.stop.mockClear();
+    useWorkspace.setState({ drafts: { voice: "Existing" } });
+    const { result } = renderHook(() => useVoiceComposer(snapshot, true, true));
+    act(() => result.current.start("dictation"));
+    act(() => voice.options.transcript("hel", false, "one", "dictation"));
+    expect(useWorkspace.getState().drafts.voice).toBe("Existing hel");
+    act(() => voice.options.transcript("hello", true, "one", "dictation"));
+    act(() => voice.options.transcript("world", false, "two", "dictation"));
+    expect(useWorkspace.getState().drafts.voice).toBe("Existing hello world");
+    act(() => window.dispatchEvent(new window.Event("loop-voice-edit")));
+    expect(voice.stop).toHaveBeenCalledOnce();
+    expect(result.current.notice).toContain("paused for editing");
+  } finally {
+    cleanup();
+    voice.mode = undefined;
+    useWorkspace.setState(workspace, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});

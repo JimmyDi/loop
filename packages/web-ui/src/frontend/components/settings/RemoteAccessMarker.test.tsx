@@ -20,6 +20,8 @@ test.each([
       <RemoteAccessMarker complete={complete} loading={loading} failed={failed} />,
     );
     const marker = container.querySelector('[role="img"]')!;
+    expect(marker.classList.contains("remote-access-marker")).toBe(true);
+    expect(marker.classList.contains("setup-step-marker")).toBe(true);
     expect(marker.getAttribute("aria-label")).toBe(label);
     expect(marker.getAttribute("data-state")).toBe(state);
     expect(!!marker.querySelector("svg")).toBe(icon);

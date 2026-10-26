@@ -64,7 +64,7 @@ try {
       pathToFileURL(guard).href,
       "--input-type=module",
       "-e",
-      'import { createAgentSession } from "@loop-harness/loop"; if (typeof createAgentSession !== "function") throw Error("SDK missing");',
+      'import { createAgentSession, VoiceRuntime, VoiceResourceManager, getAgentDir } from "@loop-harness/loop"; if ([createAgentSession, VoiceRuntime, VoiceResourceManager].some((value) => typeof value !== "function")) throw Error("SDK missing"); const voice = await new VoiceResourceManager(getAgentDir()).status(); if (voice.installed || voice.ttsInstalled) throw Error("Unexpected voice installation");',
     ],
     { cwd: app, env, encoding: "utf8" },
   );
@@ -117,6 +117,11 @@ try {
       [],
     );
     assert.equal((await fetch(new URL("api/settings/provider", url))).status, 404);
+    const voice = await (await fetch(new URL("api/voice/status", url))).json();
+    assert.equal(voice.installed, false);
+    assert.equal(voice.ttsInstalled, false);
+    assert.equal(voice.localManagement, true);
+    assert.equal(voice.phase, "idle");
     if (windows) child.send("verify-shutdown");
     else child.kill("SIGTERM");
     assert.equal((await exit)[0], 0, errors);

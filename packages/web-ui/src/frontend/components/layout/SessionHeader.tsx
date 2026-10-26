@@ -1,12 +1,12 @@
 import { useTranslation } from "react-i18next";
 
-import type { SessionSnapshot } from "../../../shared/protocol";
 import { useWorkspace } from "../../state/workspace-store";
 import { ActionButton } from "../ui/ActionButton";
 import { SessionName } from "./SessionName";
+import type { SessionHeaderProps } from "./session-header-types";
 import "./SessionHeader.css";
 
-export const SessionHeader = ({ snapshot }: { snapshot?: SessionSnapshot }) => {
+export const SessionHeader = ({ snapshot, actionsRef }: SessionHeaderProps) => {
   const { t } = useTranslation();
   const toggle = useWorkspace((state) => state.toggleSidebar);
 
@@ -36,6 +36,7 @@ export const SessionHeader = ({ snapshot }: { snapshot?: SessionSnapshot }) => {
       ) : (
         <span className="session-name-placeholder">{t("newSession")}</span>
       )}
+      {actionsRef && <div className="session-header-actions" ref={actionsRef} />}
     </header>
   );
 };

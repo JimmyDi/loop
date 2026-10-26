@@ -1,0 +1,32 @@
+.voice-setup-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+}
+
+.voice-setup-step > .setup-step-marker { margin-top: 2px; }
+
+.voice-setup-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 26px;
+  bottom: -8px;
+  left: 8px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--line);
+}
+
+.voice-setup-step-content { display: grid; gap: 4px; min-width: 0; }
+.voice-setup-step-number { color: var(--ink-muted); font-size: 12px; line-height: 16px; }
+.voice-setup-step-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 30px; min-width: 0; }
+.voice-setup-step-heading h4 { margin: 0; min-width: 0; font-size: 14px; font-weight: 500; line-height: 1.4; }
+.voice-setup-step-detail { display: grid; gap: 10px; min-width: 0; padding-block: 4px; }
+.voice-setup-step-detail:empty { display: none; }
+.voice-setup-step-issue { flex: 1 1 220px; color: light-dark(#b91c1c, #ff9999); font-size: 12px; overflow-wrap: anywhere; }
+
+@media (forced-colors: active) {
+  .voice-setup-step-issue { color: CanvasText; }
+}

@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { getAgentDir, McpManager, SkillManager } from "@loop/coding-agent";
+import { getAgentDir, McpManager, SkillManager, VoiceResourceManager } from "@loop/coding-agent";
 
 import { createLoopBridge } from "../loop";
 import { ProjectStore } from "../projects/project-store";
@@ -7,6 +7,7 @@ import { SessionRegistry } from "../session-registry";
 import { ProviderSettings } from "../providers/provider-settings";
 import { WebSettings } from "../settings/web-settings";
 import { createBusinessRouter } from "../business-router";
+import { VoiceService } from "../voice/voice-service";
 
 export const createBusinessService = () => {
   const agentDir = getAgentDir();
@@ -20,9 +21,14 @@ export const createBusinessService = () => {
     projects,
     createLoopBridge(agentDir, providers, settings, mcp, skills),
   );
+  const voice = new VoiceService(new VoiceResourceManager(agentDir), registry);
+  const handle = createBusinessRouter(registry, providers, settings, mcp, skills, voice);
   return {
-    handle: createBusinessRouter(registry, providers, settings, mcp, skills),
+    handle,
+    voice,
     close: async () => {
+      handle.closeVoiceRoutes();
+      await voice.close();
       try {
         await registry.close();
       } finally {

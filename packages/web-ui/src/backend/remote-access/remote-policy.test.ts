@@ -2,6 +2,16 @@ import { expect, test } from "vitest";
 
 import { assertRemoteOrigin, allowsRemoteBusiness } from "./remote-policy";
 
+test("paired devices can use voice but cannot install or alter local voice resources", () => {
+  const id = crypto.randomUUID();
+  expect(allowsRemoteBusiness("/api/voice/status", "GET")).toBe(true);
+  expect(allowsRemoteBusiness("/api/voice/calls", "POST")).toBe(true);
+  expect(allowsRemoteBusiness("/api/voice/calls/" + id + "/connect", "POST")).toBe(true);
+  expect(allowsRemoteBusiness("/api/voice/calls/" + id + "/close", "POST")).toBe(true);
+  expect(allowsRemoteBusiness("/api/voice/install", "POST")).toBe(false);
+  expect(allowsRemoteBusiness("/api/voice/calls/" + id + "/socket", "GET")).toBe(false);
+});
+
 test("paired devices can read session images but cannot write them", () => {
   expect(allowsRemoteBusiness("/api/sessions/example/images", "GET")).toBe(true);
   expect(allowsRemoteBusiness("/api/sessions/example/images", "HEAD")).toBe(true);

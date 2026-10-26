@@ -3,6 +3,70 @@ import { Window } from "happy-dom";
 
 import type { SessionSnapshot } from "../../shared/protocol";
 
+test("voice delivery returns explicit outcomes and honors an acknowledgment before a lost HTTP response", async () => {
+  const window = new Window();
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    fetch: globalThis.fetch,
+  };
+  Object.assign(globalThis, { window, document: window.document });
+  const { renderHook, act, cleanup } = await import("@testing-library/react/pure");
+  const { usePrompt } = await import("./usePrompt");
+  const { useWorkspace } = await import("../state/workspace-store");
+  const { useRequests } = await import("../state/request-store");
+  const workspace = useWorkspace.getState();
+  const requests = useRequests.getState();
+  const snapshot = {
+    sessionId: "voice-delivery",
+    streamId: "stream",
+    operation: "idle",
+    tools: {},
+    state: { messages: [], isRunning: false, hasPendingSave: false },
+  } as unknown as SessionSnapshot;
+  const response = Promise.withResolvers<Response>();
+  globalThis.fetch = (() => response.promise) as typeof fetch;
+  try {
+    useWorkspace.setState({ drafts: { "voice-delivery": "Typed draft" } });
+    useRequests.setState({ pending: {}, delivery: {} });
+    const { result, rerender } = renderHook(({ value }) => usePrompt(value), {
+      initialProps: { value: snapshot },
+    });
+    let submission: ReturnType<typeof result.current.submitText> | undefined;
+    act(() => {
+      submission = result.current.submitText("Accepted speech");
+    });
+    const requestId = useRequests.getState().pending[snapshot.sessionId]!.requestId;
+    rerender({ value: { ...snapshot, requestId } });
+    await act(async () => {
+      response.reject(new Error("lost"));
+      expect(await submission).toBe("accepted");
+    });
+    expect(result.current.text).toBe("Typed draft");
+    globalThis.fetch = (async () =>
+      Response.json({ code: "invalid_prompt" }, { status: 400 })) as typeof fetch;
+    await act(async () => {
+      expect(await result.current.submitText("Rejected speech")).toBe("rejected");
+    });
+    globalThis.fetch = (async () => {
+      throw new Error("lost");
+    }) as typeof fetch;
+    await act(async () => {
+      expect(await result.current.submitText("Unconfirmed speech")).toBe("uncertain");
+    });
+    await act(async () => {
+      expect(await result.current.submitText("Blocked speech")).toBe("skipped");
+    });
+    expect(useRequests.getState().pending[snapshot.sessionId]?.text).toBe("Unconfirmed speech");
+  } finally {
+    cleanup();
+    useWorkspace.setState(workspace, true);
+    useRequests.setState(requests, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
 test("large attachments are submitted intact and API failures preserve drafts for retry", async () => {
   const window = new Window();
   const previous = {

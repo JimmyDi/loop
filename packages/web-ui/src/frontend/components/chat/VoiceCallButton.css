@@ -1,0 +1,12 @@
+.voice-call-button.action-button {
+  flex-shrink: 0;
+  gap: 6px;
+  white-space: nowrap;
+  color: light-dark(#000, var(--ink));
+}
+
+.voice-call-button svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}

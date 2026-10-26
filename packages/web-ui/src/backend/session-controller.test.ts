@@ -563,6 +563,7 @@ test("accepted requests deduplicate and drafts do not duplicate history", async 
 
   expect(controller.prompt("request", "hello")).toBe(run);
   expect(() => controller.prompt("request", "different")).toThrow("request_conflict");
+  expect(() => controller.prompt("request", "hello", [], [], [], true)).toThrow("request_conflict");
   expect(() => controller.prompt("request", "hello", [], [], ["a".repeat(24)])).toThrow(
     "request_conflict",
   );
@@ -1007,6 +1008,55 @@ test("queued HTTP operations keep position, attachments and live drafts through 
         .filter((message) => message.role === "user")
         .map((message) => message.content),
     ).toEqual(["work", "second"]);
+  } finally {
+    await controller.close();
+  }
+});
+
+test("HTTP steering is atomic, deduplicated and keeps stopped work paused", async () => {
+  const stream = createAssistantMessageEventStream();
+  let calls = 0;
+  const session = new AgentSession({
+    model,
+    modelRuntime: runtime(() => {
+      calls++;
+      return stream;
+    }),
+    sessionManager: SessionManager.inMemory(),
+    systemPrompt: "Fixture",
+    tools: [],
+  });
+  const controller = new SessionController(session, "project");
+  const route = sessionRoutes({
+    get: async () => controller,
+    assertAvailable: () => {},
+  } as unknown as SessionRegistry);
+  const url = new URL("http://localhost/api/sessions/fixture/prompt");
+  const submit = (steering: unknown) =>
+    route(
+      new Request(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestId: "correction",
+          text: "Adjust the task",
+          steering,
+          streamId: controller.snapshot.streamId,
+        }),
+      }),
+      url,
+    );
+  try {
+    controller.prompt("original", "Start work");
+    await waitFor(() => calls === 1);
+    await controller.abort();
+    expect((await submit(true))?.status).toBe(202);
+    expect((await submit(true))?.status).toBe(202);
+    expect(session.state.queue).toMatchObject([{ id: "correction", steering: true }]);
+    expect(session.state.canResume).toBe(true);
+    expect(calls).toBe(1);
+    await expect(submit(false)).rejects.toThrow("request_conflict");
+    await expect(submit("true")).rejects.toThrow("invalid_steering");
   } finally {
     await controller.close();
   }

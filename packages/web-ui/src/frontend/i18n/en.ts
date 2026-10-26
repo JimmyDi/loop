@@ -5,8 +5,10 @@ import { mcpEn } from "./mcp-en";
 import { skillsEn } from "./skills-en";
 import { remoteEn } from "./remote-en";
 import { pwaEn } from "./pwa-en";
+import { voiceEn } from "./voice-en";
 
 export const en = {
+  voice: voiceEn,
   filePreview: {
     open: "Preview PDF",
     download: "Download",

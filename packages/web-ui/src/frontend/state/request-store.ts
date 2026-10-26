@@ -13,6 +13,8 @@ export type PendingRequest = {
   images?: PromptImage[];
   files?: PromptFile[];
   skills?: string[];
+  steering?: boolean;
+  preserveDraft?: boolean;
 };
 
 type Delivery = "sending" | "accepted";
@@ -32,6 +34,8 @@ const pending = Object.fromEntries(
       typeof value.requestId === "string" &&
       typeof value.text === "string" &&
       typeof value.streamId === "string" &&
+      (value.steering === undefined || typeof value.steering === "boolean") &&
+      (value.preserveDraft === undefined || typeof value.preserveDraft === "boolean") &&
       (value.images === undefined || validImages(value.images)) &&
       (value.files === undefined || validTextFiles(value.files)) &&
       (value.skills === undefined ||

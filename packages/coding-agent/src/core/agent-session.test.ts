@@ -1604,6 +1604,67 @@ test("steer waits for the whole tool batch and follow-ups retain FIFO order", as
   }
 });
 
+test("atomic steering is visible before idle scheduling and preserves stopped continuation", async () => {
+  const entered = Promise.withResolvers<void>();
+  let requests = 0;
+  const inputs: string[][] = [];
+  const session = new AgentSession({
+    model,
+    sessionManager: SessionManager.inMemory(),
+    systemPrompt: "Fixture",
+    tools: [],
+    modelRuntime: runtime((_model, context) => {
+      requests++;
+      inputs.push(
+        context.messages
+          .filter((message) => message.role === "user")
+          .map((message) => String(message.content)),
+      );
+      if (requests === 2) {
+        entered.resolve();
+        return new Promise(() => {});
+      }
+      return stream();
+    }),
+  });
+  const observed: boolean[] = [];
+  session.subscribe((event) => {
+    if (event.type === "queue_changed") {
+      const item = session.state.queue?.find((item) => item.id === "correction");
+      if (item) observed.push(item.steering);
+    }
+  });
+  try {
+    session.enqueue("initial direction", { id: "correction", steering: true });
+    await session.waitForIdle();
+    expect(observed.length).toBeGreaterThan(0);
+    expect(observed.every(Boolean)).toBe(true);
+    const running = session.prompt("original task").catch(() => {});
+    await entered.promise;
+    await session.abort();
+    await running;
+    expect(session.state.canResume).toBe(true);
+    session.enqueue("additional task", { id: "later" });
+    session.enqueue("correct the direction", { id: "adjustment", steering: true });
+    expect(session.state.canResume).toBe(true);
+    expect(session.isRunning).toBe(false);
+    expect(requests).toBe(2);
+    expect(session.state.queue?.map(({ id, steering }) => ({ id, steering }))).toEqual([
+      { id: "later", steering: false },
+      { id: "adjustment", steering: true },
+    ]);
+    await session.resume();
+    await session.waitForIdle();
+    expect(inputs[2]?.at(-1)).toBe("correct the direction");
+    expect(inputs[3]?.at(-1)).toBe("additional task");
+    expect(session.state.canResume).toBe(false);
+  } finally {
+    await session.abort();
+    session.dispose();
+    await session.flushTrace();
+  }
+});
+
 test("stop preserves queue and resume uses committed results without duplicate input or tools", async () => {
   const entered = Promise.withResolvers<void>();
   let requests = 0;

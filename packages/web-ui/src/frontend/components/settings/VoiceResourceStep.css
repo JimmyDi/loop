@@ -1,0 +1,5 @@
+.voice-resource-hint { color: var(--ink-muted); line-height: 1.5; }
+.voice-resource-details { min-width: 0; font-size: 12px; }
+.voice-resource-details summary { cursor: pointer; color: var(--ink-muted); padding-block: 4px; }
+.voice-resource-details-content { display: grid; gap: 12px; padding-top: 10px; }
+.voice-directory { overflow-wrap: anywhere; font-size: 12px; }

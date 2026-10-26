@@ -40,6 +40,7 @@ The CLI is interactive by default. The SDK sample performs one request workflow 
 | Install, discover, select and load task workflows | [Skills](src/docs/skills.md) |
 | Session permission presets and native file sandboxing | [Permissions](src/docs/permissions.md) |
 | Request, answer and cancel host approvals | [Approvals](src/docs/approvals.md) |
+| Run local speech recognition and synthesis | [Voice runtime](src/docs/voice.md) |
 | Discover project instructions | [Context files](src/docs/context-files.md) |
 | Track system permissions and expand selected Skill instructions | [Runtime context](src/docs/runtime-context.md) |
 | Trace model messages to complete history and runtime snapshots | [Model input projection](src/docs/model-input-projection.md) |
@@ -61,4 +62,4 @@ pnpm run typecheck
 pnpm run check
 ```
 
-Coding-agent supports Loop's minimal API and JSONL format, including manual and automatic [context compaction](src/docs/compaction.md). It does not implement queues, steering, extensions, or RPC.
+Coding-agent supports Loop's sequential Agent, editable input queue, steering, cancellation, local voice runtime and JSONL history, including manual and automatic [context compaction](src/docs/compaction.md).

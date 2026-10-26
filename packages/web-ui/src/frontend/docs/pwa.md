@@ -45,6 +45,8 @@ When launched with `pnpm dev`, backend source edits restart a separate business 
 
 ## Device Verification
 
+[Voice input and calls](voice.md) are foreground features. Microphone and playback require a tap and browser permission; backgrounding or locking pauses the call. Returning to the page can require Continue voice. PWA installation does not grant background microphone access or guarantee uninterrupted audio.
+
 Remote startup bounds authorization checks, including body reads, to 10 seconds and chat downloads to 30 seconds. Failures expose Retry; module-load failures reload the root URL so the browser can request current entry assets. The HTML loading placeholder also exposes a root-page retry after 35 seconds if startup scripts have not replaced it. This recovery does not clear device cookies, unregister the worker or automatically repeat pairing commands.
 
 Use a production frontend build and an approved device. These checks require real Android/iOS browsers and the deployed tunnel; automated tests do not establish carrier, regional connectivity or Microsoft sign-in behavior.

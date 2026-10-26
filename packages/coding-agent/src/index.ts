@@ -92,3 +92,19 @@ export type {
   McpStatus,
   McpValue,
 } from "./core/mcp/types";
+export { VoiceRuntime } from "./core/voice/voice-runtime";
+export { VoiceCall } from "./core/voice/voice-call";
+export { VoiceResourceManager } from "./core/voice/voice-resource-manager";
+export type {
+  VoiceResourceStatus,
+  VoiceInstalledComponent,
+  VoicePlatform,
+} from "./core/voice/resources/resource-types";
+export type {
+  VoiceRuntimeResources,
+  VoiceResourceLease,
+  VoiceRuntimeOptions,
+  VoiceCallMode,
+  VoiceEvent,
+  VoiceEventListener,
+} from "./core/voice/voice-types";

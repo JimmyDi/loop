@@ -1,8 +1,9 @@
 import { restartingResponse } from "../http/restarting-response";
+import { localContext, writeContext } from "../http/business-context";
+import type { BusinessHandler } from "../http/business-context";
 
-export const createBackendProxy =
-  (target: () => { port: number; token: string } | undefined) =>
-  async (request: Request): Promise<Response> => {
+export const createBackendProxy = (target: () => { port: number; token: string } | undefined) =>
+  (async (request, context = localContext): Promise<Response> => {
     const backend = target();
     if (!backend) return restartingResponse(request);
     const url = new URL(request.url);
@@ -12,6 +13,7 @@ export const createBackendProxy =
     const headers = new Headers(request.headers);
     headers.delete("host");
     headers.delete("cookie");
+    writeContext(headers, { ...context, origin: context.origin ?? new URL(request.url).origin });
     headers.set("authorization", "Bearer " + backend.token);
     headers.set("accept-encoding", "identity");
     try {
@@ -59,4 +61,4 @@ export const createBackendProxy =
       if (request.signal.aborted) throw error;
       return restartingResponse(request);
     }
-  };
+  }) satisfies BusinessHandler;

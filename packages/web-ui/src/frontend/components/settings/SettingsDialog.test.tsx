@@ -60,6 +60,7 @@ test("Settings opens General outside the mobile drawer and restores focus withou
       "General",
       "Models",
       "Appearance",
+      "Voice",
       "MCPs",
       "Skills",
       "Remote access",
@@ -91,9 +92,11 @@ test("Settings opens General outside the mobile drawer and restores focus withou
     expect(document.activeElement).toBe(general);
     expect(view.getByRole("tabpanel", { name: "General" })).toBeTruthy();
     fireEvent.keyDown(general, { key: "End" });
-    expect(document.activeElement).toBe(appearance);
+    const voice = view.getByRole("tab", { name: "Voice" });
+    expect(document.activeElement).toBe(voice);
+    fireEvent.keyDown(voice, { key: "ArrowUp" });
     expect((view.getByRole("radio", { name: "Dark" }) as HTMLInputElement).checked).toBe(true);
-    fireEvent.keyDown(appearance, { key: "ArrowDown" });
+    fireEvent.keyDown(voice, { key: "ArrowDown" });
     expect(document.activeElement).toBe(general);
     fireEvent.keyDown(general, { key: "ArrowDown" });
     expect(document.activeElement).toBe(models);

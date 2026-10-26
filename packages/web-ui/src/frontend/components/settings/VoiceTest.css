@@ -1,0 +1,4 @@
+.voice-test { display: grid; gap: 10px; }
+.voice-test p { overflow-wrap: anywhere; }
+.voice-test-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.voice-test-actions button { min-height: 44px; }

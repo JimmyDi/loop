@@ -61,7 +61,12 @@ export const inspectImports = (file: string, source: string) => {
       if (!shell && !sdk && (!allowed.includes(to!) || subpath || (browser(file) && !typeOnly)))
         reject(name);
     }
-    const resolved = ts.resolveModuleName(name, file, options, ts.sys).resolvedModule;
+    // Vite resource queries still resolve to and inspect their actual source module.
+    const moduleName =
+      browser(file) && name.startsWith(".") && name.endsWith("?worker&url")
+        ? name.slice(0, -"?worker&url".length)
+        : name;
+    const resolved = ts.resolveModuleName(moduleName, file, options, ts.sys).resolvedModule;
     if (!name.startsWith(".") && !name.startsWith("node:") && names.includes(from)) {
       const dependency = name.startsWith("@")
         ? name.split("/").slice(0, 2).join("/")

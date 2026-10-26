@@ -1,0 +1,10 @@
+.voice-input-button.action-button.icon {
+  width: var(--composer-input-action-size, 32px);
+  height: var(--composer-input-action-size, 32px);
+  min-height: var(--composer-input-action-size, 32px);
+}
+
+.voice-input-button.action-button[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--surface-selected);
+}

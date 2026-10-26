@@ -56,10 +56,11 @@ export class SessionController {
     images: PromptImage[] = [],
     files: PromptFile[] = [],
     skills: string[] = [],
+    steering = false,
   ): string {
     const content = structuredClone(promptContent(text, images, files));
     const signature = createHash("sha256")
-      .update(JSON.stringify({ content, skills }))
+      .update(JSON.stringify({ content, skills, steering }))
       .digest("hex");
     const existing = this.requests.get(requestId);
 
@@ -78,13 +79,14 @@ export class SessionController {
     if (this.requests.size > 256) this.requests.delete(this.requests.keys().next().value!);
     this.snapshot.acceptedRequestIds = [...this.requests.keys()];
     if (
+      steering ||
       this.snapshot.operation === "prompt" ||
       this.session.state.canResume ||
       this.session.state.queue?.length
     ) {
       try {
         if (!this.session.enqueue) throw new HttpError(409, "session_busy");
-        this.session.enqueue(content, { skills, id: requestId });
+        this.session.enqueue(content, { skills, id: requestId, steering });
       } catch (error) {
         this.requests.delete(requestId);
         this.snapshot.acceptedRequestIds = [...this.requests.keys()];

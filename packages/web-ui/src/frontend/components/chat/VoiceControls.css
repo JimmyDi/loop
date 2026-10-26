@@ -1,0 +1,6 @@
+.voice-controls { padding: 0 10px 8px; color: var(--ink); }
+.voice-notice { font-size: 12px; line-height: 1.5; color: var(--ink-muted); margin: 8px 0 0; }
+.voice-notice p { margin: 0 0 6px; }
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .voice-controls { padding-inline: 8px; }
+}

@@ -1,0 +1,2 @@
+.voice-component { display: grid; gap: 5px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.voice-component small { color: var(--ink-muted); overflow-wrap: anywhere; }

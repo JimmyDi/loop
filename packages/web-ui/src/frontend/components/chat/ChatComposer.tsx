@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { SessionSnapshot } from "../../../shared/protocol";
+import type { ChatComposerProps } from "./chat-composer-types";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { usePrompt } from "../../hooks/usePrompt";
 import { useModelSelection } from "../../hooks/useModelSelection";
@@ -25,20 +25,20 @@ import { ComposerCommands } from "./ComposerCommands";
 import { ComposerSendButton } from "./ComposerSendButton";
 import { ApiError } from "../../lib/api";
 import { useQueuedComposer } from "../../hooks/useQueuedComposer";
+import { VoiceControls } from "./VoiceControls";
+import { ComposerSubmitActions } from "./ComposerSubmitActions";
+import { useVoiceComposer } from "../../hooks/useVoiceComposer";
+import { useComposerHeight } from "../../hooks/useComposerHeight";
 import "./ChatComposer.css";
 
-export const ChatComposer = ({
-  snapshot,
-  connected,
-}: {
-  snapshot: SessionSnapshot;
-  connected: boolean;
-}) => {
+export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
   const { t } = useTranslation();
+  const region = useComposerHeight();
   const [focusRequest, setFocusRequest] = useState(0);
   const newSession =
     snapshot.state.messages.length === 0 && !snapshot.state.draft && !snapshot.requestId;
   const project = useComposerProject(snapshot, newSession);
+  const voice = useVoiceComposer(snapshot, connected, project.hasProject);
   const prompt = usePrompt(snapshot, project.hasProject);
   const queue = useQueuedComposer(snapshot, () => setFocusRequest((request) => request + 1));
   const stopping = useAsyncAction();
@@ -47,6 +47,7 @@ export const ChatComposer = ({
   const attachments = useComposerAttachments(snapshot.sessionId);
   const models = useModels();
   const compact = useContextCompaction(snapshot, connected);
+  const inputValue = compact.running && /^\s*\/[a-z]*\s*$/i.test(prompt.text) ? "" : prompt.text;
   const current =
     models.data?.find(
       (model) => model.provider === snapshot.model.provider && model.id === snapshot.model.id,
@@ -98,7 +99,7 @@ export const ChatComposer = ({
   ].find((error) => error !== undefined);
 
   return (
-    <div className="composer-region">
+    <div className="composer-region" ref={region}>
       <ErrorNotice dismissible error={error} />
       {prompt.uncertain && (
         <ComposerDeliveryNotice
@@ -132,7 +133,7 @@ export const ChatComposer = ({
         <ComposerInput
           sessionId={snapshot.sessionId}
           focusRequest={focusRequest}
-          value={compact.running && /^\s*\/[a-z]*\s*$/i.test(prompt.text) ? "" : prompt.text}
+          value={inputValue}
           onChange={prompt.setText}
           onSubmit={submit}
           disabled={
@@ -177,15 +178,20 @@ export const ChatComposer = ({
             error={model.error}
             select={model.change}
           />
-          <ComposerSendButton
-            running={running && !queue.editing && !queueing}
-            stopping={stopping.pending}
-            disabled={blocked || !project.hasProject || unsupportedImages || !hasContent}
-            resume={snapshot.state.canResume && !queue.editing ? { disabled: blocked } : undefined}
-            onResume={() => control("resume")}
-            onStop={() => control("abort")}
-          />
+          <ComposerSubmitActions control={voice} showVoiceInput={!inputValue.trim()}>
+            <ComposerSendButton
+              running={running && !queue.editing && !queueing}
+              stopping={stopping.pending}
+              disabled={blocked || !project.hasProject || unsupportedImages || !hasContent}
+              resume={
+                snapshot.state.canResume && !queue.editing ? { disabled: blocked } : undefined
+              }
+              onResume={() => control("resume")}
+              onStop={() => control("abort")}
+            />
+          </ComposerSubmitActions>
         </div>
+        <VoiceControls control={voice} running={snapshot.state.isRunning} />
       </form>
     </div>
   );

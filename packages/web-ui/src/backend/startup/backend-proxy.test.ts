@@ -2,6 +2,7 @@ import { expect, test, vi } from "vitest";
 
 import { createBackendProxy } from "./backend-proxy";
 import { createHttpServer, listen } from "../http/node-server";
+import { readContext } from "../http/business-context";
 
 test.each(["text/event-stream", "application/json"])(
   "worker shutdown closes SSE but rejects incomplete data responses (%s)",
@@ -136,6 +137,11 @@ test("proxy streams requests and responses without forwarding browser credential
     expect(received).toHaveLength(1);
     expect(received[0]!.headers.get("cookie")).toBeNull();
     expect(received[0]!.headers.get("authorization")).toBe("Bearer synthetic");
+    expect(readContext(received[0]!.headers)).toEqual({
+      principal: "local",
+      remote: false,
+      origin: "https://example.test",
+    });
     expect(new URL(received[0]!.url).pathname).toBe("/api/sessions/example/prompt");
   } finally {
     await new Promise<void>((resolve) => {

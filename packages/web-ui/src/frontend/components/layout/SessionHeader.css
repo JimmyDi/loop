@@ -14,6 +14,11 @@
   height: 32px;
   padding: 3px;
 }
+.session-header > .session-name,
+.session-header > .session-name-placeholder {
+  flex: 0 1 auto;
+  min-width: 0;
+}
 .session-name-placeholder {
   min-width: 0;
   padding: 4px 8px;

@@ -151,6 +151,9 @@ test("copying a user message and pasting restores skill tokens, text and existin
   const b = { id: "b".repeat(24), name: "Review" };
   const existing = { id: "c".repeat(24), name: "Existing" };
   let changed = "";
+  const edits: string[] = [];
+  const pauseVoice = () => edits.push("pause");
+  window.addEventListener("loop-voice-edit", pauseVoice);
   try {
     useWorkspace.setState({ skills: { example: [existing] } });
     const view = render(
@@ -163,6 +166,7 @@ test("copying a user message and pasting restores skill tokens, text and existin
           sessionId="example"
           value="Before after"
           onChange={(text) => {
+            edits.push("change");
             changed = text;
           }}
           onSubmit={() => {}}
@@ -188,6 +192,7 @@ test("copying a user message and pasting restores skill tokens, text and existin
       },
     });
     expect(changed).toBe("Before <img>Taskafter");
+    expect(edits).toEqual(["pause", "change"]);
     expect(input.querySelector("img")).toBeNull();
     expect(useWorkspace.getState().skills.example).toEqual([existing, a, b]);
     expect(view.container.querySelectorAll(".composer-skill-token")).toHaveLength(3);
@@ -207,6 +212,7 @@ test("copying a user message and pasting restores skill tokens, text and existin
     expect(useWorkspace.getState().skills.example).toHaveLength(3);
     expect(input.querySelector("strong")).toBeNull();
   } finally {
+    window.removeEventListener("loop-voice-edit", pauseVoice);
     cleanup();
     useWorkspace.setState(state, true);
     Object.assign(globalThis, {

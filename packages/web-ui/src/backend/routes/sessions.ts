@@ -116,6 +116,8 @@ export const sessionRoutes =
       const images = body.images ?? [];
       const files = body.files ?? [];
       const skills = body.skills ?? [];
+      if (body.steering !== undefined && typeof body.steering !== "boolean")
+        throw new HttpError(400, "invalid_steering");
       if (
         !Array.isArray(skills) ||
         skills.length > 8 ||
@@ -129,7 +131,14 @@ export const sessionRoutes =
       await controller.prepareSkills(requestId, skills as string[], request.signal);
       if (body.streamId !== undefined && body.streamId !== controller.snapshot.streamId)
         throw new HttpError(409, "delivery_unknown");
-      const runId = controller.prompt(requestId, body.text, images, files, skills as string[]);
+      const runId = controller.prompt(
+        requestId,
+        body.text,
+        images,
+        files,
+        skills as string[],
+        body.steering === true,
+      );
 
       return Response.json({ runId }, { status: 202 });
     }

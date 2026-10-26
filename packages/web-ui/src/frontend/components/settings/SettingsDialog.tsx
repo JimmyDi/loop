@@ -10,15 +10,22 @@ import { McpSettings } from "./McpSettings";
 import { SkillsSettings } from "./SkillsSettings";
 import { ArchivedChats } from "./ArchivedChats";
 import { RemoteAccessPanel } from "./RemoteAccessPanel";
+import { VoiceSettings } from "./VoiceSettings";
 import { SettingsNavigation } from "./SettingsNavigation";
 import { settingsGroups } from "./settings-sections";
 import type { SettingsSection } from "./settings-sections";
 import "./SettingsDialog.css";
 
-export const SettingsDialog = ({ onClose }: { onClose(): void }) => {
+export const SettingsDialog = ({
+  onClose,
+  initialSection = "general",
+}: {
+  onClose(): void;
+  initialSection?: SettingsSection;
+}) => {
   const { t } = useTranslation();
   const id = useId();
-  const [section, setSection] = useState<SettingsSection>("general");
+  const [section, setSection] = useState<SettingsSection>(initialSection);
   return createPortal(
     <Modal
       title={t("settings")}
@@ -44,6 +51,8 @@ export const SettingsDialog = ({ onClose }: { onClose(): void }) => {
                   <GeneralSettings />
                 ) : item === "models" ? (
                   <ModelsSettings />
+                ) : item === "voice" ? (
+                  <VoiceSettings />
                 ) : item === "appearance" ? (
                   <AppearanceSettings />
                 ) : item === "mcps" ? (

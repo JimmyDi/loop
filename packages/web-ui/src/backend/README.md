@@ -27,6 +27,7 @@ One service provides both frontend and backend; they do not need separate proces
 | Local request checks, input limits, and error contracts | [HTTP boundaries](docs/http.md) |
 | QR pairing, device authorization and revocation | [Remote devices](docs/remote-devices.md) |
 | Managed CLI installation, Microsoft sign-in and private tunnel lifecycle | [Remote connection](docs/remote-access.md) |
+| Managed local speech, authenticated audio transport and call recovery | [Voice transport](docs/voice.md) |
 
 Each page covers one implemented feature, its interfaces, lifecycle, limits, and source/tests. See the [frontend documentation](../frontend/README.md) for browser workflows and [coding-agent](../../../coding-agent/src/docs/session-format.md) for the complete session storage format.
 

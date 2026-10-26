@@ -13,6 +13,8 @@ import { DeviceStore } from "../remote-access/device-store";
 import { startRemoteIngress } from "../remote-access/remote-ingress";
 import { remoteAccessRoutes } from "../routes/remote-access";
 import { startDevelopmentBackend } from "./development-backend";
+import { attachVoiceUpgrade } from "../http/voice-upgrade";
+import { localContext } from "../http/business-context";
 
 export const startDevelopmentGateway = async (port: number) => {
   const agentDir = getAgentDir();
@@ -22,8 +24,9 @@ export const startDevelopmentGateway = async (port: number) => {
   );
   await devices.load();
   const backend = startDevelopmentBackend();
+  const unsubscribeInvalidation = devices.subscribeInvalidation(backend.revokeVoice);
   const remote = await createRemoteAccess(agentDir, (port) =>
-    startRemoteIngress(devices, backend.handle, assets, port, backend.ready),
+    startRemoteIngress(devices, backend.handle, assets, port, backend.ready, backend.voice),
   ).catch(async (error) => {
     await backend.close();
     throw error;
@@ -46,8 +49,22 @@ export const startDevelopmentGateway = async (port: number) => {
       return errorResponse(error);
     }
   });
+  const closeVoice = attachVoiceUpgrade(
+    server,
+    (request) => {
+      assertLocalRequest(request);
+      if (request.headers.get("origin") !== new URL(request.url).origin)
+        throw new Error("invalid_origin");
+      return localContext;
+    },
+    backend.voice,
+    undefined,
+    { allowVite: true },
+  );
   let frontend: Awaited<ReturnType<typeof createDevelopmentFrontend>> | undefined;
   const close = async () => {
+    closeVoice();
+    unsubscribeInvalidation();
     try {
       await remote.close();
     } finally {

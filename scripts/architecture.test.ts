@@ -58,6 +58,8 @@ test.each([
   ["web-ui/src/frontend/main.tsx", 'export * from "../backend/server";'],
   ["web-ui/src/backend/loop.ts", "import(moduleName);"],
   ["web-ui/src/backend/loop.ts", 'import "./loop.test";'],
+  ["web-ui/src/frontend/main.tsx", 'import "../backend/server.ts?worker&url";'],
+  ["web-ui/src/frontend/main.tsx", 'import "./missing.ts?worker&url";'],
 ])("rejects forbidden import from %s", (file, source) => {
   expect(inspectImports(resolve(root, "packages", file), source).failures.length).toBeGreaterThan(
     0,
@@ -72,6 +74,7 @@ test.each([
     'import { createModels } from "@earendil-works/pi-ai";',
   ],
   ["agent/src/agent-loop.ts", 'import { Type } from "@earendil-works/pi-ai";'],
+  ["web-ui/src/frontend/voice/capture.ts", 'import url from "./capture-worklet.ts?worker&url";'],
 ])("allows public imports from %s", (file, source) => {
   expect(inspectImports(resolve(root, "packages", file), source).failures).toEqual([]);
 });

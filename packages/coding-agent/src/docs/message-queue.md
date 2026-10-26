@@ -21,7 +21,7 @@ Subscribe to queue_changed and read session.state for authoritative queue, runni
 
 | Method or state | Contract |
 | --- | --- |
-| enqueue(content, { skills?, id? }?) | Validate and clone native text/image content, append an item, return its ID; start immediately if idle and unpaused. |
+| enqueue(content, { skills?, id?, steering? }?) | Validate and clone native text/image content, append an item, return its ID; start immediately if idle and unpaused. Optional steering atomically marks the item before publishing or scheduling it. |
 | beginQueuedEdit(id) | Hold an existing item out of scheduling without changing its position. |
 | cancelQueuedEdit(id) | Release the hold with the original content; resume draining when allowed. |
 | editQueued(id, content, skills?) | Replace content, optionally replace selected Skills and release its hold without changing ID; append to the queue if a later item was dispatched during editing, otherwise retain the reserved position. |
@@ -34,6 +34,8 @@ Subscribe to queue_changed and read session.state for authoritative queue, runni
 | state.canResume | A stopped task has a retained continuation. |
 
 Only enqueue accepts a new message ID. Edits, moves and deletions of consumed or missing IDs reject without recreating messages. Editing or deleting an item already marked for steering rejects until its boundary is reached.
+
+Use `enqueue(content, { steering: true })` to submit a new correction in one operation. It preserves an explicit Stop: queued corrections and ordinary inputs remain paused until `resume()`. The existing `steerQueued(id)` action explicitly releases a pause and dispatches the selected existing item. Neither action interrupts the current model response or tool batch.
 
 ## Scheduling
 

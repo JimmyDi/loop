@@ -5,8 +5,10 @@ import { permissionsZh } from "./permissions-zh";
 
 import { remoteZh } from "./remote-zh";
 import { pwaZh } from "./pwa-zh";
+import { voiceZh } from "./voice-zh";
 
 export const zh = {
+  voice: voiceZh,
   filePreview: {
     open: "预览 PDF",
     download: "下载",

@@ -1,0 +1,81 @@
+.voice-download-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4ch;
+  grid-template-rows: 30px;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 150px;
+  width: 100%;
+  min-width: 0;
+  max-width: 320px;
+}
+
+.voice-download-progress-track {
+  grid-column: 1;
+  grid-row: 1;
+  height: 10px;
+  padding: 2px;
+  overflow: hidden;
+  border: 1px solid light-dark(#91a4c0, #596a82);
+  border-radius: 999px;
+}
+
+.voice-download-progress-fill {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+  background: linear-gradient(90deg, light-dark(#2563eb, #779eff), light-dark(#0284c7, #67d4ef));
+  box-shadow: 0 0 8px light-dark(#2563eb30, #8ab4ff55);
+  transition: width 450ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.voice-download-progress-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 10%, light-dark(#ffffff80, #ffffffa6) 50%, transparent 90%);
+  transform: translateX(-100%);
+  animation: voice-download-shimmer 1.8s linear infinite;
+}
+
+.voice-download-progress-track[data-indeterminate="true"] .voice-download-progress-fill {
+  animation: voice-download-wait 2.4s ease-in-out infinite;
+}
+
+.voice-download-progress-percent {
+  grid-column: 2;
+  grid-row: 1;
+  color: var(--ink-muted);
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes voice-download-shimmer {
+  to { transform: translateX(100%); }
+}
+
+@keyframes voice-download-wait {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(257%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-download-progress-fill,
+  .voice-download-progress-fill::after {
+    animation: none !important;
+    transition: none;
+  }
+  .voice-download-progress-fill::after { display: none; }
+}
+
+@media (forced-colors: active) {
+  .voice-download-progress-track { border-color: CanvasText; }
+  .voice-download-progress-fill {
+    background: Highlight;
+    forced-color-adjust: none;
+    box-shadow: none;
+  }
+  .voice-download-progress-fill::after { display: none; }
+}

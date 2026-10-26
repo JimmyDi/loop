@@ -1,10 +1,14 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import type { SessionSnapshot } from "../../../shared/protocol";
 import "../../i18n/setup";
 import { ChatComposer } from "./ChatComposer";
+
+vi.mock("../../hooks/useVoiceSetup", () => ({
+  useVoiceSetup: () => ({ complete: true }),
+}));
 
 const snapshot: SessionSnapshot = {
   streamId: "stream",
@@ -36,6 +40,184 @@ test("ChatComposer renders the session state without unsupported controls", () =
   expect(html.indexOf('class="composer-toolbar"')).toBeLessThan(html.indexOf("permission-trigger"));
   expect(html).toContain("Session permissions: Read only");
   client.clear();
+});
+
+test.each([
+  ["empty draft", "", "idle"],
+  ["whitespace draft", " \t ", "idle"],
+  ["newline draft", "\n\n", "idle"],
+  ["nonbreaking space draft", "\u00a0", "idle"],
+  ["hidden compact command", "/compact", "compact"],
+] as const)(
+  "dictation entry follows visible empty input with %s",
+  async (_name, draft, operation) => {
+    const { Window } = await import("happy-dom");
+    const { useWorkspace } = await import("../../state/workspace-store");
+    const { useRequests } = await import("../../state/request-store");
+    const { useQueueEdits } = await import("../../state/queue-edit-store");
+    const window = new Window();
+    const previous = { window: globalThis.window, document: globalThis.document };
+    const workspace = useWorkspace.getState();
+    const requests = useRequests.getState();
+    const edits = useQueueEdits.getState();
+    Object.assign(globalThis, { window, document: window.document });
+    const { render, fireEvent, cleanup } = await import("@testing-library/react/pure");
+    const client = new QueryClient({
+      defaultOptions: { queries: { staleTime: Infinity, retry: false } },
+    });
+    client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
+    client.setQueryData(["models"], [snapshot.model]);
+    const current: SessionSnapshot = {
+      ...snapshot,
+      operation,
+      state: {
+        ...snapshot.state,
+        messages: [{ role: "user", content: "Synthetic task", timestamp: 0 }],
+        isRunning: false,
+      },
+    };
+    try {
+      useWorkspace.setState({ drafts: { test: draft }, images: {}, files: {}, skills: {} });
+      useRequests.setState({ pending: {}, delivery: {} });
+      useQueueEdits.setState({ edits: {} });
+      const ui = render(
+        <QueryClientProvider client={client}>
+          <ChatComposer snapshot={current} connected />
+        </QueryClientProvider>,
+      );
+      const input = ui.getByRole("textbox");
+      expect(input.textContent).toBe(operation === "compact" ? "" : draft);
+      expect(useWorkspace.getState().drafts.test).toBe(draft);
+      expect(ui.getByRole("button", { name: "Voice input" })).toBeTruthy();
+      expect(ui.container.querySelector(".composer-input-action")).toBeNull();
+      expect(ui.getByRole("button", { name: "Call" })).toBeTruthy();
+      expect(ui.container.querySelector(".voice-controls")).toBeNull();
+
+      input.textContent = "Synthetic draft";
+      fireEvent.input(input);
+      expect(useWorkspace.getState().drafts.test).toBe("Synthetic draft");
+      expect(ui.queryByRole("button", { name: "Voice input" })).toBeNull();
+      expect(ui.container.querySelector(".composer-input-action")).toBeNull();
+      expect(ui.getByRole("button", { name: "Call" })).toBeTruthy();
+
+      input.textContent = "";
+      fireEvent.input(input);
+      expect(useWorkspace.getState().drafts.test).toBe("");
+      expect(ui.getByRole("button", { name: "Voice input" })).toBeTruthy();
+      expect(ui.container.querySelector(".composer-input-action")).toBeNull();
+
+      for (const [value, stored] of [
+        ["  ", "  "],
+        ["\u00a0\u00a0", "  "],
+      ] as const) {
+        input.textContent = value;
+        fireEvent.input(input);
+        expect(useWorkspace.getState().drafts.test).toBe(stored);
+        expect(ui.getByRole("button", { name: "Voice input" })).toBeTruthy();
+        expect(ui.container.querySelector(".composer-input-action")).toBeNull();
+        expect(ui.getByRole("button", { name: "Call" })).toBeTruthy();
+      }
+
+      for (const placeholder of ["<br>", "<div><br></div>"]) {
+        input.textContent = "Synthetic draft";
+        fireEvent.input(input);
+        expect(ui.queryByRole("button", { name: "Voice input" })).toBeNull();
+        input.innerHTML = placeholder;
+        fireEvent.input(input);
+        expect(useWorkspace.getState().drafts.test!.trim()).toBe("");
+        expect(ui.getByRole("button", { name: "Voice input" })).toBeTruthy();
+        expect(ui.container.querySelector(".composer-input-action")).toBeNull();
+        expect(ui.getByRole("button", { name: "Call" })).toBeTruthy();
+      }
+    } finally {
+      cleanup();
+      client.clear();
+      useWorkspace.setState(workspace, true);
+      useRequests.setState(requests, true);
+      useQueueEdits.setState(edits, true);
+      Object.assign(globalThis, previous);
+      await window.happyDOM.close();
+    }
+  },
+);
+
+test("composer keeps icon-only voice actions immediately before send through connection changes", async () => {
+  const { Window } = await import("happy-dom");
+  const { useWorkspace } = await import("../../state/workspace-store");
+  const { useRequests } = await import("../../state/request-store");
+  const { useQueueEdits } = await import("../../state/queue-edit-store");
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  const workspace = useWorkspace.getState();
+  const requests = useRequests.getState();
+  const edits = useQueueEdits.getState();
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, fireEvent, within, cleanup } = await import("@testing-library/react/pure");
+  const client = new QueryClient({
+    defaultOptions: { queries: { staleTime: Infinity, retry: false } },
+  });
+  client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
+  client.setQueryData(["models"], [snapshot.model]);
+  const current: SessionSnapshot = {
+    ...snapshot,
+    operation: "idle",
+    state: {
+      ...snapshot.state,
+      messages: [{ role: "user", content: "Synthetic task", timestamp: 0 }],
+      isRunning: false,
+    },
+  };
+  const composer = (connected: boolean) => (
+    <QueryClientProvider client={client}>
+      <ChatComposer snapshot={current} connected={connected} />
+    </QueryClientProvider>
+  );
+  try {
+    useWorkspace.setState({ drafts: {}, images: {}, files: {}, skills: {} });
+    useRequests.setState({ pending: {}, delivery: {} });
+    useQueueEdits.setState({ edits: {} });
+    const ui = render(composer(true));
+    const actions = ui.container.querySelector<HTMLElement>(".composer-submit-actions")!;
+    const call = within(actions).getByRole("button", { name: "Call" }) as HTMLButtonElement;
+    expect(call.disabled).toBe(false);
+    expect(
+      within(actions)
+        .getAllByRole("button")
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual(["Voice input", "Call", "Send message"]);
+    expect(call.textContent).toBe("");
+    expect(ui.container.querySelector(".composer-input-area button")).toBeNull();
+    expect(ui.container.querySelector(".voice-controls")).toBeNull();
+    expect(ui.getByRole("button", { name: "Voice input" })).toBeTruthy();
+
+    const input = ui.getByRole("textbox");
+    input.textContent = "Synthetic draft";
+    fireEvent.input(input);
+    expect(useWorkspace.getState().drafts.test).toBe("Synthetic draft");
+    expect(within(ui.container).queryByRole("button", { name: "Voice input" })).toBeNull();
+    expect(within(actions).getByRole("button", { name: "Call" })).toBe(call);
+    expect(
+      within(actions)
+        .getAllByRole("button")
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual(["Call", "Send message"]);
+    expect(call.disabled).toBe(false);
+
+    ui.rerender(composer(false));
+    expect(call.disabled).toBe(true);
+    ui.rerender(composer(true));
+    expect(call.disabled).toBe(false);
+    ui.unmount();
+    expect(call.isConnected).toBe(false);
+  } finally {
+    cleanup();
+    client.clear();
+    useWorkspace.setState(workspace, true);
+    useRequests.setState(requests, true);
+    useQueueEdits.setState(edits, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
 });
 
 test.each(["running", "paused", "idle"])(

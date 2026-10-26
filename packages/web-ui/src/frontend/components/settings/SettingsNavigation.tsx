@@ -96,6 +96,11 @@ export const SettingsNavigation = ({
                         <rect x="7" y="2" width="10" height="20" rx="2" />
                         <path d="M11 18h2" />
                       </>
+                    ) : item === "voice" ? (
+                      <>
+                        <rect x="9" y="2" width="6" height="13" rx="3" />
+                        <path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8" />
+                      </>
                     ) : item === "appearance" ? (
                       <>
                         <circle cx="12" cy="12" r="4" />
@@ -106,7 +111,7 @@ export const SettingsNavigation = ({
                     )}
                   </svg>
                 )}
-                {t(item === "skills" ? "skills.title" : item)}
+                {t(item === "skills" ? "skills.title" : item === "voice" ? "voice.title" : item)}
               </ActionButton>
             ))}
           </div>

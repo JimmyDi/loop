@@ -1,0 +1,5 @@
+export const VOICE_PROTOCOL_VERSION = 1;
+
+export const MAX_VOICE_FRAME_BYTES = 1024 * 1024;
+
+export const MAX_VOICE_AUDIO_BYTES = 32 * 1024;

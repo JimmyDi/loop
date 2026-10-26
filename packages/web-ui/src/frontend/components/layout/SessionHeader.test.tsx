@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import type { SessionSnapshot } from "../../../shared/protocol";
 import "../../i18n/setup";
 import { SessionHeader } from "./SessionHeader";
 
@@ -19,5 +20,29 @@ test("SessionHeader exposes its accessible content and state", () => {
   expect(html).not.toContain("Rename conversation");
   expect(html).not.toContain("Regenerate title");
   expect(html).not.toContain("session-heading");
+  expect(html).not.toContain("session-header-actions");
   client.clear();
+});
+
+test("SessionHeader keeps session navigation without voice controls", () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const snapshot = {
+    sessionId: "header-test",
+    operation: "idle",
+    state: { hasPendingSave: false, title: { text: "Example conversation" } },
+  } as unknown as SessionSnapshot;
+  try {
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={client}>
+        <SessionHeader snapshot={snapshot} />
+      </QueryClientProvider>,
+    );
+    expect(html).toContain("Example conversation");
+    expect(html).toContain("Open projects");
+    expect(html).not.toContain("session-header-actions");
+    expect(html).not.toContain("Voice input");
+    expect(html).not.toContain("Call");
+  } finally {
+    client.clear();
+  }
 });

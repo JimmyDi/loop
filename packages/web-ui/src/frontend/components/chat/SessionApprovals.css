@@ -14,7 +14,7 @@
     flex-shrink: 1;
     width: 100%;
     min-height: 0;
-    max-height: min(40dvh, max(72px, calc(var(--app-viewport-height, 100dvh) - 340px)));
+    max-height: min(40dvh, max(72px, calc(var(--app-viewport-height, 100dvh) - var(--composer-height, 250px) - 90px)));
     padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
     overscroll-behavior: contain;
   }

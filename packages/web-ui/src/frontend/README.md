@@ -18,6 +18,7 @@ Configure a service in **Settings → Models**, then add a project and create a 
 | --- | --- |
 | Create projects, select source folders, and navigate sessions | [Projects and sessions](docs/projects.md) |
 | Compose, send, cancel, and retry after failure | [Chat input](docs/chat.md) |
+| Local dictation, foreground voice calls and speech settings | [Voice input and calls](docs/voice.md) |
 | Markdown, Mermaid, thinking, tool results, and copying | [Message rendering](docs/messages.md) |
 | Custom providers and the current session's model | [Model settings](docs/models.md) |
 | Configure, enable and discover MCP servers | [Integration settings](docs/integrations.md) |

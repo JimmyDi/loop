@@ -31,9 +31,10 @@
     "@earendil-works/pi-ai": "^1.1.0",
     "@earendil-works/pi-codemode": "1.0.4",
     "@loop/agent": "workspace:*",
+    "@loop/telemetry": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.32.0",
+    "tar-stream": "^3.2.2",
     "which": "^6.0.0",
-    "yaml": "^2.9.1",
-    "@loop/telemetry": "workspace:*"
+    "yaml": "^2.9.1"
   }
 }

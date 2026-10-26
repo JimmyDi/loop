@@ -36,6 +36,9 @@ and writes engine-manifest.json with every included file's digest. Source model
 metadata pins the bilingual int8 Zipformer and Kokoro revisions, Silero int8,
 and necessary tokens, voices, English/Chinese lexicons and license files.
 No full-precision duplicates or espeak-ng data are included.
+Model preparation creates each file's parent directories, including nested license
+directories, before downloading; existing files are reused only after size and
+SHA-256 verification.
 
 import-local is a developer-only filesystem operation. It checks the supported
 platform, protocol, engine version and every declared file before copying.

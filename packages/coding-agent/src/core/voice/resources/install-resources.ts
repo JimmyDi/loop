@@ -42,7 +42,7 @@ export const installVoiceResources = async (
       continue;
     }
     const installed = await componentPresent(directory, component, true);
-    const published = publishedVoiceModels[component.id];
+    const published = state.release?.models[component.id] ?? publishedVoiceModels[component.id];
     if (!installed && component.kind !== "engine" && !published)
       throw new Error("voice_resource_asset_unavailable");
     if (installed) continue;

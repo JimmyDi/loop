@@ -154,12 +154,16 @@ jobs:
           path: release-assets
       - name: Publish verified voice assets
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.VOICE_RELEASE_TOKEN }}
           GH_REPO: ${{ github.repository }}
           VOICE_RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
         shell: bash
         run: |
           set -euo pipefail
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "Configure the VOICE_RELEASE_TOKEN Actions secret with Contents and Workflows write permissions."
+            exit 1
+          fi
           if gh release view "$VOICE_RELEASE_TAG" >/dev/null 2>&1; then
             echo "Release already exists; refusing to replace its assets."
             exit 1

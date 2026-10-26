@@ -28,6 +28,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Voice build: use the dedicated VOICE_RELEASE_TOKEN Actions secret for publication and report missing credentials explicitly, supporting release tag creation for commits containing workflow changes.
+
 - coding-agent: allow pinned voice model downloads through Hugging Face's AWS CDN and create nested model/license directories during clean asset preparation, while retaining exact-host redirect checks and size/SHA-256 verification.
 
 - Web development: keep the gateway, private Tunnel and device authorization alive across backend source reloads under `pnpm dev`. Restart only the business worker, return a retrying recovery page during startup, and reject unavailable API calls without queuing or replaying commands. Automatically build the phone frontend on startup and rebuild after source or build configuration edits, debounce and serialize updates, and preserve the last successful frontend on failure. Browser disconnects and SSE termination during worker replacement avoid spurious abort/termination errors; unexpected failures and incomplete data responses still fail. Running generation is interrupted; production and direct Web startup retain their existing lifecycle.

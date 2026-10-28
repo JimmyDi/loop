@@ -56,8 +56,15 @@ export const controlVoiceCall = (state: WebVoiceCall, value: unknown, close: () 
         });
     }
   } else if (event.type === "finish") {
+    const requestId = event.requestId;
+    if (requestId !== undefined && (typeof requestId !== "string" || requestId.length > 128))
+      throw new Error("voice_invalid_control");
     state.input = state.input
       .then(() => state.call.endInput())
+      .then(() => {
+        if (typeof requestId === "string")
+          sendVoiceEvent(state, { type: "input-completed", requestId });
+      })
       .catch(() => {
         sendVoiceEvent(state, { type: "error", code: "voice_transcription_failed" });
         state.socket?.close(1011, "voice_transcription_failed");

@@ -30,7 +30,7 @@ test("narration uses completed replies and real tool outcomes while omitting cod
   expect(rows[1]?.text).toBe("bash");
 });
 
-test("long results narrate at most two short sentences and refer details to the screen", () => {
+test("long results narrate every sentence and split long passages without loss", () => {
   const snapshot = {
     state: {
       messages: [
@@ -47,6 +47,9 @@ test("long results narrate at most two short sentences and refer details to the 
     tools: {},
   } as unknown as SessionSnapshot;
   const rows = voiceNarration(snapshot);
-  expect(rows.map((row) => row.kind)).toEqual(["reply", "reply", "details"]);
+  expect(rows.every((row) => row.kind === "reply")).toBe(true);
+  expect(rows.map((row) => row.text).join("")).toBe(
+    "完成了。测试通过。后续说明。" + "很长的详情".repeat(50),
+  );
   expect(rows.every((row) => row.text.length <= 110)).toBe(true);
 });

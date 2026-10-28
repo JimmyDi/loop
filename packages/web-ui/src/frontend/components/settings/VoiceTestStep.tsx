@@ -28,15 +28,13 @@ export const VoiceTestStep = ({
   );
   return (
     <VoiceSetupStep
+      className="voice-test-step"
       number={3}
       title={t("voice.testSetup")}
       complete={ready && (onVerified ? verified : state === "verified")}
       loading={ready && state === "loading"}
       failed={ready && state === "failed"}
     >
-      <small className="voice-test-step-hint">
-        {t(ready ? "voice.testHint" : "voice.testLocked")}
-      </small>
       <VoiceDevices
         onChange={(value) => {
           setState("idle");

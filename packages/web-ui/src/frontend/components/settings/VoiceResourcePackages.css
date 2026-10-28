@@ -1,0 +1,40 @@
+.voice-resource-packages {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  flex: 1;
+  min-width: 0;
+  padding-block: 8px;
+}
+
+.voice-resource-package {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.voice-resource-package:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 16px;
+  left: calc(50% + 24px);
+  width: calc(100% - 48px);
+  height: 1px;
+  background: var(--line);
+}
+
+.voice-resource-package-name {
+  padding-inline: 0;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voice-resource-package-caption { display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; max-width: 100%; box-sizing: border-box; padding-inline: 8px; }

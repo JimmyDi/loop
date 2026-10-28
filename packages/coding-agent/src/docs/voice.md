@@ -52,9 +52,11 @@ The source build currently supports macOS ARM64 and needs a C++17 compiler, CMak
 
 ## API and events
 
+Recognition-only hosts can pass the call options through the resource callback to `manager.acquireRuntime({ synthesis: false })`. This verifies and selects only engine, ASR and VAD components; default acquisition retains installed TTS resources. Full digests are verified on every acquisition for all selected components.
+
 | API | Contract |
 | --- | --- |
-| `runtime.startCall({ mode })` | Open one `dictation` or `conversation` call; reject another while opening or active. Both modes expose the same audio primitives; the host owns submission behavior. |
+| `runtime.startCall({ mode, synthesis? })` | Open one `dictation` or `conversation` call; reject another while opening or active. Set `synthesis: false` to omit TTS initialization; omission preserves synthesis when available. The resource callback receives these call options. The host owns submission behavior. |
 | `call.writeAudio(samples)` | Supply mono PCM16LE at 16 kHz, nonempty even-length chunks up to 32 KiB. Await each acknowledgement for backpressure. |
 | `call.endInput()` | Force the final transcript and reset recognition while keeping the call open. |
 | `call.discardInput()` | Reset recognition while suppressing pending partial/final text and voice activity. Await before accepting microphone audio again; use when muting or restoring a connection. |
@@ -79,3 +81,5 @@ The runtime does not acquire a microphone, play audio, grant browser permissions
 - [Protocol types](../core/voice/protocol-types.ts), [frame decoding](../core/voice/voice-frame-decoder.ts), [frame validation](../core/voice/frame-parser.ts) and [command encoding](../core/voice/command-encoder.ts).
 - [Public types](../core/voice/voice-types.ts), [message queue](message-queue.md) and [approvals](approvals.md).
 - [Resource manager](../core/voice/voice-resource-manager.ts), [pinned catalog](../core/voice/resources/catalog.ts), [native build](../core/voice/native/build.ts) and [local model preparation](../core/voice/native/prepare-models.ts).
+
+Managed installation downloads and verifies independent components concurrently. Per-package operation states and aggregate byte progress are exposed in resource status. A component failure leaves successful components available for retry and waits for remaining workers; engine probing and activation require every selected component to succeed. Cancellation reaches every worker and the resource lock remains held until all workers settle.

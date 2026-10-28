@@ -1,3 +1,4 @@
+import type { VoiceComponentInstallState } from "./component-install-state";
 import type { VoiceReleaseManifest } from "./release-manifest-types";
 
 export type VoicePlatform =
@@ -47,9 +48,10 @@ export type VoiceResourceStatus = {
   directory: string;
   version: string;
   updateAvailable: boolean;
-  phase: "idle" | "installing" | "updating" | "uninstalling" | "error";
+  phase: "idle" | "paused" | "installing" | "updating" | "uninstalling" | "error";
   components: VoiceInstalledComponent[];
-  download?: { componentId: string; received: number; total: number };
+  download?: { received: number; total: number };
+  packages?: Record<string, VoiceComponentInstallState>;
   error?: string;
 };
 
@@ -71,8 +73,10 @@ export type VoiceEngineSelection = {
 export type VoiceResourceOperationState = {
   release?: VoiceReleaseManifest;
   releaseCheckedAt?: number;
+  releaseLoading?: Promise<void>;
   phase: VoiceResourceStatus["phase"];
   download?: VoiceResourceStatus["download"];
+  packages?: Record<string, VoiceComponentInstallState>;
   error?: string;
 };
 

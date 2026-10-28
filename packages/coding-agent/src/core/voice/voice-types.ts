@@ -19,6 +19,7 @@ export type VoiceCallMode = "dictation" | "conversation";
 
 export type VoiceCallOptions = {
   mode: VoiceCallMode;
+  synthesis?: boolean;
 };
 
 export type VoiceEvent = { callId: string } & (
@@ -32,7 +33,9 @@ export type VoiceEvent = { callId: string } & (
 export type VoiceEventListener = (event: VoiceEvent) => void;
 
 export type VoiceRuntimeOptions = {
-  resources: () =>
+  resources: (
+    options: VoiceCallOptions,
+  ) =>
     | VoiceRuntimeResources
     | VoiceResourceLease
     | Promise<VoiceRuntimeResources | VoiceResourceLease>;

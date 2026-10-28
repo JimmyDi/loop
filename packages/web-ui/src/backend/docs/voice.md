@@ -4,6 +4,8 @@ Loop's Web voice layer connects authenticated browser audio to the public coding
 
 ## Setup
 
+Call creation accepts an optional boolean `synthesis`. It defaults to true for conversation mode and false for dictation and test mode. Test speech explicitly enables it; microphone tests leave it disabled. Recognition-only calls skip TTS resource verification and initialization.
+
 Install compatible resources from **Settings → Voice** on the computer running Loop. Installation is explicit and local-only. The settings response reports supported platform, individual engine/ASR/VAD/TTS components, download progress, installed bytes, versions and errors. Resource downloads must exist in the reviewed Loop release catalog before installation is available; no resource is downloaded at startup.
 
 The managed files live under the coding-agent data directory's `voice/` folder. Changing `LOOP_DATA_DIR` changes that data root. Microphone audio, temporary recognition state and generated speech remain in memory. Submitted final text uses the existing session storage.

@@ -2,7 +2,7 @@ import { expect, test, vi } from "vitest";
 
 import { VoiceSpeechQueue } from "./voice-speech-queue";
 
-test("narration bounds its backlog and waits for complete playback before synthesizing again", async () => {
+test("narration prefetches one segment during playback without overlapping audio", async () => {
   const done = Promise.withResolvers<void>();
   const send = vi.fn();
   const interrupt = vi.fn();
@@ -16,11 +16,13 @@ test("narration bounds its backlog and waits for complete playback before synthe
   expect(send.mock.calls).toEqual([["first"]]);
   queue.audio(new ArrayBuffer(2), 0);
   queue.audio(new ArrayBuffer(2), 1);
-  expect(send).toHaveBeenCalledTimes(1);
+  expect(send.mock.calls).toEqual([["first"], ["outdated"]]);
+  queue.audio(new ArrayBuffer(2), 1);
+  expect(send).toHaveBeenCalledTimes(2);
   done.resolve();
   await Promise.resolve();
   await Promise.resolve();
-  expect(send.mock.calls).toEqual([["first"], ["third"]]);
+  expect(send.mock.calls).toEqual([["first"], ["outdated"], ["third"]]);
   queue.failed();
   expect(interrupt).toHaveBeenCalledOnce();
   queue.enqueue("recovered");
@@ -43,7 +45,7 @@ test("barge-in discards pending narration and ignores late playback completion",
   queue.clear();
   done.resolve();
   await Promise.resolve();
-  expect(send).toHaveBeenCalledOnce();
+  expect(send.mock.calls).toEqual([["playing"], ["waiting"]]);
 });
 
 test("synthesis timeout clears waiting speech and invalidates late responses", async () => {
@@ -67,4 +69,27 @@ test("synthesis timeout clears waiting speech and invalidates late responses", a
     queue.clear();
     vi.useRealTimers();
   }
+});
+
+test("reads all segments in order without dropping an extended execution backlog", async () => {
+  const send = vi.fn();
+  const queue = new VoiceSpeechQueue({
+    send,
+    current: () => 0,
+    interrupt: vi.fn(),
+    play: async () => {},
+  });
+  const text = "进度更新。".repeat(20) + "长句".repeat(200);
+  queue.enqueue(text);
+  for (
+    let count = 0;
+    count < 30 && send.mock.calls.map(([part]) => part).join("") !== text;
+    count++
+  ) {
+    queue.audio(new ArrayBuffer(2), 0);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  expect(send.mock.calls.map(([part]) => part).join("")).toBe(text);
+  expect(send.mock.calls.length).toBeGreaterThan(3);
+  queue.clear();
 });

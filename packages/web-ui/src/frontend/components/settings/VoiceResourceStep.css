@@ -1,5 +1,12 @@
-.voice-resource-hint { color: var(--ink-muted); line-height: 1.5; }
-.voice-resource-details { min-width: 0; font-size: 12px; }
-.voice-resource-details summary { cursor: pointer; color: var(--ink-muted); padding-block: 4px; }
-.voice-resource-details-content { display: grid; gap: 12px; padding-top: 10px; }
-.voice-directory { overflow-wrap: anywhere; font-size: 12px; }
+.voice-resource-step .voice-setup-step-heading {
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+.voice-resource-step .voice-setup-step-detail { gap: 12px; padding-top: 10px; }
+.voice-resource-summary { width: 100%; min-width: 0; }
+.voice-resource-issue { padding: 8px 10px; border-left: 2px solid currentColor; border-radius: 2px; color: light-dark(#b91c1c, #ff9999); font-size: 12px; overflow-wrap: anywhere; }
+
+@media (forced-colors: active) {
+  .voice-resource-issue { padding: 8px 10px; border-left: 2px solid currentColor; border-radius: 2px; color: CanvasText; }
+}

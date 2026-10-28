@@ -6,6 +6,7 @@ export interface VoiceSetupControl {
   verifiedSignature?: string;
   signature?: string;
   complete: boolean;
+  ready: boolean;
   setProfile(profile: VoiceProfile): void;
   setDevice(id: string): void;
   verify(): void;

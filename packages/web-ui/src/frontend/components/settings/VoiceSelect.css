@@ -1,0 +1,15 @@
+.voice-select { position: relative; width: var(--voice-control-width, 240px); max-width: 100%; }
+.voice-select-trigger.action-button { width: 100%; justify-content: space-between; min-height: 34px; padding: 6px 10px; max-width: 100%; gap: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-raised); text-align: left; }
+.voice-select-trigger svg { flex-shrink: 0; }
+.voice-select-options { position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; width: 100%; box-sizing: border-box; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-raised); box-shadow: 0 6px 24px var(--shadow); }
+.voice-select-options button { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 8px; border: 0; border-radius: 6px; background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.voice-select-options button:hover, .voice-select-options button:focus-visible { background: var(--surface-subtle); }
+.voice-select-option-copy { display: grid; gap: 2px; }
+.voice-select-option-copy small { color: var(--ink-muted); font-size: 12px; line-height: 1.4; }
+
+.voice-select-trigger > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.voice-select-options button[aria-checked="true"] { background: var(--surface-subtle); }
+
+.voice-select-options { max-height: min(320px, 45dvh); overflow-y: auto; }
+.voice-select-option-copy { min-width: 0; overflow-wrap: anywhere; }

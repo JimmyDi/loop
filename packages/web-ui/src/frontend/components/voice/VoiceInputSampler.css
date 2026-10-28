@@ -1,0 +1,8 @@
+.voice-input-sampler { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.voice-input-sampler .action-button.icon { width: 34px; height: 34px; min-height: 34px; }
+.voice-input-sampler-capsule { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; padding: 0 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-subtle); opacity: 0.5; }
+.voice-input-sampler-capsule[data-active="true"] { opacity: 1; background: var(--surface-raised); }
+.voice-input-sampler-capsule .action-button.icon { border-radius: 50%; background: radial-gradient(circle 13px, var(--surface-subtle) 100%, transparent); color: light-dark(#dc2626, #ff9299); }
+.voice-input-sampler-countdown { flex: 0 0 3ch; color: var(--ink-muted); font-size: 11px; font-variant-numeric: tabular-nums; text-align: right; }
+.voice-input-sampler-capsule .action-button.icon:hover:not(:disabled) { background: radial-gradient(circle 13px, var(--surface-hover) 100%, transparent); }
+@media (pointer: coarse) { .voice-input-sampler .action-button.icon { min-width: 44px; min-height: 44px; } }

@@ -23,6 +23,7 @@ export const useVoiceSetup = (): VoiceSetupControl => {
     ...setup,
     signature,
     complete,
+    ready: !!signature,
     verify,
   };
 };

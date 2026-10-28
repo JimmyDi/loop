@@ -11,10 +11,10 @@ export const useVoiceNarration = (snapshot: SessionSnapshot, voice: VoiceControl
   const reset = useCallback(() => tracker.current.reset(snapshot), [snapshot]);
   useEffect(() => {
     if (voice.mode !== "conversation") return;
-    const rows = tracker.current.next(snapshot);
     if (voice.readingPaused || !["listening", "transcribing", "speaking"].includes(voice.status))
       return;
-    for (const row of rows.slice(-3))
+    const rows = tracker.current.next(snapshot);
+    for (const row of rows)
       voice.speak(row.kind === "reply" ? row.text : t("voice." + row.kind, { name: row.text }));
   }, [snapshot, voice.mode, voice.status, voice.readingPaused, voice.speak, t]);
   return reset;

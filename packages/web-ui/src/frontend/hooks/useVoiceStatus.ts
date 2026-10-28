@@ -11,5 +11,7 @@ export const useVoiceStatus = () =>
     refetchInterval: (query) =>
       ["installing", "updating", "uninstalling"].includes(query.state.data?.phase ?? "")
         ? 750
-        : false,
+        : query.state.data?.supported && !query.state.data.engineAvailable
+          ? 5000
+          : false,
   });

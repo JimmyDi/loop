@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 export interface VoiceSetupStepProps {
+  className?: string;
   number: number;
   title: string;
   complete: boolean;

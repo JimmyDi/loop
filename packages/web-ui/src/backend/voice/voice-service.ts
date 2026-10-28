@@ -23,7 +23,7 @@ export class VoiceService {
   constructor(
     readonly resources: VoiceResourceManager,
     private readonly registry: SessionRegistry,
-    runtime = new VoiceRuntime({ resources: () => resources.acquireRuntime() }),
+    runtime = new VoiceRuntime({ resources: (options) => resources.acquireRuntime(options) }),
   ) {
     this.runtime = runtime;
   }
@@ -34,6 +34,7 @@ export class VoiceService {
     mode: VoiceMode,
     sessionId?: string,
     signal?: AbortSignal,
+    synthesis = mode === "conversation",
   ) => {
     if (this.closed || this.starting || this.state) throw new HttpError(409, "voice_call_active");
     this.assertAuthorized(owner);
@@ -57,6 +58,7 @@ export class VoiceService {
       signal?.throwIfAborted();
       const call = await this.runtime.startCall({
         mode: mode === "conversation" ? mode : "dictation",
+        synthesis,
       });
       if (this.closed) {
         await call.close();

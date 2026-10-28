@@ -1,7 +1,9 @@
 export interface VoiceCapture {
   context: AudioContext;
+  playbackDestination?: AudioNode;
   mute(value: boolean): void;
   discard(): void;
+  finish(): Promise<void>;
   close(): Promise<void>;
 }
 

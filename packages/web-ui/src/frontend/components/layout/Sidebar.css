@@ -1,4 +1,5 @@
 .sidebar {
+  --sidebar-heading-height: 32px;
   height: 100%;
   min-width: 0;
   display: flex;
@@ -37,15 +38,23 @@
   font-size: 15px;
 }
 .sidebar-heading {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 6px 0 12px;
+  min-height: var(--sidebar-heading-height);
+  margin-top: 18px;
+  padding: 0 6px 0 12px;
 }
+.sidebar-scroll:has(.pinned-sessions) .sidebar-heading {
+  top: var(--sidebar-heading-height);
+}
+.sidebar-projects-label,
 .sidebar-projects-toggle {
   display: flex;
   align-items: center;
-  flex: 1;
   gap: 6px;
   min-height: 32px;
   padding: 0;
@@ -57,6 +66,13 @@
   color: color-mix(in srgb, var(--ink-muted) 65%, transparent);
   text-align: left;
   cursor: pointer;
+}
+.sidebar-projects-label {
+  flex: 1;
+}
+.sidebar-projects-toggle {
+  padding: 0 6px;
+  margin-right: auto;
 }
 .sidebar-projects-toggle svg {
   width: 14px;
@@ -82,9 +98,11 @@
     pointer-events: auto;
   }
 }
+.sidebar-projects-label:hover,
 .sidebar-projects-toggle:hover {
   color: var(--ink-muted);
 }
+.sidebar-projects-label:focus-visible,
 .sidebar-projects-toggle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -95,6 +113,14 @@
   overflow-y: auto;
   scrollbar-gutter: stable both-edges;
   min-height: 0;
+  scroll-padding-top: var(--sidebar-heading-height);
+}
+.sidebar-scroll:has(.pinned-sessions) {
+  scroll-padding-top: calc(2 * var(--sidebar-heading-height));
+}
+.sidebar-projects,
+.pinned-sessions > .session-list {
+  clip-path: inset(var(--sidebar-list-clip, 0px) 0 0);
 }
 .sidebar-projects > .project-item:first-child {
   margin-top: 2px;
@@ -120,11 +146,12 @@
 
 @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .sidebar {
+    --sidebar-heading-height: 44px;
     padding-top: max(16px, env(safe-area-inset-top));
     padding-bottom: max(8px, env(safe-area-inset-bottom));
     padding-left: max(8px, env(safe-area-inset-left));
   }
-  .sidebar .action-button, .sidebar-projects-toggle {
+  .sidebar .action-button, .sidebar-projects-label, .sidebar-projects-toggle {
     min-height: 44px;
     min-width: 44px;
   }

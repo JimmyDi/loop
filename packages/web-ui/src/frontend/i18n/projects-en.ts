@@ -1,4 +1,6 @@
 export const projectsEn = {
+  newTask: "New task",
+  toggleProjects: "Expand or collapse projects",
   chooseProject: "Choose project",
   searchProjects: "Search projects",
   noMatchingProjects: "No matching projects",

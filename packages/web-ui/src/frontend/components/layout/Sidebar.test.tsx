@@ -18,6 +18,9 @@ test("Sidebar exposes its accessible content and state", () => {
   );
 
   expect(html).toContain("Projects");
+  expect(html).toContain("New task");
+  expect(html.indexOf("sidebar-new-task")).toBeLessThan(html.indexOf("sidebar-scroll"));
+  expect(html.slice(html.indexOf("sidebar-scroll"))).not.toContain("sidebar-new-task");
   expect(html).toContain("Loop");
   expect(html).toContain("More");
   expect(html).toContain('aria-haspopup="menu"');
@@ -83,7 +86,7 @@ test.each(["new", "existing", "failure"])(
           <Sidebar />
         </QueryClientProvider>,
       );
-      const group = ui.getByRole("button", { name: "Projects" });
+      const group = ui.getByRole("button", { name: "Expand or collapse projects" });
       fireEvent.click(group);
       fireEvent.click(ui.getByRole("button", { name: "Add project" }));
       const dialog = within(ui.getByRole("dialog", { name: "Create project" }));
@@ -207,7 +210,7 @@ test("pin actions move sessions above Projects without selecting them and work w
       ).toEqual(["Chat 1", "Chat 0"]),
     );
     expect(useWorkspace.getState().active?.id).toBe("other");
-    fireEvent.click(ui.getByRole("button", { name: "Projects" }));
+    fireEvent.click(ui.getByRole("button", { name: "Expand or collapse projects" }));
     expect(ui.queryByRole("button", { name: project.name })).toBeNull();
     expect(pinned.getByRole("button", { name: "Chat 0" })).toBeTruthy();
     // Shared project queries supply live titles while the Projects section is collapsed.
@@ -234,7 +237,7 @@ test("pin actions move sessions above Projects without selecting them and work w
       await sleep(30);
     });
     expect(ui.queryByRole("region", { name: "Pinned" })).toBeNull();
-    fireEvent.click(ui.getByRole("button", { name: "Projects" }));
+    fireEvent.click(ui.getByRole("button", { name: "Expand or collapse projects" }));
     expect(ui.getByTitle("Chat 0")).toBeTruthy();
     expect(requests).toBe(4);
   } finally {

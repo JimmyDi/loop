@@ -1,0 +1,18 @@
+.sidebar-new-task {
+  flex-shrink: 0;
+  padding: 8px 0 0;
+  overflow-y: hidden;
+  scrollbar-gutter: stable both-edges;
+}
+.sidebar-new-task > .action-button {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 8px 12px;
+  border: 0;
+}
+.sidebar-new-task svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}

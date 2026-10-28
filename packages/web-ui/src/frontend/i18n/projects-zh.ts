@@ -1,4 +1,6 @@
 export const projectsZh = {
+  newTask: "新建任务",
+  toggleProjects: "展开或折叠项目",
   chooseProject: "选择项目",
   searchProjects: "搜索项目",
   noMatchingProjects: "没有匹配的项目",

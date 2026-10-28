@@ -1,8 +1,11 @@
 import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { flushSync } from "react-dom";
 
 import { isRemoteClient } from "../../lib/remote-session";
 import { useProjects } from "../../hooks/useProjects";
+import { useSidebarClipping } from "../../hooks/useSidebarClipping";
+import { scrollSidebarSection } from "../../lib/scroll-sidebar-section";
 import { useWorkspace } from "../../state/workspace-store";
 import { AddProjectDialog } from "../projects/AddProjectDialog";
 import { ProjectItem } from "../projects/ProjectItem";
@@ -11,6 +14,7 @@ import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { LoopIcon } from "../ui/LoopIcon";
 import { SidebarMenu } from "./SidebarMenu";
+import { NewTaskButton } from "./NewTaskButton";
 import "./Sidebar.css";
 
 const SettingsDialog = lazy(() =>
@@ -26,6 +30,7 @@ export const Sidebar = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addedProjectId, setAddedProjectId] = useState<string>();
   const projectList = useRef<HTMLDivElement>(null);
+  const scroll = useSidebarClipping();
   const toggle = useWorkspace((state) => state.toggleSidebar);
 
   useEffect(() => {
@@ -54,17 +59,31 @@ export const Sidebar = () => {
           ×
         </ActionButton>
       </div>
-      <div className="sidebar-scroll">
+      <NewTaskButton projects={projects.data ?? []} />
+      <div className="sidebar-scroll" ref={scroll}>
         <PinnedSessions projects={projects.data ?? []} />
         <div className="sidebar-heading">
           <button
             type="button"
+            className="sidebar-projects-label"
+            onClick={(event) => {
+              flushSync(() => setProjectsExpanded(true));
+              scrollSidebarSection(
+                event.currentTarget.parentElement!,
+                ".sidebar-projects .project-item",
+              );
+            }}
+          >
+            {t("projects")}
+          </button>
+          <button
+            type="button"
             className="sidebar-projects-toggle"
+            aria-label={t("toggleProjects")}
             aria-expanded={projectsExpanded}
             aria-controls={projectsId}
             onClick={() => setProjectsExpanded((expanded) => !expanded)}
           >
-            <span>{t("projects")}</span>
             <svg
               viewBox="0 0 16 16"
               fill="none"

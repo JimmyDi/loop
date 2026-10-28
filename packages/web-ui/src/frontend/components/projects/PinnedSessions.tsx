@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import type { Project, SessionSummary } from "../../../shared/protocol";
 import { projectSessionsQueryOptions } from "../../hooks/useProjectSessions";
+import { scrollSidebarSection } from "../../lib/scroll-sidebar-section";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { SessionItem } from "./SessionItem";
 import "./PinnedSessions.css";
@@ -27,7 +28,19 @@ export const PinnedSessions = ({ projects }: { projects: Project[] }) => {
 
   return (
     <section className="pinned-sessions" aria-labelledby={headingId}>
-      <h2 id={headingId}>{t("pinnedSessions")}</h2>
+      <h2 id={headingId}>
+        <button
+          type="button"
+          onClick={(event) =>
+            scrollSidebarSection(
+              event.currentTarget.parentElement!,
+              ".pinned-sessions .session-item",
+            )
+          }
+        >
+          {t("pinnedSessions")}
+        </button>
+      </h2>
       <ul className="session-list">
         {sessions.map((session) => (
           <SessionItem key={session.id} session={session} />

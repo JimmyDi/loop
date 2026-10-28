@@ -1,4 +1,4 @@
-name: Build and release native voice assets
+name: Voice release
 on:
   push:
     branches:

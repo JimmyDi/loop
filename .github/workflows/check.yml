@@ -11,6 +11,8 @@ permissions:
   contents: read
 jobs:
   verify:
+    # Preserve the required check context while Linux runs on the pinned image.
+    name: verify (${{ matrix.os == 'ubuntu-24.04' && 'ubuntu-latest' || matrix.os }})
     strategy:
       fail-fast: false
       matrix:

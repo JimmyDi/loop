@@ -32,7 +32,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
-- CI: pin Linux verification to Ubuntu 24.04 so runner image upgrades do not break Bubblewrap sandbox preparation before repository checks start.
+- CI: pin Linux verification to Ubuntu 24.04 so runner image upgrades do not break Bubblewrap sandbox preparation before repository checks start, preserving the existing required-check name so successful runs unblock merging.
 
 - Web UI: restore full-width waveform controls in place of composer tools during voice input and calls, adding an animated audio-reactive orb at the rightmost Send position while respecting reduced-motion preferences. Give Send and the orb the same fixed-size footprint without extra padding, use equal-sized, vertically centered idle voice and Send controls with a compact 4px gap between voice entries and an 8px gap before Send, and keep audio animation inside the orb without outward scaling; the model selector remains directly before Voice input.
 

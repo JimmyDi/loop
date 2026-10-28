@@ -1,1 +1,10 @@
-.voice-test-step-hint { color: var(--ink-muted); line-height: 1.5; }
+.voice-test-step .voice-setup-step-content {
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 10px;
+  row-gap: 10px;
+}
+
+.voice-test-step .voice-setup-step-heading { display: contents; }
+.voice-test-step .voice-setup-step-number { grid-column: 1; grid-row: 1; padding-block: 5px; }
+.voice-test-step .voice-setup-step-heading h4 { grid-column: 2; grid-row: 1; padding-block: 5px; }
+.voice-test-step .voice-setup-step-detail { grid-column: 2; grid-row: 2; padding-block: 0; }

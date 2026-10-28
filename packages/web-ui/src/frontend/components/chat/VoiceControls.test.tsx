@@ -6,7 +6,7 @@ import "../../i18n/setup";
 import type { VoiceComposerControl } from "../../hooks/voice-composer-types";
 import { VoiceControls } from "./VoiceControls";
 
-test("shows active voice status without adding toolbar entry buttons", async () => {
+test("omits call status and notice rows without leaving an empty container", async () => {
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, { window, document: window.document });
@@ -47,29 +47,33 @@ test("shows active voice status without adding toolbar entry buttons", async () 
     blocked: false,
     setupComplete: true,
   };
-  const { render, fireEvent, cleanup } = await import("@testing-library/react/pure");
+  const { render, cleanup } = await import("@testing-library/react/pure");
   try {
-    expect(renderToStaticMarkup(<VoiceControls control={control} running={false} />)).toBe("");
-    const ui = render(<VoiceControls control={control} running={false} />);
+    expect(renderToStaticMarkup(<VoiceControls control={control} />)).toBe("");
+    const ui = render(<VoiceControls control={control} />);
     expect(ui.queryByRole("button")).toBeNull();
     expect(ui.container.querySelector(".voice-controls")).toBeNull();
 
+    control.voice.mode = "dictation";
+    control.voice.status = "listening";
+    ui.rerender(<VoiceControls control={control} />);
+    expect(ui.container.querySelector(".voice-controls")).toBeNull();
+    expect(ui.queryByRole("region")).toBeNull();
     control.voice.mode = "conversation";
     control.voice.status = "listening";
-    ui.rerender(<VoiceControls control={control} running />);
-    expect(ui.getByRole("region", { name: "Start voice call" })).toBeTruthy();
-    expect(ui.getByText("Task running")).toBeTruthy();
-    expect(ui.queryByRole("button", { name: "Call" })).toBeNull();
-    expect(ui.queryByRole("button", { name: "Voice input" })).toBeNull();
-    expect(control.start).not.toHaveBeenCalled();
-    fireEvent.click(ui.getByRole("button", { name: "End call" }));
-    expect(control.voice.stop).toHaveBeenCalledOnce();
+    ui.rerender(<VoiceControls control={control} />);
+    expect(ui.container.querySelector(".voice-controls")).toBeNull();
+    expect(ui.queryByRole("button")).toBeNull();
 
     control.voice.mode = undefined;
     control.voice.status = "idle";
     control.notice = "The task has stopped.";
-    ui.rerender(<VoiceControls control={control} running={false} />);
-    expect(ui.getByRole("status").textContent).toBe(control.notice);
+    ui.rerender(<VoiceControls control={control} />);
+    expect(ui.queryByRole("status")).toBeNull();
+    expect(ui.container.innerHTML).toBe("");
+    control.notice = "Sent to Agent";
+    ui.rerender(<VoiceControls control={control} />);
+    expect(ui.container.innerHTML).toBe("");
     expect(ui.queryByRole("region")).toBeNull();
     expect(ui.queryByRole("button")).toBeNull();
   } finally {

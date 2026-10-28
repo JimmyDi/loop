@@ -31,3 +31,25 @@ test("loading earlier history never narrates old replies or changes completed re
   expect(tracker.next(next).map((row) => row.id)).toEqual(["reply:12:13:0"]);
   expect(tracker.next(next)).toEqual([]);
 });
+
+test("speaks completed streaming sentences before message completion without repeating them", () => {
+  const snapshot = {
+    state: {
+      messages: [],
+      draft: {
+        role: "assistant",
+        timestamp: 10,
+        content: [{ type: "text", text: "第一句。还没写完" }],
+      },
+    },
+    tools: {},
+  } as unknown as SessionSnapshot;
+  const tracker = new VoiceNarrationTracker();
+  expect(tracker.next(snapshot).map((row) => row.text)).toEqual(["第一句。"]);
+  snapshot.state.draft!.content = [{ type: "text", text: "第一句。第二句！最后部分" }];
+  expect(tracker.next(snapshot).map((row) => row.text)).toEqual(["第二句！"]);
+  snapshot.state.messages = [{ ...snapshot.state.draft!, stopReason: "stop" }];
+  snapshot.state.draft = undefined;
+  expect(tracker.next(snapshot).map((row) => row.text)).toEqual(["最后部分"]);
+  expect(tracker.next(snapshot)).toEqual([]);
+});

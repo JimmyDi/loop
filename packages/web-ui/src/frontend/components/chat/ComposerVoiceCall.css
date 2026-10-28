@@ -1,0 +1,9 @@
+.composer-voice-call { display: flex; flex: 1; align-items: center; gap: 12px; min-width: 0; }
+.composer-voice-call-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.composer-voice-call-wait { width: 100%; height: 32px; min-width: 0; color: var(--ink-muted); }
+.composer-voice-call-wait line { stroke: currentColor; stroke-width: 0.8; stroke-linecap: round; transform-origin: center; transform-box: fill-box; }
+.composer-voice-call .composer-voice-call-stop { color: light-dark(#dc2626, #ff9299); }
+@media (prefers-reduced-motion: no-preference) {
+  .composer-voice-call-wait line { animation: voice-call-wave 1.4s ease-in-out infinite; animation-delay: var(--wave-delay); }
+}
+@keyframes voice-call-wave { 0%, 100% { transform: scaleY(0.25); } 50% { transform: scaleY(2.5); } }

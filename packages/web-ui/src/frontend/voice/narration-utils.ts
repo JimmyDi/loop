@@ -2,14 +2,7 @@ import type { SessionSnapshot } from "../../shared/protocol";
 import { messageText } from "../../shared/message-text";
 import type { VoiceNarrationRow } from "./narration-types";
 
-const replySentences = (text: string): string[] => {
-  const sentences =
-    text
-      .match(/[^。！？.!?\n]+[。！？.!?]?/g)
-      ?.map((part) => part.trim())
-      .filter(Boolean) ?? [];
-  return sentences.filter((part) => part.length <= 110).slice(0, 2);
-};
+import { speechSegments } from "./speech-segments";
 
 export const voiceNarration = (
   snapshot: SessionSnapshot,
@@ -18,7 +11,9 @@ export const voiceNarration = (
   const rows: VoiceNarrationRow[] = [];
   const positions = new Map<string, number>();
   const start = snapshot.history?.start ?? 0;
-  for (const [index, message] of snapshot.state.messages.entries()) {
+  const messages = [...snapshot.state.messages];
+  if (snapshot.state.draft) messages.push(snapshot.state.draft);
+  for (const [index, message] of messages.entries()) {
     if (message.role === "assistant")
       for (const part of message.content)
         if (part.type === "toolCall") positions.set(part.id, start + index);
@@ -29,19 +24,23 @@ export const voiceNarration = (
       message.stopReason === "error"
     )
       continue;
-    const text = messageText(message)
+    let text = messageText(message)
       .replace(/```[\s\S]*?```/g, "")
+      .replace(/```[\s\S]*$/, "")
       .replace(/https?:\/\/\S+/g, "")
       .trim();
-    const sentences = replySentences(text);
+    if (index === snapshot.state.messages.length) {
+      let boundary = 0;
+      for (const match of text.matchAll(/[。！？.!?\n]/g)) boundary = match.index + 1;
+      text = text.slice(0, boundary);
+    }
+    const sentences = speechSegments(text);
     for (const [sentence, part] of sentences.entries())
       rows.push({
         id: "reply:" + (start + index) + ":" + message.timestamp + ":" + sentence,
         kind: "reply",
         text: part,
       });
-    if (text && sentences.join("").replace(/\s/g, "").length < text.replace(/\s/g, "").length)
-      rows.push({ id: "reply:" + (start + index) + ":details", kind: "details", text: "" });
   }
   for (const tool of Object.values(snapshot.tools)) {
     if (

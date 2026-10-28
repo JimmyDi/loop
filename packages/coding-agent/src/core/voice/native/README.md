@@ -58,7 +58,7 @@ Each matching main push rebuilds all engine and model bundles using the semantic
 version in resources/release-version.ts, targeting that exact source commit.
 Bump major for incompatible contracts, minor for compatible features/models and
 patch for fixes before publishing changed resources. Reruns keep the
-same tag and cannot overwrite an existing release. This monitors checked-in inputs,
+same tag and replace same-name assets when that release already exists. This monitors checked-in inputs,
 not upstream releases; upstream updates require changing the pinned inputs first.
 Manual runs accept a comma-separated targets allowlist, defaulting to
 darwin-arm64, and only prepare artifacts. It validates the list before generating
@@ -67,7 +67,7 @@ three model bundles, SHA-256 and expanded
 file manifests, and a published-catalog.ts candidate. It uploads CI artifacts
 for all entry points. Main and tag pushes additionally publish verified archives, manifests,
 SHA256SUMS and the catalog candidate to GitHub Releases. Publication stages a draft
-before making it public and refuses to replace an existing release. Review failed
+before making it public. Existing releases receive new verified archives and metadata with same-name replacement, followed by manifest.json last. Voice workflows run serially to prevent overlapping uploads. Replacement is not atomic: clients with an old manifest during publication may fail integrity checks and need to retry after refreshing resource discovery. Review failed
 drafts before retrying. Voice releases are not marked as the latest application
 release. The workflow never publishes an npm package.
 Configure the repository Actions secret VOICE_RELEASE_TOKEN before publishing.

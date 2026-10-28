@@ -1,0 +1,65 @@
+.voice-package-progress { position: relative; display: inline-flex; width: 32px; height: 32px; flex-shrink: 0; color: var(--ink-muted); }
+.voice-package-progress svg { width: 100%; height: 100%; overflow: visible; }
+.voice-package-progress-outline { stroke: var(--line); stroke-width: 1; }
+.voice-package-progress-track { stroke: var(--line); stroke-width: 2.5; }
+.voice-package-progress-fill { stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; }
+.voice-package-progress[data-state="loading"] { color: light-dark(#2563eb, #8ab8ff); }
+.voice-package-progress[data-state="completed"] { color: light-dark(#15803d, #69d58e); }
+.voice-package-progress[data-state="failed"] { color: light-dark(#b91c1c, #ff9999); }
+.voice-package-progress-symbol { stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.voice-package-progress-runner { transform-origin: 16px 16px; animation: voice-progress-travel 1.8s cubic-bezier(0.35, 0, 0.2, 1) infinite; fill: light-dark(#ffffff, #e0edff); }
+@keyframes voice-progress-travel {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(var(--voice-progress-angle)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-package-progress-runner { animation: none; transform: rotate(var(--voice-progress-angle)); }
+}
+
+.voice-package-progress-percent { position: absolute; inset: 0; display: grid; place-items: center; font-size: 7px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+
+.voice-package-error-tooltip {
+  display: none;
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(220px, calc(100vw - 48px));
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  box-shadow: 0 6px 24px var(--shadow);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.voice-package-progress:hover .voice-package-error-tooltip,
+.voice-package-progress:focus .voice-package-error-tooltip { display: block; }
+.voice-package-progress:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 50%; }
+
+.voice-package-progress-halo {
+  stroke: light-dark(#6366f130, #38bdf840);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+  transform-origin: 16px 16px;
+  animation: voice-progress-orbit 12s linear infinite;
+}
+.voice-package-progress[data-state="loading"] .voice-package-progress-fill {
+  filter: drop-shadow(0 0 1.5px light-dark(#38bdf870, #38bdf890));
+}
+.voice-package-progress-comet-glow { fill: #38bdf8; opacity: 0.45; filter: blur(1px); }
+.voice-package-progress[data-state="loading"] .voice-package-progress-percent { color: var(--ink); }
+@keyframes voice-progress-orbit {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-package-progress-halo { animation: none; }
+}
+@media (forced-colors: active) {
+  .voice-package-progress-fill { stroke: Highlight !important; filter: none !important; }
+  .voice-package-progress-halo, .voice-package-progress-comet-glow { display: none; }
+}

@@ -21,7 +21,11 @@ export const voiceResourceStatus = async (
   directory: string,
   state: VoiceResourceOperationState,
 ): Promise<VoiceResourceStatus> => {
-  const engine = await resolveVoiceEngine(directory, state);
+  const activation = await readJson(join(directory, "active.json"));
+  const active = validActivation(activation) ? activation : undefined;
+  const installed = !!active && (await activationPresent(directory, active));
+  const engine =
+    (await resolveVoiceEngine(directory, state)) ?? (installed ? active?.engine : undefined);
   const definitions: VoiceComponent[] = [
     ...(engine
       ? [engine.component]
@@ -55,9 +59,6 @@ export const voiceResourceStatus = async (
       };
     }),
   );
-  const activation = await readJson(join(directory, "active.json"));
-  const active = validActivation(activation) ? activation : undefined;
-  const installed = !!active && (await activationPresent(directory, active));
   if (installed && state.phase === "error" && state.error === "voice_engine_unavailable") {
     state.phase = "idle";
     state.error = undefined;
@@ -77,6 +78,7 @@ export const voiceResourceStatus = async (
     phase: state.phase,
     components,
     download: state.download,
+    packages: state.packages,
     error: state.error,
   };
 };

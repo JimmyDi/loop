@@ -1,3 +1,17 @@
-.voice-settings { display: grid; align-content: start; gap: 20px; color: var(--ink); }
+.voice-settings {
+  --voice-field-label-width: 88px;
+  --voice-control-width: 240px;
+  display: grid;
+  align-content: start;
+  gap: 20px;
+  color: var(--ink);
+}
+
+.voice-settings > p { color: var(--ink-muted); font-size: 13px; }
 .voice-settings p { margin: 0; line-height: 1.6; }
-.voice-setup-steps { display: grid; align-content: start; gap: 12px; width: 100%; margin: 0; padding: 0; list-style: none; }
+.voice-setup-steps { display: grid; align-content: start; gap: 24px; width: 100%; margin: 0; padding: 0; list-style: none; }
+
+@media (max-width: 480px) {
+  .voice-settings { --voice-field-label-width: 72px; }
+  .voice-setup-steps { gap: 20px; }
+}

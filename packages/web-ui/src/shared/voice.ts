@@ -8,11 +8,20 @@ export type VoiceStatus = {
   ttsInstalled?: boolean;
   engineAvailable?: boolean;
   localManagement: boolean;
-  phase: "idle" | "installing" | "updating" | "uninstalling" | "error";
+  phase: "idle" | "paused" | "installing" | "updating" | "uninstalling" | "error";
   version?: string;
   updateAvailable?: boolean;
   directory?: string;
   download?: { received: number; total?: number };
+  packages?: Record<
+    string,
+    {
+      phase: "installing" | "completed" | "error" | "cancelled";
+      error?: string;
+      received: number;
+      total: number;
+    }
+  >;
   error?: string;
   components?: Array<{
     id: string;
@@ -38,12 +47,13 @@ export type VoiceClientEvent =
   | { type: "authenticate"; ticket: string }
   | { type: "configure"; muted: boolean; readingPaused: boolean }
   | { type: "interrupt"; generation: number }
-  | { type: "finish" }
+  | { type: "finish"; requestId?: string }
   | { type: "speak"; text: string; generation: number }
   | { type: "close" };
 
 export type VoiceServerEvent =
   | { type: "ready"; callId: string }
+  | { type: "input-completed"; requestId: string }
   | { type: "transcript"; text: string; final: boolean; utteranceId: string }
   | { type: "status"; status: string }
   | { type: "audio"; generation: number; sampleRate: number; format: "wav" }

@@ -52,7 +52,13 @@ const fetchResource = async (
   let next = new URL(url);
   for (let redirect = 0; redirect < 6; redirect++) {
     if (!trustedDownload(next)) throw new Error("voice_download_source_rejected");
-    const result = await fetch(next, { headers, signal, redirect: "manual" });
+    let result: Response;
+    try {
+      result = await fetch(next, { headers, signal, redirect: "manual" });
+    } catch (error) {
+      signal.throwIfAborted();
+      throw new Error("voice_download_failed", { cause: error });
+    }
     if (![301, 302, 303, 307, 308].includes(result.status)) return result;
     const location = result.headers.get("location");
     await result.body?.cancel();
@@ -85,6 +91,7 @@ export const downloadResource = async (
       await handle.truncate(0);
       received = 0;
     }
+    progress(received);
     if (received < resource.bytes) {
       const headers = new Headers({ "Accept-Encoding": "identity" });
       if (received) headers.set("Range", "bytes=" + received + "-");
@@ -92,6 +99,7 @@ export const downloadResource = async (
       if (response.status === 200) {
         await handle.truncate(0);
         received = 0;
+        progress(received);
       } else if (response.status === 206) {
         const expected = "bytes " + received + "-" + (resource.bytes - 1) + "/" + resource.bytes;
         if (!received || response.headers.get("content-range") !== expected) {

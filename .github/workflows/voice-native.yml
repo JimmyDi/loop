@@ -29,7 +29,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: voice-assets-${{ github.event.inputs.release_tag || github.ref_name }}
+  group: voice-assets-publication
   cancel-in-progress: false
 jobs:
   prepare:
@@ -164,11 +164,13 @@ jobs:
             echo "Configure the VOICE_RELEASE_TOKEN Actions secret with Contents and Workflows write permissions."
             exit 1
           fi
-          if gh release view "$VOICE_RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Release already exists; refusing to replace its assets."
-            exit 1
-          fi
           cd release-assets
           sha256sum -- *.tar.gz > SHA256SUMS
-          gh release create "$VOICE_RELEASE_TAG" --target "$GITHUB_SHA" --draft --title "$VOICE_RELEASE_TAG" --notes "Local voice engine and model bundles. See attached manifests, catalog and SHA256SUMS." -- *.tar.gz reviewed-*.json published-catalog.ts manifest.json SHA256SUMS
+          if gh release view "$VOICE_RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Updating existing release assets from this verified build."
+          else
+            gh release create "$VOICE_RELEASE_TAG" --target "$GITHUB_SHA" --draft --title "$VOICE_RELEASE_TAG" --notes "Local voice engine and model bundles. See attached manifests, catalog and SHA256SUMS."
+          fi
+          gh release upload "$VOICE_RELEASE_TAG" --clobber -- *.tar.gz reviewed-*.json published-catalog.ts SHA256SUMS
+          gh release upload "$VOICE_RELEASE_TAG" --clobber -- manifest.json
           gh release edit "$VOICE_RELEASE_TAG" --draft=false --latest=false

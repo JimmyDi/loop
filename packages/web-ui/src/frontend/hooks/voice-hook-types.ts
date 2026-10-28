@@ -1,6 +1,10 @@
 import type { VoiceMode } from "../../shared/voice";
 
 export interface VoiceOptions {
+  keepInputOpen?: boolean;
+  synthesis?: boolean;
+  energy?(value: number): void;
+  playbackProgress?(value: number): void;
   sessionId?: string;
   transcript(text: string, final: boolean, id: string, mode: VoiceMode): void;
 }

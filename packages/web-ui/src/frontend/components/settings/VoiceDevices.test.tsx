@@ -7,5 +7,5 @@ import { VoiceDevices } from "./VoiceDevices";
 test("microphone selection starts with the default without requesting capture", () => {
   const html = renderToStaticMarkup(<VoiceDevices />);
   expect(html).toContain("Default microphone");
-  expect(html).toContain("next call");
+  expect(html).not.toContain("<small>");
 });

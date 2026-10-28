@@ -29,8 +29,11 @@ test("setup step keeps its numbered heading, actions, progress, issue and detail
     );
     expect(heading.textContent).toBe("Synthetic resources");
     expect(heading.title).toBe("Synthetic resources");
-    expect(heading.previousElementSibling?.tagName).toBe("BUTTON");
-    expect(heading.nextElementSibling?.getAttribute("role")).toBe("progressbar");
+    expect(heading.previousElementSibling?.className).toBe("voice-setup-step-number");
+    expect(heading.nextElementSibling?.tagName).toBe("BUTTON");
+    expect(heading.nextElementSibling?.nextElementSibling?.getAttribute("role")).toBe(
+      "progressbar",
+    );
     expect(step.querySelector('[role="alert"]')?.parentElement).toBe(heading.parentElement);
     expect(step.querySelector(".voice-setup-step-detail")?.textContent).toBe(
       "Synthetic resource detail",

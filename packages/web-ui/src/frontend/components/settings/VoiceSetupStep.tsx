@@ -5,6 +5,7 @@ import type { VoiceSetupStepProps } from "./voice-setup-step-types";
 import "./VoiceSetupStep.css";
 
 export const VoiceSetupStep = ({
+  className,
   number,
   title,
   complete,
@@ -24,7 +25,10 @@ export const VoiceSetupStep = ({
         ? "completed"
         : "incomplete";
   return (
-    <li className="voice-setup-step" data-complete={complete && !loading && !failed}>
+    <li
+      className={["voice-setup-step", className].filter(Boolean).join(" ")}
+      data-complete={complete && !loading && !failed}
+    >
       <SetupStepMarker
         complete={complete}
         loading={loading}
@@ -32,10 +36,10 @@ export const VoiceSetupStep = ({
         label={t("voice." + state)}
       />
       <div className="voice-setup-step-content">
-        <span className="voice-setup-step-number">{t("voice.step", { number })}</span>
         <div className="voice-setup-step-heading">
-          {actions}
+          <span className="voice-setup-step-number">{t("voice.step", { number })}</span>
           <h4 title={title}>{title}</h4>
+          {actions}
           {progress}
           {issue && (
             <p className="voice-setup-step-issue" role="alert">

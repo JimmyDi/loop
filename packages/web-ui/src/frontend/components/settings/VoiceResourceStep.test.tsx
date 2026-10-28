@@ -52,7 +52,9 @@ test.each([
       );
       expect(step.querySelector("h4")?.textContent).toBe(i18n.t("voice.installResources"));
       const action = step.querySelector<TestButton>(
-        'button[aria-label="' + i18n.t("voice." + (complete ? "repair" : "install")) + '"]',
+        'button[aria-label="' +
+          i18n.t("voice." + (installed && ttsInstalled ? "uninstall" : "install")) +
+          '"]',
       );
       expect(action?.disabled).toBe(false);
       expect(step.querySelector('[role="progressbar"]')).toBeNull();
@@ -62,13 +64,9 @@ test.each([
   },
 );
 
-test.each([
-  ["install", "installing"],
-  ["update", "updating"],
-  ["uninstall", "uninstalling"],
-] as const)(
+test.each(["install", "update", "uninstall"] as const)(
   "requested %s shows activity in resource step before server state catches up",
-  async (requested, activity) => {
+  async (requested) => {
     const window = new Window();
     try {
       const settings = {
@@ -89,19 +87,14 @@ test.each([
         </ol>,
       );
       const step = window.document.querySelector("li")!;
-      const bar = window.document.querySelector('[role="progressbar"]')!;
-      expect(bar.closest("li")).toBe(step);
-      expect(step.querySelector("h4")?.nextElementSibling).toBe(bar.parentElement);
       expect(step.querySelector('[role="img"]')?.getAttribute("data-state")).toBe("loading");
       expect(step.getAttribute("data-complete")).toBe("false");
-      expect(bar.getAttribute("aria-label")).toBe(i18n.t("voice." + activity));
-      expect(bar.getAttribute("aria-valuenow")).toBeNull();
-      expect(window.document.querySelectorAll('[role="progressbar"]')).toHaveLength(1);
+      expect(step.querySelector(".voice-download-progress")).toBeNull();
       const cancel = step.querySelector<TestButton>(
         'button[aria-label="' + i18n.t("voice.cancel") + '"]',
       );
       expect(!!cancel).toBe(requested !== "uninstall");
-      for (const button of step.querySelectorAll<TestButton>("button"))
+      for (const button of step.querySelectorAll<TestButton>(".voice-settings-actions button"))
         expect(button.disabled).toBe(true);
     } finally {
       await window.happyDOM.close();
@@ -125,9 +118,7 @@ test("server download progress and installation errors remain inside step two", 
         <VoiceResourceStep settings={settings} profile="input" />
       </ol>,
     );
-    const bar = window.document.querySelector('[role="progressbar"]')!;
-    expect(bar.getAttribute("aria-valuenow")).toBe("50");
-    expect(bar.getAttribute("title")).toContain("1 MiB / 2 MiB");
+    expect(window.document.querySelector(".voice-download-progress")).toBeNull();
     const cancel = window.document.querySelector<TestButton>(
       'button[aria-label="' + i18n.t("voice.cancel") + '"]',
     );
@@ -189,7 +180,7 @@ test("failed status check gates resource actions and retry restores the current 
     expect(view.getByRole("alert").textContent).toBe(i18n.t("voice.settingsFailed"));
     expect(view.getByRole("listitem").getAttribute("data-complete")).toBe("false");
     expect(
-      (view.getByRole("button", { name: i18n.t("voice.repair") }) as HTMLButtonElement).disabled,
+      (view.getByRole("button", { name: i18n.t("voice.uninstall") }) as HTMLButtonElement).disabled,
     ).toBe(true);
     fireEvent.click(view.getByRole("button", { name: i18n.t("voice.retry") }));
     expect(query.refetch).toHaveBeenCalledOnce();
@@ -216,11 +207,31 @@ test("failed status check gates resource actions and retry restores the current 
     expect(view.queryByRole("button", { name: i18n.t("voice.retry") })).toBeNull();
     expect(view.getByRole("listitem").getAttribute("data-complete")).toBe("true");
     expect(
-      (view.getByRole("button", { name: i18n.t("voice.repair") }) as HTMLButtonElement).disabled,
+      (view.getByRole("button", { name: i18n.t("voice.uninstall") }) as HTMLButtonElement).disabled,
     ).toBe(false);
   } finally {
     cleanup();
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }
+});
+
+test("paused installation does not display a cancellation failure", () => {
+  const settings = {
+    ...settingsFor({
+      supported: true,
+      installed: false,
+      localManagement: true,
+      engineAvailable: true,
+      phase: "paused",
+    }),
+    error: new Error("voice_install_paused"),
+  };
+  const html = renderToStaticMarkup(
+    <ol>
+      <VoiceResourceStep settings={settings} profile="conversation" />
+    </ol>,
+  );
+  expect(html).not.toContain('role="alert"');
+  expect(html).toContain('aria-label="Resume installation"');
 });

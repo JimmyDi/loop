@@ -6,9 +6,22 @@ import { i18n } from "../../i18n/setup";
 import type { VoiceResourceActionsProps } from "./voice-resource-actions-types";
 import { VoiceResourceActions } from "./VoiceResourceActions";
 
-test("partial installations can be cleared while active mutations disable conflicting controls", () => {
+test.each([
+  [false, false, "Download"],
+  [true, false, "Download"],
+  [false, true, "Download"],
+  [true, true, "Uninstall"],
+] as const)("installation %s and synthesis %s show only %s", (installed, ttsInstalled, label) => {
   const props = {
-    profile: "conversation" as const,
+    status: {
+      supported: true,
+      installed,
+      ttsInstalled,
+      localManagement: true,
+      engineAvailable: true,
+      phase: "idle" as const,
+    },
+    profile: "input" as const,
     disabled: false,
     pending: false,
     active: false,
@@ -16,10 +29,10 @@ test("partial installations can be cleared while active mutations disable confli
     execute: vi.fn(async () => {}),
   };
   const html = renderToStaticMarkup(<VoiceResourceActions {...props} />);
-  expect(html.match(/<button[^>]*aria-label="Uninstall"[^>]*>/)?.[0]).not.toContain("disabled");
-  const busy = renderToStaticMarkup(<VoiceResourceActions {...props} active />);
-  expect(busy.match(/<button[^>]*aria-label="Uninstall"[^>]*>/)?.[0]).toContain("disabled");
-  expect(busy).toContain("Cancel download");
+  expect(html.match(/<button/g)).toHaveLength(1);
+  expect(html).toContain('aria-label="' + label + '"');
+  expect(html).not.toContain("disabled");
+  expect(renderToStaticMarkup(<VoiceResourceActions {...props} active />)).toContain("disabled");
 });
 
 test("icon actions retain accessible names and titles and dispatch the selected profile", async () => {
@@ -47,16 +60,13 @@ test("icon actions retain accessible names and titles and dispatch the selected 
   const { render, cleanup, fireEvent } = await import("@testing-library/react/pure");
   try {
     const view = render(<VoiceResourceActions {...props} />);
-    for (const [action, label] of [
-      ["install", "repair"],
-      ["update", "update"],
-      ["uninstall", "uninstall"],
-    ] as const) {
+    for (const [action, label] of [["uninstall", "uninstall"]] as const) {
       const name = i18n.t("voice." + label);
       const button = view.getByRole("button", { name });
       expect(button.title).toBe(name);
       expect(button.parentElement?.title).toBe(name);
       expect(button.textContent).toBe("");
+      expect(button.classList.contains("icon")).toBe(true);
       expect(button.querySelector('svg[aria-hidden="true"]')).toBeTruthy();
       fireEvent.click(button);
       expect(execute).toHaveBeenLastCalledWith({ action, profile: "input" });
@@ -75,4 +85,28 @@ test("icon actions retain accessible names and titles and dispatch the selected 
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }
+});
+
+test("paused installation disables Download and exposes a separate Resume icon", () => {
+  const html = renderToStaticMarkup(
+    <VoiceResourceActions
+      status={{
+        supported: true,
+        installed: false,
+        localManagement: true,
+        engineAvailable: true,
+        phase: "paused",
+      }}
+      profile="conversation"
+      disabled={false}
+      pending={false}
+      active={false}
+      loaded
+      execute={vi.fn(async () => {})}
+    />,
+  );
+  expect(html.match(/<button[^>]*aria-label="Download"[^>]*>/)?.[0]).toContain("disabled");
+  const resume = html.match(/<button[^>]*aria-label="Resume installation"[^>]*>/)?.[0];
+  expect(resume).toBeDefined();
+  expect(resume).not.toContain("disabled");
 });

@@ -15,13 +15,9 @@ export class VoiceNarrationTracker {
   }
 
   next(snapshot: SessionSnapshot): VoiceNarrationRow[] {
-    this.minimum = Math.max(
-      this.minimum,
-      (snapshot.history?.total ?? snapshot.state.messages.length) - 8,
-    );
     const rows = voiceNarration(snapshot, this.minimum);
     const next = rows.filter((row) => !this.seen.has(row.id));
-    this.seen = new Set(rows.map((row) => row.id));
+    for (const row of rows) this.seen.add(row.id);
     return next.filter(
       (row) =>
         row.kind !== "toolStart" ||

@@ -4,7 +4,7 @@ import type { VoiceResourceListProps } from "./voice-resource-list-types";
 import { voiceResourceBytes } from "./voice-resource-format";
 import "./VoiceResourceList.css";
 
-export const VoiceResourceList = ({ components }: VoiceResourceListProps) => {
+export const VoiceResourceList = ({ components, statusText }: VoiceResourceListProps) => {
   const { t } = useTranslation();
   return (
     <>
@@ -13,7 +13,7 @@ export const VoiceResourceList = ({ components }: VoiceResourceListProps) => {
           <strong>
             {component.name} · {component.version}
           </strong>
-          <span>{t("voice." + (component.installed ? "installed" : "missing"))}</span>
+          <span>{statusText ?? t("voice." + (component.installed ? "installed" : "missing"))}</span>
           <small>
             {t("voice.downloadSize")}:{" "}
             {component.downloadBytes

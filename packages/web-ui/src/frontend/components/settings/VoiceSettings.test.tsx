@@ -22,7 +22,7 @@ vi.mock("../../hooks/useVoice", () => ({
   useVoice: (options: VoiceOptions): VoiceControl => {
     if (!options.sessionId) microphone.options = options;
     return {
-      status: "idle",
+      status: "listening",
       text: "",
       muted: false,
       readingPaused: false,
@@ -68,7 +68,7 @@ test("remote settings describe local management and disable installation", () =>
   expect(html).toContain("computer running Loop");
   expect(html).toContain("Recordings are not saved");
   expect(html).toContain("Phone audio travels through");
-  for (const name of ["Download", "Update", "Uninstall"])
+  for (const name of ["Download"])
     expect(html).toMatch(new RegExp('<button[^>]*aria-label="' + name + '"[^>]*disabled=""'));
   client.clear();
 });
@@ -93,16 +93,17 @@ test("remote input-only installation can choose voice input and test the microph
         <VoiceSettings />
       </QueryClientProvider>,
     );
-    const profile = view.getByRole("combobox", {
+    const profile = view.getByRole("button", {
       name: i18n.t("voice.chooseProfile"),
-    }) as HTMLSelectElement;
+    }) as HTMLButtonElement;
     expect(profile.disabled).toBe(false);
     expect(
       (view.getByRole("button", { name: i18n.t("voice.microphone") }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
-    fireEvent.change(profile, { target: { value: "input" } });
-    expect(profile.value).toBe("input");
+    fireEvent.click(profile);
+    fireEvent.click(view.getByRole("menuitemradio", { name: i18n.t("voice.inputProfile") }));
+    expect(profile.textContent).toContain(i18n.t("voice.inputProfile"));
     expect(
       (view.getByRole("button", { name: i18n.t("voice.microphone") }) as HTMLButtonElement)
         .disabled,
@@ -110,7 +111,7 @@ test("remote input-only installation can choose voice input and test the microph
     expect(
       (view.getByRole("button", { name: i18n.t("voice.preview") }) as HTMLButtonElement).disabled,
     ).toBe(true);
-    for (const name of ["repair", "update", "uninstall"])
+    for (const name of ["install"])
       expect(
         (view.getByRole("button", { name: i18n.t("voice." + name) }) as HTMLButtonElement).disabled,
       ).toBe(true);
@@ -124,7 +125,7 @@ test("remote input-only installation can choose voice input and test the microph
   }
 });
 
-test("a final microphone test unlocks the real composer controls until setup changes", async () => {
+test("installed resources unlock composer controls independently of optional microphone tests", async () => {
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, { window, document: window.document });
@@ -174,10 +175,6 @@ test("a final microphone test unlocks the real composer controls until setup cha
   const { render, cleanup, fireEvent, act, waitFor } = await import("@testing-library/react/pure");
   try {
     const view = render(content(true));
-    const input = view.getByRole("button", {
-      name: i18n.t("voice.dictation"),
-    }) as HTMLButtonElement;
-    const call = view.getByRole("button", { name: "Call" }) as HTMLButtonElement;
     const expectBlocked = (disabled: boolean) => {
       const currentInput = view.getByRole("button", {
         name: i18n.t("voice.dictation"),
@@ -196,19 +193,23 @@ test("a final microphone test unlocks the real composer controls until setup cha
     const finishTest = async () => {
       fireEvent.click(view.getByRole("button", { name: i18n.t("voice.microphone") }));
       await transcript("Microphone works", true);
+      await act(async () =>
+        fireEvent.click(view.getByRole("button", { name: i18n.t("voice.stopTest") })),
+      );
       expectBlocked(false);
     };
-    expectBlocked(true);
-    fireEvent.click(input);
-    fireEvent.click(call);
-    expect(microphone.start).not.toHaveBeenCalled();
+    expectBlocked(false);
     fireEvent.click(view.getByRole("button", { name: i18n.t("voice.microphone") }));
     expect(microphone.start).toHaveBeenCalledExactlyOnceWith("test");
     await transcript("Partial phrase", false);
-    expectBlocked(true);
+    expectBlocked(false);
     await transcript("  ", true);
-    expectBlocked(true);
+    expectBlocked(false);
     await transcript("Microphone works", true);
+    expectBlocked(false);
+    await act(async () =>
+      fireEvent.click(view.getByRole("button", { name: i18n.t("voice.stopTest") })),
+    );
     expectBlocked(false);
     expect(view.getAllByRole("listitem")[2]?.getAttribute("data-complete")).toBe("true");
 
@@ -216,13 +217,12 @@ test("a final microphone test unlocks the real composer controls until setup cha
     view.rerender(content(true));
     expectBlocked(false);
     expect(view.getAllByRole("listitem")[2]?.getAttribute("data-complete")).toBe("true");
-    fireEvent.change(view.getByRole("combobox", { name: i18n.t("voice.chooseProfile") }), {
-      target: { value: "input" },
-    });
-    expectBlocked(true);
+    fireEvent.click(view.getByRole("button", { name: i18n.t("voice.chooseProfile") }));
+    fireEvent.click(view.getByRole("menuitemradio", { name: i18n.t("voice.inputProfile") }));
+    expectBlocked(false);
     await finishTest();
     act(() => useVoiceSetupState.getState().setDevice("other-microphone"));
-    expectBlocked(true);
+    expectBlocked(false);
     await finishTest();
     act(() => client.setQueryData(["voice-status"], { ...status, phase: "updating" }));
     await waitFor(() => expectBlocked(true));
@@ -233,7 +233,7 @@ test("a final microphone test unlocks the real composer controls until setup cha
           .disabled,
       ).toBe(false);
     });
-    expectBlocked(true);
+    expectBlocked(false);
     await finishTest();
   } finally {
     cleanup();
@@ -243,7 +243,7 @@ test("a final microphone test unlocks the real composer controls until setup cha
   }
 });
 
-test("installed components retain a repair action when no update is available", () => {
+test("installed components show uninstall instead of download", () => {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
   client.setQueryData(["voice-status"], {
     supported: true,
@@ -259,11 +259,10 @@ test("installed components retain a repair action when no update is available", 
       <VoiceSettings />
     </QueryClientProvider>,
   );
-  const repair = html.match(/<button[^>]*aria-label="Verify and repair"[^>]*>/)?.[0];
+  const repair = html.match(/<button[^>]*aria-label="Uninstall"[^>]*>/)?.[0];
   expect(repair).toBeDefined();
   expect(repair).not.toContain("disabled");
-  expect(html).toMatch(/<button[^>]*aria-label="Update"[^>]*disabled=""/);
-  expect(html).toContain("locally imported engine");
+  expect(html).not.toContain('aria-label="Download"');
   client.clear();
 });
 
@@ -296,16 +295,13 @@ test("unpublished engines show a specific reason and disable download without mi
     </QueryClientProvider>,
   );
   expect(html).toContain("has not been published");
-  expect(html).toContain("Not published");
   expect(html).not.toContain("Check microphone permission");
-  expect(html).toContain("Currently on disk");
-  expect(html).toContain("Installed size");
-  expect(html.match(/Not published/g)).toHaveLength(2);
-  expect(html.match(/disabled=""/g)?.length).toBeGreaterThanOrEqual(4);
+  expect(html).toContain("Component sizes, licenses and storage");
+  expect(html.match(/disabled=""/g)?.length).toBeGreaterThanOrEqual(3);
   client.clear();
 });
 
-test("uninstalled models show download and installed size before occupying disk space", () => {
+test("uninstalled models expose package details through their own info icon", () => {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
   client.setQueryData(["voice-status"], {
     supported: true,
@@ -331,13 +327,12 @@ test("uninstalled models show download and installed size before occupying disk 
       <VoiceSettings />
     </QueryClientProvider>,
   );
-  expect(html).toContain("Download: 1 MiB");
-  expect(html).toContain("Installed size: 3 MiB");
-  expect(html).toContain("Currently on disk: 0 MiB");
+  expect(html).toContain('aria-label="Recognition model: Component sizes, licenses and storage"');
+  expect(html).not.toContain('role="tooltip"');
   client.clear();
 });
 
-test("damaged activation and partial caches remain uninstallable without relaxing local or activity gates", () => {
+test("partial installation downloads respect engine availability and management gates", () => {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
   const status = {
     supported: true,
@@ -366,10 +361,10 @@ test("damaged activation and partial caches remain uninstallable without relaxin
         <VoiceSettings />
       </QueryClientProvider>,
     );
-    return html.match(/<button[^>]*aria-label="Uninstall"[^>]*>/)?.[0];
+    return html.match(/<button[^>]*aria-label="Download"[^>]*>/)?.[0];
   };
   expect(uninstall(status)).toBeDefined();
-  expect(uninstall(status)).not.toContain("disabled");
+  expect(uninstall(status)).toContain("disabled");
   expect(uninstall({ ...status, localManagement: false })).toContain("disabled");
   expect(uninstall({ ...status, supported: false })).toContain("disabled");
   expect(uninstall({ ...status, phase: "installing" })).toContain("disabled");

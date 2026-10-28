@@ -2,5 +2,26 @@
   display: flex;
   align-items: center;
   flex: 0 0 auto;
-  gap: 6px;
+  gap: 8px;
+}
+.composer-voice-actions-slot { display: flex; align-items: center; justify-content: flex-start; gap: 4px; flex: 0 0 auto; }
+.composer-send-slot { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 34px; padding: 0; box-sizing: border-box; flex: 0 0 auto; }
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .composer-send-slot { min-width: 44px; }
+}
+.composer-submit-actions[data-voice-active="true"] { flex: 1 1 0; min-width: 0; }
+.composer-submit-actions[data-voice-active="true"] .composer-voice-actions-slot { flex: 1 1 0; min-width: 0; }
+.composer-submit-actions .composer-voice-call, .composer-submit-actions .composer-voice-input { flex: 1 1 0; min-width: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .composer-submit-actions[data-voice-active="true"] .composer-voice-actions-slot > :first-child { animation: voice-controls-enter 220ms ease-out both; }
+}
+@keyframes voice-controls-enter { from { opacity: 0; } to { opacity: 1; } }
+
+.composer-voice-actions-slot > .voice-input-button.action-button.icon,
+.composer-voice-actions-slot > .voice-call-button.action-button.icon,
+.composer-voice-actions-slot > .voice-setup-hint > .action-button.icon { width: 34px; height: 34px; min-height: 34px; }
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .composer-voice-actions-slot > .voice-input-button.action-button.icon,
+  .composer-voice-actions-slot > .voice-call-button.action-button.icon,
+  .composer-voice-actions-slot > .voice-setup-hint > .action-button.icon { width: 44px; height: 44px; min-height: 44px; }
 }

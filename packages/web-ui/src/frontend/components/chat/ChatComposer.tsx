@@ -11,6 +11,7 @@ import { ComposerDeliveryNotice } from "./ComposerDeliveryNotice";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { MessageQueue } from "./MessageQueue";
 import { ComposerInput } from "./ComposerInput";
+import { ComposerToolbar } from "./ComposerToolbar";
 import { ComposerSkills } from "./ComposerSkills";
 import { ComposerModelSettings } from "./ComposerModelSettings";
 import { SessionPermissions } from "./SessionPermissions";
@@ -70,7 +71,7 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
   const control = (action: "abort" | "resume") =>
     void stopping.run(() => command("/sessions/" + snapshot.sessionId + "/" + action));
   const submit = () => {
-    if (blocked || unsupportedImages || !project.hasProject) return;
+    if (blocked || voice.dictation?.active || unsupportedImages || !project.hasProject) return;
     if (queue.editing) {
       void queue.save();
       return;
@@ -156,7 +157,7 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
           commandDisabled={compact.disabled}
           onCompact={() => void compact.start()}
         />
-        <div className="composer-toolbar">
+        <ComposerToolbar control={voice}>
           <ComposerAddMenu
             disabled={blocked}
             imageCount={prompt.images.length}
@@ -178,7 +179,7 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
             error={model.error}
             select={model.change}
           />
-          <ComposerSubmitActions control={voice} showVoiceInput={!inputValue.trim()}>
+          <ComposerSubmitActions control={voice}>
             <ComposerSendButton
               running={running && !queue.editing && !queueing}
               stopping={stopping.pending}
@@ -190,8 +191,8 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
               onStop={() => control("abort")}
             />
           </ComposerSubmitActions>
-        </div>
-        <VoiceControls control={voice} running={snapshot.state.isRunning} />
+        </ComposerToolbar>
+        <VoiceControls control={voice} />
       </form>
     </div>
   );

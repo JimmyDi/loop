@@ -4,9 +4,8 @@ import { voiceErrorKey } from "../../voice/errors";
 import { ActionButton } from "../ui/ActionButton";
 import type { VoiceResourceStepProps } from "./voice-resource-step-types";
 import { voiceProfileInstalled, voiceSetupActivity } from "./voice-setup-progress";
-import { VoiceDownloadProgress } from "./VoiceDownloadProgress";
 import { VoiceResourceActions } from "./VoiceResourceActions";
-import { VoiceResourceList } from "./VoiceResourceList";
+import { VoiceResourcePackages } from "./VoiceResourcePackages";
 import { VoiceSetupStep } from "./VoiceSetupStep";
 import "./VoiceResourceStep.css";
 
@@ -18,7 +17,7 @@ export const VoiceResourceStep = ({ settings, profile }: VoiceResourceStepProps)
   const active = !!activity;
   const disabled =
     pending || query.isPending || query.isError || !status?.supported || !status.localManagement;
-  const failure = error || status?.error;
+  const failure = status?.phase === "paused" ? undefined : error || status?.error;
   const errorKey = voiceErrorKey(failure);
   const issue = query.isError
     ? t("voice.settingsFailed")
@@ -34,12 +33,12 @@ export const VoiceResourceStep = ({ settings, profile }: VoiceResourceStepProps)
   const installed = voiceProfileInstalled(status, profile);
   return (
     <VoiceSetupStep
+      className="voice-resource-step"
       number={2}
       title={t("voice.installResources")}
       complete={installed && !query.isError}
       loading={query.isPending || (query.isError && query.isFetching) || active}
       failed={!!issue && status?.localManagement !== false}
-      issue={issue}
       actions={
         <VoiceResourceActions
           status={status}
@@ -52,19 +51,15 @@ export const VoiceResourceStep = ({ settings, profile }: VoiceResourceStepProps)
           execute={execute}
         />
       }
-      progress={active && <VoiceDownloadProgress download={status?.download} activity={activity} />}
     >
-      {installed && <small className="voice-resource-hint">{t("voice.repairHint")}</small>}
-      <details className="voice-resource-details">
-        <summary>{t("voice.resourceDetails")}</summary>
-        <div className="voice-resource-details-content">
-          {status?.version && <small>{status.version}</small>}
-          {status?.directory && status.localManagement && (
-            <code className="voice-directory">{status.directory}</code>
-          )}
-          <VoiceResourceList components={status?.components} />
-        </div>
-      </details>
+      <div className="voice-resource-summary">
+        <VoiceResourcePackages status={status} />
+      </div>
+      {issue && (
+        <p className="voice-resource-issue" role="alert">
+          {issue}
+        </p>
+      )}
       {query.isError && (
         <ActionButton disabled={query.isFetching} onClick={() => void query.refetch()}>
           {t("voice.retry")}

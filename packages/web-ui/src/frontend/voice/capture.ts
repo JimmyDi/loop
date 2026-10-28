@@ -1,5 +1,6 @@
 import type { VoiceCapture, VoiceCaptureOptions } from "./capture-types";
 import captureWorkletUrl from "./capture-worklet.ts?worker&url";
+import { VoiceAudioOutput } from "./voice-audio-output";
 import { voiceDevice } from "./device";
 import { PcmResampler } from "./pcm-resampler";
 import { pcmBytes, pcmEnergy } from "./pcm-utils";
@@ -8,6 +9,7 @@ export const startCapture = async (options: VoiceCaptureOptions): Promise<VoiceC
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia || !window.AudioContext)
     throw new Error("microphone_unavailable");
   const context = new AudioContext({ latencyHint: "interactive" });
+  let output: VoiceAudioOutput | undefined;
   let stream: MediaStream | undefined;
   let node: AudioWorkletNode | undefined;
   let source: MediaStreamAudioSourceNode | undefined;
@@ -22,12 +24,15 @@ export const startCapture = async (options: VoiceCaptureOptions): Promise<VoiceC
     source?.disconnect();
     node?.disconnect();
     sink?.disconnect();
+    output?.close();
     if (context.state !== "closed") await context.close();
   };
   const abort = () => void close();
   options.signal.addEventListener("abort", abort, { once: true });
   try {
-    await context.resume();
+    // Start the media element in the initiating user gesture, before microphone permission.
+    output = new VoiceAudioOutput(context);
+    await Promise.all([context.resume(), output.start()]);
     const microphone = navigator.mediaDevices.getUserMedia({
       audio: {
         ...(voiceDevice() ? { deviceId: { ideal: voiceDevice() } } : {}),
@@ -58,8 +63,14 @@ export const startCapture = async (options: VoiceCaptureOptions): Promise<VoiceC
     options.signal.throwIfAborted();
     let resampler = new PcmResampler(context.sampleRate);
     let pending: number[] = [];
+    let finishing: Promise<void> | undefined;
+    let finished: (() => void) | undefined;
     node = new AudioWorkletNode(context, "loop-capture");
-    node.port.onmessage = (event: MessageEvent<Float32Array>) => {
+    node.port.onmessage = (event: MessageEvent<Float32Array | "finished">) => {
+      if (event.data === "finished") {
+        finished?.();
+        return;
+      }
       if (closed || muted || options.signal.aborted) return;
       const samples = resampler.push(event.data);
       pending.push(...samples);
@@ -80,14 +91,43 @@ export const startCapture = async (options: VoiceCaptureOptions): Promise<VoiceC
     };
     return {
       context,
+      playbackDestination: output.destination,
       mute: (value) => {
         muted = value;
         pending = [];
         resampler = new PcmResampler(context.sampleRate);
+        if (!value && finishing) {
+          finishing = undefined;
+          finished = undefined;
+          node!.port.postMessage("resume");
+        }
       },
       discard: () => {
         pending = [];
         resampler = new PcmResampler(context.sampleRate);
+      },
+      finish: () => {
+        if (finishing) return finishing;
+        finishing = (async () => {
+          options.signal.throwIfAborted();
+          await new Promise<void>((resolve, reject) => {
+            const abort = () => reject(options.signal.reason);
+            options.signal.addEventListener("abort", abort, { once: true });
+            finished = () => {
+              options.signal.removeEventListener("abort", abort);
+              resolve();
+            };
+            node!.port.postMessage("finish");
+          });
+          options.signal.throwIfAborted();
+          if (pending.length) {
+            const frame = Int16Array.from(pending);
+            pending = [];
+            options.frame(pcmBytes(frame), pcmEnergy(frame));
+          }
+          muted = true;
+        })();
+        return finishing;
       },
       close,
     };

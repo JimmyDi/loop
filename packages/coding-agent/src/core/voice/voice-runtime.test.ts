@@ -50,6 +50,25 @@ test("runtime validates configured operation and startup timeouts", () => {
   ).toThrow("voice_invalid_timeout");
 });
 
+test("input-only calls omit TTS configuration without mutating shared resources", async () => {
+  const value = resources(String.raw`
+const readline = require("node:readline");
+readline.createInterface({input: process.stdin}).on("line", (line) => {
+  const {id,type,config} = JSON.parse(line);
+  if (type === "configure") process.stdout.write(JSON.stringify({v:1,id,type:config.tts ? "error" : "ready",code:"unexpected_tts"}) + "\n");
+  if (type === "close") {process.stdout.write(JSON.stringify({v:1,id,type:"completed"}) + "\n");process.exit(0);}
+});`);
+  const acquire = vi.fn(() => value);
+  const runtime = new VoiceRuntime({ resources: acquire });
+  try {
+    await runtime.startCall({ mode: "dictation", synthesis: false });
+    expect(acquire).toHaveBeenCalledWith({ mode: "dictation", synthesis: false });
+    expect(value.configuration.tts).toBeDefined();
+  } finally {
+    await runtime.close();
+  }
+});
+
 test("dictation needs no TTS and close during resource acquisition releases once", async () => {
   const value = resources();
   delete value.configuration.tts;

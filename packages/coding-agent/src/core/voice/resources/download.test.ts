@@ -27,6 +27,15 @@ const fixture = async () => {
   return { root, bytes, file, destination: join(root, "model.onnx") };
 };
 
+test("connection failures report a download error and retain the resumable partial file", async () => {
+  const { destination, file } = await fixture();
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")));
+  await expect(
+    downloadResource(file, destination, new AbortController().signal, () => {}),
+  ).rejects.toThrow("voice_download_failed");
+  expect((await readFile(destination + ".partial")).length).toBe(0);
+});
+
 test("resumes partial resources only with exact range, then verifies the complete digest", async () => {
   const { bytes, file, destination } = await fixture();
   await writeFile(destination + ".partial", bytes.subarray(0, 5));

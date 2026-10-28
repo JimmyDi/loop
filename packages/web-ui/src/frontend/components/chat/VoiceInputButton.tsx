@@ -10,6 +10,7 @@ export const VoiceInputButton = ({ control }: VoiceInputButtonProps) => {
   const { voice } = control;
   const active = voice.mode === "dictation";
   const paused = active && voice.status === "paused";
+  const sampling = !!control.dictation?.active;
   const label = t(paused ? "voice.resume" : active ? "voice.stopInput" : "voice.dictation");
   const setupRequired = !control.setupComplete && (!active || paused);
   return (
@@ -19,8 +20,17 @@ export const VoiceInputButton = ({ control }: VoiceInputButtonProps) => {
         title={setupRequired ? t("voice.setupRequired") : label}
         aria-label={label}
         aria-pressed={active}
+        data-busy={
+          sampling &&
+          (["idle", "connecting", "reconnecting"].includes(voice.status) ||
+            control.dictation?.finishing ||
+            control.dictation?.speaking)
+        }
         disabled={
-          setupRequired || voice.mode === "conversation" || ((!active || paused) && control.blocked)
+          sampling ||
+          setupRequired ||
+          voice.mode === "conversation" ||
+          ((!active || paused) && control.blocked)
         }
         onClick={() => {
           if (active && !paused) void voice.endInput();

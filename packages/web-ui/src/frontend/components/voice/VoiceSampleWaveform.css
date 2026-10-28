@@ -1,0 +1,8 @@
+.voice-sample-waveform { width: 100%; height: 32px; min-width: 0; color: var(--ink-muted); }
+.voice-sample-waveform line { stroke: currentColor; stroke-width: 1; stroke-linecap: round; }
+.voice-sample-waveform[data-active="true"] { color: var(--ink); }
+@media (prefers-reduced-motion: no-preference) {
+  .voice-sample-waveform line { transition: y1 70ms linear, y2 70ms linear; }
+}
+
+.voice-sample-waveform[data-dense="true"] line { stroke-width: 0.8; }

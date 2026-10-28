@@ -123,6 +123,10 @@ test("imports verified local binaries and does not allow concurrent resource mut
   await importing;
   expect((await manager.status()).components[0]).toMatchObject({ installed: true });
   await expect(manager.install()).rejects.toThrow("voice_resource_asset_unavailable");
+  expect(await manager.status()).toMatchObject({
+    phase: "error",
+    packages: { "zipformer-zh-en-int8": { phase: "error" } },
+  });
   await manager.uninstall();
   expect(await manager.status()).toMatchObject({ installed: false, engineAvailable: false });
 });
@@ -192,6 +196,41 @@ test("holds an exclusive resource lease with idempotent release and verifies ful
   await manager.uninstall();
 });
 
+test("installed activation remains available when release discovery fails after restart", async () => {
+  const { source, manifest, manager } = await fixture();
+  await manager.importLocalEngine(source, manifest);
+  await activate(manager, manifest);
+  await rm(join(manager.directory, "local-engine.json"));
+  const restarted = new VoiceResourceManager(join(manager.directory, ".."));
+  const status = await restarted.status();
+  expect(status).toMatchObject({ installed: true, engineAvailable: true, phase: "idle" });
+  expect(status.components.find((component) => component.kind === "engine")).toMatchObject({
+    installed: true,
+  });
+});
+
+test("recognition-only leases skip unused TTS files but still verify ASR integrity", async () => {
+  const { source, manifest, manager } = await fixture();
+  await manager.importLocalEngine(source, manifest);
+  const active = await activate(manager, manifest);
+  active.tts = true;
+  active.models.push(sourceVoiceModels.find((model) => model.kind === "tts")!);
+  await atomicJson(join(manager.directory, "active.json"), active);
+  const lease = await manager.acquireRuntime({ synthesis: false });
+  expect(lease.resources.configuration.tts).toBeUndefined();
+  lease.release();
+  await expect(manager.acquireRuntime()).rejects.toThrow("voice_resource_integrity_failed");
+  const model = active.models.find((model) => model.kind === "asr")!;
+  const file = model.files[0]!;
+  await writeFile(
+    join(componentDirectory(manager.directory, model), file.path),
+    Buffer.alloc(file.bytes),
+  );
+  await expect(manager.acquireRuntime({ synthesis: false })).rejects.toThrow(
+    "voice_resource_integrity_failed",
+  );
+});
+
 test("recovers malformed activation metadata and allows uninstall", async () => {
   const { manager, source, manifest } = await fixture();
   await manager.importLocalEngine(source, manifest);
@@ -211,9 +250,8 @@ test("cancelled installation keeps the previous activation available", async () 
   await activate(manager, manifest);
   const controller = new AbortController();
   controller.abort();
-  await expect(manager.install({}, controller.signal)).rejects.toThrow(
-    "voice_resource_operation_failed",
-  );
+  await expect(manager.install({}, controller.signal)).rejects.toThrow("voice_install_paused");
+  expect(await manager.status()).toMatchObject({ phase: "paused", error: undefined });
   const lease = await manager.acquireRuntime();
   lease.release();
 });

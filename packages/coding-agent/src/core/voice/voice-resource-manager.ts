@@ -34,8 +34,10 @@ export class VoiceResourceManager {
     options: VoiceResourceInstallOptions = {},
     signal?: AbortSignal,
   ): Promise<VoiceResourceStatus> {
-    return this.run("installing", () =>
-      installVoiceResources(this.directory, this.state, options, signal),
+    return this.run(
+      "installing",
+      () => installVoiceResources(this.directory, this.state, options, signal),
+      signal,
     ).then(() => this.status());
   }
 
@@ -75,7 +77,7 @@ export class VoiceResourceManager {
     });
   }
 
-  async acquireRuntime(): Promise<VoiceResourceLease> {
+  async acquireRuntime(options: { synthesis?: boolean } = {}): Promise<VoiceResourceLease> {
     if (this.busy || this.leases) throw new Error("voice_resources_busy");
     this.leases++;
     let unlock: (() => void) | undefined;
@@ -83,11 +85,15 @@ export class VoiceResourceManager {
       unlock = acquireResourceLock(this.directory);
       const active = await readJson(join(this.directory, "active.json"));
       if (!validActivation(active)) throw new Error("voice_resources_not_installed");
-      if (!(await activationPresent(this.directory, active, true)))
+      const selected =
+        options.synthesis === false
+          ? { ...active, tts: false, models: active.models.filter((model) => model.kind !== "tts") }
+          : active;
+      if (!(await activationPresent(this.directory, selected, true)))
         throw new Error("voice_resource_integrity_failed");
       let released = false;
       return {
-        resources: activationResources(this.directory, active),
+        resources: activationResources(this.directory, selected),
         release: () => {
           if (!released) {
             released = true;
@@ -103,7 +109,11 @@ export class VoiceResourceManager {
     }
   }
 
-  private run(phase: VoiceResourceStatus["phase"], action: () => Promise<void>): Promise<void> {
+  private run(
+    phase: VoiceResourceStatus["phase"],
+    action: () => Promise<void>,
+    signal?: AbortSignal,
+  ): Promise<void> {
     if (this.busy || this.leases) return Promise.reject(new Error("voice_resources_busy"));
     let unlock: () => void;
     try {
@@ -114,12 +124,19 @@ export class VoiceResourceManager {
     this.busy = true;
     this.state.phase = phase;
     this.state.error = undefined;
+    if (phase !== "installing" && phase !== "updating") this.state.packages = undefined;
     return action()
       .then(
         () => {
           this.state.phase = "idle";
+          this.state.packages = undefined;
         },
         (error) => {
+          if (signal?.aborted) {
+            this.state.phase = "paused";
+            this.state.error = undefined;
+            throw new Error("voice_install_paused");
+          }
           this.state.phase = "error";
           this.state.error =
             error instanceof Error && /^voice_[a-z_]+$/.test(error.message)

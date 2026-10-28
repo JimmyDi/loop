@@ -13,6 +13,7 @@ const voice = vi.hoisted(() => ({
   mode: undefined as string | undefined,
   status: "listening",
   start: vi.fn(),
+  endInput: vi.fn(async () => {}),
   stop: vi.fn(),
   mute: vi.fn(),
   interrupt: vi.fn(),
@@ -20,7 +21,7 @@ const voice = vi.hoisted(() => ({
   setupComplete: true,
 }));
 vi.mock("./useVoiceSetup", () => ({
-  useVoiceSetup: () => ({ complete: voice.setupComplete }),
+  useVoiceSetup: () => ({ complete: false, ready: voice.setupComplete }),
 }));
 vi.mock("./useVoice", () => ({
   useVoice: (options: unknown) => {
@@ -62,10 +63,11 @@ test("conversation dispatch preserves the typed draft, attachments and steering 
     useRequests.setState({ pending: {}, delivery: {} });
     useQueueEdits.setState({ edits: {} });
     const { result } = renderHook(() => useVoiceComposer(snapshot, true, true));
-    act(() => result.current.setSteering(true));
+    expect(result.current.steering).toBe(true);
     await act(async () => {
       voice.options.transcript("Check the current direction", true, "utterance", "conversation");
     });
+    expect(result.current.steering).toBe(false);
     expect(bodies).toHaveLength(1);
     expect(bodies[0]).toMatchObject({
       text: "Check the current direction",
@@ -104,7 +106,7 @@ test("conversation dispatch preserves the typed draft, attachments and steering 
   }
 });
 
-test("dictation replaces only its partial phrase and pauses before manual edits", async () => {
+test("dictation buffers speech until finish and discards cancelled samples", async () => {
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, { window, document: window.document });
@@ -124,13 +126,18 @@ test("dictation replaces only its partial phrase and pauses before manual edits"
     const { result } = renderHook(() => useVoiceComposer(snapshot, true, true));
     act(() => result.current.start("dictation"));
     act(() => voice.options.transcript("hel", false, "one", "dictation"));
-    expect(useWorkspace.getState().drafts.voice).toBe("Existing hel");
+    expect(useWorkspace.getState().drafts.voice).toBe("Existing");
     act(() => voice.options.transcript("hello", true, "one", "dictation"));
     act(() => voice.options.transcript("world", false, "two", "dictation"));
+    expect(useWorkspace.getState().drafts.voice).toBe("Existing");
+    await act(async () => result.current.dictation?.finish(result.current.voice));
     expect(useWorkspace.getState().drafts.voice).toBe("Existing hello world");
+    act(() => result.current.start("dictation"));
+    act(() => voice.options.transcript("Discard me", true, "discard", "dictation"));
     act(() => window.dispatchEvent(new window.Event("loop-voice-edit")));
     expect(voice.stop).toHaveBeenCalledOnce();
     expect(result.current.notice).toContain("paused for editing");
+    expect(useWorkspace.getState().drafts.voice).toBe("Existing hello world");
   } finally {
     cleanup();
     voice.mode = undefined;
@@ -175,6 +182,10 @@ test("incomplete setup prevents starting or resuming either voice mode", async (
     expect(hook.result.current.setupComplete).toBe(true);
     act(() => hook.result.current.start("conversation"));
     expect(voice.start).toHaveBeenCalledExactlyOnceWith("conversation");
+    expect(hook.result.current.steering).toBe(true);
+    act(() => hook.result.current.setSteering(false));
+    act(() => hook.result.current.start("conversation"));
+    expect(hook.result.current.steering).toBe(true);
     expect(useWorkspace.getState().drafts.voice).toBe("Preserved draft");
   } finally {
     cleanup();

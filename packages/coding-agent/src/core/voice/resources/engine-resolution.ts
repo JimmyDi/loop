@@ -23,15 +23,22 @@ export const resolveVoiceEngine = async (
   if (
     platform &&
     !publishedVoiceEngines[platform] &&
+    !state.releaseLoading &&
     Date.now() - (state.releaseCheckedAt ?? 0) > 60_000
   ) {
     state.releaseCheckedAt = Date.now();
-    try {
-      state.release = await loadReleaseManifest();
-    } catch {
-      // Failed discovery must not prevent use of already installed resources.
-    }
+    state.releaseLoading = loadReleaseManifest()
+      .then((release) => {
+        state.release = release;
+      })
+      .catch(() => {
+        // Failed discovery must not prevent use of already installed resources.
+      })
+      .finally(() => {
+        state.releaseLoading = undefined;
+      });
   }
+  await state.releaseLoading;
   const component =
     platform && (state.release?.engines[platform] ?? publishedVoiceEngines[platform]);
   return component

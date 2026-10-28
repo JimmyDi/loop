@@ -5,9 +5,48 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { SessionSnapshot } from "../../../shared/protocol";
 import "../../i18n/setup";
 import { ChatComposer } from "./ChatComposer";
+import type { VoiceComposerControl } from "../../hooks/voice-composer-types";
+
+const recording = vi.hoisted(() => ({ control: undefined as VoiceComposerControl | undefined }));
+
+vi.mock("../../hooks/useVoiceComposer", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../../hooks/useVoiceComposer")>();
+  return {
+    useVoiceComposer: (...args: Parameters<typeof original.useVoiceComposer>) =>
+      recording.control ?? original.useVoiceComposer(...args),
+  };
+});
+
+test("dictation replaces toolbar controls and preserves the editable input", () => {
+  const client = new QueryClient();
+  recording.control = {
+    voice: { status: "listening", mode: "dictation" },
+    dictation: { active: true, finishing: false, samples: [] },
+  } as unknown as VoiceComposerControl;
+  try {
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={client}>
+        <ChatComposer snapshot={snapshot} connected />
+      </QueryClientProvider>,
+    );
+    expect(html).toContain('role="textbox"');
+    expect(html.indexOf('class="composer-toolbar"')).toBeLessThan(
+      html.indexOf('class="composer-voice-input"'),
+    );
+    expect(html).toContain('class="composer-submit-actions"');
+    expect(html).toContain("composer-voice-orb");
+    expect(html).not.toContain("permission-trigger");
+    expect(html).not.toContain("composer-model-trigger");
+    expect(html).not.toContain("composer-add-trigger");
+    expect(html).toContain("voice-input-sampler");
+  } finally {
+    recording.control = undefined;
+    client.clear();
+  }
+});
 
 vi.mock("../../hooks/useVoiceSetup", () => ({
-  useVoiceSetup: () => ({ complete: true }),
+  useVoiceSetup: () => ({ complete: true, ready: true }),
 }));
 
 const snapshot: SessionSnapshot = {
@@ -96,7 +135,7 @@ test.each([
       input.textContent = "Synthetic draft";
       fireEvent.input(input);
       expect(useWorkspace.getState().drafts.test).toBe("Synthetic draft");
-      expect(ui.queryByRole("button", { name: "Voice input" })).toBeNull();
+      expect(ui.getByRole("button", { name: "Voice input" })).toBeTruthy();
       expect(ui.container.querySelector(".composer-input-action")).toBeNull();
       expect(ui.getByRole("button", { name: "Call" })).toBeTruthy();
 
@@ -121,7 +160,7 @@ test.each([
       for (const placeholder of ["<br>", "<div><br></div>"]) {
         input.textContent = "Synthetic draft";
         fireEvent.input(input);
-        expect(ui.queryByRole("button", { name: "Voice input" })).toBeNull();
+        expect(ui.getByRole("button", { name: "Voice input" })).toBeTruthy();
         input.innerHTML = placeholder;
         fireEvent.input(input);
         expect(useWorkspace.getState().drafts.test!.trim()).toBe("");
@@ -152,12 +191,33 @@ test("composer keeps icon-only voice actions immediately before send through con
   const requests = useRequests.getState();
   const edits = useQueueEdits.getState();
   Object.assign(globalThis, { window, document: window.document });
-  const { render, fireEvent, within, cleanup } = await import("@testing-library/react/pure");
+  const { render, fireEvent, within, cleanup, waitFor } = await import(
+    "@testing-library/react/pure"
+  );
   const client = new QueryClient({
     defaultOptions: { queries: { staleTime: Infinity, retry: false } },
   });
   client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
   client.setQueryData(["models"], [snapshot.model]);
+  client.setQueryData(["voice-status"], {
+    supported: true,
+    installed: true,
+    ttsInstalled: true,
+    engineAvailable: true,
+    phase: "idle",
+    version: "test",
+    localManagement: true,
+    components: ["engine", "asr", "vad", "tts"].map((kind) => ({
+      id: kind,
+      kind,
+      installed: true,
+      version: "test",
+      name: kind,
+      license: "MIT",
+      downloadBytes: 1,
+      installedBytes: 1,
+    })),
+  });
   const current: SessionSnapshot = {
     ...snapshot,
     operation: "idle",
@@ -179,7 +239,7 @@ test("composer keeps icon-only voice actions immediately before send through con
     const ui = render(composer(true));
     const actions = ui.container.querySelector<HTMLElement>(".composer-submit-actions")!;
     const call = within(actions).getByRole("button", { name: "Call" }) as HTMLButtonElement;
-    expect(call.disabled).toBe(false);
+    await waitFor(() => expect(call.disabled).toBe(false));
     expect(
       within(actions)
         .getAllByRole("button")
@@ -194,19 +254,19 @@ test("composer keeps icon-only voice actions immediately before send through con
     input.textContent = "Synthetic draft";
     fireEvent.input(input);
     expect(useWorkspace.getState().drafts.test).toBe("Synthetic draft");
-    expect(within(ui.container).queryByRole("button", { name: "Voice input" })).toBeNull();
+    expect(within(ui.container).getByRole("button", { name: "Voice input" })).toBeTruthy();
     expect(within(actions).getByRole("button", { name: "Call" })).toBe(call);
     expect(
       within(actions)
         .getAllByRole("button")
         .map((button) => button.getAttribute("aria-label")),
-    ).toEqual(["Call", "Send message"]);
-    expect(call.disabled).toBe(false);
+    ).toEqual(["Voice input", "Call", "Send message"]);
+    await waitFor(() => expect(call.disabled).toBe(false));
 
     ui.rerender(composer(false));
     expect(call.disabled).toBe(true);
     ui.rerender(composer(true));
-    expect(call.disabled).toBe(false);
+    await waitFor(() => expect(call.disabled).toBe(false));
     ui.unmount();
     expect(call.isConnected).toBe(false);
   } finally {

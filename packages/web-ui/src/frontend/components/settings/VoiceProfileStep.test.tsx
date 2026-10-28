@@ -21,19 +21,12 @@ test.each(["input", "conversation"] as const)(
           />
         </ol>,
       );
-      const select = window.document.querySelector("select")!;
-      expect(select.value).toBe(profile);
-      expect(select.disabled).toBe(true);
-      expect(Array.from(select.options, (option) => option.value)).toEqual([
-        "input",
-        "conversation",
-      ]);
-      expect(window.document.querySelector(".voice-setup-step-number")?.textContent).toBe(
-        i18n.t("voice.step", { number: 1 }),
+      const button = window.document.querySelector("button")!;
+      expect(button.textContent).toContain(
+        i18n.t("voice." + (profile === "input" ? "inputProfile" : "conversationProfile")),
       );
-      expect(window.document.querySelector(".voice-profile-hint")?.textContent).toBe(
-        i18n.t("voice." + (profile === "input" ? "inputProfileHint" : "conversationProfileHint")),
-      );
+      expect(button.disabled).toBe(true);
+      expect(window.document.querySelector(".voice-profile-hint")).toBeNull();
       expect(window.document.querySelector("li")?.getAttribute("data-complete")).toBe("false");
     } finally {
       await window.happyDOM.close();
@@ -59,8 +52,9 @@ test("enabled profile choice reports the selected profile", async () => {
         />
       </ol>,
     );
-    const select = view.getByRole("combobox", { name: i18n.t("voice.chooseProfile") });
-    fireEvent.change(select, { target: { value: "input" } });
+    const select = view.getByRole("button", { name: i18n.t("voice.chooseProfile") });
+    fireEvent.click(select);
+    fireEvent.click(view.getByRole("menuitemradio", { name: i18n.t("voice.inputProfile") }));
     expect(onChange).toHaveBeenCalledWith("input");
     expect(view.getByRole("listitem").getAttribute("data-complete")).toBe("true");
   } finally {

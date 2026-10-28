@@ -46,10 +46,12 @@ test("only verified current setup enables voice and resource changes invalidate 
     });
     const hook = renderHook(useVoiceSetup, { wrapper });
     expect(hook.result.current.complete).toBe(false);
+    expect(hook.result.current.ready).toBe(false);
     act(() => hook.result.current.verify());
     expect(useVoiceSetupState.getState().verifiedSignature).toBeUndefined();
     await act(async () => client.setQueryData(["voice-status"], status));
     await waitFor(() => expect(hook.result.current.signature).toBeDefined());
+    expect(hook.result.current.ready).toBe(true);
     expect(hook.result.current.complete).toBe(false);
     act(() => hook.result.current.verify());
     expect(hook.result.current.complete).toBe(true);
@@ -58,6 +60,7 @@ test("only verified current setup enables voice and resource changes invalidate 
     expect(reopened.result.current.complete).toBe(true);
     act(() => reopened.result.current.setDevice("different-microphone"));
     expect(reopened.result.current.complete).toBe(false);
+    expect(reopened.result.current.ready).toBe(true);
     act(() => reopened.result.current.verify());
     expect(reopened.result.current.complete).toBe(true);
     await act(async () => client.setQueryData(["voice-status"], { ...status, phase: "updating" }));

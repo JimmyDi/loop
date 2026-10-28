@@ -30,13 +30,23 @@ export class VoiceRuntime {
     const startup = Promise.withResolvers<void>();
     this.startup = startup.promise;
     try {
-      const value = await this.options.resources();
+      const value = await this.options.resources(options);
       const lease = "resources" in value ? value : { resources: value, release: () => {} };
       if (generation !== this.generation) {
         lease.release();
         throw new Error("voice_call_closed");
       }
-      const call = new VoiceCall(options.mode, lease.resources, this.options, () => {
+      const resources =
+        options.synthesis === false
+          ? {
+              ...lease.resources,
+              configuration: {
+                asr: lease.resources.configuration.asr,
+                vad: lease.resources.configuration.vad,
+              },
+            }
+          : lease.resources;
+      const call = new VoiceCall(options.mode, resources, this.options, () => {
         if (this.call === call) this.call = undefined;
         lease.release();
       });

@@ -60,8 +60,10 @@ export const voiceRoutes = (voice: VoiceService) => {
       if (body.mode !== "dictation" && body.mode !== "conversation" && body.mode !== "test")
         throw new HttpError(400, "invalid_voice_mode");
       const sessionId = typeof body.sessionId === "string" ? body.sessionId : undefined;
+      if (body.synthesis !== undefined && typeof body.synthesis !== "boolean")
+        throw new HttpError(400, "invalid_voice_synthesis");
       return Response.json(
-        await voice.start(context, clientId, body.mode, sessionId, request.signal),
+        await voice.start(context, clientId, body.mode, sessionId, request.signal, body.synthesis),
         {
           status: 201,
         },

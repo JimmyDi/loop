@@ -6,6 +6,33 @@ import { forwardVoiceEvent } from "./call-events";
 import { controlVoiceCall } from "./call-input";
 import type { WebVoiceCall } from "./call-types";
 
+test("finish acknowledges only after queued audio and final transcription complete", async () => {
+  const audio = Promise.withResolvers<void>();
+  const transcription = Promise.withResolvers<void>();
+  const sent: string[] = [];
+  const endInput = vi.fn(() => transcription.promise);
+  const state = {
+    input: audio.promise,
+    call: { endInput },
+    socket: {
+      readyState: WebSocket.OPEN,
+      bufferedAmount: 0,
+      send: (value: string) => sent.push(value),
+    },
+  } as unknown as WebVoiceCall;
+  controlVoiceCall(state, { type: "finish", requestId: "final-input" }, vi.fn());
+  expect(endInput).not.toHaveBeenCalled();
+  audio.resolve();
+  await Promise.resolve();
+  expect(endInput).toHaveBeenCalledOnce();
+  expect(sent).toEqual([]);
+  transcription.resolve();
+  await state.input;
+  expect(sent.map((value) => JSON.parse(value))).toEqual([
+    { type: "input-completed", requestId: "final-input" },
+  ]);
+});
+
 test("native synthesis chunks become one complete WAV and cancellation discards stale chunks", async () => {
   const sent: Array<string | Uint8Array> = [];
   const pending = new Map<string, ReturnType<typeof Promise.withResolvers<void>>>();

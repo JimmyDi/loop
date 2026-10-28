@@ -28,7 +28,8 @@ export const useVoiceSettings = (): VoiceSettingsControl => {
   useEffect(() => {
     if (
       !query.data?.error &&
-      (query.data?.installed ||
+      (query.data?.phase === "paused" ||
+        query.data?.installed ||
         ["installing", "updating", "uninstalling"].includes(query.data?.phase ?? ""))
     )
       action.clearError();

@@ -135,7 +135,7 @@ export const MessageTimeline = ({
                       <UserMessage
                         message={turn.message}
                         skills={skills}
-                        workspaceId={snapshot.workspaceId}
+                        workspaceId={snapshot.workspaceId ?? undefined}
                         ref={turn.index === userMessageIndex ? scroll.userMessageRef : undefined}
                       />
                       {snapshot.operation === "prompt" &&

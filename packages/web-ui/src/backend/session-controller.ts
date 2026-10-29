@@ -24,7 +24,7 @@ export class SessionController {
 
   constructor(
     readonly session: SessionPort,
-    readonly workspaceId: string,
+    readonly workspaceId: string | null,
   ) {
     this.snapshot = {
       streamId: "",

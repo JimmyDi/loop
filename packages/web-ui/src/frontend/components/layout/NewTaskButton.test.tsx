@@ -54,16 +54,13 @@ test.each(["selected", "switched", "fallback", "unavailable", "empty", "failure"
       const button = ui.getByRole("button", { name: "New task" });
       fireEvent.click(button);
       fireEvent.click(button);
-      if (scenario === "empty") {
-        expect(button.hasAttribute("disabled")).toBe(true);
-        expect(writes).toEqual([]);
-        expect(useWorkspace.getState().active).toEqual(active);
-        return;
-      }
       expect(button.hasAttribute("disabled")).toBe(true);
-      const workspaceId = ["fallback", "unavailable", "switched"].includes(scenario)
-        ? "first"
-        : "selected";
+      const workspaceId =
+        scenario === "switched"
+          ? "first"
+          : ["fallback", "unavailable", "empty"].includes(scenario)
+            ? null
+            : "selected";
       expect(writes).toEqual([{ workspaceId }]);
       await act(async () => {
         finish(

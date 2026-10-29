@@ -1,10 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SessionSnapshot } from "../../../shared/protocol";
 import { useSessionEvents } from "../../hooks/useSessionEvents";
-import { api, ApiError } from "../../lib/api";
+import { api, ApiError, command } from "../../lib/api";
 import { useSessions } from "../../state/session-store";
 import { useWorkspace } from "../../state/workspace-store";
 import { SessionHeader } from "../layout/SessionHeader";
@@ -17,16 +17,31 @@ import { SessionStatus } from "./SessionStatus";
 import { SessionApprovals } from "./SessionApprovals";
 import "./ChatWorkspace.css";
 
-export const ChatWorkspace = ({ id }: { id: string }) => {
+export const ChatWorkspace = ({ id }: { id?: string }) => {
   const { t } = useTranslation();
-  const view = useSessions((state) => state.views[id]);
+  const client = useQueryClient();
+  const view = useSessions((state) => (id ? state.views[id] : undefined));
   const query = useQuery({
-    queryKey: ["session", id],
-    queryFn: () => api<SessionSnapshot>("/sessions/" + id),
+    queryKey: ["session", id ?? "new"],
+    queryFn: () =>
+      id
+        ? api<SessionSnapshot>("/sessions/" + id)
+        : command<SessionSnapshot>("/sessions", { workspaceId: null }),
+    staleTime: Infinity,
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
-  useSessionEvents(query.isSuccess ? id : undefined);
+  useSessionEvents(query.isSuccess ? (id ?? query.data.sessionId) : undefined);
+  useEffect(() => {
+    if (id || !query.data || useWorkspace.getState().active) return;
+    client.setQueryData(["session", query.data.sessionId], query.data);
+    useWorkspace.getState().open({ id: query.data.sessionId, workspaceId: query.data.workspaceId });
+  }, [id, query.data, client]);
+  useEffect(() => {
+    if (id) client.removeQueries({ queryKey: ["session", "new"], exact: true });
+  }, [id, client]);
   useEffect(() => {
     if (
       query.error instanceof ApiError &&

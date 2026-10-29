@@ -11,7 +11,7 @@ export const updateArchive = async (
   state: {
     loop: LoopBridge;
     instances: Map<string, SessionController>;
-    owners: Map<string, string>;
+    owners: Map<string, string | null>;
   },
 ): Promise<void> => {
   const { loop, instances, owners } = state;
@@ -27,7 +27,9 @@ export const updateArchive = async (
       ? new HttpError(409, "session_not_archived")
       : new HttpError(404, "session_not_found");
   const active = [...instances.values()].filter(
-    (item) => item.workspaceId === project.id && ids.includes(item.session.sessionId),
+    (item) =>
+      item.workspaceId === (project.id === "global" ? null : project.id) &&
+      ids.includes(item.session.sessionId),
   );
   await cancelTitles(active);
   for (const item of active) {

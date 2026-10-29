@@ -899,7 +899,7 @@ test("composer owns model controls, blocks send while switching and preserves dr
   }
 });
 
-test("unselected project blocks button, form and Enter submission while retaining the draft", async () => {
+test("standalone chat accepts submission without selecting a project", async () => {
   const { Window } = await import("happy-dom");
   const { useWorkspace } = await import("../../state/workspace-store");
   const { useRequests } = await import("../../state/request-store");
@@ -912,7 +912,7 @@ test("unselected project blocks button, form and Enter submission while retainin
   const workspace = useWorkspace.getState();
   const requests = useRequests.getState();
   Object.assign(globalThis, { window, document: window.document });
-  const { render, fireEvent, act, cleanup, waitFor } = await import("@testing-library/react/pure");
+  const { render, fireEvent, act, cleanup } = await import("@testing-library/react/pure");
   const client = new QueryClient({
     defaultOptions: { queries: { staleTime: Infinity, retry: false } },
   });
@@ -928,11 +928,11 @@ test("unselected project blocks button, form and Enter submission while retainin
       drafts: { test: "Keep draft" },
       images: {},
       files: {},
-      unselectedProjects: {},
     });
     useRequests.setState({ pending: {}, delivery: {} });
     const current = {
       ...snapshot,
+      workspaceId: null,
       operation: "idle" as const,
       state: { ...snapshot.state, isRunning: false },
     };
@@ -944,22 +944,7 @@ test("unselected project blocks button, form and Enter submission while retainin
     expect((ui.getByRole("button", { name: "Send message" }) as HTMLButtonElement).disabled).toBe(
       false,
     );
-    fireEvent.click(ui.getByRole("button", { name: "Remove project Example" }));
-    expect((ui.getByRole("button", { name: "Send message" }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
-    fireEvent.submit(ui.container.querySelector("form")!);
-    fireEvent.keyDown(ui.getByRole("textbox"), { key: "Enter", keyCode: 13 });
-    expect(writes).toEqual([]);
-    expect(useWorkspace.getState().drafts.test).toBe("Keep draft");
-    fireEvent.click(ui.getByRole("button", { name: "Choose project" }));
-    await act(async () => fireEvent.click(ui.getByRole("menuitemradio", { name: "Example" })));
-    await waitFor(() =>
-      expect((ui.getByRole("button", { name: "Send message" }) as HTMLButtonElement).disabled).toBe(
-        false,
-      ),
-    );
-    expect(writes).toEqual([]);
+    expect(ui.getByRole("button", { name: "No project" })).toBeTruthy();
     await act(async () => fireEvent.click(ui.getByRole("button", { name: "Send message" })));
     expect(writes).toEqual(["/api/sessions/test/prompt"]);
   } finally {

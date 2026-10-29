@@ -9,7 +9,11 @@ export const useSidebarClipping = () => {
 
     const update = () => {
       for (const [headingSelector, listSelector] of [
-        [".pinned-sessions h2", ".pinned-sessions > .session-list"],
+        [
+          ".pinned-sessions h2",
+          ".pinned-sessions .sidebar-session-list, .pinned-sessions > .session-list",
+        ],
+        [".standalone-chats h2", ".standalone-chats .sidebar-session-list"],
         [".sidebar-heading", ".sidebar-projects"],
       ]) {
         const heading = scroll.querySelector<HTMLElement>(headingSelector);
@@ -31,7 +35,7 @@ export const useSidebarClipping = () => {
       resize.disconnect();
       resize.observe(scroll);
       for (const child of scroll.querySelectorAll(
-        ".pinned-sessions h2, .pinned-sessions > .session-list, .sidebar-heading, .sidebar-projects",
+        ".pinned-sessions h2, .pinned-sessions > .session-list, .sidebar-session-list, .standalone-chats h2, .sidebar-heading, .sidebar-projects",
       )) {
         resize.observe(child);
       }

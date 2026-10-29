@@ -28,7 +28,7 @@ export type Project = { id: string; name: string; cwd: string; accessible?: bool
 
 export type SessionSummary = {
   id: string;
-  workspaceId: string;
+  workspaceId: string | null;
   createdAt: string;
   updatedAt: string;
   messageCount: number;
@@ -55,7 +55,7 @@ export type SessionSnapshot = {
   acceptedRequestIds?: string[];
   streamId: string;
   sessionId: string;
-  workspaceId: string;
+  workspaceId: string | null;
   state: SessionState;
   model: ModelChoice;
   effort?: ModelEffort;
@@ -91,6 +91,6 @@ export type Cursor = { streamId: string; seq: number };
 
 export type ListChange =
   | { type: "lists.reset" }
-  | { type: "sessions.changed" | "projects.changed"; workspaceId: string };
+  | { type: "sessions.changed" | "projects.changed"; workspaceId: string | null };
 
 export type ListFrame = ListChange & Cursor;

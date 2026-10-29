@@ -178,7 +178,11 @@ export class SessionManager {
     return new SessionManager({ header, messages }, resolve(file), false, true);
   }
 
-  static async list(cwd: string, sessionDir = getSessionDir(cwd)): Promise<SessionInfo[]> {
+  static async list(
+    cwd: string | undefined,
+    sessionDir = cwd ? getSessionDir(cwd) : undefined,
+  ): Promise<SessionInfo[]> {
+    if (!sessionDir) throw new Error("Session directory is required without cwd");
     let names: string[];
 
     try {
@@ -210,7 +214,7 @@ export class SessionManager {
       }
       const header = manager.getHeader();
 
-      if (realpathSync(header.cwd) === realpathSync(cwd))
+      if (cwd === undefined || realpathSync(header.cwd) === realpathSync(cwd))
         sessions.push({
           ...header,
           path: manager.sessionFile!,

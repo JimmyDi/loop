@@ -67,7 +67,10 @@ export const sessionFileRoutes =
     const messages = [...controller.snapshot.state.messages];
     if (controller.snapshot.state.draft) messages.push(controller.snapshot.state.draft);
     if (!referenced(messages, path)) throw new HttpError(404, "file_not_found");
-    const project = await registry.projects.get(controller.workspaceId);
+    const project =
+      controller.workspaceId === null
+        ? { cwd: controller.session.sessionManager.getCwd() }
+        : await registry.projects.get(controller.workspaceId);
     let file: Awaited<ReturnType<typeof open>>;
     try {
       const target = await realpath(resolve(project.cwd, path));

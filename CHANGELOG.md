@@ -10,7 +10,9 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
-- Web UI: add a fixed New task button above the scrolling sidebar history, opening a new draft in the selected session's workspace, with the first accessible project as a fallback. Align its icon with the Pinned heading, including with classic scrollbars.
+- Web UI: support persistent chats without a project, using independent working directories and the existing history, pin, read and archive lifecycle. Replace the standalone welcome page with the shared chat workspace and keep the composer mounted through the first message. Add a Chats sidebar section; Chats, Pinned and Projects initially show five entries and reveal ten more per Show more action. Project selection remains available only before the first message.
+
+- Web UI: add a fixed New task button above the scrolling sidebar history, opening a new draft in the selected session's workspace, or an independent chat when no accessible project is selected. Align its icon with the Pinned heading, including with classic scrollbars.
 
 - Web UI: keep the Pinned heading at the top while sidebar sessions scroll, then stack Projects beneath it when reached; reverse naturally when scrolling up and use the top position for Projects when no pins remain. Clip session rows passing behind the headings while preserving the original sidebar background without solid-color blocks. Click Pinned or Projects to scroll to its first row below the sticky headings; Projects expands if needed, with folding retained on its separate chevron.
 
@@ -145,7 +147,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - coding-agent and Web UI: record independent prompt duration metadata and prompt_timing events. Show Working for below the user message during generation, then Worked for above the final response with a thin divider. Display seconds below one minute and minutes with remaining seconds thereafter, such as 2m 5s. Preserve completed durations across refresh, reconnect, reopening and save retries; stop on errors/cancellation and exclude saving or background title work.
 
-- Web UI: show a project-only capsule in an inset, rounded gray strip attached to the new-session composer, with a rounded folder outline, a neutral hover/focus capsule and centered 14px white cross in a compact 16px gray circular removal button, searchable registered-project selection and Add folder through Create project. Focus search when opening the menu, filter names without case sensitivity, and keep search and Add folder visible while the project list scrolls. Block sending without a selected accessible project and preserve unsent input, attachments, model, effort and permissions when switching draft projects.
+- Web UI: show a project-only capsule in an inset, rounded gray strip attached to the new-session composer, with a rounded folder outline, a neutral hover/focus capsule and centered 14px white cross in a compact 16px gray circular removal button, searchable registered-project selection and Add folder through Create project. Focus search when opening the menu, filter names without case sensitivity, and keep search and Add folder visible while the project list scrolls. Allow independent chats without a project; require accessibility for selected projects and preserve unsent input, attachments, model, effort and permissions when switching draft projects.
 
 ### Changed
 

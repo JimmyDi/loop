@@ -12,25 +12,21 @@ export const NewTaskButton = ({ projects }: { projects: Project[] }) => {
   const { t } = useTranslation();
   const workspaceId = useWorkspace((state) => state.active?.workspaceId);
   const action = useAsyncAction();
-  const project =
-    projects.find((project) => project.id === workspaceId && project.accessible !== false) ??
-    projects.find((project) => project.accessible !== false);
+  const project = projects.find(
+    (project) => project.id === workspaceId && project.accessible !== false,
+  );
 
   const create = () =>
     action.run(async () => {
-      if (!project) return;
-
-      const snapshot = await command<SessionSnapshot>("/sessions", { workspaceId: project.id });
-      useWorkspace.getState().open({ id: snapshot.sessionId, workspaceId: project.id });
+      const snapshot = await command<SessionSnapshot>("/sessions", {
+        workspaceId: project?.id ?? null,
+      });
+      useWorkspace.getState().open({ id: snapshot.sessionId, workspaceId: project?.id ?? null });
     });
 
   return (
     <div className="sidebar-new-task">
-      <ActionButton
-        className="ghost"
-        disabled={!project || action.pending}
-        onClick={() => void create()}
-      >
+      <ActionButton className="ghost" disabled={action.pending} onClick={() => void create()}>
         <svg
           viewBox="0 0 24 24"
           fill="none"

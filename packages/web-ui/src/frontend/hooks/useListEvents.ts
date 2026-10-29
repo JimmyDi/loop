@@ -8,7 +8,7 @@ import type { Cursor, ListFrame } from "../../shared/protocol";
 export const useListEvents = (): void => {
   const query = useQueryClient();
   useEffect(() => {
-    const projects = new Set<string>();
+    const projects = new Set<string | null>();
     let reset = false;
     let projectList = false;
     let cursor: Cursor | undefined;
@@ -21,7 +21,7 @@ export const useListEvents = (): void => {
     const refresh = async () => {
       timer = undefined;
       refreshing = true;
-      const keys: string[][] = [["archived-chats"]];
+      const keys: (string | null)[][] = [["archived-chats"]];
       if (reset || projectList) keys.push(["projects"]);
       if (reset) keys.push(["sessions"]);
       else for (const id of projects) keys.push(["sessions", id]);
@@ -50,7 +50,9 @@ export const useListEvents = (): void => {
             !Number.isSafeInteger(frame.seq) ||
             frame.seq < 0 ||
             !["lists.reset", "sessions.changed", "projects.changed"].includes(frame.type) ||
-            (frame.type !== "lists.reset" && typeof frame.workspaceId !== "string")
+            (frame.type !== "lists.reset" &&
+              typeof frame.workspaceId !== "string" &&
+              frame.workspaceId !== null)
           )
             return;
           if (frame.type === "lists.reset") reset = true;

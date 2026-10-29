@@ -1,4 +1,8 @@
 export const projectsZh = {
+  chats: "聊天",
+  noProject: "无项目",
+  toggleChats: "展开或折叠聊天",
+  togglePinned: "展开或折叠置顶聊天",
   newTask: "新建任务",
   toggleProjects: "展开或折叠项目",
   chooseProject: "选择项目",

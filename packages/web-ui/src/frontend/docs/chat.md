@@ -18,7 +18,7 @@ Sending requires a connected session with no pending save and text or at least o
 
 Composer and session error notices, including run cancellation, have an **×** button at the top right. Closing a notice hides that occurrence without changing the draft, attachments, validation rules or recorded session outcome. Reconnection and pending-save recovery remain available. A new error is displayed again, including a repeated failed upload; dismissal does not carry over to another session.
 
-When a remembered conversation returns session_not_found (404), clear only its active selection and return to the welcome screen. Unsent drafts and attachments are retained. Other request failures keep the selection for Retry; generic API failures display the backend error detail instead of replacing it with an uninformative label.
+When a remembered conversation returns session_not_found (404), clear only its active selection and open a new independent chat. Unsent drafts and attachments are retained. Other request failures keep the selection for Retry; generic API failures display the backend error detail instead of replacing it with an uninformative label.
 
 ## Requests and Drafts
 
@@ -90,3 +90,11 @@ Messages display oldest to newest in an inset panel joined to the top of the inp
 Steer marks any item to run after the current response and entire tool batch, before another model call. The selected item displays a waiting state and locks editing/deletion until consumed. When paused, Steer starts the selected input immediately. Stale IDs reject rather than recreating consumed work; use authoritative SSE state before retrying.
 
 Queues and paused state survive page refresh and reconnect to the live server. Server restart or instance disposal discards them. Resume requests continuation from complete history without restoring a stream cursor or replaying finished tools. See [core scheduling](../../../../coding-agent/src/docs/message-queue.md), [queue UI](../components/chat/MessageQueue.tsx) and [tests](../components/chat/MessageQueue.test.tsx).
+
+## New and independent chats
+
+The main area always uses ChatWorkspace. With no selected session it opens an in-process independent draft, displays the empty conversation greeting and the same composer used for history. The first accepted user message replaces only the greeting with the timeline; the composer stays mounted. Empty drafts are excluded from sidebar history and do not persist across backend restarts. A provider must be configured before opening a new draft; creation errors expose Retry.
+
+The project selector shows **No project** by default. Before the first message, select a registered project or remove the selection to start an independent chat. Selecting a different scope creates a new empty handle and transfers unsent text, attachments and model/permission choices. A conversation containing messages cannot change project ownership.
+
+Independent conversations appear under **Chats**. Pinned conversations appear only under **Pinned**. Both use the same session row actions as project conversations. Chats, Pinned and the Projects list initially show five entries; **Show more** reveals ten additional entries per click. Each section supports folding and heading navigation. Empty Chats and Pinned sections are hidden.

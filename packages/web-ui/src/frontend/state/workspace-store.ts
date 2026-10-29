@@ -4,7 +4,7 @@ import { readPreference, writePreference } from "../lib/preferences";
 import type { PromptImage } from "../../shared/prompt-images";
 import type { PromptFile } from "../../shared/prompt-files";
 
-type SessionSelection = { id: string; workspaceId: string };
+type SessionSelection = { id: string; workspaceId: string | null };
 
 type WorkspaceState = {
   active?: SessionSelection;
@@ -21,10 +21,7 @@ type WorkspaceState = {
   draft(id: string, text: string): void;
   removeProject(id: string): void;
   removeSessions(ids: string[]): void;
-  draftProjects: Record<string, string>;
-  unselectedProjects: Record<string, boolean>;
-  clearDraftProject(id: string): void;
-  selectDraftProject(id: string): void;
+  draftProjects: Record<string, string | null>;
   moveDraft(from: string, to: SessionSelection): void;
   expanded: Record<string, boolean>;
   expand(id: string, expanded: boolean): void;
@@ -39,8 +36,8 @@ const active: SessionSelection | undefined =
   typeof savedActive.id === "string" &&
   savedActive.id &&
   "workspaceId" in savedActive &&
-  typeof savedActive.workspaceId === "string" &&
-  savedActive.workspaceId
+  (savedActive.workspaceId === null ||
+    (typeof savedActive.workspaceId === "string" && savedActive.workspaceId))
     ? { id: savedActive.id, workspaceId: savedActive.workspaceId }
     : undefined;
 const savedDrafts = readPreference<Record<string, unknown>>("drafts", {});
@@ -89,11 +86,6 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
       images: { ...state.images, [id]: images },
     })),
   draftProjects: readPreference<Record<string, string>>("draftProjects", {}),
-  unselectedProjects: readPreference<Record<string, boolean>>("unselectedProjects", {}),
-  clearDraftProject: (id) =>
-    set((state) => ({ unselectedProjects: { ...state.unselectedProjects, [id]: true } })),
-  selectDraftProject: (id) =>
-    set((state) => ({ unselectedProjects: { ...state.unselectedProjects, [id]: false } })),
   moveDraft: (from, to) =>
     set((state) => ({
       drafts: { ...state.drafts, [from]: "", [to.id]: state.drafts[from] ?? "" },
@@ -101,7 +93,6 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
       files: { ...state.files, [from]: [], [to.id]: state.files[from] ?? [] },
       skills: { ...state.skills, [from]: [], [to.id]: [] },
       draftProjects: { ...state.draftProjects, [to.id]: to.workspaceId },
-      unselectedProjects: { ...state.unselectedProjects, [to.id]: false },
     })),
   expanded: readPreference<Record<string, boolean>>("expanded", {}),
   expand: (id, expanded) => set((state) => ({ expanded: { ...state.expanded, [id]: expanded } })),
@@ -140,9 +131,6 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
         draftProjects: Object.fromEntries(
           Object.entries(state.draftProjects).filter(([id]) => !removed.includes(id)),
         ),
-        unselectedProjects: Object.fromEntries(
-          Object.entries(state.unselectedProjects).filter(([id]) => !removed.includes(id)),
-        ),
       };
     }),
   removeSessions: (ids) =>
@@ -154,9 +142,6 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
       skills: Object.fromEntries(Object.entries(state.skills).filter(([id]) => !ids.includes(id))),
       draftProjects: Object.fromEntries(
         Object.entries(state.draftProjects).filter(([id]) => !ids.includes(id)),
-      ),
-      unselectedProjects: Object.fromEntries(
-        Object.entries(state.unselectedProjects).filter(([id]) => !ids.includes(id)),
       ),
     })),
   toggleSidebar: (sidebar) => set({ sidebar }),
@@ -170,9 +155,6 @@ useWorkspace.subscribe((state, previous) => {
 
   if (state.draftProjects !== previous.draftProjects)
     writePreference("draftProjects", state.draftProjects);
-
-  if (state.unselectedProjects !== previous.unselectedProjects)
-    writePreference("unselectedProjects", state.unselectedProjects);
 
   if (state.expanded !== previous.expanded) writePreference("expanded", state.expanded);
 });

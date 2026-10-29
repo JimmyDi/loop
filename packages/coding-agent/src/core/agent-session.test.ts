@@ -1879,6 +1879,7 @@ test("queue survives a stopped run's save failure and resume remains blocked unt
     const running = session.prompt("original").catch(() => {});
     await entered.promise;
     session.enqueue("queued", { id: "q" });
+    await session.waitForTitle();
     await session.flushTrace();
     await rename(store, store + "-old");
     await writeFile(store, "blocked");

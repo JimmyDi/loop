@@ -21,7 +21,7 @@ export class SessionArchive {
     this.file = join(sessionDir, "archive.json");
   }
 
-  delete(cwd: string, ids: string[], { archivedOnly = true } = {}): Promise<void> {
+  delete(cwd: string | undefined, ids: string[], { archivedOnly = true } = {}): Promise<void> {
     const selected = [...new Set(ids)];
     const operation = this.writes.then(async () => {
       const entries = await this.read();

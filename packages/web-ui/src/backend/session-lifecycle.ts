@@ -29,9 +29,9 @@ export const cancelTitles = async (sessions: Iterable<SessionController>): Promi
 };
 
 export const forgetProject = (
-  id: string,
+  id: string | null,
   instances: Map<string, SessionController>,
-  owners: Map<string, string>,
+  owners: Map<string, string | null>,
 ): void => {
   for (const [sessionId, owner] of owners) {
     if (owner !== id) continue;

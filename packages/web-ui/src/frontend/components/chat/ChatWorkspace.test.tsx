@@ -120,7 +120,6 @@ test("composer voice actions follow connection and session changes without heade
       images: {},
       files: {},
       skills: {},
-      unselectedProjects: {},
     });
     useRequests.setState({ pending: {} });
     useQueueEdits.setState({ edits: {} });
@@ -246,3 +245,99 @@ test.each([
     }
   },
 );
+
+test("home creates an independent draft and keeps the composer mounted through its first message", async () => {
+  const window = new Window();
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    fetch: globalThis.fetch,
+    EventSource: globalThis.EventSource,
+  };
+  const workspace = useWorkspace.getState();
+  const sessions = useSessions.getState();
+  class LocalSource {
+    close() {}
+  }
+  Object.assign(globalThis, { window, document: window.document, EventSource: LocalSource });
+  const { render, act, waitFor, cleanup, fireEvent } = await import("@testing-library/react/pure");
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+  });
+  const snapshot: SessionSnapshot = {
+    sessionId: "independent",
+    workspaceId: null,
+    streamId: "stream",
+    operation: "idle",
+    tools: {},
+    model: { provider: "example", id: "example", name: "Example" },
+    state: {
+      messages: [],
+      isRunning: false,
+      hasPendingSave: false,
+      outcome: "idle",
+      listenerErrors: [],
+    },
+  };
+  const writes: unknown[] = [];
+  globalThis.fetch = (async (url, init) => {
+    if (String(url) === "/api/sessions") {
+      writes.push(JSON.parse(String(init?.body)));
+      return Response.json(snapshot);
+    }
+    return Response.json([]);
+  }) as typeof fetch;
+  client.setQueryData(["models"], [snapshot.model]);
+  client.setQueryData(["projects"], []);
+  client.setQueryData(["voice-status"], { installed: false, components: [] });
+  try {
+    useWorkspace.setState({ active: undefined, drafts: {}, files: {}, images: {}, skills: {} });
+    useSessions.setState({ views: {} });
+    const ui = render(
+      <QueryClientProvider client={client}>
+        <ChatWorkspace />
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(ui.getByRole("textbox")).toBeTruthy());
+    const input = ui.getByRole("textbox");
+    expect(ui.getByText("Loop everything")).toBeTruthy();
+    expect(writes).toEqual([{ workspaceId: null }]);
+    expect(useWorkspace.getState().active).toEqual({ id: "independent", workspaceId: null });
+    await act(async () =>
+      ui.rerender(
+        <QueryClientProvider client={client}>
+          <ChatWorkspace id="independent" />
+        </QueryClientProvider>,
+      ),
+    );
+    expect(ui.getByRole("textbox")).toBe(input);
+    await act(async () =>
+      useSessions.setState({
+        views: {
+          independent: {
+            connected: true,
+            snapshot: {
+              ...snapshot,
+              state: {
+                ...snapshot.state,
+                messages: [{ role: "user", content: "Synthetic first message", timestamp: 1 }],
+              },
+            },
+          },
+        },
+      }),
+    );
+    expect(ui.getByRole("textbox")).toBe(input);
+    expect(ui.queryByText("Loop everything")).toBeNull();
+    expect(ui.getByText("Synthetic first message")).toBeTruthy();
+    fireEvent.focus(input);
+    expect(ui.container.querySelector(".chat-workspace")).toBeTruthy();
+  } finally {
+    cleanup();
+    client.clear();
+    useWorkspace.setState(workspace, true);
+    useSessions.setState(sessions, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});

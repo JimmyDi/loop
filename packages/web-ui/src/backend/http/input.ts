@@ -57,3 +57,6 @@ export const requiredString = (body: Record<string, unknown>, key: string): stri
 
   return value;
 };
+
+export const sessionWorkspace = (body: Record<string, unknown>): string | null =>
+  body.workspaceId === null ? null : requiredString(body, "workspaceId");

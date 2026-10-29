@@ -40,7 +40,7 @@ test("capsule removal, keyboard project selection and Add folder reuse the creat
     fireEvent.click(ui.getByRole("button", { name: "Remove project Example" }));
     expect(clear).toHaveBeenCalledOnce();
     ui.rerender(view(false));
-    fireEvent.click(ui.getByRole("button", { name: "Choose project" }));
+    fireEvent.click(ui.getByRole("button", { name: "No project" }));
     await waitFor(() =>
       expect(ui.getByRole("searchbox", { name: "Search projects" })).toBe(document.activeElement),
     );
@@ -54,7 +54,7 @@ test("capsule removal, keyboard project selection and Add folder reuse the creat
     fireEvent.click(ui.getByRole("menuitemradio", { name: "Example" }));
     await waitFor(() => expect(select).toHaveBeenCalledWith(project));
     await waitFor(() => expect(ui.queryByRole("menu")).toBeNull());
-    fireEvent.click(ui.getByRole("button", { name: "Choose project" }));
+    fireEvent.click(ui.getByRole("button", { name: "No project" }));
     expect((ui.getByRole("searchbox") as HTMLInputElement).value).toBe("");
     fireEvent.click(ui.getByRole("menuitem", { name: "Add folder…" }));
     expect(ui.getByRole("dialog", { name: "Create project" })).toBeTruthy();

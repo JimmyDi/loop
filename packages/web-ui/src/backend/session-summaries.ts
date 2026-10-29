@@ -4,7 +4,7 @@ import type { SessionController } from "./session-controller";
 export const sessionSummaries = (
   records: SessionSummary[],
   instances: Iterable<SessionController>,
-  workspaceId: string,
+  workspaceId: string | null,
 ): SessionSummary[] => {
   const summaries = new Map(
     records.map((record) => [

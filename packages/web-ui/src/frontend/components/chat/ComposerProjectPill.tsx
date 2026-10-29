@@ -51,7 +51,7 @@ export const ComposerProjectPill = ({
         }}
       >
         <ProjectSourceIcon kind="folder" />
-        <span>{project?.name ?? t("chooseProject")}</span>
+        <span>{project?.name ?? t("noProject")}</span>
       </button>
     </div>
   );

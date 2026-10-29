@@ -6,10 +6,16 @@ import { ActionButton } from "../ui/ActionButton";
 import { SessionItem } from "./SessionItem";
 import "./SessionList.css";
 
-export const SessionList = ({ sessions }: { sessions: SessionSummary[] }) => {
+export const SessionList = ({
+  sessions,
+  pinned = false,
+}: {
+  sessions: SessionSummary[];
+  pinned?: boolean;
+}) => {
   const { t } = useTranslation();
   const [visibleCount, setVisibleCount] = useState(5);
-  const unpinned = sessions.filter((session) => !session.pinnedAt);
+  const unpinned = sessions.filter((session) => pinned === Boolean(session.pinnedAt));
 
   return (
     <ul className="session-list">

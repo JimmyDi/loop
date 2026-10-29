@@ -81,8 +81,6 @@ export const en = {
   providerStorage:
     "Saved on this computer, outside the project. Keys are stored in a file readable only by your user, not in browser storage.",
   noProjects: "Add a project to get started",
-  welcome: "What would you like to build?",
-  welcomeDetail: "Choose a project and start a conversation with Loop.",
   noSessions: "No chats",
   loadingMoreMessages: "Loading more messages…",
   emptySession: "Ask a question or describe a change.",

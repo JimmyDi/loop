@@ -1,4 +1,8 @@
 export const projectsEn = {
+  chats: "Chats",
+  noProject: "No project",
+  toggleChats: "Expand or collapse chats",
+  togglePinned: "Expand or collapse pinned chats",
   newTask: "New task",
   toggleProjects: "Expand or collapse projects",
   chooseProject: "Choose project",

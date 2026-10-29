@@ -21,7 +21,9 @@ export const useQueuedComposer = (snapshot: SessionSnapshot, focus: () => void) 
         action: "begin-edit",
       });
       const catalog = item.skills.length
-        ? await client.fetchQuery(skillQueryOptions(snapshot.workspaceId)).catch(() => undefined)
+        ? await client
+            .fetchQuery(skillQueryOptions(snapshot.workspaceId ?? undefined))
+            .catch(() => undefined)
         : undefined;
       useQueueEdits.getState().begin(sessionId, id, {
         ...queuedContent(item.content),

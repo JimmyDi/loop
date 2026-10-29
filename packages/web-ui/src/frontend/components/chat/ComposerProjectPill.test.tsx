@@ -31,6 +31,6 @@ test("cleared capsule exposes project selection", () => {
       onRemove={() => {}}
     />,
   );
-  expect(html).toContain("Choose project");
+  expect(html).toContain("No project");
   expect(html).not.toContain("composer-project-remove");
 });

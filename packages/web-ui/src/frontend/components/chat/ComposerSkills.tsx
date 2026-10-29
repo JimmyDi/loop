@@ -15,7 +15,7 @@ export const ComposerSkills = ({
   onText,
 }: {
   sessionId: string;
-  workspaceId: string;
+  workspaceId?: string;
   text: string;
   disabled: boolean;
   onText(text: string): void;

@@ -1,7 +1,7 @@
 import { revealSession } from "./session-reveal";
 import { queueRoute } from "./session-queue";
 import { pageSnapshot } from "../../shared/session-history";
-import { readBody, requiredString } from "../http/input";
+import { readBody, requiredString, sessionWorkspace } from "../http/input";
 import { historyRoute } from "./session-history";
 import { HttpError } from "../http/errors";
 import type { SessionRegistry } from "../session-registry";
@@ -20,9 +20,11 @@ export const sessionRoutes =
 
     if (url.pathname === "/api/sessions") {
       if (method === "GET") {
-        const id = url.searchParams.get("workspaceId");
+        const id =
+          url.searchParams.get("scope") === "global" ? null : url.searchParams.get("workspaceId");
 
-        if (!id) throw new HttpError(400, "invalid_workspaceId");
+        if (id === null && url.searchParams.get("scope") !== "global")
+          throw new HttpError(400, "invalid_workspaceId");
 
         const archived = url.searchParams.get("archived") === "true";
         return Response.json(
@@ -35,7 +37,7 @@ export const sessionRoutes =
 
       if (method === "POST") {
         const body = await readBody(request);
-        const controller = await registry.create(requiredString(body, "workspaceId"));
+        const controller = await registry.create(sessionWorkspace(body));
 
         return Response.json(pageSnapshot(controller.snapshot), { status: 201 });
       }
@@ -53,11 +55,7 @@ export const sessionRoutes =
       if (method !== "PUT") throw new HttpError(405, "method_not_allowed");
       const body = await readBody(request);
       if (typeof body.pinned !== "boolean") throw new HttpError(400, "invalid_pinned_state");
-      const pinnedAt = await registry.setPinned(
-        requiredString(body, "workspaceId"),
-        id!,
-        body.pinned,
-      );
+      const pinnedAt = await registry.setPinned(sessionWorkspace(body), id!, body.pinned);
       return Response.json({ pinnedAt: pinnedAt ?? null });
     }
     if (action === "read") {
@@ -65,11 +63,7 @@ export const sessionRoutes =
       const body = await readBody(request);
       if (typeof body.messageCount !== "number")
         throw new HttpError(400, "invalid_read_message_count");
-      const read = await registry.markRead(
-        requiredString(body, "workspaceId"),
-        id!,
-        body.messageCount,
-      );
+      const read = await registry.markRead(sessionWorkspace(body), id!, body.messageCount);
       return Response.json({ read });
     }
     const body =

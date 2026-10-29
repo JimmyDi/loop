@@ -80,8 +80,6 @@ export const zh = {
   newKeyHint: "填写 Provider 的 Key；本地网关可选择无需认证。",
   providerStorage: "保存在本机用户数据目录，不写入项目。Key 文件仅当前用户可读，不存入浏览器。",
   noProjects: "添加项目以开始使用",
-  welcome: "想要构建什么？",
-  welcomeDetail: "选择项目，与 Loop 开始对话。",
   noSessions: "还没有会话",
   loadingMoreMessages: "正在加载更多消息…",
   emptySession: "提出问题，或描述想要做的改动。",

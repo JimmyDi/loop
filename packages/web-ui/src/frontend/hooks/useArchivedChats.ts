@@ -25,7 +25,15 @@ export const useArchivedChats = () => {
             ).map((session) => ({ ...session, projectName: project.name })),
           ),
       );
-      return groups.flat();
+      const standalone = await api<SessionSummary[]>("/sessions?scope=global&archived=true", {
+        signal,
+      });
+      return [
+        ...groups.flat(),
+        ...standalone
+          .filter((session) => session.workspaceId === null)
+          .map((session) => ({ ...session, projectName: "" })),
+      ];
     },
   });
   const change = useMutation({
@@ -43,7 +51,7 @@ export const useArchivedChats = () => {
             .filter((session) => session.workspaceId === workspaceId)
             .map((session) => session.id);
           await command<void>(
-            "/workspaces/" + workspaceId + "/archive",
+            "/workspaces/" + (workspaceId ?? "global") + "/archive",
             { ids, ...(action === "restore" ? { archived: false } : {}) },
             action === "delete" ? "DELETE" : "POST",
           );

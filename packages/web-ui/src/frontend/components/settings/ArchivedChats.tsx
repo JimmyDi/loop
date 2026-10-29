@@ -18,12 +18,14 @@ export const ArchivedChats = ({ onOpen }: { onOpen?(): void }) => {
   const [selection, setSelection] = useState<ArchivedChat[]>();
   const all = sessions.data ?? [];
   const projects = [
-    ...new Map(all.map((session) => [session.workspaceId, session.projectName])).entries(),
+    ...new Map(
+      all.map((session) => [session.workspaceId ?? "global", session.projectName || t("chats")]),
+    ).entries(),
   ];
   const currentProject = projects.some(([id]) => id === project) ? project : "";
   const filtered = all.filter(
     (session) =>
-      (!currentProject || session.workspaceId === currentProject) &&
+      (!currentProject || (session.workspaceId ?? "global") === currentProject) &&
       (kind === "all" ||
         (kind === "empty" ? session.messageCount === 0 : session.messageCount > 0)),
   );
@@ -84,7 +86,7 @@ export const ArchivedChats = ({ onOpen }: { onOpen?(): void }) => {
       )}
       {!sessions.isPending && !sessions.error && !filtered.length && <p>{t("noArchivedChats")}</p>}
       {projects.map(([id, name]) => {
-        const items = filtered.filter((session) => session.workspaceId === id);
+        const items = filtered.filter((session) => (session.workspaceId ?? "global") === id);
         return items.length ? (
           <ArchivedChatGroup
             key={id}
@@ -98,7 +100,7 @@ export const ArchivedChats = ({ onOpen }: { onOpen?(): void }) => {
             onRestore={(session) => change.mutate({ selected: [session], action: "restore" })}
             onDelete={chooseDelete}
             onDeleteProject={() =>
-              chooseDelete(all.filter((session) => session.workspaceId === id))
+              chooseDelete(all.filter((session) => (session.workspaceId ?? "global") === id))
             }
           />
         ) : null;

@@ -156,3 +156,6 @@
     min-width: 44px;
   }
 }
+
+.sidebar-scroll:has(.standalone-chats) { scroll-padding-top: calc(2 * var(--sidebar-heading-height)); }
+.sidebar-scroll:has(.pinned-sessions):has(.standalone-chats) { scroll-padding-top: calc(3 * var(--sidebar-heading-height)); }

@@ -4,6 +4,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-29
+
 ### Breaking Changes
 
 - coding-agent: persist sessions in version-3 directories containing meta.json, messages.jsonl and index.json. Explicitly opening a valid legacy session migrates it and retains its original JSONL backup; listing alone does not migrate. Older Loop versions cannot read new history. Session file accessors now identify meta.json; use SessionManager for reads and the collection accessor for session creation. See [session storage](packages/coding-agent/src/docs/session-format.md).

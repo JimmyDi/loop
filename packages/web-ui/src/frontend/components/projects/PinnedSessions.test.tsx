@@ -16,7 +16,7 @@ test("header pins load across collapsed projects, exclude unavailable history an
   };
   const workspace = useWorkspace.getState();
   Object.assign(globalThis, { window, document: window.document });
-  const { render, waitFor, act, cleanup } = await import("@testing-library/react/pure");
+  const { render, waitFor, act, cleanup, fireEvent } = await import("@testing-library/react/pure");
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
@@ -55,8 +55,10 @@ test("header pins load across collapsed projects, exclude unavailable history an
         <PinnedSessions projects={projects} />
       </QueryClientProvider>,
     );
-    await waitFor(() => expect(ui.container.querySelectorAll(".session-item")).toHaveLength(7));
-    expect(calls.sort()).toEqual(["p", "q"]);
+    await waitFor(() => expect(ui.container.querySelectorAll(".session-item")).toHaveLength(5));
+    fireEvent.click(ui.getByRole("button", { name: "Show more" }));
+    expect(ui.container.querySelectorAll(".session-item")).toHaveLength(7);
+    expect(calls.sort()).toEqual(["", "p", "q"]);
     expect(
       Array.from(ui.container.querySelectorAll(".session-list-title"), (item) => item.textContent),
     ).toEqual([...sessions].reverse().map((session) => session.title ?? ""));

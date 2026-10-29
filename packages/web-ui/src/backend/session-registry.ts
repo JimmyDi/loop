@@ -12,10 +12,10 @@ export class SessionRegistry {
   readonly events = new ListEvents();
   private instances = new Map<string, SessionController>();
   private loading = new Map<string, Promise<SessionController>>();
-  private owners = new Map<string, string>();
-  private pending = new Map<string, number>();
-  private removing = new Set<string>();
-  private removed = new Set<string>();
+  private owners = new Map<string, string | null>();
+  private pending = new Map<string | null, number>();
+  private removing = new Set<string | null>();
+  private removed = new Set<string | null>();
   private closing = false;
   private configuring = false;
   private operations = new Set<Promise<unknown>>();
@@ -25,8 +25,8 @@ export class SessionRegistry {
     readonly loop: LoopBridge,
   ) {}
 
-  async list(workspaceId: string): Promise<SessionSummary[]> {
-    const project = await this.projects.get(workspaceId);
+  async list(workspaceId: string | null): Promise<SessionSummary[]> {
+    const project = await this.project(workspaceId);
     const records = await this.loop.list(project);
 
     for (const record of records) this.owners.set(record.id, workspaceId);
@@ -34,7 +34,7 @@ export class SessionRegistry {
     return sessionSummaries(records, this.instances.values(), workspaceId);
   }
 
-  markRead(workspaceId: string, id: string, messageCount: number): Promise<boolean> {
+  markRead(workspaceId: string | null, id: string, messageCount: number): Promise<boolean> {
     return this.withProject(workspaceId, async () => {
       if (!Number.isSafeInteger(messageCount) || messageCount < 0)
         throw new HttpError(400, "invalid_read_message_count");
@@ -45,7 +45,7 @@ export class SessionRegistry {
     });
   }
 
-  async create(workspaceId: string): Promise<SessionController> {
+  async create(workspaceId: string | null): Promise<SessionController> {
     return this.withProject(workspaceId, async (project) => {
       const session = await this.loop.load(project);
       const controller = new SessionController(session, workspaceId);
@@ -57,7 +57,7 @@ export class SessionRegistry {
     });
   }
 
-  setPinned(workspaceId: string, id: string, pinned: boolean): Promise<string | undefined> {
+  setPinned(workspaceId: string | null, id: string, pinned: boolean): Promise<string | undefined> {
     return this.withProject(workspaceId, async () => {
       if (typeof pinned !== "boolean") throw new HttpError(400, "invalid_pinned_state");
       const controller = await this.get(id);
@@ -72,19 +72,22 @@ export class SessionRegistry {
     if (this.closing) throw new HttpError(503, "server_closing");
 
     let owner = this.owners.get(id);
-    if (!owner) {
+    if (owner === undefined) {
+      if (this.loop.standaloneProject) await this.list(null);
+      owner = this.owners.get(id);
       for (const project of await this.projects.list()) {
+        if (owner !== undefined) break;
         if (project.accessible) await this.list(project.id);
 
         owner = this.owners.get(id);
-        if (owner) break;
+        if (owner !== undefined) break;
       }
     }
 
-    if (!owner) throw new HttpError(404, "session_not_found");
+    if (owner === undefined) throw new HttpError(404, "session_not_found");
 
     this.assertAvailable(owner);
-    await this.projects.get(owner);
+    await this.project(owner);
     this.assertAvailable(owner);
 
     const existing = this.instances.get(id) ?? this.loading.get(id);
@@ -104,7 +107,7 @@ export class SessionRegistry {
     return promise;
   }
 
-  assertAvailable(workspaceId: string): void {
+  assertAvailable(workspaceId: string | null): void {
     if (this.closing) throw new HttpError(503, "server_closing");
 
     if (this.configuring) throw new HttpError(409, "provider_busy");
@@ -114,18 +117,19 @@ export class SessionRegistry {
     if (this.removing.has(workspaceId)) throw new HttpError(409, "project_busy");
   }
 
-  remove(workspaceId: string): Promise<void> {
+  remove(workspaceId: string | null): Promise<void> {
+    if (workspaceId === null) throw new HttpError(400, "invalid_workspaceId");
     return this.changeProject(workspaceId, () => this.projects.remove(workspaceId), true);
   }
 
   archive(
-    workspaceId: string,
+    workspaceId: string | null,
     ids: string[],
     archived: boolean | "delete" | "delete-session",
   ): Promise<void> {
     const { loop, instances, owners } = this;
     return this.changeProject(workspaceId, async () =>
-      updateArchive(await this.projects.get(workspaceId), ids, archived, {
+      updateArchive(await this.project(workspaceId), ids, archived, {
         loop,
         instances,
         owners,
@@ -134,7 +138,7 @@ export class SessionRegistry {
   }
 
   private async changeProject(
-    workspaceId: string,
+    workspaceId: string | null,
     action: () => Promise<void>,
     remove = false,
   ): Promise<void> {
@@ -203,12 +207,20 @@ export class SessionRegistry {
     }
   }
 
-  private withProject<T>(id: string, operation: (project: Project) => Promise<T>): Promise<T> {
+  async project(id: string | null): Promise<Project> {
+    if (id !== null) return this.projects.get(id);
+    if (!this.loop.standaloneProject) throw new HttpError(400, "standalone_unavailable");
+    return this.loop.standaloneProject();
+  }
+
+  private withProject<T>(
+    id: string | null,
+    operation: (project: Project) => Promise<T>,
+  ): Promise<T> {
     this.assertAvailable(id);
     this.pending.set(id, (this.pending.get(id) ?? 0) + 1);
 
-    const work = this.projects
-      .get(id)
+    const work = this.project(id)
       .then(operation)
       .finally(() => {
         this.pending.set(id, this.pending.get(id)! - 1);

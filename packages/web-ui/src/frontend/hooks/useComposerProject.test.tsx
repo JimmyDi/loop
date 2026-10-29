@@ -73,11 +73,9 @@ test.each([false, true])(
         drafts: { old: "Keep text" },
         images: { old: [{ type: "image", data: "aA==", mimeType: "image/png" }] },
         files: { old: [{ name: "example.txt", text: "Keep file" }] },
-        unselectedProjects: {},
       });
       const { result } = renderHook(() => useComposerProject(snapshot, true), { wrapper });
-      act(() => result.current.clear());
-      expect(result.current.hasProject).toBe(false);
+      expect(result.current.hasProject).toBe(true);
       expect(useWorkspace.getState().drafts.old).toBe("Keep text");
       let selected = false;
       await act(async () => {
@@ -86,7 +84,7 @@ test.each([false, true])(
       expect(selected).toBe(!failure);
       if (failure) {
         expect(result.current.error).toBeTruthy();
-        expect(result.current.hasProject).toBe(false);
+        expect(result.current.hasProject).toBe(true);
         expect(useWorkspace.getState().active?.id).toBe("old");
         expect(useWorkspace.getState().drafts.old).toBe("Keep text");
       } else {

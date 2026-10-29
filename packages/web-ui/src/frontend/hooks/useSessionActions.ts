@@ -34,7 +34,7 @@ export const useSessionActions = (session: SessionSummary) => {
   const change = async (kind: "archive" | "delete"): Promise<boolean> => {
     let saved = false;
     await action.run(async () => {
-      const project = "/workspaces/" + encodeURIComponent(session.workspaceId);
+      const project = "/workspaces/" + encodeURIComponent(session.workspaceId ?? "global");
       if (kind === "archive") {
         await command<void>(project + "/archive", { ids: [session.id], archived: true });
         if (useWorkspace.getState().active?.id === session.id)

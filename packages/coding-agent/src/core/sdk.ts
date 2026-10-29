@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { realpathSync } from "node:fs";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import { TraceRecorder, pruneTraces } from "@loop/telemetry";
@@ -144,7 +144,12 @@ export async function createAgentSession(
   const traceRecorder =
     options.telemetry !== false && sessionManager.getSessionFile()
       ? await TraceRecorder.open(
-          join(getTraceDir(services.cwd, services.agentDir), sessionManager.getSessionId()),
+          join(
+            basename(sessionManager.getSessionDir() ?? "") === "global"
+              ? join(services.agentDir, "traces", "global")
+              : getTraceDir(services.cwd, services.agentDir),
+            sessionManager.getSessionId(),
+          ),
           sessionManager.getSessionId(),
           options.telemetry || {},
         )

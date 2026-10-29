@@ -1,25 +1,33 @@
-import { useId } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import type { Project, SessionSummary } from "../../../shared/protocol";
 import { projectSessionsQueryOptions } from "../../hooks/useProjectSessions";
-import { scrollSidebarSection } from "../../lib/scroll-sidebar-section";
 import { ErrorNotice } from "../ui/ErrorNotice";
-import { SessionItem } from "./SessionItem";
+import { SidebarSessionSection } from "./SidebarSessionSection";
 import "./PinnedSessions.css";
 import "./SessionList.css";
 
 export const PinnedSessions = ({ projects }: { projects: Project[] }) => {
   const { t } = useTranslation();
-  const headingId = useId();
   const queries = useQueries({
-    queries: projects
-      .filter((project) => project.accessible !== false)
-      .map((project) => projectSessionsQueryOptions(project.id)),
+    queries: [
+      projectSessionsQueryOptions(null),
+      ...projects
+        .filter((project) => project.accessible !== false)
+        .map((project) => projectSessionsQueryOptions(project.id)),
+    ],
   });
   const sessions: SessionSummary[] = queries
-    .flatMap((query) => query.data ?? [])
+    .flatMap((query, index) =>
+      (query.data ?? []).filter(
+        (session) =>
+          session.workspaceId ===
+          (index === 0
+            ? null
+            : projects.filter((project) => project.accessible !== false)[index - 1]?.id),
+      ),
+    )
     .filter((session) => session.pinnedAt && !session.archived && session.userMessageCount > 0)
     .sort((a, b) => b.pinnedAt!.localeCompare(a.pinnedAt!) || b.id.localeCompare(a.id));
   const error = queries.find((query) => query.error)?.error;
@@ -27,26 +35,8 @@ export const PinnedSessions = ({ projects }: { projects: Project[] }) => {
   if (!sessions.length) return <ErrorNotice error={error} />;
 
   return (
-    <section className="pinned-sessions" aria-labelledby={headingId}>
-      <h2 id={headingId}>
-        <button
-          type="button"
-          onClick={(event) =>
-            scrollSidebarSection(
-              event.currentTarget.parentElement!,
-              ".pinned-sessions .session-item",
-            )
-          }
-        >
-          {t("pinnedSessions")}
-        </button>
-      </h2>
-      <ul className="session-list">
-        {sessions.map((session) => (
-          <SessionItem key={session.id} session={session} />
-        ))}
-      </ul>
+    <SidebarSessionSection title={t("pinnedSessions")} kind="pinned" sessions={sessions}>
       <ErrorNotice error={error} />
-    </section>
+    </SidebarSessionSection>
   );
 };

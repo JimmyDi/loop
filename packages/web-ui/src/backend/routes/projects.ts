@@ -14,7 +14,11 @@ export const projectRoutes = (registry: SessionRegistry) => {
       return eventResponse(registry.events, request);
     const session = path.match(new RegExp("^/api/workspaces/([^/]+)/sessions/([^/]+)$"));
     if (session && method === "DELETE") {
-      await registry.archive(session[1]!, [session[2]!], "delete-session");
+      await registry.archive(
+        session[1] === "global" ? null : session[1]!,
+        [session[2]!],
+        "delete-session",
+      );
       return new Response(null, { status: 204 });
     }
 
@@ -41,7 +45,7 @@ export const projectRoutes = (registry: SessionRegistry) => {
       )
         throw new HttpError(400, "invalid_archive");
       await registry.archive(
-        archive,
+        archive === "global" ? null : archive,
         body.ids,
         method === "DELETE" ? "delete" : (body.archived as boolean),
       );

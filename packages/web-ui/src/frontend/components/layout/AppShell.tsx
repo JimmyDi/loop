@@ -9,7 +9,6 @@ import { useVisualViewport } from "../../hooks/useVisualViewport";
 import { useWorkspace } from "../../state/workspace-store";
 import { ChatWorkspace } from "../chat/ChatWorkspace";
 import { Sidebar } from "./Sidebar";
-import { Welcome } from "./Welcome";
 import { PwaStatus } from "../pwa/PwaStatus";
 import "./AppShell.css";
 
@@ -62,7 +61,7 @@ export const AppShell = () => {
       />
       <div className="app-shell-content" ref={content}>
         <PwaStatus />
-        {active ? <ChatWorkspace key={active.id} id={active.id} /> : <Welcome />}
+        <ChatWorkspace id={active?.id} />
       </div>
     </div>
   );

@@ -145,7 +145,7 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
         />
         <ComposerSkills
           sessionId={snapshot.sessionId}
-          workspaceId={snapshot.workspaceId}
+          workspaceId={snapshot.workspaceId ?? undefined}
           text={prompt.text}
           onText={prompt.setText}
           disabled={blocked}

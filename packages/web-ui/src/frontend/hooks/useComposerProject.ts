@@ -10,25 +10,22 @@ export const useComposerProject = (snapshot: SessionSnapshot, enabled: boolean) 
   const client = useQueryClient();
   const { projects } = useProjects(enabled);
   const action = useAsyncAction();
-  const cleared = useWorkspace((state) => state.unselectedProjects[snapshot.sessionId]);
-  const project = cleared
-    ? undefined
-    : projects.data?.find((item) => item.id === snapshot.workspaceId);
-  const hasProject = !enabled || Boolean(project && project.accessible !== false);
+  const project = projects.data?.find((item) => item.id === snapshot.workspaceId);
+  const hasProject =
+    snapshot.workspaceId === null || !enabled || Boolean(project && project.accessible !== false);
 
-  const select = async (project: Project): Promise<boolean> => {
-    if (project.accessible === false || action.pending) return false;
-    if (project.id === snapshot.workspaceId) {
+  const select = async (project: Project | null): Promise<boolean> => {
+    if (!enabled || project?.accessible === false || action.pending) return false;
+    if ((project?.id ?? null) === snapshot.workspaceId) {
       action.clearError();
-      useWorkspace.getState().selectDraftProject(snapshot.sessionId);
       return true;
     }
     let selected = false;
     await action.run(async () => {
-      const next = await createProjectDraft(project.id, snapshot);
+      const next = await createProjectDraft(project?.id ?? null, snapshot);
       client.setQueryData(["session", next.sessionId], next);
       if (useWorkspace.getState().active?.id !== snapshot.sessionId) return;
-      const target = { id: next.sessionId, workspaceId: project.id };
+      const target = { id: next.sessionId, workspaceId: project?.id ?? null };
       useWorkspace.getState().moveDraft(snapshot.sessionId, target);
       useWorkspace.getState().open(target);
       selected = true;
@@ -41,10 +38,7 @@ export const useComposerProject = (snapshot: SessionSnapshot, enabled: boolean) 
     projects,
     hasProject,
     select,
-    clear: () => {
-      action.clearError();
-      useWorkspace.getState().clearDraftProject(snapshot.sessionId);
-    },
+    clear: () => void select(null),
     pending: action.pending,
     error: action.error,
   };

@@ -325,3 +325,73 @@ const serveTest = async (options: {
       }),
   };
 };
+
+test("standalone history restores without registered projects and shares pin/read/archive lifecycle", async () => {
+  const { SessionRegistry } = await import("./session-registry");
+  const { ProjectStore } = await import("./projects/project-store");
+  const { ProviderSettings } = await import("./providers/provider-settings");
+  const root = await mkdtemp(join(import.meta.dirname, ".standalone-test-"));
+  const agentDir = join(root, "data");
+  const providers = new ProviderSettings(join(agentDir, "web-ui", "provider.json"));
+  const registries: InstanceType<typeof SessionRegistry>[] = [];
+  const restart = () => {
+    const registry = new SessionRegistry(
+      new ProjectStore(join(agentDir, "projects.json")),
+      createLoopBridge(agentDir, providers),
+    );
+    registries.push(registry);
+    return registry;
+  };
+  try {
+    await providers.upsert(
+      {
+        id: "example",
+        kind: "custom",
+        name: "Example",
+        api: "openai-completions",
+        baseUrl: "http://localhost:8080/v1",
+        authentication: "none",
+        models: [{ id: "example" }],
+      },
+      true,
+    );
+    const first = restart();
+    const controller = await first.create(null);
+    const second = await first.create(null);
+    expect(controller.workspaceId).toBeNull();
+    expect(controller.session.sessionManager.getCwd()).not.toBe(
+      second.session.sessionManager.getCwd(),
+    );
+    expect(controller.session.sessionManager.getCwd()).toContain(join(root, "data-workspaces"));
+    expect(await first.list(null)).toEqual([]);
+    const manager = controller.session.sessionManager;
+    await manager.commit([{ role: "user", content: "Synthetic standalone request", timestamp: 1 }]);
+    expect(manager.getSessionFile()).toBe(
+      join(agentDir, "sessions", "global", controller.session.sessionId, "meta.json"),
+    );
+    const id = controller.session.sessionId;
+    await first.setPinned(null, id, true);
+    await first.close();
+    const restored = restart();
+    const loaded = await restored.get(id);
+    expect(loaded.workspaceId).toBeNull();
+    expect(loaded.session.sessionManager.getCwd()).toBe(manager.getCwd());
+    expect((await restored.list(null))[0]).toMatchObject({
+      id,
+      workspaceId: null,
+      userMessageCount: 1,
+      pinnedAt: expect.any(String),
+    });
+    expect(await restored.markRead(null, id, 1)).toBe(true);
+    await restored.archive(null, [id], true);
+    expect((await restored.list(null))[0]?.archived).toBe(true);
+    await restored.archive(null, [id], false);
+    expect((await restored.list(null))[0]?.archived).toBe(false);
+    await restored.archive(null, [id], "delete-session");
+    expect(await restored.list(null)).toEqual([]);
+    await expect(restored.get(id)).rejects.toThrow("session_not_found");
+  } finally {
+    for (const registry of registries) await registry.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});

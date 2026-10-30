@@ -121,7 +121,9 @@ test.each(["new", "existing", "failure"])(
         expect(folder.getAttribute("aria-expanded")).toBe("true");
         expect(document.activeElement).toBe(folder);
         expect(scrolled).toEqual([project.id]);
-        expect(ui.getByText("No chats")).toBeTruthy();
+        expect(
+          within(folder.closest(".project-item") as HTMLElement).getByText("No chats"),
+        ).toBeTruthy();
         expect(ui.getAllByRole("button", { name: project.name })).toHaveLength(1);
         expect(ui.getByRole("button", { name: "Other" }).getAttribute("aria-expanded")).toBe(
           "false",
@@ -244,6 +246,99 @@ test("pin actions move sessions above Projects without selecting them and work w
     cleanup();
     client.clear();
     useWorkspace.setState(workspace, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("chat and project pagination remain distinct and reveal only their own items", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, fireEvent, cleanup } = await import("@testing-library/react/pure");
+  const client = new QueryClient({
+    defaultOptions: { queries: { enabled: false, staleTime: Infinity } },
+  });
+  const projects: Project[] = Array.from({ length: 6 }, (_, index) => ({
+    id: "project-" + index,
+    name: "Project " + index,
+    cwd: "/example",
+  }));
+  client.setQueryData(["projects"], projects);
+  client.setQueryData(["sessions", null], []);
+  for (const [index, project] of projects.entries()) {
+    const sessions: SessionSummary[] = Array.from({ length: index === 4 ? 16 : 0 }, (_, i) => ({
+      id: "chat-" + i,
+      workspaceId: project.id,
+      title: "Chat " + i,
+      messageCount: 2,
+      userMessageCount: 1,
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z",
+    }));
+    client.setQueryData(["sessions", project.id], sessions);
+  }
+  try {
+    const ui = render(
+      <QueryClientProvider client={client}>
+        <Sidebar />
+      </QueryClientProvider>,
+    );
+    expect(ui.container.querySelectorAll(".project-item")).toHaveLength(5);
+    expect(ui.container.querySelectorAll(".session-item")).toHaveLength(5);
+    fireEvent.click(ui.getByRole("button", { name: "Show more" }));
+    expect(ui.container.querySelectorAll(".session-item")).toHaveLength(15);
+    expect(ui.container.querySelectorAll(".project-item")).toHaveLength(5);
+    expect(ui.getByRole("button", { name: "Show more" })).toBeTruthy();
+    fireEvent.click(ui.getByRole("button", { name: "Show more projects" }));
+    expect(ui.container.querySelectorAll(".project-item")).toHaveLength(6);
+    expect(ui.container.querySelectorAll(".session-item")).toHaveLength(15);
+    expect(ui.queryByRole("button", { name: "Show more projects" })).toBeNull();
+    fireEvent.click(ui.getByRole("button", { name: "Show more" }));
+    expect(ui.container.querySelectorAll(".session-item")).toHaveLength(16);
+    expect(ui.queryByRole("button", { name: "Show more" })).toBeNull();
+    const child = ui.getByRole("button", { name: "Project 0" });
+    fireEvent.click(child);
+    const childStates = { ...useWorkspace.getState().expanded };
+    const parent = ui.getByRole("button", { name: "Expand or collapse projects" });
+    fireEvent.click(parent);
+    expect(ui.queryByRole("button", { name: "Project 0" })).toBeNull();
+    expect(useWorkspace.getState().expanded).toEqual(childStates);
+    const scroll = ui.container.querySelector<HTMLElement>(".sidebar-scroll")!;
+    let scrollEvents = 0;
+    scroll.addEventListener("scroll", () => scrollEvents++);
+    const position = scroll.scrollTop;
+    fireEvent.click(parent);
+    expect(scroll.scrollTop).toBe(position);
+    expect(scrollEvents).toBe(0);
+    expect(ui.getByRole("button", { name: "Project 0" }).getAttribute("aria-expanded")).toBe(
+      "false",
+    );
+    expect(ui.getByRole("button", { name: "Project 4" }).getAttribute("aria-expanded")).toBe(
+      "true",
+    );
+    expect(ui.container.querySelectorAll(".session-item")).toHaveLength(16);
+    const parentLabel = ui.getByRole("button", { name: "Projects" });
+    fireEvent.click(parentLabel);
+    expect(ui.queryByRole("button", { name: "Project 0" })).toBeNull();
+    expect(useWorkspace.getState().expanded).toEqual(childStates);
+    fireEvent.click(parentLabel);
+    expect(scroll.scrollTop).toBe(position);
+    expect(scrollEvents).toBe(0);
+    expect(ui.getByRole("button", { name: "Project 0" }).getAttribute("aria-expanded")).toBe(
+      "false",
+    );
+    expect(ui.getByRole("button", { name: "Project 4" }).getAttribute("aria-expanded")).toBe(
+      "true",
+    );
+    expect(useWorkspace.getState().expanded).toEqual(childStates);
+    const expandedChild = ui.getByRole("button", { name: "Project 4" });
+    fireEvent.click(expandedChild);
+    fireEvent.click(expandedChild);
+    expect(ui.container.querySelectorAll(".session-item")).toHaveLength(16);
+  } finally {
+    cleanup();
+    client.clear();
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

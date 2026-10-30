@@ -86,16 +86,14 @@ export const ProjectItem = ({ project }: { project: Project }) => {
           </svg>
         </ActionButton>
       </div>
-      {expanded && (
-        <>
-          {project.accessible === false ? (
-            <p>{t("unavailable")}</p>
-          ) : (
-            <SessionList sessions={sessions.data ?? []} />
-          )}
-          <ErrorNotice error={sessions.error} />
-        </>
-      )}
+      <div className="project-content" hidden={!expanded}>
+        {project.accessible === false ? (
+          <p>{t("unavailable")}</p>
+        ) : (
+          <SessionList sessions={sessions.data ?? []} />
+        )}
+        <ErrorNotice error={sessions.error} />
+      </div>
       <ErrorNotice error={create.error} />
     </section>
   );

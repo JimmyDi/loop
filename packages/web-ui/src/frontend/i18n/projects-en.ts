@@ -24,6 +24,7 @@ export const projectsEn = {
   pinChat: "Pin {{name}}",
   unpinChat: "Unpin {{name}}",
   showMoreSessions: "Show more",
+  showMoreProjects: "Show more projects",
   unread: "Unread",
   projectOptions: "Options for {{name}}",
   sessionOptions: "Options for {{name}}",

@@ -6,13 +6,15 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
-- Distribution: publish `@loop-harness/loop` to GitHub Packages alongside npm, then create a GitHub Release with version-specific changelog notes, the verified npm tarball and checksums. Name application releases `Loop vX.Y.Z — CLI, SDK & Web` and voice releases `Loop Voice vX.Y.Z — Local speech engine & models`.
+- Distribution: create a GitHub Release after publishing `@loop-harness/loop` to npm, with version-specific changelog notes, the verified npm tarball and checksums. Name application releases `Loop vX.Y.Z — CLI, SDK & Web` and voice releases `Loop Voice vX.Y.Z — Local speech engine & models`.
 
 ### Changed
 
 - Voice resources: advance the supported release to 1.0.1 and require a new semantic version for each public resource release. Reject tag/version mismatches and attempts to overwrite public assets; allow recovery only for drafts from the same source commit.
 
 ### Fixed
+
+- Distribution: exclude voice resource tags from application release triggers and remove GitHub Packages publication; GitHub Release creation now waits only for npm publication.
 
 - Licensing: restore the complete standard MIT text in LICENSE and move the license scope notice to README with corrected brand-policy and font-license links, preserving the separate artwork and font terms.
 

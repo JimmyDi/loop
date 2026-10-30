@@ -12,6 +12,5 @@ await writeFile(
   notes +
     `\n\n### Installation\n\n` +
     `npm: \`${name}@${version}\`\n\n` +
-    `GitHub Packages: \`${name}@${version}\` (registry: https://npm.pkg.github.com/)\n\n` +
     "The attached loop.tgz is the verified npm package. SHA256SUMS verifies the attachment.\n",
 );

@@ -4,7 +4,11 @@ import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import type { SessionSummary } from "../../../shared/protocol";
-import { scrollSidebarSection } from "../../lib/scroll-sidebar-section";
+import {
+  isSidebarSectionAtTop,
+  preserveSidebarScroll,
+  scrollSidebarSection,
+} from "../../lib/scroll-sidebar-section";
 import { SessionList } from "./SessionList";
 import "./SidebarSessionSection.css";
 
@@ -22,6 +26,20 @@ export const SidebarSessionSection = ({
   const { t } = useTranslation();
   const id = useId();
   const [expanded, setExpanded] = useState(true);
+  const activateSection = (heading: HTMLElement) => {
+    if (!expanded) {
+      setExpanded(true);
+      return;
+    }
+    const target =
+      kind === "pinned" ? ".pinned-sessions .session-item" : ".standalone-chats .session-item";
+    if (isSidebarSectionAtTop(heading, target)) {
+      preserveSidebarScroll(heading, () => flushSync(() => setExpanded(false)));
+      return;
+    }
+    scrollSidebarSection(heading, target);
+  };
+
   if (!sessions.length) return children;
   return (
     <section
@@ -32,15 +50,9 @@ export const SidebarSessionSection = ({
         <button
           type="button"
           className="sidebar-projects-label"
-          onClick={(event) => {
-            flushSync(() => setExpanded(true));
-            scrollSidebarSection(
-              event.currentTarget.parentElement!,
-              kind === "pinned"
-                ? ".pinned-sessions .session-item"
-                : ".standalone-chats .session-item",
-            );
-          }}
+          aria-expanded={expanded}
+          aria-controls={id + "-list"}
+          onClick={(event) => activateSection(event.currentTarget.parentElement!)}
         >
           {title}
         </button>
@@ -50,7 +62,7 @@ export const SidebarSessionSection = ({
           aria-label={t(kind === "pinned" ? "togglePinned" : "toggleChats")}
           aria-expanded={expanded}
           aria-controls={id + "-list"}
-          onClick={() => setExpanded((value) => !value)}
+          onClick={(event) => activateSection(event.currentTarget.parentElement!)}
         >
           <svg
             viewBox="0 0 16 16"
@@ -63,8 +75,8 @@ export const SidebarSessionSection = ({
           </svg>
         </button>
       </h2>
-      <div id={id + "-list"} className="sidebar-session-list">
-        {expanded && <SessionList sessions={sessions} pinned={kind === "pinned"} />}
+      <div id={id + "-list"} className="sidebar-session-list" hidden={!expanded}>
+        <SessionList sessions={sessions} pinned={kind === "pinned"} />
       </div>
       {children}
     </section>

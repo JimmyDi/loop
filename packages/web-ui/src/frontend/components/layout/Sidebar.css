@@ -1,5 +1,7 @@
 .sidebar {
   --sidebar-heading-height: 32px;
+  --sidebar-heading-gap: 4px;
+  --sidebar-heading-offset: calc(var(--sidebar-heading-height) + var(--sidebar-heading-gap));
   height: 100%;
   min-width: 0;
   display: flex;
@@ -39,17 +41,17 @@
 }
 .sidebar-heading {
   position: sticky;
-  top: 0;
+  top: var(--sidebar-heading-gap);
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
   min-height: var(--sidebar-heading-height);
-  margin-top: 18px;
-  padding: 0 6px 0 12px;
+  margin-top: var(--sidebar-heading-gap);
+  padding: 0 12px;
 }
 .sidebar-scroll:has(.pinned-sessions) .sidebar-heading {
-  top: var(--sidebar-heading-height);
+  top: calc(var(--sidebar-heading-offset) + var(--sidebar-heading-gap));
 }
 .sidebar-projects-label,
 .sidebar-projects-toggle {
@@ -72,7 +74,7 @@
 }
 .sidebar-projects-toggle {
   padding: 0 6px;
-  margin-right: auto;
+  justify-content: center;
 }
 .sidebar-projects-toggle svg {
   width: 14px;
@@ -113,10 +115,11 @@
   overflow-y: auto;
   scrollbar-gutter: stable both-edges;
   min-height: 0;
-  scroll-padding-top: var(--sidebar-heading-height);
+  overflow-anchor: none;
+  scroll-padding-top: var(--sidebar-heading-offset);
 }
 .sidebar-scroll:has(.pinned-sessions) {
-  scroll-padding-top: calc(2 * var(--sidebar-heading-height));
+  scroll-padding-top: calc(2 * var(--sidebar-heading-offset));
 }
 .sidebar-projects,
 .pinned-sessions > .session-list {
@@ -157,5 +160,5 @@
   }
 }
 
-.sidebar-scroll:has(.standalone-chats) { scroll-padding-top: calc(2 * var(--sidebar-heading-height)); }
-.sidebar-scroll:has(.pinned-sessions):has(.standalone-chats) { scroll-padding-top: calc(3 * var(--sidebar-heading-height)); }
+.sidebar-scroll:has(.standalone-chats) { scroll-padding-top: calc(2 * var(--sidebar-heading-offset)); }
+.sidebar-scroll:has(.pinned-sessions):has(.standalone-chats) { scroll-padding-top: calc(3 * var(--sidebar-heading-offset)); }

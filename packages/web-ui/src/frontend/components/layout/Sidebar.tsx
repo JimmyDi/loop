@@ -7,7 +7,11 @@ import { useProjectSessions } from "../../hooks/useProjectSessions";
 import { SidebarSessionSection } from "../projects/SidebarSessionSection";
 import { useProjects } from "../../hooks/useProjects";
 import { useSidebarClipping } from "../../hooks/useSidebarClipping";
-import { scrollSidebarSection } from "../../lib/scroll-sidebar-section";
+import {
+  isSidebarSectionAtTop,
+  preserveSidebarScroll,
+  scrollSidebarSection,
+} from "../../lib/scroll-sidebar-section";
 import { useWorkspace } from "../../state/workspace-store";
 import { AddProjectDialog } from "../projects/AddProjectDialog";
 import { ProjectItem } from "../projects/ProjectItem";
@@ -36,6 +40,17 @@ export const Sidebar = () => {
   const projectList = useRef<HTMLDivElement>(null);
   const scroll = useSidebarClipping();
   const toggle = useWorkspace((state) => state.toggleSidebar);
+  const activateProjects = (heading: HTMLElement) => {
+    if (!projectsExpanded) {
+      setProjectsExpanded(true);
+      return;
+    }
+    if (isSidebarSectionAtTop(heading, ".sidebar-projects .project-item")) {
+      preserveSidebarScroll(heading, () => flushSync(() => setProjectsExpanded(false)));
+      return;
+    }
+    scrollSidebarSection(heading, ".sidebar-projects .project-item");
+  };
 
   useEffect(() => {
     if (adding || !projectsExpanded || !addedProjectId) return;
@@ -79,35 +94,11 @@ export const Sidebar = () => {
           <button
             type="button"
             className="sidebar-projects-label"
-            onClick={(event) => {
-              flushSync(() => setProjectsExpanded(true));
-              scrollSidebarSection(
-                event.currentTarget.parentElement!,
-                ".sidebar-projects .project-item",
-              );
-            }}
-          >
-            {t("projects")}
-          </button>
-          <button
-            type="button"
-            className="sidebar-projects-toggle"
-            aria-label={t("toggleProjects")}
             aria-expanded={projectsExpanded}
             aria-controls={projectsId}
-            onClick={() => setProjectsExpanded((expanded) => !expanded)}
+            onClick={(event) => activateProjects(event.currentTarget.parentElement!)}
           >
-            <svg
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d={projectsExpanded ? "m4 6 4 4 4-4" : "m6 4 4 4-4 4"} />
-            </svg>
+            {t("projects")}
           </button>
           {!isRemoteClient() && (
             <ActionButton
@@ -127,29 +118,50 @@ export const Sidebar = () => {
               </svg>
             </ActionButton>
           )}
+          <button
+            type="button"
+            className="sidebar-projects-toggle"
+            aria-label={t("toggleProjects")}
+            aria-expanded={projectsExpanded}
+            aria-controls={projectsId}
+            onClick={(event) => activateProjects(event.currentTarget.parentElement!)}
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d={projectsExpanded ? "m4 6 4 4 4-4" : "m6 4 4 4-4 4"} />
+            </svg>
+          </button>
         </div>
-        <div className="sidebar-projects" id={projectsId} ref={projectList}>
-          {projectsExpanded && (
-            <>
-              {projects.isPending && <p>{t("loading")}</p>}
-              <ErrorNotice error={projects.error} />
-              {projects.data?.slice(0, visibleProjects).map((project) => (
-                <ProjectItem key={project.id} project={project} />
-              ))}
-              {(projects.data?.length ?? 0) > visibleProjects && (
-                <ActionButton
-                  className="session-show-more ghost"
-                  onClick={() => setVisibleProjects((count) => count + 10)}
-                >
-                  {t("showMoreSessions")}
-                </ActionButton>
-              )}
-              {projects.data?.length === 0 && !isRemoteClient() && (
-                <ActionButton className="sidebar-empty" onClick={() => setAdding(true)}>
-                  {t("noProjects")}
-                </ActionButton>
-              )}
-            </>
+        <div
+          className="sidebar-projects"
+          id={projectsId}
+          ref={projectList}
+          hidden={!projectsExpanded}
+        >
+          {projects.isPending && <p>{t("loading")}</p>}
+          <ErrorNotice error={projects.error} />
+          {projects.data?.slice(0, visibleProjects).map((project) => (
+            <ProjectItem key={project.id} project={project} />
+          ))}
+          {(projects.data?.length ?? 0) > visibleProjects && (
+            <ActionButton
+              className="session-show-more ghost"
+              onClick={() => setVisibleProjects((count) => count + 10)}
+            >
+              {t("showMoreProjects")}
+            </ActionButton>
+          )}
+          {projects.data?.length === 0 && !isRemoteClient() && (
+            <ActionButton className="sidebar-empty" onClick={() => setAdding(true)}>
+              {t("noProjects")}
+            </ActionButton>
           )}
         </div>
       </div>

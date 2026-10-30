@@ -68,7 +68,8 @@
   opacity: 1;
   pointer-events: auto;
 }
-.project-item > p {
+.project-item > p,
+.project-content > p {
   margin: 8px 16px;
   color: var(--ink-muted);
   font-size: 12px;

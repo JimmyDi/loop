@@ -8,6 +8,11 @@ export const useSidebarClipping = () => {
     if (!scroll) return;
 
     const update = () => {
+      const reserved = Number.parseFloat(scroll.style.paddingBottom) || 0;
+      if (reserved > 0) {
+        const contentHeight = scroll.scrollHeight - reserved;
+        scroll.style.paddingBottom = `${Math.max(0, scroll.scrollTop + scroll.clientHeight - contentHeight)}px`;
+      }
       for (const [headingSelector, listSelector] of [
         [
           ".pinned-sessions h2",

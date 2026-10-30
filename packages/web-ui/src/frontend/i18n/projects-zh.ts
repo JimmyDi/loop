@@ -24,6 +24,7 @@ export const projectsZh = {
   pinChat: "置顶 {{name}}",
   unpinChat: "取消置顶 {{name}}",
   showMoreSessions: "显示更多",
+  showMoreProjects: "显示更多项目",
   unread: "未读",
   projectOptions: "{{name}} 的选项",
   sessionOptions: "{{name}} 的选项",

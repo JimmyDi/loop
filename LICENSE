@@ -1,14 +1,3 @@
-License scope
-
-The MIT License below covers the software and documentation, except for the
-Loop icon artwork identified in
-src/web-ui/docs/assets/loop-brand/BRAND-ASSETS.md. That artwork is reserved
-under the separate brand asset policy, including copies in documentation
-and Loop-Icon-Delivery.zip. This exception does not restrict the software
-code or grant trademark rights. Bundled fonts remain under their own
-SIL Open Font License in src/web-ui/docs/assets/loop-brand/fonts/OFL.txt.
-Previously granted valid licenses are not revoked by this notice.
-
 MIT License
 
 Copyright (c) 2026 Loop contributors
@@ -25,4 +14,8 @@ copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

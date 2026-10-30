@@ -128,4 +128,6 @@ Run pnpm typecheck, pnpm check, pnpm build and pnpm test. Use affected tests by 
 
 See [Changelog](CHANGELOG.md), [Contributing](CONTRIBUTING.md), [Security](SECURITY.md) and [License](LICENSE).
 
-The software is MIT-licensed. The Loop icon remains reserved under the [brand asset policy](packages/web-ui/src/docs/assets/loop-brand/BRAND-ASSETS.md); guide fonts retain their [SIL OFL 1.1 license](packages/web-ui/src/docs/assets/loop-brand/fonts/OFL.txt).
+## License scope
+
+The [MIT License](LICENSE) covers the software and documentation, except for the Loop icon artwork identified in the [brand asset policy](packages/web-ui/src/docs/assets/loop-brand/BRAND-ASSETS.md). That artwork is reserved under the separate policy, including copies in documentation and Loop-Icon-Delivery.zip. This exception does not restrict the software code or grant trademark rights. Bundled fonts remain under their own [SIL Open Font License](packages/web-ui/src/docs/assets/loop-brand/fonts/OFL.txt). Previously granted valid licenses are not revoked by this notice.

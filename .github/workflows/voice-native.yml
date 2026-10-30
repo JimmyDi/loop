@@ -19,9 +19,8 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Planned voice asset tag (manual runs build only)
-        required: true
-        default: voice-v1.0.0
+        description: Optional tag matching the checked-in voice version (manual runs build only)
+        required: false
       targets:
         description: Comma-separated native targets to prepare
         required: true
@@ -50,18 +49,30 @@ jobs:
         name: Resolve voice resource release version
         env:
           REQUESTED_TAG: ${{ inputs.release_tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-            tag="$REQUESTED_TAG"
-          elif [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            tag="$GITHUB_REF_NAME"
-          else
-            version=$(node --import tsx --input-type=module -e 'import { VOICE_RELEASE_VERSION } from "./packages/coding-agent/src/core/voice/resources/release-version.ts"; console.log(VOICE_RELEASE_VERSION);')
-            tag="voice-v$version"
+          version=$(node --import tsx --input-type=module -e 'import { VOICE_RELEASE_VERSION } from "./packages/coding-agent/src/core/voice/resources/release-version.ts"; console.log(VOICE_RELEASE_VERSION);')
+          tag="voice-v$version"
+          if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" != "$tag" ]]; then
+            echo "Voice tag must match VOICE_RELEASE_VERSION."
+            exit 1
           fi
-          [[ "$tag" =~ ^voice-v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          if [[ -n "$REQUESTED_TAG" && "$REQUESTED_TAG" != "$tag" ]]; then
+            echo "Requested tag must match VOICE_RELEASE_VERSION."
+            exit 1
+          fi
+          [[ "$tag" =~ ^voice-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || exit 1
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            releases=$(gh api --paginate --slurp "repos/$GH_REPO/releases?per_page=100")
+            draft=$(printf '%s' "$releases" | jq -r --arg tag "$tag" '[.[][] | select(.tag_name == $tag) | .draft] | if length == 0 then "missing" else .[0] end')
+            if [[ "$draft" == "false" ]]; then
+              echo "Voice release already published. Bump VOICE_RELEASE_VERSION before publishing changed resources."
+              exit 1
+            fi
+          fi
           echo "release_tag=$tag" >> "$GITHUB_OUTPUT"
       - id: targets
         env:
@@ -166,11 +177,22 @@ jobs:
           fi
           cd release-assets
           sha256sum -- *.tar.gz > SHA256SUMS
-          if gh release view "$VOICE_RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Updating existing release assets from this verified build."
+          title="Loop Voice ${VOICE_RELEASE_TAG#voice-} — Local speech engine & models"
+          releases=$(gh api --paginate --slurp "repos/$GH_REPO/releases?per_page=100")
+          draft=$(printf '%s' "$releases" | jq -r --arg tag "$VOICE_RELEASE_TAG" '[.[][] | select(.tag_name == $tag) | .draft] | if length == 0 then "missing" else .[0] end')
+          if [[ "$draft" == "false" ]]; then
+            echo "Voice release already published; bump VOICE_RELEASE_VERSION."
+            exit 1
+          elif [[ "$draft" == "true" ]]; then
+            target=$(gh release view "$VOICE_RELEASE_TAG" --json targetCommitish --jq .targetCommitish)
+            if [[ "$target" != "$GITHUB_SHA" ]]; then
+              echo "Draft belongs to another commit; use a new voice version."
+              exit 1
+            fi
+            echo "Resuming the draft for this source commit."
           else
-            gh release create "$VOICE_RELEASE_TAG" --target "$GITHUB_SHA" --draft --title "$VOICE_RELEASE_TAG" --notes "Local voice engine and model bundles. See attached manifests, catalog and SHA256SUMS."
+            gh release create "$VOICE_RELEASE_TAG" --target "$GITHUB_SHA" --draft --title "$title" --notes "Local voice engine and model bundles. See attached manifests, catalog and SHA256SUMS."
           fi
           gh release upload "$VOICE_RELEASE_TAG" --clobber -- *.tar.gz reviewed-*.json published-catalog.ts SHA256SUMS
           gh release upload "$VOICE_RELEASE_TAG" --clobber -- manifest.json
-          gh release edit "$VOICE_RELEASE_TAG" --draft=false --latest=false
+          gh release edit "$VOICE_RELEASE_TAG" --title "$title" --draft=false --latest=false

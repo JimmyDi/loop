@@ -33,7 +33,7 @@ test("QR generation follows connection readiness, hides consumed invites and sup
       pending: pending ? [{ id: "pending" }] : [],
     });
   }) as typeof fetch;
-  const { renderHook, cleanup, act } = await import("@testing-library/react/pure");
+  const { renderHook, cleanup, act, waitFor } = await import("@testing-library/react/pure");
   const wrapper = ({ children }: { children: ReactNode }) =>
     createElement(QueryClientProvider, { client }, children);
   try {
@@ -41,7 +41,7 @@ test("QR generation follows connection readiness, hides consumed invites and sup
       wrapper,
       initialProps: { ready: false },
     });
-    await vi.waitFor(() => expect(view.result.current.query.isSuccess).toBe(true));
+    await waitFor(() => expect(view.result.current.query.isSuccess).toBe(true));
     expect(issued).toBe(0);
     connectionId = "first-connection";
     await act(async () => {
@@ -49,7 +49,7 @@ test("QR generation follows connection readiness, hides consumed invites and sup
     });
     expect(issued).toBe(0);
     view.rerender({ ready: true });
-    await vi.waitFor(() => expect(view.result.current.qr).toMatch(/^data:image\/png/));
+    await waitFor(() => expect(view.result.current.qr).toMatch(/^data:image\/png/));
     expect(issued).toBe(1);
     expect(new URL(view.result.current.invite!.url).origin).toBe("https://example.test");
     await act(async () => {
@@ -60,25 +60,33 @@ test("QR generation follows connection readiness, hides consumed invites and sup
     await act(async () => {
       await client.refetchQueries({ queryKey: ["remote-devices"] });
     });
-    await vi.waitFor(() => expect(view.result.current.invite).toBeUndefined());
+    await waitFor(() => expect(view.result.current.invite).toBeUndefined());
     expect(issued).toBe(1);
     pending = false;
     await act(async () => {
       await client.refetchQueries({ queryKey: ["remote-devices"] });
     });
-    await vi.waitFor(() => expect(issued).toBe(2));
-    await vi.waitFor(() => expect(view.result.current.generating).toBe(false));
-    expect(view.result.current.invite).toBeDefined();
+    await waitFor(() => {
+      expect(view.result.current.invite?.url).toContain("synthetic-2");
+      expect(view.result.current.qr).toMatch(/^data:image\/png/);
+      expect(view.result.current.generating).toBe(false);
+    });
     expect(issued).toBe(2);
-    act(() => view.result.current.createInvite());
-    await vi.waitFor(() => expect(view.result.current.qr).toMatch(/^data:image\/png/));
+    await act(async () => view.result.current.createInvite());
+    await waitFor(() => {
+      expect(view.result.current.invite?.url).toContain("synthetic-3");
+      expect(view.result.current.qr).toMatch(/^data:image\/png/);
+    });
     expect(issued).toBe(3);
     connectionId = "second-connection";
     await act(async () => {
       await client.refetchQueries({ queryKey: ["remote-devices"] });
     });
-    await vi.waitFor(() => expect(issued).toBe(4));
-    await vi.waitFor(() => expect(view.result.current.pending).toBe(false));
+    await waitFor(() => {
+      expect(view.result.current.invite?.url).toContain("synthetic-4");
+      expect(view.result.current.pending).toBe(false);
+    });
+    expect(issued).toBe(4);
     view.rerender({ ready: false });
     expect(view.result.current.invite).toBeUndefined();
   } finally {

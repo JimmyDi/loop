@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, matchesGlob } from "node:path";
 import { promisify } from "node:util";
 import { parse } from "yaml";
 import { expect, test } from "vitest";
@@ -11,26 +11,32 @@ const execute = promisify(execFile);
 const workflow = async () =>
   parse(await readFile(new URL("../.github/workflows/release.yml", import.meta.url), "utf8"));
 
-test("both registry jobs use the verified artifact and Release waits for both publications", async () => {
+test.each([
+  ["v0.5.0", true],
+  ["v10.0.0", true],
+  ["voice-v1.0.1", false],
+  ["voice-v2.0.0", false],
+  ["main", false],
+])("application tag filter handles %s", async (tag, expected) => {
+  const patterns: string[] = (await workflow()).on.push.tags;
+  expect(patterns.some((pattern) => matchesGlob(tag, pattern))).toBe(expected);
+});
+
+test("npm publishes the verified artifact before GitHub Release creation", async () => {
   const { jobs, permissions } = await workflow();
   expect(permissions).toEqual({ contents: "read" });
-  for (const name of ["publish", "github-package"]) {
-    expect(jobs[name].needs).toBe("verify");
-    expect(
-      jobs[name].steps.find((step: { uses?: string }) =>
-        step.uses?.startsWith("actions/download-artifact@"),
-      ).with.name,
-    ).toBe("loop-release-package");
-  }
+  expect(Object.keys(jobs)).toEqual(["validate", "verify", "publish", "github-release"]);
+  expect(jobs.publish.needs).toBe("verify");
+  expect(
+    jobs.publish.steps.find((step: { uses?: string }) =>
+      step.uses?.startsWith("actions/download-artifact@"),
+    ).with.name,
+  ).toBe("loop-release-package");
   expect(jobs.publish.permissions).toEqual({ contents: "read", "id-token": "write" });
-  expect(jobs["github-package"].permissions).toEqual({ contents: "read" });
-  expect(jobs["github-package"].steps.at(-1).env.NODE_AUTH_TOKEN).toBe(
-    "$" + "{{ secrets.GH_PACKAGES_TOKEN }}",
+  expect(jobs.publish.steps.at(-1).run).toContain(
+    "--provenance --ignore-scripts --registry=https://registry.npmjs.org/",
   );
-  expect(jobs["github-package"].steps.at(-1).run).toContain(
-    "--ignore-scripts --registry=https://npm.pkg.github.com/",
-  );
-  expect(jobs["github-release"].needs).toEqual(["publish", "github-package"]);
+  expect(jobs["github-release"].needs).toBe("publish");
   expect(jobs["github-release"].permissions).toEqual({ contents: "write" });
 });
 

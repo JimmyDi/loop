@@ -1,0 +1,47 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "Asia/Shanghai",
+  "semanticCommits": "enabled",
+  "automerge": false,
+  "dependencyDashboard": true,
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "groupName": null,
+    "dependencyDashboardApproval": false,
+    "automerge": false
+  },
+  "packageRules": [
+    {
+      "description": "Group ordinary patch and minor updates.",
+      "matchJsonata": ["isVulnerabilityAlert != true"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "non-major dependencies"
+    },
+    {
+      "description": "Require dashboard approval before creating ordinary major update PRs.",
+      "matchJsonata": ["isVulnerabilityAlert != true"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Group ordinary development dependency updates separately.",
+      "matchJsonata": ["isVulnerabilityAlert != true"],
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "development dependencies"
+    },
+    {
+      "description": "Review selected runtime dependencies in individual PRs.",
+      "matchPackageNames": ["dompurify", "ws", "tar-stream", "yaml", "marked", "mermaid"],
+      "groupName": null
+    }
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["* 0-5 * * 1"]
+  }
+}

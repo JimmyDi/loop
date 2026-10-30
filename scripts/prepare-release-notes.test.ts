@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
 
-test("release notes include only the selected version and both registry identities", async () => {
+test("release notes include only the selected version and the npm identity", async () => {
   const root = await mkdtemp(join(tmpdir(), "loop-release-notes-"));
   try {
     await writeFile(
@@ -26,7 +26,8 @@ test("release notes include only the selected version and both registry identiti
     const notes = await readFile(join(root, "release-notes.md"), "utf8");
     expect(notes).toContain("### Added\n\n- Feature.");
     expect(notes).toContain("@loop-harness/loop@0.5.0");
-    expect(notes).toContain("GitHub Packages: `@loop-harness/loop@0.5.0`");
+    expect(notes).toContain("npm: `@loop-harness/loop@0.5.0`");
+    expect(notes).not.toContain("GitHub Packages");
     expect(notes).not.toContain("Pending");
     expect(notes).not.toContain("Previous");
     await writeFile(join(root, "CHANGELOG.md"), "## [Unreleased]\n");

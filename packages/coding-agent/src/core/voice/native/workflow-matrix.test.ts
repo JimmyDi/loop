@@ -70,6 +70,9 @@ test("manual workflow passes selected targets through validated prepare output a
   );
   const version = prepare.steps.find((item: { id?: string }) => item.id === "version");
   expect(version.run).toContain('tag="voice-v$version"');
+  expect(version.run).toContain("Bump VOICE_RELEASE_VERSION");
+  expect(version.run).toContain('REQUESTED_TAG\" != \"$tag');
+  expect(workflow.on.workflow_dispatch.inputs.release_tag.default).toBeUndefined();
   expect(workflow.jobs.publish.needs).toEqual(["prepare", "catalog"]);
   expect(workflow.jobs.publish.if).toBe("github.event_name == 'push'");
   expect(workflow.permissions.contents).toBe("read");
@@ -82,4 +85,5 @@ test("manual workflow passes selected targets through validated prepare output a
   expect(publish.run).toContain('if [[ -z "$GH_TOKEN" ]]');
   expect(publish.run).toContain('--target "$GITHUB_SHA"');
   expect(publish.run).toContain("--draft=false --latest=false");
+  expect(publish.run).toContain("Voice release already published; bump VOICE_RELEASE_VERSION.");
 });

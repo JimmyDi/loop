@@ -4,6 +4,14 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Added
+
+- Distribution: publish `@loop-harness/loop` to GitHub Packages alongside npm, then create a GitHub Release with version-specific changelog notes, the verified npm tarball and checksums. Name application releases `Loop vX.Y.Z — CLI, SDK & Web` and voice releases `Loop Voice vX.Y.Z — Local speech engine & models`.
+
+### Changed
+
+- Voice resources: advance the supported release to 1.0.1 and require a new semantic version for each public resource release. Reject tag/version mismatches and attempts to overwrite public assets; allow recovery only for drafts from the same source commit.
+
 ### Fixed
 
 - Web UI: preserve child project expansion and revealed chat counts across parent accordion toggles. Keep stacked sidebar headings and the scroll position stable when collapsing content, rather than revealing earlier Pinned and Chats lists.

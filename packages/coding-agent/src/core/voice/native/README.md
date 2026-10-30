@@ -57,9 +57,13 @@ retained licenses are included. Ordinary frontend and Agent changes do not trigg
 Each matching main push rebuilds all engine and model bundles using the semantic
 version in resources/release-version.ts, targeting that exact source commit.
 Bump major for incompatible contracts, minor for compatible features/models and
-patch for fixes before publishing changed resources. Reruns keep the
-same tag and replace same-name assets when that release already exists. This monitors checked-in inputs,
-not upstream releases; upstream updates require changing the pinned inputs first.
+patch for fixes before publishing changed resources. The current supported resource
+version is 1.0.1. Preparation rejects already public versions before building;
+publication checks again before uploading. Each changed resource release requires
+a new semantic version. Voice tags and optional manual release_tag inputs must
+match VOICE_RELEASE_VERSION exactly; manual runs default to that checked-in version.
+This monitors checked-in inputs, not upstream releases; upstream updates require
+changing the pinned inputs first.
 Manual runs accept a comma-separated targets allowlist, defaulting to
 darwin-arm64, and only prepare artifacts. It validates the list before generating
 the build matrix for selected macOS/Linux x64 and ARM64 or Windows x64 CPU bundles,
@@ -67,7 +71,11 @@ three model bundles, SHA-256 and expanded
 file manifests, and a published-catalog.ts candidate. It uploads CI artifacts
 for all entry points. Main and tag pushes additionally publish verified archives, manifests,
 SHA256SUMS and the catalog candidate to GitHub Releases. Publication stages a draft
-before making it public. Existing releases receive new verified archives and metadata with same-name replacement, followed by manifest.json last. Voice workflows run serially to prevent overlapping uploads. Replacement is not atomic: clients with an old manifest during publication may fail integrity checks and need to retry after refreshing resource discovery. Review failed
+before making it public, named `Loop Voice vX.Y.Z — Local speech engine & models`.
+Public releases cannot be overwritten by this workflow. Only failed drafts from
+the exact same source commit can be resumed, replacing draft assets and uploading
+manifest.json last. Earlier public versions retain their original downloads. Voice
+workflows run serially to prevent overlapping uploads. Review failed
 drafts before retrying. Voice releases are not marked as the latest application
 release. The workflow never publishes an npm package.
 Configure the repository Actions secret VOICE_RELEASE_TOKEN before publishing.
@@ -110,7 +118,7 @@ The builder and packers can also be run individually:
 
 ```bash
 node --import tsx packages/coding-agent/src/core/voice/native/prepare-engine.ts <engine-directory> <asset-directory>
-node --import tsx packages/coding-agent/src/core/voice/native/prepare-catalog.ts <complete-asset-directory> voice-v1.0.0
+node --import tsx packages/coding-agent/src/core/voice/native/prepare-catalog.ts <complete-asset-directory> voice-v1.0.1
 ```
 
 Both commands prepare local output; they do not upload it. Catalog preparation

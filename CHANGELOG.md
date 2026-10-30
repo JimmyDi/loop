@@ -14,6 +14,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Licensing: restore the complete standard MIT text in LICENSE and move the license scope notice to README with corrected brand-policy and font-license links, preserving the separate artwork and font terms.
+
 - Web UI: preserve child project expansion and revealed chat counts across parent accordion toggles. Keep stacked sidebar headings and the scroll position stable when collapsing content, rather than revealing earlier Pinned and Chats lists.
 
 - Web UI: label project-list pagination as Show more projects so it remains distinct from the last project's Show more chats action when both appear together.

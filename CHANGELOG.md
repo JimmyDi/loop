@@ -4,6 +4,14 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Fixed
+
+- Web UI: preserve child project expansion and revealed chat counts across parent accordion toggles. Keep stacked sidebar headings and the scroll position stable when collapsing content, rather than revealing earlier Pinned and Chats lists.
+
+- Web UI: label project-list pagination as Show more projects so it remains distinct from the last project's Show more chats action when both appear together.
+
+- Web UI: use compact 4px spacing above Pinned, Chats and Projects headings, including below New task, and keep it consistent when stacked during sidebar scrolling. Prevent accordion toggles from shifting the sidebar through scroll anchoring; section navigation preserves the same heading clearance. Place the Projects add action before its chevron and align all three section chevrons vertically. Section labels and chevrons reopen collapsed lists in place without scrolling. Expanded lists scroll to the first row, or collapse items immediately when the first list item is directly below its own heading, including before the heading sticks and with normal project-row margins.
+
 ## [0.4.0] - 2026-10-29
 
 ### Breaking Changes

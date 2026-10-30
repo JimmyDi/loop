@@ -49,6 +49,21 @@ test("sidebar lists are clipped below their headings and revealed on reverse scr
     });
     expect(pins.style.getPropertyValue("--sidebar-list-clip")).toBe("0px");
     expect(projects.style.getPropertyValue("--sidebar-list-clip")).toBe("0px");
+    let contentHeight = 400;
+    Object.defineProperty(scroll, "clientHeight", { value: 500 });
+    Object.defineProperty(scroll, "scrollHeight", {
+      get: () => contentHeight + (Number.parseFloat(scroll.style.paddingBottom) || 0),
+    });
+    scroll.style.paddingBottom = "400px";
+    scroll.scrollTop = 300;
+    fireEvent.scroll(scroll);
+    expect(scroll.style.paddingBottom).toBe("400px");
+    scroll.scrollTop = 100;
+    fireEvent.scroll(scroll);
+    expect(scroll.style.paddingBottom).toBe("200px");
+    contentHeight = 900;
+    fireEvent.scroll(scroll);
+    expect(scroll.style.paddingBottom).toBe("0px");
     ui.unmount();
   } finally {
     cleanup();

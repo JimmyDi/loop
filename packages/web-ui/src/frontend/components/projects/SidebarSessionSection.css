@@ -1,25 +1,25 @@
 .standalone-chats { display: contents; }
 .sidebar-session-heading {
   position: sticky;
-  top: 0;
+  top: var(--sidebar-heading-gap);
   z-index: 3;
   display: flex;
   align-items: center;
   min-height: var(--sidebar-heading-height);
-  margin: 18px 0 0;
+  margin: var(--sidebar-heading-gap) 0 0;
   padding: 0 12px;
   font-size: 14px;
   font-weight: 400;
   color: color-mix(in srgb, var(--ink-muted) 65%, transparent);
 }
 .sidebar-scroll:has(.pinned-sessions) .standalone-chats .sidebar-session-heading {
-  top: var(--sidebar-heading-height);
+  top: calc(var(--sidebar-heading-offset) + var(--sidebar-heading-gap));
 }
 .sidebar-scroll:has(.standalone-chats) .sidebar-heading {
-  top: var(--sidebar-heading-height);
+  top: calc(var(--sidebar-heading-offset) + var(--sidebar-heading-gap));
 }
 .sidebar-scroll:has(.pinned-sessions):has(.standalone-chats) .sidebar-heading {
-  top: calc(2 * var(--sidebar-heading-height));
+  top: calc(2 * var(--sidebar-heading-offset) + var(--sidebar-heading-gap));
 }
 .sidebar-session-heading .sidebar-projects-toggle svg { opacity: 0; }
 .sidebar-session-heading:hover .sidebar-projects-toggle svg,

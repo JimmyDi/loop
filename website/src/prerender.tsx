@@ -19,7 +19,10 @@ export const render = (base = import.meta.env.BASE_URL, language: Language = "zh
 
 export const languageBootstrap = (): string =>
   `(${initializeLanguage.toString()})(${browserLanguage.toString()}, ${JSON.stringify({
-    title: translations.title,
-    description: translations.description,
-    socialDescription: translations.socialDescription,
+    title: { en: translations.en.title, zh: translations.zh.title },
+    description: { en: translations.en.description, zh: translations.zh.description },
+    socialDescription: {
+      en: translations.en.socialDescription,
+      zh: translations.zh.socialDescription,
+    },
   }).replaceAll("<", "\\u003c")});`;

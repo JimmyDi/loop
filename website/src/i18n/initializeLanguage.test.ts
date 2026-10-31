@@ -32,9 +32,9 @@ it.each([
       language === "zh" ? "实现。" : "reality.",
     );
     expect(document.getElementById("initial-english")).toBeNull();
-    expect(document.title).toBe(translations.title[language]);
+    expect(document.title).toBe(translations[language].title);
     expect(document.querySelector('meta[name="description"]')?.getAttribute("content")).toBe(
-      translations.description[language],
+      translations[language].description,
     );
     expect(document.documentElement.dataset.languagePending).toBeUndefined();
     expect(root.querySelector('img[src*="product/storefront-"]')?.getAttribute("src")).toContain(

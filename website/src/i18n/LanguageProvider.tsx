@@ -22,16 +22,16 @@ export const LanguageProvider = ({
   );
   useEffect(() => {
     document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
-    document.title = translations.title[language];
+    document.title = translations[language].title;
     const metadata = [
       ['meta[name="description"]', "description"],
       ['meta[property="og:title"]', "title"],
       ['meta[property="og:description"]', "socialDescription"],
     ] as const;
     for (const [selector, key] of metadata) {
-      document.querySelector(selector)?.setAttribute("content", translations[key][language]);
+      document.querySelector(selector)?.setAttribute("content", translations[language][key]);
     }
   }, [language]);
-  const t = (key: TranslationKey): string => translations[key][language];
+  const t = (key: TranslationKey): string => translations[language][key];
   return <LanguageContext value={{ language, setLanguage, t }}>{children}</LanguageContext>;
 };

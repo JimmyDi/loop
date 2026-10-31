@@ -6,7 +6,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
-- Repository maintenance: configure Renovate with dependency updates at any time, separate development and selected runtime dependency PRs, dashboard approval for ordinary major upgrades, and weekly lockfile maintenance in Asia/Shanghai. Keep security fixes independent of ordinary approval gates, use Conventional Commit titles, and require manual merging.
+- Repository maintenance: configure Renovate with dependency updates at any time, separate development and selected runtime dependency PRs, dashboard approval for ordinary major upgrades, and weekly lockfile maintenance in Asia/Shanghai. Refresh Renovate branches when they fall behind the base branch. Keep security fixes independent of ordinary approval gates, use Conventional Commit titles, and require manual merging.
 
 - Distribution: create a GitHub Release after publishing `@loop-harness/loop` to npm, with version-specific changelog notes, the verified npm tarball and checksums. Name application releases `Loop vX.Y.Z — CLI, SDK & Web` and voice releases `Loop Voice vX.Y.Z — Local speech engine & models`.
 

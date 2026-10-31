@@ -4,6 +4,7 @@
   "timezone": "Asia/Shanghai",
   "semanticCommits": "enabled",
   "automerge": false,
+  "rebaseWhen": "behind-base-branch",
   "dependencyDashboard": true,
   "prConcurrentLimit": 5,
   "prHourlyLimit": 2,

@@ -4,7 +4,7 @@ packages:
 overrides:
   # Security floors for vulnerable peer/optional resolutions; retain other major versions.
   "undici@>=8.0.0 <8.12.2": 8.12.3
-  "zod@>=4.0.0 <4.6.6": 4.6.6
+  "zod@>=4.0.0 <4.6.6": 4.6.7
   # Mermaid's 0.16.x range cannot select the patched KaTeX; use the app's tested version.
   "mermaid>katex": 0.18.11
 allowBuilds:

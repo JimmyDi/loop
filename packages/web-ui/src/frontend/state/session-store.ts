@@ -3,7 +3,7 @@ import { create } from "zustand";
 import type { Cursor, Frame, SessionSnapshot, SessionHistoryPage } from "../../shared/protocol";
 import { projectTools } from "../../shared/tool-projection";
 import { pageSnapshot } from "../../shared/session-history";
-import { applyFrame } from "../../shared/session-projection";
+import { projectSessionFrame } from "./session-frame";
 
 export type SessionView = {
   snapshot?: SessionSnapshot;
@@ -15,6 +15,7 @@ export type SessionView = {
 type SessionsState = {
   views: Record<string, SessionView>;
   frame(frame: Frame): boolean;
+  frames(frames: readonly Frame[]): boolean;
   connection(id: string, connected: boolean): void;
   resync(id: string): void;
   prepend(id: string, page: SessionHistoryPage): boolean;
@@ -56,39 +57,15 @@ export const useSessions = create<SessionsState>((set, get) => ({
     }));
     return true;
   },
-  frame: (frame) => {
-    const previous = get().views[frame.sessionId];
-    const cursor = previous?.cursor;
-
-    if (
-      frame.type === "session.snapshot" &&
-      cursor?.streamId === frame.streamId &&
-      frame.seq < cursor.seq
-    )
-      return true;
-
-    if (frame.type !== "session.snapshot" && cursor) {
-      if (cursor.streamId !== frame.streamId || frame.seq > cursor.seq + 1) return false;
-
-      if (frame.seq <= cursor.seq) return true;
+  frame: (frame) => get().frames([frame]),
+  frames: (frames) => {
+    const views = { ...get().views };
+    for (const frame of frames) {
+      const view = projectSessionFrame(views[frame.sessionId], frame);
+      if (!view) return false;
+      views[frame.sessionId] = view;
     }
-
-    const snapshot = applyFrame(previous?.snapshot, frame);
-
-    if (!snapshot) return false;
-
-    set((state) => ({
-      views: {
-        ...state.views,
-        [frame.sessionId]: {
-          snapshot,
-          revision: previous?.revision,
-          connected: true,
-          cursor: { streamId: frame.streamId, seq: frame.seq },
-        },
-      },
-    }));
-
+    if (frames.length) set({ views });
     return true;
   },
   connection: (id, connected) =>

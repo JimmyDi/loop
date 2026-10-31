@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { Window } from "happy-dom";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -7,6 +7,7 @@ import type { Message } from "../../../shared/protocol";
 import "../../i18n/setup";
 import { AssistantMessage } from "./AssistantMessage";
 import { projectTools } from "../../../shared/tool-projection";
+import * as markdownRenderer from "../../lib/markdown";
 
 test("AssistantMessage renders the session state without unsupported controls", () => {
   const client = new QueryClient();
@@ -152,6 +153,51 @@ test("authored updates stay visible and opened tool rows survive growing drafts 
     });
     expect(group.textContent).toContain("Cancelled");
     expect(ui.container.querySelectorAll(".tool-card")).toHaveLength(2);
+  } finally {
+    cleanup();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("unrelated tool updates do not rerender completed assistant content", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, cleanup } = await import("@testing-library/react/pure");
+  const message: Extract<Message, { role: "assistant" }> = {
+    role: "assistant",
+    content: [{ type: "text", text: "Completed example" }],
+    api: "openai-completions",
+    provider: "test",
+    model: "test",
+    stopReason: "stop",
+    timestamp: 0,
+    usage: {
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+      totalTokens: 0,
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+    },
+  };
+  try {
+    const parse = vi.spyOn(markdownRenderer, "renderMarkdown");
+    const ui = render(<AssistantMessage message={message} tools={{}} />);
+    const count = parse.mock.calls.length;
+    const markdown = ui.container.querySelector(".markdown-text")!;
+    markdown.setAttribute("data-retained", "yes");
+    ui.rerender(
+      <AssistantMessage
+        message={message}
+        tools={{ unrelated: { id: "unrelated", name: "read", status: "running" } }}
+      />,
+    );
+    expect(ui.container.querySelector(".markdown-text")).toBe(markdown);
+    expect(markdown.getAttribute("data-retained")).toBe("yes");
+    expect(parse).toHaveBeenCalledTimes(count);
+    parse.mockRestore();
   } finally {
     cleanup();
     Object.assign(globalThis, previous);

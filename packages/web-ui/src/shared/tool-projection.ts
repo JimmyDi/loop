@@ -63,6 +63,7 @@ export const updateTools = (tools: Record<string, ToolView>, event: SessionEvent
 
   if ("message" in event) {
     const additions = projectTools([event.message]);
+    if (!Object.keys(additions).length) return tools;
 
     for (const [id, value] of Object.entries(additions)) {
       additions[id] = {

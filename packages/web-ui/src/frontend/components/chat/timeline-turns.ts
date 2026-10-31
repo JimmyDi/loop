@@ -19,6 +19,7 @@ export const groupTimelineTurns = (
   breakBefore?: number | readonly number[],
 ): TimelineTurn[] => {
   const turns: TimelineTurn[] = [];
+  const breaks = new Set(typeof breakBefore === "number" ? [breakBefore] : breakBefore);
   let userMessageIndex: number | undefined;
 
   for (const [index, message] of messages.entries()) {
@@ -32,10 +33,7 @@ export const groupTimelineTurns = (
 
     const previous = turns.at(-1);
 
-    if (
-      previous?.type === "assistant" &&
-      !(Array.isArray(breakBefore) ? breakBefore.includes(index) : index === breakBefore)
-    )
+    if (previous?.type === "assistant" && !breaks.has(index))
       previous.messages.push({ index, message });
     else
       turns.push({

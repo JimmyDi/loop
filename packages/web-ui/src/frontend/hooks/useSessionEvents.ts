@@ -6,6 +6,7 @@ import { checkRemoteSession } from "../lib/remote-session";
 import { recoveringEvents } from "../lib/recovering-events";
 import type { Frame, SessionSummary } from "../../shared/protocol";
 import { useSessions } from "../state/session-store";
+import { sessionFrameBuffer } from "../lib/session-frame-buffer";
 
 export const useSessionEvents = (id?: string): void => {
   const query = useQueryClient();
@@ -15,6 +16,13 @@ export const useSessionEvents = (id?: string): void => {
     useSessions.getState().latest(id);
 
     let disposed = false;
+    const buffer = sessionFrameBuffer(
+      (frames) =>
+        frames.every((frame) => frame.sessionId === id) && useSessions.getState().frames(frames),
+      () => useSessions.getState().resync(id),
+      (callback) => window.requestAnimationFrame(callback),
+      (handle) => window.cancelAnimationFrame(handle),
+    );
     const disconnect = () => {
       const view = useSessions.getState().views[id];
       const snapshot = view?.connected ? view.snapshot : undefined;
@@ -55,34 +63,25 @@ export const useSessionEvents = (id?: string): void => {
         if (disposed) return;
         try {
           const frame = JSON.parse(event.data) as Frame;
-          let accepted = false;
-          const apply = () => {
-            accepted = frame.sessionId === id && useSessions.getState().frame(frame);
-          };
-
-          // Commit starts so a burst of results cannot skip the running icon's effect.
-          if (frame.type === "loop.event" && frame.event.type === "tool_execution_start") {
-            flushSync(apply);
-          } else {
-            apply();
-          }
-
-          if (!accepted) {
-            useSessions.getState().resync(id);
-
-            return;
-          }
+          // Preserve synchronous tool-start effects, flushing older drafts first.
+          if (frame.type === "loop.event" && frame.event.type === "tool_execution_start")
+            flushSync(() => buffer.push(frame));
+          else buffer.push(frame);
         } catch {
+          buffer.dispose();
           useSessions.getState().resync(id);
         }
       },
       disconnected: () => {
+        buffer.flush();
         disconnect();
         checkRemoteSession();
       },
     });
 
     return () => {
+      buffer.flush();
+      buffer.dispose();
       disposed = true;
       source.close();
       disconnect();

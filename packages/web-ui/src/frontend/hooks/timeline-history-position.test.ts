@@ -14,7 +14,7 @@ test("holds the visible message despite unrelated growth below it and restores s
     let height = 800;
     element.scrollTop = 50;
     element.style.overflowY = "auto";
-    element.getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
+    element.getBoundingClientRect = () => new window.DOMRect(0, 0, 100, 100);
     anchor.getBoundingClientRect = () => ({ top: anchorY, bottom: anchorY + 80 }) as DOMRect;
     Object.defineProperty(element, "scrollHeight", { get: () => height });
     const position = holdHistoryPosition(element);
@@ -37,4 +37,21 @@ test("holds the visible message despite unrelated growth below it and restores s
   } finally {
     await window.happyDOM.close();
   }
+});
+
+test("virtual history restores the first mounted row after prepend rather than the list wrapper", () => {
+  const window = new Window();
+  const element = window.document.createElement("div");
+  element.innerHTML =
+    '<div class="timeline-content"><div class="virtual-list"><div class="virtual-spacer"></div><div class="virtual-row">Visible row</div></div></div>';
+  const row = element.querySelector(".virtual-row")!;
+  let rowTop = 30;
+  element.getBoundingClientRect = () => new window.DOMRect(0, 0, 100, 100);
+  row.getBoundingClientRect = () => new window.DOMRect(0, rowTop, 100, 100);
+  element.scrollTop = 80;
+  const held = holdHistoryPosition(element as unknown as HTMLDivElement);
+  rowTop += 480;
+  held.restore(true);
+  expect(element.scrollTop).toBe(560);
+  expect(element.style.overflowY).toBe("");
 });

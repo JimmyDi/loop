@@ -88,3 +88,41 @@ test("history prepends reject stale pages and preserve cursor before resetting t
   expect(useSessions.getState().views.paged!.snapshot!.history?.start).toBe(5);
   useSessions.setState({ views: {} });
 });
+
+test("frame batches publish one update and reject sequence gaps atomically", () => {
+  const snapshot: SessionSnapshot = {
+    sessionId: "batch",
+    streamId: "stream",
+    workspaceId: null,
+    model: { provider: "test", id: "test", name: "Test" },
+    operation: "idle",
+    tools: {},
+    state: {
+      messages: [],
+      isRunning: false,
+      hasPendingSave: false,
+      outcome: "idle",
+      listenerErrors: [],
+    },
+  };
+  const base = { sessionId: "batch", streamId: "stream" };
+  useSessions.setState({ views: {} });
+  useSessions.getState().frame({ ...base, seq: 0, type: "session.snapshot", snapshot });
+  let updates = 0;
+  const unsubscribe = useSessions.subscribe(() => updates++);
+  const accepted = (seq: number): Frame => ({
+    ...base,
+    seq,
+    type: "run.accepted",
+    requestId: "example",
+    runId: "run",
+  });
+  expect(useSessions.getState().frames([accepted(1), accepted(2)])).toBe(true);
+  expect(updates).toBe(1);
+  const previous = useSessions.getState().views.batch;
+  expect(useSessions.getState().frames([accepted(3), accepted(5)])).toBe(false);
+  expect(useSessions.getState().views.batch).toBe(previous);
+  expect(updates).toBe(1);
+  unsubscribe();
+  useSessions.setState({ views: {} });
+});

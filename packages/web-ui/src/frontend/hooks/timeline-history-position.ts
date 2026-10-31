@@ -3,7 +3,8 @@ export const holdHistoryPosition = (element: HTMLDivElement) => {
   const height = element.scrollHeight;
   const viewportTop = element.getBoundingClientRect().top;
   const content = element.querySelector(".timeline-content") ?? element;
-  const anchor = Array.from(content.children).find(
+  const candidates = content.querySelectorAll(".virtual-list > .virtual-row");
+  const anchor = Array.from(candidates.length ? candidates : content.children).find(
     (child) => child.getBoundingClientRect().bottom > viewportTop,
   );
   const anchorTop = anchor?.getBoundingClientRect().top;

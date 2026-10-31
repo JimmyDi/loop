@@ -1,0 +1,20 @@
+.virtual-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.virtual-row {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 40px;
+  overflow-anchor: none;
+}
+.virtual-row > .user-message {
+  align-self: flex-end;
+}
+.virtual-spacer {
+  flex: 0 0 auto;
+  overflow-anchor: none;
+}

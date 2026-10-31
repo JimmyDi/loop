@@ -1,4 +1,5 @@
 import type { Cursor, Frame, FrameBody, SessionSnapshot } from "../shared/protocol";
+import { pageSnapshot } from "../shared/session-history";
 
 export class SessionEvents {
   readonly streamId = crypto.randomUUID();
@@ -17,7 +18,9 @@ export class SessionEvents {
 
   publish(body: FrameBody): void {
     const frame = structuredClone({
-      ...body,
+      ...(body.type === "session.state" || body.type === "session.snapshot"
+        ? { ...body, snapshot: pageSnapshot(body.snapshot) }
+        : body),
       sessionId: this.sessionId,
       streamId: this.streamId,
       seq: ++this.seq,
@@ -51,7 +54,7 @@ export class SessionEvents {
         sessionId: this.sessionId,
         streamId: this.streamId,
         seq: this.seq,
-        snapshot: structuredClone(this.snapshot()),
+        snapshot: structuredClone(pageSnapshot(this.snapshot())),
       });
     }
 

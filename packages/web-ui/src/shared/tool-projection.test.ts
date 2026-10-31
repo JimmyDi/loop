@@ -116,3 +116,15 @@ test("tool end and message end replace one card, preserving arguments", () => {
   expect(completed.call?.args).toEqual({ path: "config" });
   expect(projectTools([{ ...result, isError: true }]).call?.status).toBe("error");
 });
+
+test("text and thinking updates preserve the tool map identity", () => {
+  const tools = { example: { id: "example", name: "read", status: "success" as const } };
+  for (const content of [
+    [],
+    [{ type: "text", text: "Growing response" }],
+    [{ type: "thinking", thinking: "Thinking" }],
+  ]) {
+    const message = { role: "assistant", content } as Extract<Message, { role: "assistant" }>;
+    expect(updateTools(tools, { type: "message_start", message })).toBe(tools);
+  }
+});

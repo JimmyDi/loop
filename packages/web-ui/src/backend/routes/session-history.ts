@@ -1,4 +1,4 @@
-import { pageSnapshot, roundStart } from "../../shared/session-history";
+import { roundStart } from "../../shared/session-history";
 import type { SessionController } from "../session-controller";
 import { HttpError } from "../http/errors";
 import { eventResponse } from "../http/sse";
@@ -41,16 +41,7 @@ export const historyRoute = (
           (url.searchParams.get("approvals") === "1"
             ? controller.approvals
             : controller.events
-          ).connect(
-            (frame) =>
-              listener(
-                frame.type === "session.snapshot" || frame.type === "session.state"
-                  ? { ...frame, snapshot: pageSnapshot(frame.snapshot) }
-                  : frame,
-              ),
-            cursor,
-            close,
-          ),
+          ).connect(listener, cursor, close),
       },
       request,
     );

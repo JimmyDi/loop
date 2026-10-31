@@ -46,7 +46,21 @@ test("list subscribers receive ordered identities and resynchronize on every con
 });
 
 test("list watchers ignore token and tool traffic and are released on disposal or shutdown", () => {
-  const snapshot = { sessionId: "s" } as SessionSnapshot;
+  const snapshot: SessionSnapshot = {
+    sessionId: "s",
+    streamId: "stream",
+    workspaceId: null,
+    model: { provider: "test", id: "test", name: "Test" },
+    operation: "idle",
+    tools: {},
+    state: {
+      messages: [],
+      isRunning: false,
+      hasPendingSave: false,
+      outcome: "idle",
+      listenerErrors: [],
+    },
+  };
   const session = new SessionEvents("s", () => snapshot);
   const events = new ListEvents();
   const received: ListFrame[] = [];

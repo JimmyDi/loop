@@ -18,6 +18,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Web UI: reduce long-session rendering with a variable-height windowed list that mounts only nearby message and tool rows, uses aggregate height spacers and preserves history anchors while retaining disclosure choices, indexing timeline metadata, reusing unchanged tool state, batching streaming draft commits per paint and paging event snapshots before copying or buffering them. Preserve history anchors, final results and synchronous tool-start feedback. Measure mounted rows before paint, bind scrolling after parent viewport refs are ready and reconcile programmatic jumps so long replies and message ranges do not disappear into empty spacers.
+
 - Dependencies: resolve known vulnerabilities in runtime transitive dependencies and the Vitest mocker by updating compatible locked versions and both Vitest declarations. Restrict Undici and Zod overrides to affected version ranges, and use the application's patched KaTeX version for Mermaid's otherwise vulnerable nested dependency.
 
 - Distribution: exclude voice resource tags from application release triggers and remove GitHub Packages publication; GitHub Release creation now waits only for npm publication.

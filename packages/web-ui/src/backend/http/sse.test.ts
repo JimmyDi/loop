@@ -6,7 +6,21 @@ import { ListEvents } from "../list-events";
 import { eventResponse } from "./sse";
 
 test("SSE carries cursors and cancels cleanly without terminating the session stream", async () => {
-  const snapshot = { sessionId: "a" } as SessionSnapshot;
+  const snapshot: SessionSnapshot = {
+    sessionId: "a",
+    streamId: "stream",
+    workspaceId: null,
+    model: { provider: "test", id: "test", name: "Test" },
+    operation: "idle",
+    tools: {},
+    state: {
+      messages: [],
+      isRunning: false,
+      hasPendingSave: false,
+      outcome: "idle",
+      listenerErrors: [],
+    },
+  };
   const events = new SessionEvents("a", () => snapshot);
   const response = eventResponse(events, new Request("http://localhost/api/events"));
   const reader = response.body!.getReader();

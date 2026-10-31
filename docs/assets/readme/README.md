@@ -63,6 +63,42 @@ canvas and the fixed prompt. This reduces download size without removing the
 typing or dust effects. Network and GitHub image-proxy buffering can still delay
 the first display; this is not a guaranteed preloaded placeholder.
 
+## Repository social preview
+
+[`social-preview.png`](social-preview.png) is an opaque 1280 × 640 PNG below 1 MB,
+prepared for GitHub Settings → Social preview → Edit → Upload an image.
+A near-black-to-navy radial background carries the white Loop mark and Montserrat
+wordmark at the upper left. Three cyan wireframe volumes
+and a rectangular outline sit behind a 1.55-turn magenta-to-cyan spiral on the right.
+The spiral widens and its stroke thickens toward the cyan outer end; layered blur
+adds a soft neon glow to the geometry and spiral. The image contains only the brand
+name, without product screenshots or supporting copy.
+The icon and wordmark are vertically centered using their visible artwork bounds.
+The 64-pixel mark begins 120 pixels from the left and 148 pixels from the top,
+keeping the brand inside the template's safe area. Decorative geometry approaches
+the bottom edge and may be cropped by sharing services without losing the brand.
+
+Uploading is a separate manual step; merging these files does not change GitHub's
+repository settings. Upload the PNG itself, without template guides or borders.
+
+Regenerate with Python 3 and Pillow, using the repository's existing assets:
+
+```bash
+python3 docs/assets/readme/generate-social-preview.py
+```
+
+The [exporter](generate-social-preview.py) uses Pillow to draw the background,
+wireframes and spiral, then composites the existing
+[white Loop mark](../../../packages/web-ui/src/docs/assets/loop-brand/png/loop-mark-white-1024.png)
+and the bundled [Montserrat font](../../../website/public/fonts/montserrat-latin-wght-normal.woff2).
+It renders at twice the final dimensions and downsamples to 1280 × 640. It uses
+only local files, requires no model or network access, adds no application dependency
+and writes an RGB PNG without source metadata. Review the exported image and
+confirm its size remains below 1 MB after regeneration.
+After uploading, open the repository page's `og:image` URL and confirm the image
+content; its hostname alone does not establish success. Sharing services can cache
+older previews. The icon policy and font license below also apply to this composition.
+
 ## Product images and rights
 
 `product-light.webp` and `product-dark.webp` are copies of the reviewed English

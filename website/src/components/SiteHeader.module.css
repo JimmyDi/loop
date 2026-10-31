@@ -47,6 +47,12 @@
   pointer-events: none;
 }
 
+.primary {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
 .actions {
   display: flex;
   align-items: center;
@@ -65,6 +71,55 @@
   border-radius: 50%;
   background: var(--switch-track);
   color: var(--switch-ink);
+}
+
+.navigation {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.navigation a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: var(--language-switch-height);
+  padding-inline: 14px;
+  border: 1px solid var(--switch-edge);
+  border-radius: 999px;
+  background: var(--switch-track);
+  color: var(--switch-ink);
+  white-space: nowrap;
+}
+
+.navigation a:hover {
+  background: var(--switch-selection);
+  color: var(--switch-active-ink);
+}
+
+.navigation a:focus-visible {
+  outline: 2px solid var(--switch-active-ink);
+  outline-offset: 3px;
+}
+
+@media (max-width: 500px) {
+  .navigation {
+    gap: 6px;
+    font-size: 11px;
+  }
+  .navigation a {
+    padding-inline: 8px;
+  }
+  .actions {
+    gap: 8px;
+  }
+  .actions > :last-child {
+    width: 88px;
+  }
+  .github {
+    display: none;
+  }
 }
 
 .github:hover {
@@ -94,6 +149,17 @@
     height: calc(56px - 8px * var(--header-progress));
     gap: 16px;
     padding-inline: calc(12px * var(--header-progress));
+  }
+}
+
+@media (max-width: 500px) {
+  .primary {
+    gap: 10px;
+  }
+
+  .bar {
+    gap: 8px;
+    padding-inline: calc(8px * var(--header-progress));
   }
 }
 

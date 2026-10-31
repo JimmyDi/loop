@@ -1,4 +1,7 @@
-let assetBase = import.meta.env.BASE_URL;
+let assetBase =
+  typeof document !== "undefined" && document.querySelector("base")
+    ? new URL(document.baseURI).pathname
+    : import.meta.env.BASE_URL;
 
 export const setPrerenderAssetBase = (base: string): void => {
   assetBase = base.endsWith("/") ? base : base + "/";

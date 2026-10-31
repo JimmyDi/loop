@@ -1,6 +1,7 @@
 import { useRef } from "react";
 
 import { useLanguage } from "../i18n/useLanguage";
+import { asset } from "../assets";
 import { Brand } from "./Brand";
 import { LanguageSwitch } from "./LanguageSwitch";
 import styles from "./SiteHeader.module.css";
@@ -13,7 +14,13 @@ export const SiteHeader = () => {
   return (
     <header className={styles["site-header"]} ref={headerRef}>
       <div className={styles.bar}>
-        <Brand />
+        <div className={styles.primary}>
+          <Brand />
+          <nav className={styles.navigation} aria-label={t("mainNavigation")}>
+            <a href={asset("docs/")}>{t("docs")}</a>
+            <a href={asset("changelog/")}>{t("changelog")}</a>
+          </nav>
+        </div>
         <div className={styles.actions}>
           <a
             className={styles.github}

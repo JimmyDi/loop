@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 
 import { validateRelease } from "./release.ts";
+import { checkReleaseSnapshot } from "./release-content/check-snapshot.ts";
 
 if (process.env.GITHUB_REF_TYPE !== "tag") throw new Error("Releases require a tag push.");
 
@@ -13,6 +15,8 @@ validateRelease(
   process.env.GITHUB_REF_NAME ?? "",
   process.env.GITHUB_REPOSITORY ?? "",
 );
+
+await checkReleaseSnapshot(fileURLToPath(new URL("../", import.meta.url)), manifest.version);
 
 const response = await fetch(
   `https://registry.npmjs.org/${encodeURIComponent(manifest.name)}/${manifest.version}`,

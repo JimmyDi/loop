@@ -1,8 +1,10 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+import { contentPlugin } from "./scripts/content-plugin";
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), contentPlugin()],
   server: {
     fs: {
       strict: true,

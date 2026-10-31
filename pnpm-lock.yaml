@@ -212,6 +212,9 @@ importers:
 
   website:
     dependencies:
+      marked:
+        specifier: ^18.0.14
+        version: 18.0.14
       react:
         specifier: ^19.3.0
         version: 19.3.0

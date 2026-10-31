@@ -46,6 +46,7 @@ it("keeps website imports isolated, statically resolvable and free of cycles", (
           expect(resolved?.includes(".test.")).toBe(false);
           if (resolved && /\.tsx?$/.test(resolved)) edges.push(resolved);
         } else {
+          if (name === "virtual:release-content") return;
           expect(name.startsWith("@loop/") || name.startsWith("node:")).toBe(false);
           const dependency = name.startsWith("@")
             ? name.split("/").slice(0, 2).join("/")

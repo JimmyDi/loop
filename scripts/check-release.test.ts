@@ -18,6 +18,11 @@ test.each([
       await mkdir(join(root, "scripts"));
       for (const name of ["check-release.mjs", "release.ts"])
         await copyFile(new URL(name, import.meta.url), join(root, "scripts", name));
+      await mkdir(join(root, "scripts/release-content"));
+      await writeFile(
+        join(root, "scripts/release-content/check-snapshot.ts"),
+        "export const checkReleaseSnapshot = async () => {};\n",
+      );
       await writeFile(
         join(root, "package.json"),
         JSON.stringify({

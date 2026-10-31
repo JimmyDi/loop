@@ -6,6 +6,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
+- Website: add latest-release Docs and historical Changelog pages with bilingual Docs/文档 and Changelog/更新日志 navigation beside the left-aligned brand. Generate documentation and notes during release preparation, reject stale snapshots, and expose website content only after npm confirms publication. Keep only the newest published documentation with no version selector. Switch Home, Docs, Changelog, documentation articles and full release notes without reloading the page, retaining navigation and visible content during loading and supporting browser history.
+
 - Local development: add `pnpm run sync` to install workspace dependencies with a frozen lockfile, failing when the lockfile is missing or inconsistent with package manifests.
 
 - Repository maintenance: configure Renovate with dependency updates at any time, separate development and selected runtime dependency PRs, dashboard approval for ordinary major upgrades, and weekly lockfile maintenance in Asia/Shanghai. Refresh Renovate branches when they fall behind the base branch. Keep security fixes independent of ordinary approval gates, use Conventional Commit titles, and require manual merging.

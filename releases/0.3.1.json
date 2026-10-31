@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "version": "0.3.1",
+  "date": "2026-10-17",
+  "notes": "### Changed\n\n- CLI, SDK and Web: publish the 0.3 feature set with local execution traces and session-linked trace cleanup. See the 0.3.0 notes below for the complete feature changes; 0.3.0 was not published to npm.",
+  "title": "Loop 0.3.1",
+  "summary": "Publish Loop on npm as @loop-harness/loop with CLI, SDK and Web in one package.",
+  "pages": []
+}

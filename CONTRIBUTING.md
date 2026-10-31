@@ -12,6 +12,14 @@ Before an authorized PR creation and before pushing its content, check the compl
 
 ## Changelog
 
+During release preparation, generate and review the matching documentation snapshot with
+`pnpm release:content "Release highlights"` after finalizing source docs and dated notes.
+See [release content lifecycle](docs/releases.md).
+
+Agents must execute this step automatically during explicitly requested release preparation
+or an authorized application release, following [release preparation instructions](AGENTS.md#release-preparation).
+Review the snapshot before building or packaging; regenerate after source edits.
+
 The root [CHANGELOG.md](CHANGELOG.md) tracks changes across Agent, coding-agent, and Web UI. Keep exactly one `Unreleased` section at the top, followed by releases in reverse chronological order. Update that section alongside features, fixes, and compatibility changes in the same PR. Agent instructions in [AGENTS.md](AGENTS.md#changelog-maintenance) make this part of completing the task, without a separate reminder.
 
 Use the applicable categories in order: Breaking Changes, Added, Changed, Fixed, Removed. Write concise English entries describing the effect on users or API consumers, identifying the affected surface. Include migration guidance for breaking changes. Refine the existing entry as a PR evolves; do not add one entry per edit or commit. Preserve unrelated entries, omit empty categories, and use only verified public issue/PR links.

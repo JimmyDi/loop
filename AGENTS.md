@@ -74,6 +74,13 @@
 - Keep all new entries under Unreleased. Never invent historical releases or infer a release date from `package.json`. Existing released sections are immutable.
 - Only when release preparation is explicitly requested, move accumulated entries to a new `## [X.Y.Z] - YYYY-MM-DD` section immediately below Unreleased using the confirmed release version and date, and leave a fresh, empty `## [Unreleased]` at the top. Changelog maintenance does not authorize version bumps, Git commands, commits, tags, pushes, PRs, or publishing.
 
+## Release preparation
+
+- When the user explicitly requests release preparation or authorizes an application release, generate release content automatically as part of that task; do not wait for a separate reminder or confirmation for this local step.
+- After the confirmed package version, dated CHANGELOG.md release section and source documentation are finalized, run `pnpm release:content "Concise release highlights"` from the repository root. Write concise English highlights based only on that release's implemented behavior.
+- Review releases/X.Y.Z.json against the final release notes and documentation before building or packaging. Regenerate it if those sources change, and require the existing snapshot validation to pass before publication. CI validates committed content; it does not generate the snapshot for the agent.
+- Snapshot generation does not authorize additional version changes, commits, tags, pushes or publication beyond the user's requested release scope. Keep public website content restricted to npm-confirmed releases.
+
 ## Validation
 
 - Default to targeted tests covering the changed behavior: run `pnpm exec vitest run <affected test files>`, including directly affected consumers and regression tests. Do not run the full repository suite by default or merely because a task is finishing or a PR is being prepared.

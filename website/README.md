@@ -1,6 +1,11 @@
 # Loop website
 
-An independently maintained React marketing site with CSS Modules and build-time static HTML. Source, bilingual copy, styles and assets live in this directory. The site does not import Loop application packages or call model or application APIs.
+An independently maintained React website with CSS Modules and build-time static HTML. The
+homepage uses reviewed bilingual marketing copy. Docs follows only the latest npm release
+without a version selector; Docs and full release-note navigation keep the page mounted while loading and
+supports browser Back/Forward. Changelog retains release history. They consume
+release snapshots through build tooling without importing application packages or calling
+model/application APIs. See [release content lifecycle](../docs/releases.md).
 
 ## Development
 
@@ -41,7 +46,10 @@ Deploy only `website/dist/` to a static host. No server, credentials or environm
 
 The [Website workflow](../.github/workflows/website.yml) checks types, formatting, tests and the production build on pull requests. PR builds do not deploy. On `main`, the workflow checks the merged commit and deploys that exact artifact to GitHub Pages. A failed check or build prevents deployment.
 
-Automatic runs respond to changes in `website/`, the website workflow and shared dependency manifests or lockfile. Manual runs are supported; only `main` deploys. The workflow installs the website workspace and does not build Loop or publish an npm package.
+Automatic runs respond to website/release-content changes, shared manifests and successful
+Release workflow completion. Manual retries are supported. Public builds use main and verify
+versions against npm before rendering; PR builds never deploy. The workflow installs only
+the website workspace and does not build Loop or publish an npm package.
 
 One-time repository setup:
 
@@ -61,7 +69,9 @@ GitHub supplies deployment credentials. Build jobs have read-only repository acc
 - The interface section places centered copy above an 880-pixel command workbench. Its entry-choice sentence starts on a separate line. Web, CLI and SDK tabs share a fixed-height panel with internal code scrolling. Web shows the startup command, CLI shows interactive DeepSeek startup, and SDK shows a complete DeepSeek call with cleanup. Terminal panels remain dark; TypeScript uses theme-aware CSS syntax colors without a highlighting dependency. Review examples and documentation links manually when contracts change.
 - The footer follows the interface section and opens local privacy and terms dialogs. External documentation links open in new tabs.
 
-Product changes do not regenerate website copy, examples or assets. The site does not run models, tools, configuration commands or the displayed code examples.
+Product changes do not regenerate homepage copy, examples or assets. Published Docs and
+Changelog update after successful releases; working-tree docs and Unreleased entries never
+become website content. The site does not run displayed code examples.
 
 ## Product media
 
@@ -96,6 +106,8 @@ Shared Brand, ExternalLink, SectionHeading, FeatureCard and CopyCommand componen
 
 The website architecture checks cover colocated styles/tests, a 150-line component limit, static local imports, declared dependencies and cycles. Translation dictionaries are data. No website module is imported by the application, and website code does not import application packages.
 
-Repository integration is limited to workspace registration and the shared lockfile, the independent website workflow, the root README link, the root formatter exclusion and Website entries in the root Changelog. Application builds, exports, package contents, type checks and test discovery exclude the website. Keep application feature work separate when selecting files or shared-file changes for a future commit.
+Repository integration includes build-time release snapshots and tooling, workspace registration,
+the shared lockfile and the independent website workflow. Application runtime and SDK never
+import website code. Application builds and published package contents exclude website assets.
 
 [The build script](scripts/build.mjs) runs client and temporary server builds, renders [prerender.tsx](src/prerender.tsx) into the HTML template, and removes temporary output in a finally block. Only client assets and static HTML remain in `dist`; no server is deployed.

@@ -9,6 +9,7 @@ export const translations = {
     en: "A local-first, open-source coding harness. Your projects, your models, your way of working.",
   },
   home: { zh: "Loop 首页", en: "Loop home" },
+  githubRepository: { zh: "Loop GitHub 仓库", en: "Loop GitHub repository" },
   footerNavigation: { zh: "页脚导航", en: "Footer navigation" },
   languageSwitcher: { zh: "网站语言", en: "Website language" },
   skip: { zh: "跳到主要内容", en: "Skip to main content" },

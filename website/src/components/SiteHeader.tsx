@@ -1,11 +1,13 @@
 import { useRef } from "react";
 
+import { useLanguage } from "../i18n/useLanguage";
 import { Brand } from "./Brand";
 import { LanguageSwitch } from "./LanguageSwitch";
 import styles from "./SiteHeader.module.css";
 import { useHeaderScroll } from "./useHeaderScroll";
 
 export const SiteHeader = () => {
+  const { t } = useLanguage();
   const headerRef = useRef<HTMLElement>(null);
   useHeaderScroll(headerRef);
   return (
@@ -18,8 +20,8 @@ export const SiteHeader = () => {
             href="https://github.com/JimmyDi/loop"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Loop GitHub"
-            title="Loop GitHub"
+            aria-label={t("githubRepository")}
+            title={t("githubRepository")}
           >
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
               <path

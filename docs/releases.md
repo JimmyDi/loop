@@ -5,6 +5,13 @@ documentation and CHANGELOG.md remain authoring sources, never direct public web
 
 ## Prepare a version
 
+For explicitly requested release preparation or an authorized application release, the agent
+must generate the snapshot automatically under [release preparation instructions](../AGENTS.md#release-preparation).
+Finalize the confirmed version, dated notes and source docs first, then generate concise
+English highlights and review the snapshot before building or packaging. Regenerate after
+source changes and require snapshot validation before publication. CI validates committed
+snapshots; it does not generate them. No separate reminder is needed.
+
 After explicitly preparing the package version and dated changelog section, update and review
 the documentation, then run from the repository root:
 

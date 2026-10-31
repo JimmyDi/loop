@@ -12,5 +12,5 @@ type LanguageState = {
 export const LanguageContext = createContext<LanguageState>({
   language: "zh",
   setLanguage: () => {},
-  t: (key) => translations[key].zh,
+  t: (key) => translations.zh[key],
 });

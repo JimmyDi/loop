@@ -24,6 +24,7 @@ test("Mermaid renders sanitized diagrams, serializes themes and recovers from fa
           "flowchart LR\\n A[Start] --> B[End]",
           "sequenceDiagram\\n Alice->>Bob: Hello",
           "classDiagram\\n Animal <|-- Duck",
+          'flowchart LR\\n A["$$x^2$$"] --> B[End]',
         ];
         try {
           const diagrams = await Promise.all(sources.map((source, index) => renderMermaid(source, index === 1, signal)));
@@ -35,10 +36,11 @@ test("Mermaid renders sanitized diagrams, serializes themes and recovers from fa
             expect(root.querySelector("script, foreignObject, a")).toBeNull();
             ids.push(root.querySelector("svg").id);
           }
-          expect(new Set(ids).size).toBe(3);
+          expect(new Set(ids).size).toBe(4);
           expect(diagrams[0]).toContain("Start");
           expect(diagrams[1]).toContain("Hello");
           expect(diagrams[2]).toContain("Animal");
+          expect(diagrams[3]).toContain("katex");
           const dark = await renderMermaid(sources[0], true, signal);
           expect(dark.replaceAll(/loop-mermaid-\\d+/g, "diagram")).not.toBe(diagrams[0].replaceAll(/loop-mermaid-\\d+/g, "diagram"));
           const { default: mermaid } = await import("mermaid");

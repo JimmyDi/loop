@@ -18,6 +18,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Dependencies: resolve known vulnerabilities in runtime transitive dependencies and the Vitest mocker by updating compatible locked versions and both Vitest declarations. Restrict Undici and Zod overrides to affected version ranges, and use the application's patched KaTeX version for Mermaid's otherwise vulnerable nested dependency.
+
 - Distribution: exclude voice resource tags from application release triggers and remove GitHub Packages publication; GitHub Release creation now waits only for npm publication.
 
 - Licensing: restore the complete standard MIT text in LICENSE and move the license scope notice to README with corrected brand-policy and font-license links, preserving the separate artwork and font terms.

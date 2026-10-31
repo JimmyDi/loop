@@ -25,8 +25,8 @@ export const ProviderIllustration = () => {
             <img
               src={asset(`provider-demo/${frame.image}-${language}-light.webp`)}
               alt=""
-              width={1000}
-              height={660}
+              width={760}
+              height={556}
               loading="lazy"
               decoding="async"
             />

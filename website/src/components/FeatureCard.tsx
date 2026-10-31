@@ -21,6 +21,6 @@ export const FeatureCard = ({
       <p>{description}</p>
       {details}
     </div>
-    {children}
+    <div className={styles["feature-media"]}>{children}</div>
   </article>
 );

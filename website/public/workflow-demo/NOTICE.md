@@ -1,22 +1,7 @@
-# Workflow demo assets
+# Loop product captures
 
-These manually reviewed static captures show the real Loop frontend chat header,
-message timeline, editable message queue, composer and context-compaction states.
-The payment-webhook conversation, project, timings, constraints and reported test
-outcomes are fictional demo data. No model, tools, backend or regression tests
-were executed to produce these scenes. No real conversation or credentials appear.
+Nine scenes show a fictional product-filter task: queued tests/docs, steering, editing, stopped/resumed work and manual/automatic context compaction. Reported outcomes are illustrative.
 
-Nine aligned 1056 × 696 frames are maintained independently for Chinese/English
-and native Light/Dark themes: queue, steer, edit, stopped, resumed, manual,
-manual-done, auto and auto-done. Each theme was rendered directly with the
-product theme. Captures omit scrollbars and image metadata and use lossless WebP.
-The surrounding capture background is cropped to the chat window edges consistently
-across scenes, languages and themes. The website displays the frames edge to edge
-without an additional border or letterboxing and selects themes through native
-media-qualified picture sources. Proportional corner clipping removes captured
-backing pixels outside the rounded product window.
+Captured from the current real Loop frontend components with fictional demo data, reviewed on 2026-10-31. Chinese/English and native Light/Dark variants share scenes and dimensions. No model, application backend, tools, credentials or real sessions were used. Capture tools stay outside website builds. Assets are independent static WebP files with metadata removed, each below 250 KB.
 
-Recording tools are separate from website tooling and are not part of its
-source, dependency graph, development server, CI or production build. Updating
-Loop does not regenerate these assets. Review and replace them manually when the
-corresponding product interface changes.
+Capture-only layout fits the product controls into the published canvas; screenshots are cropped to 1056 × 587 with top and bottom letterboxing removed, without recoloring the product theme. Model names are demo configuration, not availability guarantees. Update manually and review every language/theme pair; do not capture real data or personal paths.

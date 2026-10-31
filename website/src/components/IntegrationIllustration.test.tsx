@@ -38,7 +38,7 @@ it.each(["zh", "en"] as const)(
     for (const [index, { image }] of integrationDemoFrames.entries()) {
       const picture = pictures[index]!;
       expect(picture.querySelector("img")!.width).toBe(1020);
-      expect(picture.querySelector("img")!.height).toBe(684);
+      expect(picture.querySelector("img")!.height).toBe(604);
       expect(picture.querySelector("source")?.media).toBe("(prefers-color-scheme: dark)");
       expect(picture.querySelector("source")?.srcset).toContain(
         `integration-demo/${image}-${language}-dark.webp`,
@@ -54,7 +54,7 @@ it.each(["zh", "en"] as const)(
         expect(bytes.subarray(12, 16).toString()).toBe("VP8L");
         const dimensions = bytes.readUInt32LE(21);
         expect((dimensions & 0x3fff) + 1).toBe(1020);
-        expect(((dimensions >>> 14) & 0x3fff) + 1).toBe(684);
+        expect(((dimensions >>> 14) & 0x3fff) + 1).toBe(604);
         expect(bytes.length).toBeLessThan(250_000);
       }
     }

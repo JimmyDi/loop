@@ -17,6 +17,7 @@
     "loop": "./dist/bin.js"
   },
   "scripts": {
+    "sync": "pnpm install --frozen-lockfile",
     "dev": "tsx --conditions=loop-source packages/web-ui/dev.ts",
     "coding-agent": "node --conditions=loop-source --import tsx bin.ts",
     "build": "pnpm --filter \"./packages/*\" build && tsdown && node scripts/copy-web.mjs && pnpm check:distribution",

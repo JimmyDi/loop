@@ -124,6 +124,7 @@ The manually maintained [marketing website](website/README.md) lives in `website
 | Local execution logs | [Telemetry](packages/telemetry/README.md) |
 | Browser application and server | [Web UI](packages/web-ui/README.md) |
 | Development, build and distribution | [Development](docs/development.md) |
+| README artwork and repository social preview | [Artwork](docs/assets/readme/README.md) |
 
 ## Validation
 

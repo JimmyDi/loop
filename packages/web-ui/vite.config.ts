@@ -3,11 +3,12 @@ import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 
 import { pwaPlugin } from "./pwa-plugin";
+import { releaseContentPlugin } from "./release-content-plugin";
 
 export default defineConfig({
   root: fileURLToPath(new URL("./src/frontend", import.meta.url)),
   publicDir: "assets",
-  plugins: [react(), pwaPlugin()],
+  plugins: [react(), pwaPlugin(), releaseContentPlugin()],
   build: {
     sourcemap: false,
     minify: true,

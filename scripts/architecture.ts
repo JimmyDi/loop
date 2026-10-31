@@ -30,6 +30,8 @@ export const inspectImports = (file: string, source: string) => {
       return;
     }
     const name = literal.text;
+    // This one Vite module contains build-time release data, never application code.
+    if (name === "virtual:loop-releases" && browser(file)) return;
     if (/^(bun:|bun$)/.test(name)) {
       reject(name);
       return;

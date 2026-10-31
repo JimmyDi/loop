@@ -17,6 +17,7 @@
     "loop": "./dist/bin.js"
   },
   "scripts": {
+    "release:content": "node --import tsx scripts/prepare-release-content.ts",
     "sync": "pnpm install --frozen-lockfile",
     "dev": "tsx --conditions=loop-source packages/web-ui/dev.ts",
     "coding-agent": "node --conditions=loop-source --import tsx bin.ts",

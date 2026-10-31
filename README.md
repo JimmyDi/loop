@@ -115,6 +115,9 @@ Loop remains single-agent. Reliability, safety, recoverability and usability det
 
 ## Documentation
 
+The website includes versioned Docs and Changelog pages. Public content follows confirmed
+application releases; see [release documentation](docs/releases.md).
+
 The manually maintained [marketing website](website/README.md) lives in `website/`, with its own development and static build commands. It is independent of Loop application code and excluded from the application build and published package.
 
 | Area | Entry |

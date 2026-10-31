@@ -1,6 +1,7 @@
 import { useRef } from "react";
 
 import { useLanguage } from "../i18n/useLanguage";
+import { asset } from "../assets";
 import { Brand } from "./Brand";
 import { LanguageSwitch } from "./LanguageSwitch";
 import styles from "./SiteHeader.module.css";
@@ -15,6 +16,10 @@ export const SiteHeader = () => {
       <div className={styles.bar}>
         <Brand />
         <div className={styles.actions}>
+          <nav className={styles.navigation} aria-label={t("footerNavigation")}>
+            <a href={asset("docs/")}>Docs</a>
+            <a href={asset("changelog/")}>Changelog</a>
+          </nav>
           <a
             className={styles.github}
             href="https://github.com/JimmyDi/loop"

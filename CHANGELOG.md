@@ -6,6 +6,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
+- Website and Web UI: add versioned Docs and Changelog pages, release RSS, and Settings help links with offline dialogs for the installed version's two most recent available release snapshots. Generate documentation and notes during release preparation, reject stale snapshots, and expose website content only after npm confirms publication.
+
 - Local development: add `pnpm run sync` to install workspace dependencies with a frozen lockfile, failing when the lockfile is missing or inconsistent with package manifests.
 
 - Repository maintenance: configure Renovate with dependency updates at any time, separate development and selected runtime dependency PRs, dashboard approval for ordinary major upgrades, and weekly lockfile maintenance in Asia/Shanghai. Refresh Renovate branches when they fall behind the base branch. Keep security fixes independent of ordinary approval gates, use Conventional Commit titles, and require manual merging.

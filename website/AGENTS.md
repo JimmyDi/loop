@@ -4,7 +4,10 @@
 - Keep all website implementation, content, styles and assets inside this directory.
 - Do not import Loop application packages, source, types, styles, configuration or APIs.
 - Do not export website modules for the application to consume.
-- Do not generate website content from application code, documentation, changelogs or live data.
+- Documentation and changelog pages may consume immutable release snapshots from releases/
+  through build tooling. Public builds must filter snapshots against npm-confirmed published
+  versions; never render working-tree documentation or Unreleased entries.
+- Keep runtime imports isolated; release tooling must not import application implementations.
 - Update copy and product previews manually after reviewing implemented behavior.
 - Brand assets are independent, unmodified copies. Updating the application does not update them.
 - Keep website development, builds and deployment independent of Loop application commands.

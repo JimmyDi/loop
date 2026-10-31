@@ -67,6 +67,28 @@
   color: var(--switch-ink);
 }
 
+.navigation {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.navigation a:hover {
+  color: var(--blue);
+}
+@media (max-width: 500px) {
+  .navigation {
+    gap: 10px;
+    font-size: 11px;
+  }
+  .actions {
+    gap: 8px;
+  }
+  .github {
+    display: none;
+  }
+}
+
 .github:hover {
   background: var(--switch-selection);
   color: var(--switch-active-ink);

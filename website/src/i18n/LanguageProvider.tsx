@@ -5,6 +5,7 @@ import type { Language, TranslationKey } from "../translations";
 import { translations } from "../translations";
 import { browserLanguage } from "./language";
 import { LanguageContext } from "./LanguageContext";
+import { pageTitle } from "../page-metadata";
 
 export const LanguageProvider = ({
   children,
@@ -22,7 +23,7 @@ export const LanguageProvider = ({
   );
   useEffect(() => {
     document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
-    document.title = translations[language].title;
+    document.title = pageTitle(location.pathname, translations[language].title);
     const metadata = [
       ['meta[name="description"]', "description"],
       ['meta[property="og:title"]', "title"],

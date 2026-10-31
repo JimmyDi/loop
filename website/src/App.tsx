@@ -5,19 +5,36 @@ import layout from "./components/Layout.module.css";
 import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
 import { useLanguage } from "./i18n/useLanguage";
+import { normalizeRoute } from "./content-routes";
+import { asset } from "./assets";
+import { DocsPage } from "./components/DocsPage";
+import { ChangelogPage } from "./components/ChangelogPage";
 
-export const App = () => {
+export const App = ({
+  path = typeof location === "undefined" ? "" : location.pathname,
+}: {
+  path?: string;
+}) => {
   const { t } = useLanguage();
+  const route = normalizeRoute(path);
   return (
     <>
-      <a className={layout["skip-link"]} href="#main">
+      <a className={layout["skip-link"]} href={asset(route + "#main")}>
         {t("skip")}
       </a>
       <SiteHeader />
       <main id="main">
-        <Hero />
-        <Capabilities />
-        <Interfaces />
+        {route.startsWith("docs/") ? (
+          <DocsPage route={route} />
+        ) : route.startsWith("changelog/") ? (
+          <ChangelogPage route={route} />
+        ) : (
+          <>
+            <Hero />
+            <Capabilities />
+            <Interfaces />
+          </>
+        )}
       </main>
       <SiteFooter />
     </>

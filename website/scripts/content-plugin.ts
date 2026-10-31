@@ -54,7 +54,7 @@ export const renderContent = (markdown: string, source: string, release: Release
           const target = segments.join("/");
           const page = release.pages.find((entry) => entry.source === target);
           url = page
-            ? "docs/" + release.version + "/" + page.slug + "/" + (hash ? "#" + hash : "")
+            ? "docs/" + page.slug + "/" + (hash ? "#" + hash : "")
             : "https://github.com/JimmyDi/loop/blob/v" +
               release.version +
               "/" +
@@ -95,7 +95,8 @@ export const contentPlugin = (): Plugin => ({
       ],
       published,
     );
-    if (!releases.length) throw new Error("No published documentation snapshots available.");
+    if (!releases[0]?.pages.length)
+      throw new Error("Latest npm release needs a documentation snapshot before deployment.");
     const data = releases.map((release) => ({
       version: release.version,
       date: release.date,

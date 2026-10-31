@@ -12,7 +12,7 @@ export const HelpSettings = () => {
   return (
     <div className="help-settings">
       <h3>{t("help")}</h3>
-      <a href={releaseDocsUrl(content.docsVersion)} target="_blank" rel="noopener noreferrer">
+      <a href={releaseDocsUrl()} target="_blank" rel="noopener noreferrer">
         {t("helpUpdates.docs")} ↗
       </a>
       <h4>{t("helpUpdates.recent")}</h4>

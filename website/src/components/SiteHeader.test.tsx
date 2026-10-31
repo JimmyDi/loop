@@ -17,8 +17,8 @@ it("places the repository link before the language switch beside the brand", () 
   expect(repository.getAttribute("rel")).toBe("noopener noreferrer");
   expect(screen.getAllByRole("link")).toEqual([
     brand,
-    screen.getByRole("link", { name: "Docs" }),
-    screen.getByRole("link", { name: "Changelog" }),
+    screen.getByRole("link", { name: translations.zh.docs }),
+    screen.getByRole("link", { name: translations.zh.changelog }),
     repository,
   ]);
   expect(repository.nextElementSibling).toBe(screen.getByRole("group", { name: "网站语言" }));
@@ -42,6 +42,15 @@ it("updates the repository accessible label and tooltip when the language change
   fireEvent.click(screen.getByRole("button", { name: "EN" }));
   expect(screen.getByRole("link", { name: translations.en.githubRepository })).toBe(repository);
   expect(repository.title).toBe(translations.en.githubRepository);
+  expect(screen.getByRole("link", { name: translations.en.docs }).getAttribute("href")).toBe(
+    "/docs/",
+  );
+  expect(screen.getByRole("link", { name: translations.en.changelog }).getAttribute("href")).toBe(
+    "/changelog/",
+  );
+  expect(screen.getByRole("navigation", { name: translations.en.mainNavigation })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "中文" }));
   expect(repository.getAttribute("aria-label")).toBe(translations.zh.githubRepository);
+  expect(screen.getByRole("link", { name: translations.zh.docs })).toBeTruthy();
+  expect(screen.getByRole("link", { name: translations.zh.changelog })).toBeTruthy();
 });

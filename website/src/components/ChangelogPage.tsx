@@ -7,7 +7,7 @@ import { useLanguage } from "../i18n/useLanguage";
 import { ContentArticle } from "./ContentArticle";
 import styles from "./ChangelogPage.module.css";
 
-export const ChangelogPage = ({ route }: { route: string }) => {
+export const ChangelogPage = ({ route, html = "" }: { route: string; html?: string }) => {
   const { language } = useLanguage();
   const { release, detail } = resolveContentRoute(route);
   const [count, setCount] = useState(5);
@@ -36,9 +36,11 @@ export const ChangelogPage = ({ route }: { route: string }) => {
             ? "已正式发布的功能、改进与修复。"
             : "Released features, improvements and fixes."}
         </p>
-        <a href={asset(detail ? "changelog/" : "changelog.xml")}>
-          {detail ? (language === "zh" ? "← 全部更新日志" : "← All releases") : "RSS ↗"}
-        </a>
+        {detail && (
+          <a href={asset("changelog/")}>
+            {language === "zh" ? "← 全部更新日志" : "← All releases"}
+          </a>
+        )}
       </header>
       {(detail ? [release!] : releases.slice(0, count)).map((entry) => (
         <article className={styles.release} key={entry.version}>
@@ -53,7 +55,7 @@ export const ChangelogPage = ({ route }: { route: string }) => {
           )}
           <p className={styles.summary}>{entry.summary}</p>
           {detail ? (
-            <ContentArticle html={entry.html} route={route} />
+            <ContentArticle key={route} html={html || entry.html} route={route} />
           ) : (
             <a className={styles.more} href={asset("changelog/" + entry.version + "/")}>
               {language === "zh" ? "查看完整更新" : "Read full release notes"} →

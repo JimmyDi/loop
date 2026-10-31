@@ -1,7 +1,9 @@
 # Loop website
 
 An independently maintained React website with CSS Modules and build-time static HTML. The
-homepage uses reviewed bilingual marketing copy. Docs and Changelog consume immutable
+homepage uses reviewed bilingual marketing copy. Docs follows only the latest npm release
+without a version selector; Docs and full release-note navigation keep the page mounted while loading and
+supports browser Back/Forward. Changelog retains release history. They consume
 release snapshots through build tooling without importing application packages or calling
 model/application APIs. See [release content lifecycle](../docs/releases.md).
 

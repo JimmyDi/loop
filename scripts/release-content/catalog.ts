@@ -18,7 +18,7 @@ export const validateContent = (value: ReleaseContent): ReleaseContent => {
     !value.title?.trim() ||
     !value.summary?.trim() ||
     !value.notes?.trim() ||
-    !value.pages?.length
+    !Array.isArray(value.pages)
   ) {
     throw new Error("Invalid release content.");
   }
@@ -37,7 +37,8 @@ export const validateContent = (value: ReleaseContent): ReleaseContent => {
     }
     slugs.add(page.slug);
   }
-  if (!slugs.has("getting-started")) throw new Error("Release needs a getting-started page.");
+  if (value.pages.length && !slugs.has("getting-started"))
+    throw new Error("Release needs a getting-started page.");
   return value;
 };
 
@@ -57,7 +58,12 @@ export const readReleaseCatalog = async (root: string): Promise<ReleaseContent[]
 export const publicReleaseCatalog = (
   releases: ReleaseContent[],
   published: string[],
-): ReleaseContent[] => releases.filter((release) => published.includes(release.version));
+): ReleaseContent[] => {
+  const latest = [...published].sort((a, b) => compareVersions(b, a))[0];
+  return releases
+    .filter((release) => published.includes(release.version))
+    .map((release) => ({ ...release, pages: release.version === latest ? release.pages : [] }));
+};
 
 export const applicationReleaseContent = (releases: ReleaseContent[], version: string) => {
   const recent = releases
@@ -65,7 +71,6 @@ export const applicationReleaseContent = (releases: ReleaseContent[], version: s
     .slice(0, 2);
   return {
     version,
-    docsVersion: recent[0]?.version,
     releases: recent.map(({ pages: _pages, ...release }) => release),
   };
 };

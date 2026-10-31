@@ -4,9 +4,8 @@ Open **Settings → Help and updates** to read documentation and release notes.
 
 ## Documentation
 
-Documentation opens in a new browser tab at the bundled documentation version. Published
-packages use their own version. Development builds without a matching snapshot use the
-newest bundled stable snapshot at or below the package version.
+Documentation opens in a new browser tab and always follows the latest published npm
+package. There is one documentation set and no version selector.
 
 ## Recent releases
 

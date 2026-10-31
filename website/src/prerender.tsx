@@ -8,7 +8,6 @@ import { browserLanguage } from "./i18n/language";
 import type { Language } from "./translations";
 import { translations } from "./translations";
 import { contentRoutes } from "./content-routes";
-import releases from "virtual:release-content";
 
 export const render = (
   base = import.meta.env.BASE_URL,
@@ -24,9 +23,6 @@ export const render = (
 };
 
 export const routes = contentRoutes;
-export const releaseFeed = () =>
-  releases.map(({ version, date, summary }) => ({ version, date, summary }));
-
 export const languageBootstrap = (): string =>
   `(${initializeLanguage.toString()})(${browserLanguage.toString()}, ${JSON.stringify({
     title: { en: translations.en.title, zh: translations.zh.title },

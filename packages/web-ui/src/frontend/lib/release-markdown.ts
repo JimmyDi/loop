@@ -16,8 +16,6 @@ export const releaseMarkdown = (notes: string, version: string): string =>
     const url = prefix
       ? websiteUrl +
         "docs/" +
-        version +
-        "/" +
         prefix[1] +
         path.slice(prefix[0].length, -3) +
         "/" +

@@ -7,7 +7,7 @@ afterEach(cleanup);
 
 test("search filters the selected release and reports empty results", () => {
   render(<DocsNavigation version="0.4.0" slug="getting-started" />);
-  expect(screen.getByRole("combobox").textContent).toContain("0.3.1");
+  expect(screen.queryByRole("combobox")).toBeNull();
   const search = screen.getByRole("searchbox");
   fireEvent.change(search, { target: { value: "nonexistent-synthetic-topic" } });
   expect(screen.queryAllByRole("link")).toHaveLength(0);

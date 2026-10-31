@@ -18,30 +18,6 @@ export const DocsNavigation = ({ version, slug }: { version: string; slug: strin
       className={styles.navigation}
       aria-label={language === "zh" ? "文档导航" : "Documentation navigation"}
     >
-      <label>
-        {language === "zh" ? "文档版本" : "Documentation version"}
-        <select
-          value={version}
-          onChange={(event) => {
-            const next = releases.find((entry) => entry.version === event.target.value)!;
-            location.href = asset(
-              "docs/" +
-                next.version +
-                "/" +
-                (next.pages.some((page) => page.slug === slug) ? slug : "getting-started") +
-                "/",
-            );
-          }}
-        >
-          {releases
-            .filter((entry) => entry.pages.length)
-            .map((entry) => (
-              <option key={entry.version} value={entry.version}>
-                {entry.version}
-              </option>
-            ))}
-        </select>
-      </label>
       <input
         type="search"
         aria-label={language === "zh" ? "搜索文档" : "Search documentation"}
@@ -57,7 +33,7 @@ export const DocsNavigation = ({ version, slug }: { version: string; slug: strin
             .map((page) => (
               <a
                 key={page.slug}
-                href={asset("docs/" + version + "/" + page.slug + "/")}
+                href={asset("docs/" + page.slug + "/")}
                 aria-current={page.slug === slug ? "page" : undefined}
               >
                 {page.title}

@@ -12,7 +12,7 @@ const serverOutput = ".prerender";
 try {
   await build({ base });
   await build({ base, build: { ssr: "src/prerender.tsx", outDir: serverOutput } });
-  const { render, languageBootstrap, routes, releaseFeed } = await import(
+  const { render, languageBootstrap, routes } = await import(
     pathToFileURL(resolve(serverOutput, "prerender.js")).href
   );
   const path = "dist/index.html";
@@ -48,36 +48,6 @@ try {
         ),
     );
   }
-  const xml = (value) =>
-    value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-  const origin = "https://jimmydi.github.io/loop/";
-  await writeFile(
-    "dist/changelog.xml",
-    '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Loop Changelog</title><link>' +
-      origin +
-      "changelog/</link><description>Published Loop releases</description>" +
-      releaseFeed()
-        .map(
-          (release) =>
-            "<item><title>Loop " +
-            release.version +
-            "</title><link>" +
-            origin +
-            "changelog/" +
-            release.version +
-            "/</link><guid>" +
-            origin +
-            "changelog/" +
-            release.version +
-            "/</guid><pubDate>" +
-            new Date(release.date + "T00:00:00Z").toUTCString() +
-            "</pubDate><description>" +
-            xml(release.summary) +
-            "</description></item>",
-        )
-        .join("") +
-      "</channel></rss>",
-  );
 } finally {
   await rm(serverOutput, { recursive: true, force: true });
 }

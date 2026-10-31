@@ -20,13 +20,13 @@ const release = {
   ],
 };
 
-test("renders safe markdown and resolves links within the same released docs", () => {
+test("renders safe markdown and resolves links to the latest released docs", () => {
   const value = renderContent(
     "## Setup\n\n## Setup\n\n[Voice](docs/voice.md)\n\n[Unsafe](javascript:alert%281%29)\n\n<script>bad()</script>",
     "packages/web-ui/src/frontend/README.md",
     release,
   );
-  expect(value.html).toContain('href="docs/1.0.0/web/voice/"');
+  expect(value.html).toContain('href="docs/web/voice/"');
   expect(value.html).not.toContain("javascript:");
   expect(value.html).not.toContain("<script>");
   expect(value.headings.map((heading) => heading.id)).toEqual(["setup", "setup-1"]);

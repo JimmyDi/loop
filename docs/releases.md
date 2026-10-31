@@ -1,6 +1,6 @@
 # Release documentation and changelog
 
-Loop's website and application consume the same immutable release content. Working-tree
+Loop's website and application consume the same release content. Working-tree
 documentation and CHANGELOG.md remain authoring sources, never direct public website content.
 
 ## Prepare a version
@@ -12,8 +12,9 @@ the documentation, then run from the repository root:
 pnpm release:content "Concise release highlights"
 ```
 
-This writes releases/X.Y.Z.json with notes and versioned Markdown pages. Regenerate the
-candidate after further documentation changes; published snapshots must remain unchanged.
+This writes releases/X.Y.Z.json with notes and release Markdown pages. Regenerate the
+candidate after further documentation changes; published release notes must remain unchanged.
+Only the latest published release retains documentation; older entries retain notes with empty pages.
 The release validator requires the snapshot to match the final source exactly. This command
 does not change versions, commit, tag, publish, or deploy.
 
@@ -29,7 +30,7 @@ Before rendering, it obtains npm's actual stable version list. Registry failures
 
 Only snapshots whose versions exist on npm enter public content. Unreleased entries, candidate
 snapshots and unpublished historical versions are excluded from static pages, browser data,
-search and RSS. Public website jobs are serialized.
+search. Public website jobs are serialized.
 
 Pages deploys after npm publication, so the website can briefly retain the preceding version.
 A failed website job preserves the deployed site; retry Website without republishing npm.
@@ -41,14 +42,13 @@ after a confirmed release. This is build metadata, not a user-facing setting.
 
 ## Routes and application content
 
-- docs/ and docs/latest/ resolve to the newest published documentation snapshot.
-- docs/X.Y.Z/topic/ preserves versioned documentation and links.
+- docs/ and docs/topic/ show only the latest npm-published version, without a version selector.
+- Historical documentation routes are not generated.
 - changelog/ lists published releases; changelog/X.Y.Z/ shows full notes.
-- changelog.xml provides release RSS.
 - Settings bundles its own version and the preceding available snapshot without online checks.
 
-Initial documentation snapshots were imported from public v0.4.0 and v0.3.1 source tags.
-Earlier releases retain original changelog notes without reconstructed documentation.
+Documentation was imported from the public v0.4.0 source tag. Older releases retain original
+changelog notes only. Builds stop if the latest npm release lacks its documentation snapshot.
 
 ## Verification
 

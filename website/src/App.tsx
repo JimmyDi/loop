@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 import { Capabilities } from "./components/Capabilities";
 import { Hero } from "./components/Hero";
 import { Interfaces } from "./components/Interfaces";
@@ -9,6 +11,8 @@ import { normalizeRoute } from "./content-routes";
 import { asset } from "./assets";
 import { DocsPage } from "./components/DocsPage";
 import { ChangelogPage } from "./components/ChangelogPage";
+import { useContentNavigation } from "./components/useContentNavigation";
+import { pageTitle } from "./page-metadata";
 
 export const App = ({
   path = typeof location === "undefined" ? "" : location.pathname,
@@ -16,18 +20,22 @@ export const App = ({
   path?: string;
 }) => {
   const { t } = useLanguage();
-  const route = normalizeRoute(path);
+  const navigation = useContentNavigation(normalizeRoute(path));
+  const route = navigation.route;
+  useEffect(() => {
+    document.title = pageTitle(route, t("title"));
+  }, [route, t]);
   return (
-    <>
+    <div ref={navigation.ref} aria-busy={navigation.pending}>
       <a className={layout["skip-link"]} href={asset(route + "#main")}>
         {t("skip")}
       </a>
       <SiteHeader />
       <main id="main">
         {route.startsWith("docs/") ? (
-          <DocsPage route={route} />
+          <DocsPage route={route} html={navigation.html} />
         ) : route.startsWith("changelog/") ? (
-          <ChangelogPage route={route} />
+          <ChangelogPage route={route} html={navigation.html} />
         ) : (
           <>
             <Hero />
@@ -37,6 +45,6 @@ export const App = ({
         )}
       </main>
       <SiteFooter />
-    </>
+    </div>
   );
 };

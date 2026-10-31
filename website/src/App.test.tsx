@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { App } from "./App";
@@ -7,6 +7,8 @@ import { LanguageProvider } from "./i18n/LanguageProvider";
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+  history.replaceState(null, "", "/");
 });
 
 it("translates the complete page without resetting the selected interface or removing commands", () => {
@@ -31,4 +33,27 @@ it("translates the complete page without resetting the selected interface or rem
     expect(link.target).toBe("_blank");
     expect(link.rel).toBe("noopener noreferrer");
   }
+});
+
+it("switches Home, Docs and Changelog while keeping the header and language mounted", async () => {
+  vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  history.replaceState(null, "", "/");
+  const view = render(
+    <LanguageProvider initialLanguage="en">
+      <App />
+    </LanguageProvider>,
+  );
+  const header = view.container.querySelector("header");
+  fireEvent.click(within(header!).getByRole("link", { name: "Docs" }));
+  await waitFor(() => expect(location.pathname).toBe("/docs/"));
+  expect(screen.getByRole("navigation", { name: "Documentation navigation" })).toBeTruthy();
+  expect(view.container.querySelector("header")).toBe(header);
+  fireEvent.click(within(header!).getByRole("link", { name: "Changelog" }));
+  await waitFor(() => expect(location.pathname).toBe("/changelog/"));
+  expect(screen.getByRole("heading", { level: 1 }).textContent).toContain("Every release");
+  expect(view.container.querySelector("header")).toBe(header);
+  fireEvent.click(screen.getByRole("link", { name: "Loop home" }));
+  await waitFor(() => expect(location.pathname).toBe("/"));
+  expect(screen.getByRole("heading", { level: 1 }).textContent).toContain("reality.");
+  expect(view.container.querySelector("header")).toBe(header);
 });

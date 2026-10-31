@@ -4,13 +4,8 @@ export const contentRoutes = (): string[] => [
   "",
   "docs/",
   "changelog/",
-  ...releases.flatMap((release) => [
-    "changelog/" + release.version + "/",
-    ...(release.pages.length ? ["docs/" + release.version + "/"] : []),
-    ...release.pages.map((page) => "docs/" + release.version + "/" + page.slug + "/"),
-  ]),
-  ...releases[0].pages.map((page) => "docs/latest/" + page.slug + "/"),
-  "docs/latest/",
+  ...releases.map((release) => "changelog/" + release.version + "/"),
+  ...releases[0].pages.map((page) => "docs/" + page.slug + "/"),
 ];
 
 export const normalizeRoute = (path: string): string => {
@@ -21,11 +16,12 @@ export const normalizeRoute = (path: string): string => {
 export const resolveContentRoute = (path: string) => {
   const route = normalizeRoute(path);
   const [kind, version, ...parts] = route.split("/").filter(Boolean);
-  const release =
-    !version || version === "latest"
-      ? releases[0]
-      : releases.find((entry) => entry.version === version);
-  const slug = parts.join("/") || "getting-started";
-  const page = release?.pages.find((entry) => entry.slug === slug);
-  return { route, kind, release, page, detail: kind === "changelog" && !!version };
+  if (kind === "docs") {
+    const release = releases[0];
+    const slug = [version, ...parts].filter(Boolean).join("/") || "getting-started";
+    const page = release?.pages.find((entry) => entry.slug === slug);
+    return { route, kind, release, page, detail: false };
+  }
+  const release = !version ? releases[0] : releases.find((entry) => entry.version === version);
+  return { route, kind, release, page: undefined, detail: !!version };
 };

@@ -7,7 +7,7 @@ import { ContentArticle } from "./ContentArticle";
 import { DocsNavigation } from "./DocsNavigation";
 import styles from "./DocsPage.module.css";
 
-export const DocsPage = ({ route }: { route: string }) => {
+export const DocsPage = ({ route, html = "" }: { route: string; html?: string }) => {
   const { release, page } = resolveContentRoute(route);
   const { language } = useLanguage();
   useEffect(() => {
@@ -26,8 +26,10 @@ export const DocsPage = ({ route }: { route: string }) => {
         <p className={styles.version}>
           Loop {release.version} · {release.date}
         </p>
-        {language === "zh" && <p className={styles.notice}>本版本文档保留发布时的英文原文。</p>}
-        <ContentArticle html={page.html} route={route} />
+        {language === "zh" && (
+          <p className={styles.notice}>文档对应最新 npm 发布版本，保留英文原文。</p>
+        )}
+        <ContentArticle key={route} html={html || page.html} route={route} />
       </article>
       <nav className={styles.contents} aria-label={language === "zh" ? "页内目录" : "On this page"}>
         <strong>{language === "zh" ? "页内目录" : "On this page"}</strong>

@@ -42,7 +42,12 @@ test("public content requires publication and application content stops at its o
     "0.9.0",
   ]);
   const app = applicationReleaseContent(releases, "1.0.0");
-  expect(app.docsVersion).toBe("1.0.0");
+  const published = publicReleaseCatalog(releases, ["1.0.0", "0.9.0"]);
+  expect(published[0].pages).toHaveLength(1);
+  expect(published[1].pages).toHaveLength(0);
+  expect(
+    publicReleaseCatalog(releases, ["2.0.0", "1.0.0"]).every((entry) => !entry.pages.length),
+  ).toBe(true);
   expect(app.releases.map((entry) => entry.version)).toEqual(["1.0.0", "0.9.0"]);
   expect(app.releases[0]).not.toHaveProperty("pages");
   expect(compareVersions("1.10.0", "1.9.0")).toBeGreaterThan(0);

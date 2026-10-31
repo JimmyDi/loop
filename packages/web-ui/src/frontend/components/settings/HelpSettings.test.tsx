@@ -14,7 +14,7 @@ test("recent releases open an offline dialog and restore focus to the selected r
     await i18n.changeLanguage("en");
     const view = render(<HelpSettings />);
     expect(view.getByRole("link", { name: "Documentation ↗" }).getAttribute("href")).toContain(
-      "docs/0.4.0/",
+      "docs/",
     );
     expect(view.getAllByRole("button")).toHaveLength(2);
     const release = view.getByRole("button", { name: /Loop 0.4.0/ });

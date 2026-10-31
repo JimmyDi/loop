@@ -14,12 +14,14 @@ export const SiteHeader = () => {
   return (
     <header className={styles["site-header"]} ref={headerRef}>
       <div className={styles.bar}>
-        <Brand />
-        <div className={styles.actions}>
-          <nav className={styles.navigation} aria-label={t("footerNavigation")}>
-            <a href={asset("docs/")}>Docs</a>
-            <a href={asset("changelog/")}>Changelog</a>
+        <div className={styles.primary}>
+          <Brand />
+          <nav className={styles.navigation} aria-label={t("mainNavigation")}>
+            <a href={asset("docs/")}>{t("docs")}</a>
+            <a href={asset("changelog/")}>{t("changelog")}</a>
           </nav>
+        </div>
+        <div className={styles.actions}>
           <a
             className={styles.github}
             href="https://github.com/JimmyDi/loop"

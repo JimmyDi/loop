@@ -73,7 +73,7 @@ jobs:
       - run: pnpm --config.ignore-scripts=true pack --out loop.tgz
       - run: pnpm verify:package loop.tgz
       - if: inputs.upload_package && runner.os == 'Linux'
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: loop-release-package
           path: loop.tgz

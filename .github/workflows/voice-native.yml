@@ -101,7 +101,7 @@ jobs:
       - if: matrix.target != 'darwin-arm64'
         run: node --import tsx packages/coding-agent/src/core/voice/native/build.ts
       - run: node --import tsx packages/coding-agent/src/core/voice/native/prepare-engine.ts .tools/voice/build/${{ matrix.target }} .tools/voice/release-assets
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: voice-engine-${{ matrix.target }}
           path: .tools/voice/release-assets/
@@ -127,7 +127,7 @@ jobs:
           VOICE_RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
           VOICE_RELEASE_TARGETS: ${{ needs.prepare.outputs.targets }}
         run: node --import tsx packages/coding-agent/src/core/voice/native/prepare-catalog.ts .tools/voice/release-assets "$VOICE_RELEASE_TAG" --targets "$VOICE_RELEASE_TARGETS"
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: voice-complete-release
           path: .tools/voice/release-assets/
@@ -144,7 +144,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: node --import tsx packages/coding-agent/src/core/voice/native/prepare-models.ts .tools/voice/release-assets
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: voice-model-assets
           path: |

@@ -23,7 +23,15 @@ test("business worker restarts behind the same proxy without retrying commands",
   );
   await devices.decide(pending.pending.id, true);
   const csrf = devices.csrf(pending.credential);
-  const ingress = await startRemoteIngress(devices, backend.handle, directory, 0, backend.ready);
+  // Keep page readiness under test control across asynchronous HTTP requests.
+  let restartingPage = false;
+  const ingress = await startRemoteIngress(
+    devices,
+    backend.handle,
+    directory,
+    0,
+    () => !restartingPage && backend.ready(),
+  );
   await writeFile(join(directory, "remote.html"), "<html><head></head><body>Loop</body></html>");
   const remote = (path: string) =>
     fetch("http://127.0.0.1:" + ingress.port + path, {
@@ -49,6 +57,7 @@ test("business worker restarts behind the same proxy without retrying commands",
     expect((await remote("/api/workspaces")).status).toBe(200);
     await backend.revokeVoice(revokedPrincipal);
     expect((await backend.handle(voiceRequest(), revokedContext)).status).toBe(401);
+    restartingPage = true;
     backend.restart();
     await vi.waitFor(() => expect(backend.ready()).toBe(false));
     await backend.revokeVoice(revokedPrincipal);
@@ -65,6 +74,7 @@ test("business worker restarts behind the same proxy without retrying commands",
       csrf,
     });
     await vi.waitFor(() => expect(backend.ready()).toBe(true), { timeout: 15_000 });
+    restartingPage = false;
     expect((await backend.handle(voiceRequest(), revokedContext)).status).toBe(401);
     expect((await backend.handle(request())).status).toBe(200);
     expect((await remote("/")).status).toBe(200);

@@ -4,7 +4,7 @@
   align-self: start;
   max-height: calc(100vh - 112px);
   overflow-y: auto;
-  padding-right: 20px;
+  padding: 8px 20px 8px 8px;
   font:
     14px / 1.5 -apple-system,
     BlinkMacSystemFont,
@@ -22,6 +22,11 @@
 }
 .navigation input {
   margin-block: 16px;
+}
+
+.navigation input:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
 }
 .navigation details {
   margin-bottom: 16px;

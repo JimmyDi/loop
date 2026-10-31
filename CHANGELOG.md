@@ -6,7 +6,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
-- Website: add latest-release Docs and historical Changelog pages with bilingual Docs/文档 and Changelog/更新日志 navigation beside the left-aligned brand. Generate documentation and notes during release preparation, reject stale snapshots, and expose website content only after npm confirms publication. Keep only the newest published documentation with no version selector. Switch Home, Docs, Changelog, documentation articles and full release notes without reloading the page, retaining navigation and visible content during loading and supporting browser history.
+- Website: add latest-release Docs and historical Changelog pages with bilingual Docs/文档 and Changelog/更新日志 navigation beside the left-aligned brand. Generate documentation and notes during release preparation, reject stale snapshots, and expose website content only after npm confirms publication. Keep only the newest published documentation with no version selector or page-wide code-copy control. Keep the documentation search focus outline inside the navigation scroll area without clipping. Switch Home, Docs, Changelog, documentation articles and full release notes without reloading the page, retaining navigation and visible content during loading and supporting browser history.
 
 - Local development: add `pnpm run sync` to install workspace dependencies with a frozen lockfile, failing when the lockfile is missing or inconsistent with package manifests.
 
@@ -21,6 +21,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 - Voice resources: advance the supported release to 1.0.1 and require a new semantic version for each public resource release. Reject tag/version mismatches and attempts to overwrite public assets; allow recovery only for drafts from the same source commit.
 
 ### Fixed
+
+- Website: restore the missing Loop sidebar icon in all Chinese/English and Light/Dark homepage product captures, preserving the rest of each image.
 
 - Web UI: reduce long-session rendering with a variable-height windowed list that mounts only nearby message and tool rows, uses aggregate height spacers and preserves history anchors while retaining disclosure choices, indexing timeline metadata, reusing unchanged tool state, batching streaming draft commits per paint and paging event snapshots before copying or buffering them. Preserve history anchors, final results and synchronous tool-start feedback. Measure mounted rows before paint, bind scrolling after parent viewport refs are ready and reconcile programmatic jumps so long replies and message ranges do not disappear into empty spacers.
 

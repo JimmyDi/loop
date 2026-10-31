@@ -10,7 +10,7 @@ it.each(["privacy", "terms"] as const)("opens the %s notice with accessible dism
   const onClose = vi.fn();
   render(<LegalDialog kind={kind} onClose={onClose} />);
   const dialog = screen.getByRole("dialog", {
-    name: translations[kind === "privacy" ? "privacyPolicy" : "termsOfUse"].zh,
+    name: translations.zh[kind === "privacy" ? "privacyPolicy" : "termsOfUse"],
   });
   expect(dialog.hasAttribute("open")).toBe(true);
   expect(dialog.querySelectorAll("p")).toHaveLength(3);

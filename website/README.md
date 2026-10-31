@@ -53,7 +53,7 @@ GitHub supplies deployment credentials. Build jobs have read-only repository acc
 
 ## Page and content maintenance
 
-[App](src/App.tsx) composes the header, hero, capabilities, interface examples and footer. Edit bilingual copy in [translations.ts](src/translations.ts), components in [src/components](src/components/), and shared colors in [theme.css](src/theme.css). Keep component styles and tests alongside the component.
+[App](src/App.tsx) composes the header, hero, capabilities, interface examples and footer. Edit English copy in [en.ts](src/i18n/en.ts) and Chinese copy in [zh.ts](src/i18n/zh.ts). [translations.ts](src/translations.ts) assembles the dictionaries and exports their shared types; both languages must contain the same translation keys. Edit components in [src/components](src/components/), and shared colors in [theme.css](src/theme.css). Keep component styles and tests alongside the component.
 
 - The header contains the theme-aware Loop mark, wordmark and language switch. It contracts into a translucent bar as the page scrolls.
 - The hero contains the startup command and a narrower, centered product screenshot. Its animated cloud background and mouse character trail respect reduced motion; the trail excludes text, controls and the product preview.

@@ -26,7 +26,7 @@ it("extends the pointer host through the preview while protecting the product co
   const { container } = render(<Hero />);
   const section = container.querySelector("section")!;
   const canvas = section.querySelector("canvas");
-  const preview = screen.getByLabelText(translations.previewLabel.zh);
+  const preview = screen.getByLabelText(translations.zh.previewLabel);
   expect(initializeHeroPointer).toHaveBeenCalledWith(section, canvas);
   expect(section.contains(preview)).toBe(true);
   expect(preview.hasAttribute("data-pointer-clear")).toBe(true);

@@ -41,16 +41,16 @@ it("updates metadata and restarts from browser preference on remount", () => {
     </LanguageProvider>
   );
   const { unmount } = render(page);
-  expect(document.title).toBe(translations.title.en);
+  expect(document.title).toBe(translations.en.title);
   expect(document.querySelector('meta[name="description"]')?.getAttribute("content")).toBe(
-    translations.description.en,
+    translations.en.description,
   );
   fireEvent.click(screen.getByRole("button", { name: "中文" }));
   expect(document.querySelector('meta[property="og:title"]')?.getAttribute("content")).toBe(
-    translations.title.zh,
+    translations.zh.title,
   );
   expect(document.querySelector('meta[property="og:description"]')?.getAttribute("content")).toBe(
-    translations.socialDescription.zh,
+    translations.zh.socialDescription,
   );
   unmount();
   render(page);

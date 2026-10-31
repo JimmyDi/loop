@@ -1,5 +1,6 @@
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { useTimelineDisclosure } from "../../hooks/useTimelineDisclosure";
 
 import type { ToolView } from "../../../shared/protocol";
 import { messageText } from "../../../shared/message-text";
@@ -17,12 +18,13 @@ export const ToolCard = ({
   detailsVisible?: boolean;
 }) => {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useTimelineDisclosure("tool:" + tool.id);
   const iconStatus = useToolStatus(tool.id, tool.status);
   const { action, label, target, text } = toolLabel(tool, t);
 
   return (
     <details
+      open={expanded}
       className="tool-card"
       data-status={tool.status}
       onToggle={(event) => {

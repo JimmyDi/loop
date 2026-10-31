@@ -8,8 +8,8 @@ Connect to `GET /api/sessions/:id/events`. SSE data is a JSON Frame and its id i
 
 | Frame type | Content |
 | --- | --- |
-| session.snapshot | Complete snapshot on first connection or when replay is unavailable |
-| session.state | Complete snapshot after command-state changes and run finalization |
+| session.snapshot | Snapshot with the latest three user rounds on first connection or when replay is unavailable |
+| session.state | Snapshot with the latest three user rounds after command-state changes and run finalization |
 | run.accepted | Accepted requestId and runId |
 | loop.event | SDK SessionEvent, runId, and optional messageIndex |
 
@@ -21,7 +21,7 @@ Session-level title, permission_changed, approval_requested and approval_resolve
 
 ## Replay and Snapshots
 
-Clients can supply a cursor through Last-Event-ID or the cursor query parameter; the header takes precedence. If the cursor belongs to the same stream, precedes the current sequence, and the buffer still contains contiguous subsequent frames, replay them in order. Otherwise send a full snapshot, then subscribe to new events.
+Clients can supply a cursor through Last-Event-ID or the cursor query parameter; the header takes precedence. If the cursor belongs to the same stream, precedes the current sequence, and the buffer still contains contiguous subsequent frames, replay them in order. Otherwise send a current snapshot, then subscribe to new events. SessionEvents projects the latest three user rounds before structured cloning, byte accounting and buffering state frames. Earlier rounds remain in the controller and load through the history endpoint; absolute indexes and totals retain their meaning. Native loop.event payloads and the SDK stream are unchanged.
 
 The default cache holds at most 256 frames and 4 MiB of serialized data, evicting old frames when either limit is exceeded. There is no await between snapshot/replay and live subscription, avoiding lost events at that boundary. State projection replaces drafts and completed messages by messageIndex and merges tool results by call ID.
 

@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useTimelineDisclosure } from "../../hooks/useTimelineDisclosure";
 import type { ToolView } from "../../../shared/protocol";
 import { ToolActionIcon } from "./ToolActionIcon";
 import { ToolCard } from "./ToolCard";
+import { VirtualList } from "./VirtualList";
 import { toolActionSummary } from "./tool-action-summary";
 import { toolLabel } from "./tool-label";
 import "./ToolGroup.css";
@@ -16,7 +18,16 @@ export const ToolGroup = ({
   generating?: boolean;
 }) => {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
+  const container = useRef<HTMLDivElement>(null);
+  const viewport = useMemo(
+    () => ({
+      get current() {
+        return container.current?.closest<HTMLDivElement>(".message-timeline") ?? null;
+      },
+    }),
+    [],
+  );
+  const [expanded, setExpanded] = useTimelineDisclosure("batch:" + (tools[0]?.id ?? ""));
   const active =
     generating || tools.some((tool) => tool.status === "running" || tool.status === "waiting");
   const current =
@@ -30,6 +41,7 @@ export const ToolGroup = ({
 
   return (
     <details
+      open={expanded}
       className="tool-group"
       data-active={active}
       aria-busy={active}
@@ -44,10 +56,14 @@ export const ToolGroup = ({
           <path d="m9 6 6 6-6 6" />
         </svg>
       </summary>
-      <div className="tool-group-calls">
-        {tools.map((tool) => (
-          <ToolCard key={tool.id} tool={tool} detailsVisible={expanded} />
-        ))}
+      <div className="tool-group-calls" ref={container}>
+        <VirtualList
+          viewport={viewport}
+          rows={tools.map((tool) => ({
+            key: tool.id,
+            render: () => <ToolCard tool={tool} detailsVisible={expanded} />,
+          }))}
+        />
       </div>
     </details>
   );

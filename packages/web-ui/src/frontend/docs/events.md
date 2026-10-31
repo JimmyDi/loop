@@ -13,7 +13,7 @@ ChatWorkspace first requests `/api/sessions/:id`. After it succeeds, useSessionE
 | run.accepted | Record the accepted requestId/runId and running state |
 | loop.event | Update drafts, completed messages, and tool cards by message position |
 
-loop.event preserves the native coding-agent event contract, including the model stream event inside message_update. The browser synchronously commits tool_execution_start updates to React so a burst of start/end events cannot skip the running icon's effect. Other frames use normal updates; results and errors are applied immediately. This uses the existing brief success-icon hold rather than delaying SSE frames or tool execution. The projection replaces drafts with the cumulative message in the event. Do not append that cumulative text again or add the same final message to history twice. prompt_timing upserts state.promptTimings by userMessageIndex, so the duration row recovers the same timestamps on reconnect and stops before saving.
+loop.event preserves the native coding-agent event contract, including the model stream event inside message_update. The browser synchronously commits tool_execution_start updates to React so a burst of start/end events cannot skip the running icon's effect. Streaming message_update frames commit together on the next animation frame, or after 128 pending frames if paints are suspended. Every other frame drains earlier drafts first, so results, errors, approvals and run boundaries remain immediate. Disconnect drains pending frames before handing status to the sidebar; cleanup cancels scheduled work. Batch projection validates every cursor in order and rejects gaps atomically. This uses the existing brief success-icon hold rather than delaying SSE frames or tool execution. The projection replaces drafts with the cumulative message in the event. Do not append that cumulative text again or add the same final message to history twice. prompt_timing upserts state.promptTimings by userMessageIndex, so the duration row recovers the same timestamps on reconnect and stops before saving.
 
 ## Reconnection and Deduplication
 
@@ -52,3 +52,5 @@ session-store is held only in memory; refreshing relies on the server for recove
 - [useListEvents](../hooks/useListEvents.ts) / [batching and reconnection tests](../hooks/useListEvents.test.tsx).
 - [session-store](../state/session-store.ts) / [tests](../state/session-store.test.ts).
 - [Shared protocol](../../shared/protocol.ts), [message projection](../../shared/session-projection.ts) / [tests](../../shared/session-projection.test.ts).
+
+- [Streaming frame buffer](../lib/session-frame-buffer.ts) / [tests](../lib/session-frame-buffer.test.ts).

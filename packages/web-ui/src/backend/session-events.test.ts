@@ -46,3 +46,40 @@ test("replays contiguous frames or replaces with a current snapshot when buffer 
   expect(current[0]?.type).toBe("session.snapshot");
   expect(current[0]?.seq).toBe(3);
 });
+
+test("snapshot and replay project history before copying and retain full controller data", () => {
+  const messages = Array.from({ length: 100 }, (_, timestamp) => ({
+    role: "user" as const,
+    content: "Synthetic request " + timestamp,
+    timestamp,
+  }));
+  const snapshot: SessionSnapshot = {
+    streamId: "stream",
+    sessionId: "example",
+    workspaceId: null,
+    model: { provider: "test", id: "test", name: "Test" },
+    operation: "idle",
+    tools: {},
+    state: {
+      messages,
+      isRunning: false,
+      hasPendingSave: false,
+      outcome: "idle",
+      listenerErrors: [],
+    },
+  };
+  const events = new SessionEvents("example", () => snapshot);
+  const received: Frame[] = [];
+  events.connect((frame) => received.push(frame))();
+  events.publish({ type: "session.state", snapshot });
+  events.connect((frame) => received.push(frame), { streamId: events.streamId, seq: 0 })();
+  for (const frame of received) {
+    if (frame.type !== "session.snapshot" && frame.type !== "session.state")
+      throw new Error("unexpected frame");
+    expect(frame.snapshot.state.messages).toHaveLength(3);
+    expect(frame.snapshot.history).toEqual({ start: 97, total: 100, userStart: 97 });
+    frame.snapshot.state.messages[0]!.timestamp = -1;
+  }
+  expect(snapshot.state.messages).toHaveLength(100);
+  expect(messages[97]!.timestamp).toBe(97);
+});

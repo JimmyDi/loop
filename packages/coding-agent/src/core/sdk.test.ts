@@ -36,6 +36,7 @@ test("new sessions use settings defaults and restored sessions retain their save
     expect(session.permissionPreset).toBe("workspace-write");
     const manager = session.sessionManager;
     session.dispose();
+    await session.flushTrace();
     const { session: restored } = await createAgentSession({
       ...options,
       sessionManager: await SessionManager.open(manager.sessionFile!),
@@ -43,6 +44,7 @@ test("new sessions use settings defaults and restored sessions retain their save
     });
     expect(restored.permissionPreset).toBe("workspace-write");
     restored.dispose();
+    await restored.flushTrace();
     const { session: explicit } = await createAgentSession({
       ...options,
       sessionManager: await SessionManager.open(manager.sessionFile!),
@@ -51,6 +53,7 @@ test("new sessions use settings defaults and restored sessions retain their save
     });
     expect(explicit.permissionPreset).toBe("read-only");
     explicit.dispose();
+    await explicit.flushTrace();
     const supplied = SessionManager.inMemory(dir);
     await supplied.setPermissionPreset("workspace-write");
     const { session: configured } = await createAgentSession({
@@ -60,6 +63,7 @@ test("new sessions use settings defaults and restored sessions retain their save
     });
     expect(configured.permissionPreset).toBe("workspace-write");
     configured.dispose();
+    await configured.flushTrace();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -129,6 +133,7 @@ test("SDK request maxTokens reaches main requests and idle budget without changi
     expect(manager.getHeader()).not.toHaveProperty("maxTokens");
   } finally {
     session.dispose();
+    await session.flushTrace();
   }
   for (const maxTokens of [0, -1, NaN, Infinity, 1.5]) {
     await expect(createAgentSession({ maxTokens })).rejects.toThrow("positive safe integer");
@@ -159,6 +164,7 @@ test("factory restores saved model, rejects unavailable models and never silentl
 
     await session.setModel(other);
     session.dispose();
+    await session.flushTrace();
 
     const restoredManager = await SessionManager.open(manager.sessionFile!);
     const { session: restored } = await createAgentSession({
@@ -168,6 +174,7 @@ test("factory restores saved model, rejects unavailable models and never silentl
 
     expect(restored.model.id).toBe(other.id);
     restored.dispose();
+    await restored.flushTrace();
     await restoredManager.setModel({ provider: "missing", id: "missing" });
     await expect(
       createAgentSession({ ...options, sessionManager: restoredManager }),
@@ -195,6 +202,7 @@ test("factory restores saved model, rejects unavailable models and never silentl
     await readable.setModel(model);
     expect(readable.model.id).toBe(model.id);
     readable.dispose();
+    await readable.flushTrace();
     await expect(createAgentSession({ ...options, model, tools: ["unsupported"] })).rejects.toThrow(
       "Unknown tool",
     );

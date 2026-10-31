@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { appendFile, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
 
@@ -66,6 +66,8 @@ test("invalid Vite configuration preserves APIs, streams and built pages and rec
     expect(await (await fetch(new URL("api/status", url))).json()).toEqual({ ready: true });
     expect(await (await fetch(url)).text()).toContain("Recovered configuration");
     await writeFile(pluginFile, 'export const label = "Recovered after hot reload";');
+    // A failed runner reload can lose dependency watching; saving the config retries it.
+    await appendFile(configFile, "\n// Retry corrected configuration.\n");
     await expect
       .poll(async () => (await fetch(url)).text(), { timeout: 10000, interval: 250 })
       .toContain("Recovered after hot reload");

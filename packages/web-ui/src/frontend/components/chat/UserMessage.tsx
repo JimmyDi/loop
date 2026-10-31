@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { Ref } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -13,7 +14,7 @@ import { TextFileAttachment } from "./TextFileAttachment";
 import { UserMessageSkill } from "./UserMessageSkill";
 import "./UserMessage.css";
 
-export const UserMessage = ({
+const UserMessageView = ({
   message,
   skills = [],
   workspaceId,
@@ -85,3 +86,5 @@ export const UserMessage = ({
     </article>
   );
 };
+
+export const UserMessage = memo(UserMessageView);

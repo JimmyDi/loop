@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { validateContent } from "./catalog";
-import { createReleaseContent } from "./snapshot";
+import { validateContent } from "./catalog.ts";
+import { createReleaseContent } from "./snapshot.ts";
 
 export const checkReleaseSnapshot = async (root: string, version: string): Promise<void> => {
   const content = validateContent(

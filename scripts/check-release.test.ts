@@ -1,8 +1,24 @@
 import { spawnSync } from "node:child_process";
-import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { expect, test } from "vitest";
+
+test("release validation loads the real snapshot with native Node.js", async () => {
+  const root = fileURLToPath(new URL("../", import.meta.url));
+  const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
+  const result = spawnSync(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      'import { checkReleaseSnapshot } from "./scripts/release-content/check-snapshot.ts"; await checkReleaseSnapshot(process.cwd(), process.argv[1]);',
+      manifest.version,
+    ],
+    { cwd: root, encoding: "utf8", timeout: 10000 },
+  );
+  expect(result.status, result.stderr).toBe(0);
+});
 
 test.each([
   [404, 0, "Release metadata validated"],

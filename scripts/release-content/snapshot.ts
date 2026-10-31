@@ -1,8 +1,8 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
-import { changelogReleases } from "./changelog";
-import type { DocumentationPage, ReleaseContent } from "./types";
+import { changelogReleases } from "./changelog.ts";
+import type { DocumentationPage, ReleaseContent } from "./types.ts";
 
 const topics = [
   ["packages/web-ui/src/frontend/docs", "Using Loop", "web"],

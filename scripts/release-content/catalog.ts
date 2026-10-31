@@ -1,7 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { ReleaseContent } from "./types";
+import type { ReleaseContent } from "./types.ts";
 
 export const compareVersions = (left: string, right: string): number => {
   const a = left.split(".").map(Number);

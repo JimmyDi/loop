@@ -4,6 +4,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-31
+
 ### Added
 
 - Website: add latest-release Docs and historical Changelog pages with bilingual Docs/文档 and Changelog/更新日志 navigation beside the left-aligned brand. Generate documentation and notes during release preparation, reject stale snapshots, and expose website content only after npm confirms publication. Keep only the newest published documentation with no version selector or page-wide code-copy control. Keep the documentation search focus outline inside the navigation scroll area without clipping. Switch Home, Docs, Changelog, documentation articles and full release notes without reloading the page, retaining navigation and visible content during loading and supporting browser history.
@@ -28,7 +30,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Dependencies: resolve known vulnerabilities in runtime transitive dependencies and the Vitest mocker by updating compatible locked versions and both Vitest declarations. Restrict Undici and Zod overrides to affected version ranges, and use the application's patched KaTeX version for Mermaid's otherwise vulnerable nested dependency.
 
-- Distribution: exclude voice resource tags from application release triggers and remove GitHub Packages publication; GitHub Release creation now waits only for npm publication.
+- Distribution: exclude voice resource tags from application release triggers and remove GitHub Packages publication; GitHub Release creation now waits only for npm publication. Resolve release snapshot imports under native Node.js so metadata validation can run before dependencies are installed.
 
 - Licensing: restore the complete standard MIT text in LICENSE and move the license scope notice to README with corrected brand-policy and font-license links, preserving the separate artwork and font terms.
 

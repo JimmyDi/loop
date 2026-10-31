@@ -11,7 +11,7 @@ afterEach(cleanup);
 it("describes the fictional engineering setup and supports pausing without scene navigation", () => {
   const { container } = render(<QueueIllustration />);
   const description = screen.getByRole("img").getAttribute("aria-label");
-  expect(description).toContain("虚构支付回调");
+  expect(description).toContain("虚构商品筛选");
   expect(description).toContain("停止后继续生成");
   expect(description).toContain("自动压缩");
   expect(description).toContain("编辑待执行测试");
@@ -38,7 +38,7 @@ it.each(["zh", "en"] as const)(
     for (const [index, { image }] of workflowDemoFrames.entries()) {
       const picture = pictures[index]!;
       expect(picture.querySelector("img")!.width).toBe(1056);
-      expect(picture.querySelector("img")!.height).toBe(696);
+      expect(picture.querySelector("img")!.height).toBe(587);
       expect(picture.querySelector("source")?.media).toBe("(prefers-color-scheme: dark)");
       expect(picture.querySelector("source")?.srcset).toContain(
         `workflow-demo/${image}-${language}-dark.webp`,
@@ -54,7 +54,7 @@ it.each(["zh", "en"] as const)(
         expect(bytes.subarray(12, 16).toString()).toBe("VP8L");
         const dimensions = bytes.readUInt32LE(21);
         expect((dimensions & 0x3fff) + 1).toBe(1056);
-        expect(((dimensions >>> 14) & 0x3fff) + 1).toBe(696);
+        expect(((dimensions >>> 14) & 0x3fff) + 1).toBe(587);
         expect(bytes.length).toBeLessThan(250_000);
       }
     }

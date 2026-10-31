@@ -2,6 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { initializeHeroPointer } from "../hero-pointer";
+import { translations } from "../translations";
 import { Hero } from "./Hero";
 
 vi.mock("../hero-pointer", () => ({ initializeHeroPointer: vi.fn() }));
@@ -25,9 +26,7 @@ it("extends the pointer host through the preview while protecting the product co
   const { container } = render(<Hero />);
   const section = container.querySelector("section")!;
   const canvas = section.querySelector("canvas");
-  const preview = screen.getByLabelText(
-    "Loop 应用产品截图：三个虚构工程项目、未读与待批准状态、居中对话，以及选中 Skill 的未发送需求",
-  );
+  const preview = screen.getByLabelText(translations.previewLabel.zh);
   expect(initializeHeroPointer).toHaveBeenCalledWith(section, canvas);
   expect(section.contains(preview)).toBe(true);
   expect(preview.hasAttribute("data-pointer-clear")).toBe(true);

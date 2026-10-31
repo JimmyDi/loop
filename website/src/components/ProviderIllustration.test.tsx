@@ -16,9 +16,7 @@ it("shows localized real-product frames without scene navigation and supports pa
   );
   expect(screen.getByRole("img").getAttribute("aria-label")).toContain("fictional");
   expect(screen.getByRole("img").getAttribute("aria-label")).toContain("DeepSeek V4 Pro");
-  expect(container.querySelector("source")?.getAttribute("srcset")).toContain(
-    "builtin-en-dark.webp",
-  );
+  expect(container.querySelector("source")?.getAttribute("srcset")).toContain("model-en-dark.webp");
   expect(screen.queryByRole("group", { name: "Provider demo scenes" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Add provider" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Custom provider" })).toBeNull();
@@ -40,8 +38,8 @@ it("ships bounded independent frames for each language and theme", () => {
         expect(bytes.subarray(8, 12).toString()).toBe("WEBP");
         expect(bytes.subarray(12, 16).toString()).toBe("VP8L");
         const dimensions = bytes.readUInt32LE(21);
-        expect((dimensions & 0x3fff) + 1).toBe(1000);
-        expect(((dimensions >>> 14) & 0x3fff) + 1).toBe(660);
+        expect((dimensions & 0x3fff) + 1).toBe(760);
+        expect(((dimensions >>> 14) & 0x3fff) + 1).toBe(556);
         expect(bytes.length).toBeLessThan(250_000);
       }
     }
@@ -60,8 +58,8 @@ it.each(["zh", "en"] as const)(
     expect(pictures).toHaveLength(providerDemoFrames.length);
     for (const [index, { image }] of providerDemoFrames.entries()) {
       const picture = pictures[index]!;
-      expect(picture.querySelector("img")!.width).toBe(1000);
-      expect(picture.querySelector("img")!.height).toBe(660);
+      expect(picture.querySelector("img")!.width).toBe(760);
+      expect(picture.querySelector("img")!.height).toBe(556);
       const source = picture.querySelector("source")!;
       expect(source.media).toBe("(prefers-color-scheme: dark)");
       expect(source.srcset).toContain(`provider-demo/${image}-${language}-dark.webp`);

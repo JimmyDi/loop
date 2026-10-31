@@ -14,6 +14,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Changed
 
+- Website: lead Capabilities with phone continuation and local voice, using concise bilingual copy with device revocation and remote-audio privacy notes. Refresh Chinese/English previews in native light/dark themes, show desktop and phone continuity, active voice input with queued messages, and in-chat model selection. Standardize preview layout, remove capture artifacts and keep the CLI launch command on one line.
+
 - Voice resources: advance the supported release to 1.0.1 and require a new semantic version for each public resource release. Reject tag/version mismatches and attempts to overwrite public assets; allow recovery only for drafts from the same source commit.
 
 ### Fixed

@@ -44,6 +44,22 @@ Package verification exercises graceful Web shutdown via SIGTERM on Unix and a v
 
 The active main-branch ruleset requires a pull request and the GitHub Actions checks `verify (ubuntu-latest)`, `verify (macos-latest)` and `verify (windows-latest)` before merging. The PR must be up to date with main; failed, pending or missing required checks block merging. No bypass actors are configured. These requirements live in GitHub repository settings, not workflow YAML; preserve or update the required names when renaming jobs.
 
+## Dependency security repairs
+
+The shared lockfile records compatible security updates for indirect dependencies. Both Vitest declarations require at least 4.1.12 to include the patched mocker. [Workspace overrides](../pnpm-workspace.yaml) restrict Undici 8.x below 8.12.2 and Zod 4.x below 4.6.6 to patched versions without replacing other major versions. They cover peer and optional resolutions that retained vulnerable versions during ordinary updates.
+
+Mermaid's KaTeX dependency is overridden to 0.18.11, the application's existing patched version, because its declared 0.16.x range cannot select the fix. This crosses Mermaid's declared range; the Mermaid rendering regression includes a math label, and Markdown math rendering is checked separately. Remove the Mermaid override when its upstream dependency range selects a patched KaTeX. Remove the Undici and Zod overrides when removing each entry and regenerating the lockfile no longer resolves vulnerable versions.
+
+Renovate remains responsible for dependency updates, including explicit workspace overrides, and weekly lockfile maintenance. These constraints repair the identified vulnerabilities; they do not enable automatic discovery and repair of every future indirect vulnerability. Review dependency constraints and affected consumers before adding or changing overrides.
+
+Run the vulnerability check from the repository root after updating dependencies:
+
+```bash
+pnpm audit
+```
+
+Use `pnpm audit --fix=update` to attempt compatible lockfile repairs first, inspect the resulting changes, then run affected tests and builds. A successful audit reports only vulnerabilities known to the registry at that time. CI checks and manual review are still required before merging dependency changes.
+
 ## Distribution
 
 The root tarball contains minified CLI/SDK JavaScript, minified Web assets, public SDK type declarations and license notices. Production builds disable JavaScript, CSS and declaration source maps, remove ordinary code comments and strip generated source-location comments from declarations. SDK types remain readable because they describe the public API, not its implementation. Development retains source access and HMR.

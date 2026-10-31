@@ -26,7 +26,7 @@ export const IntegrationIllustration = () => {
               src={asset(`integration-demo/${frame.image}-${language}-light.webp`)}
               alt=""
               width={1020}
-              height={684}
+              height={604}
               loading="lazy"
               decoding="async"
             />

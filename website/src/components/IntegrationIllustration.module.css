@@ -2,15 +2,15 @@
   position: relative;
   min-width: 0;
   overflow: hidden;
-  /* Scale the 32px corner crop with the 1020 × 684 capture. */
-  border-radius: 3.14% / 4.68%;
+  /* Keep the corner radius proportional to the cropped capture. */
+  border-radius: 3.14% / 5.3%;
   background: light-dark(#f6f7f9, #18191c);
   box-shadow: 0 16px 42px var(--shadow);
 }
 
 .frames {
   position: relative;
-  aspect-ratio: 1020 / 684;
+  aspect-ratio: 1020 / 604;
   overflow: hidden;
 }
 

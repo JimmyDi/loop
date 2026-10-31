@@ -26,7 +26,7 @@ export const QueueIllustration = () => {
               src={asset(`workflow-demo/${frame.image}-${language}-light.webp`)}
               alt=""
               width={1056}
-              height={696}
+              height={587}
               loading="lazy"
               decoding="async"
             />

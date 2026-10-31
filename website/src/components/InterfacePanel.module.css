@@ -36,6 +36,11 @@
     monospace;
 }
 
+.interface-panel[data-language="bash"] pre {
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
 .interface-panel > a {
   display: inline-block;
   flex-shrink: 0;

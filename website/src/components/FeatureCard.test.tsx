@@ -13,5 +13,6 @@ it("accepts independent content and an illustrative child", () => {
   );
   expect(screen.getByRole("heading", { name: "Queue", level: 3 })).toBeTruthy();
   expect(screen.getByText("Pause and resume.")).toBeTruthy();
-  expect(screen.getByText("Preview")).toBeTruthy();
+  const preview = screen.getByText("Preview");
+  expect(preview.parentElement?.className).toContain("feature-media");
 });

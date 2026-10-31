@@ -47,6 +47,36 @@
   pointer-events: none;
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.github {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--language-switch-height);
+  height: var(--language-switch-height);
+  border: 1px solid var(--switch-edge);
+  border-radius: 50%;
+  background: var(--switch-track);
+  color: var(--switch-ink);
+}
+
+.github:hover {
+  background: var(--switch-selection);
+  color: var(--switch-active-ink);
+}
+
+.github:focus-visible {
+  outline: 2px solid var(--switch-active-ink);
+  outline-offset: 3px;
+}
+
 .site-header[data-floating="true"] .bar::before {
   -webkit-backdrop-filter: blur(16px) saturate(1.2);
   backdrop-filter: blur(16px) saturate(1.2);

@@ -21,8 +21,7 @@ export const interfaceOptions: readonly InterfaceOption[] = [
     comment: "cliComment",
     command: [
       'export LOOP_AI_API_KEY="your-deepseek-api-key"',
-      "npx @loop-harness/loop \\",
-      "  --provider deepseek --model deepseek-v4-pro",
+      "npx @loop-harness/loop --provider deepseek --model deepseek-v4-pro",
     ].join("\n"),
     docs: {
       href: "https://github.com/JimmyDi/loop/blob/main/packages/coding-agent/src/docs/cli.md",

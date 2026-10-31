@@ -2,13 +2,40 @@
   min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr);
-  align-items: end;
+  align-items: center;
   gap: clamp(32px, 5.2vw, 100px);
 }
 
 .feature-copy {
   min-width: 0;
   padding-bottom: 4px;
+}
+
+.feature-media {
+  min-width: 0;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border-radius: 24px;
+}
+
+.feature-media > :first-child {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: transparent;
+  box-shadow: none;
+}
+
+.feature-media > div > div {
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.feature-media > :first-child img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .feature-copy h3 {

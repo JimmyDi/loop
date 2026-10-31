@@ -250,26 +250,23 @@ test("a receipt saved in another browser clears unread through list refresh, inc
     const ui = env.render(<Page />, { wrapper });
     await env.waitFor(() => expect(ui.getByRole("img", { name: "Unread" })).toBeTruthy());
     const source = LocalSource.connections[0]!;
-    await env.act(async () => {
+    env.act(() => {
       unread = false;
       source.send({ type: "sessions.changed", workspaceId: "p" }, 1);
-      await sleep(90);
     });
-    expect(ui.queryByRole("img", { name: "Unread" })).toBeNull();
-    await env.act(async () => {
+    await env.waitFor(() => expect(ui.queryByRole("img", { name: "Unread" })).toBeNull());
+    env.act(() => {
       unread = true;
       summary.messageCount = 4;
       summary.userMessageCount = 2;
       source.send({ type: "sessions.changed", workspaceId: "p" }, 2);
-      await sleep(90);
     });
-    expect(ui.getByRole("img", { name: "Unread" })).toBeTruthy();
-    await env.act(async () => {
+    await env.waitFor(() => expect(ui.getByRole("img", { name: "Unread" })).toBeTruthy());
+    env.act(() => {
       unread = false;
       source.send({ type: "lists.reset" }, 0, "restarted");
-      await sleep(90);
     });
-    expect(ui.queryByRole("img", { name: "Unread" })).toBeNull();
+    await env.waitFor(() => expect(ui.queryByRole("img", { name: "Unread" })).toBeNull());
     expect(client.getQueryData<SessionSummary[]>(["sessions", "p"])).toEqual([
       { ...summary, unread: false },
     ]);

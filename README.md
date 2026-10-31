@@ -77,9 +77,12 @@ Optional local speech input and calls are configured in Settings → Voice. Reso
 Requires Node.js 24+ and pnpm 11. Install dependencies and start the Web UI:
 
 ```bash
-pnpm install
+pnpm run sync
 pnpm dev
 ```
+
+Run `pnpm run sync` from the repository root to install dependencies from the committed lockfile. It fails if the lockfile is missing or inconsistent with package manifests. This command does not pull Git changes. Use `pnpm add`, `pnpm update` or `pnpm install` when intentionally changing dependencies and updating the lockfile.
+
 The browser opens when the loopback service is ready. Configure providers in Settings → Models.
 
 Development serves React through Vite middleware on the same port as the API; frontend changes use HMR. A stable development gateway keeps the private tunnel and device authorization alive while backend source edits restart only the business worker.

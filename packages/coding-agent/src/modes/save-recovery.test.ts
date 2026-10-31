@@ -6,7 +6,7 @@ import { spawn } from "node:child_process";
 import { Readable } from "node:stream";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { mkdtemp, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rename, rm } from "node:fs/promises";
 import { expect, test } from "vitest";
 
 import { SessionManager } from "../core/session-manager";
@@ -14,6 +14,7 @@ import { SessionManager } from "../core/session-manager";
 test("print retains a failed save and flushes it without another model call", async () => {
   const dir = await mkdtemp(join(tmpdir(), "loop-recovery-"));
   const store = join(dir, "sessions");
+  let messagesPath = "";
   let requests = 0;
   const server = await serveTest({
     hostname: "127.0.0.1",
@@ -21,8 +22,11 @@ test("print retains a failed save and flushes it without another model call", as
     async fetch(request) {
       await request.json();
       requests++;
-      await rename(store, store + "-old");
-      await writeFile(store, "blocks save");
+      const [sessionId] = await readdir(store);
+      messagesPath = join(store, sessionId!, "messages.jsonl");
+      // Block history writes without racing the independent title metadata write.
+      await rename(messagesPath, messagesPath + "-old");
+      await mkdir(messagesPath);
 
       const chunk = (delta: object, finish_reason: string | null) =>
         "data: " +
@@ -86,8 +90,8 @@ test("print retains a failed save and flushes it without another model call", as
     }
 
     expect(child.exitCode).toBeNull();
-    await rm(store);
-    await rename(store + "-old", store);
+    await rm(messagesPath, { recursive: true });
+    await rename(messagesPath + "-old", messagesPath);
     child.stdin.write("/flush\n");
     await child.stdin.flush();
 

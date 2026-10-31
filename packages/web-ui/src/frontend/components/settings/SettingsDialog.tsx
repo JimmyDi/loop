@@ -11,7 +11,6 @@ import { SkillsSettings } from "./SkillsSettings";
 import { ArchivedChats } from "./ArchivedChats";
 import { RemoteAccessPanel } from "./RemoteAccessPanel";
 import { VoiceSettings } from "./VoiceSettings";
-import { HelpSettings } from "./HelpSettings";
 import { SettingsNavigation } from "./SettingsNavigation";
 import { settingsGroups } from "./settings-sections";
 import type { SettingsSection } from "./settings-sections";
@@ -48,9 +47,7 @@ export const SettingsDialog = ({
               hidden={section !== item}
             >
               {section === item &&
-                (item === "help" ? (
-                  <HelpSettings />
-                ) : item === "general" ? (
+                (item === "general" ? (
                   <GeneralSettings />
                 ) : item === "models" ? (
                   <ModelsSettings />

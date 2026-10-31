@@ -16,7 +16,6 @@ Configure a service in **Settings → Models**, then add a project and create a 
 
 | Feature | Documentation |
 | --- | --- |
-| Versioned documentation and offline release notes | [Help and updates](docs/help-updates.md) |
 | Create projects, select source folders, and navigate sessions | [Projects and sessions](docs/projects.md) |
 | Compose, send, cancel, and retry after failure | [Chat input](docs/chat.md) |
 | Local dictation, foreground voice calls and speech settings | [Voice input and calls](docs/voice.md) |

@@ -64,13 +64,3 @@ export const publicReleaseCatalog = (
     .filter((release) => published.includes(release.version))
     .map((release) => ({ ...release, pages: release.version === latest ? release.pages : [] }));
 };
-
-export const applicationReleaseContent = (releases: ReleaseContent[], version: string) => {
-  const recent = releases
-    .filter((release) => compareVersions(release.version, version) <= 0)
-    .slice(0, 2);
-  return {
-    version,
-    releases: recent.map(({ pages: _pages, ...release }) => release),
-  };
-};

@@ -1,8 +1,6 @@
 import { defineConfig } from "vitest/config";
-import { releaseContentPlugin } from "./packages/web-ui/release-content-plugin";
 
 export default defineConfig({
-  plugins: [releaseContentPlugin()],
   root: import.meta.dirname,
   resolve: { conditions: ["loop-source"] },
   ssr: { resolve: { conditions: ["loop-source", "node"] } },

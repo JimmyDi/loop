@@ -8,13 +8,6 @@ import { pwaEn } from "./pwa-en";
 import { voiceEn } from "./voice-en";
 
 export const en = {
-  help: "Help and updates",
-  helpUpdates: {
-    docs: "Documentation",
-    recent: "Recent releases",
-    all: "Full changelog",
-    versionPage: "View release on website",
-  },
   voice: voiceEn,
   filePreview: {
     open: "Preview PDF",

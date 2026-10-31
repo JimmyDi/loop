@@ -1,9 +1,0 @@
-.help-settings { display: grid; gap: 20px; align-content: start; }
-.help-settings h3, .help-settings h4 { margin: 0; }
-.help-settings h4 { margin-top: 12px; }
-.help-settings > a { color: var(--ink-muted); font-size: 14px; width: fit-content; }
-.help-settings a:hover { text-decoration: underline; }
-.help-release-list { display: grid; gap: 8px; }
-.help-release-list button { display: flex; justify-content: space-between; gap: 20px; text-align: left; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--ink); cursor: pointer; }
-.help-release-list button:hover { background: var(--surface-hover); }
-.help-release-list time { font-size: 12px; color: var(--ink-muted); white-space: nowrap; }

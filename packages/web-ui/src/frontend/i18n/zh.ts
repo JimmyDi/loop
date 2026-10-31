@@ -8,13 +8,6 @@ import { pwaZh } from "./pwa-zh";
 import { voiceZh } from "./voice-zh";
 
 export const zh = {
-  help: "帮助与更新",
-  helpUpdates: {
-    docs: "使用文档",
-    recent: "最近更新",
-    all: "全部更新日志",
-    versionPage: "在官网查看此版本",
-  },
   voice: voiceZh,
   filePreview: {
     open: "预览 PDF",

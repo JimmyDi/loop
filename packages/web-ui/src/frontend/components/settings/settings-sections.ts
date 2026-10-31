@@ -3,7 +3,6 @@ export const settingsGroups = [
   { label: "integrations", items: ["mcps", "skills"] },
   { label: "connectivity", items: ["remoteAccess"] },
   { label: "archived", items: ["archivedChats"] },
-  { label: "help", items: ["help"] },
 ] as const;
 
 export type SettingsSection = (typeof settingsGroups)[number]["items"][number];

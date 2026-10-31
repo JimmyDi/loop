@@ -1,5 +1,0 @@
-.release-notes-dialog { width: min(820px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); display: flex; flex-direction: column; }
-.release-notes-meta { display: flex; gap: 12px; align-items: center; color: var(--ink-muted); font-size: 13px; margin-bottom: 20px; }
-.release-notes-meta span { padding: 3px 8px; border: 1px solid var(--line); border-radius: 6px; }
-.release-notes-body { overflow-y: auto; min-height: 0; padding-right: 12px; }
-.release-notes-link { margin-top: 20px; font-size: 13px; color: var(--ink-muted); }

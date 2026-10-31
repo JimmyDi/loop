@@ -1,6 +1,6 @@
 # Release documentation and changelog
 
-Loop's website and application consume the same release content. Working-tree
+Loop's website consumes release content. Working-tree
 documentation and CHANGELOG.md remain authoring sources, never direct public website content.
 
 ## Prepare a version
@@ -47,22 +47,20 @@ Local development uses releases/published.json, checked against npm when bootstr
 requires LOOP_PUBLISHED_VERSIONS from the registry-check step. Update the local allowlist
 after a confirmed release. This is build metadata, not a user-facing setting.
 
-## Routes and application content
+## Website routes
 
 - docs/ and docs/topic/ show only the latest npm-published version, without a version selector.
 - Historical documentation routes are not generated.
 - changelog/ lists published releases; changelog/X.Y.Z/ shows full notes.
-- Settings bundles its own version and the preceding available snapshot without online checks.
 
 Documentation was imported from the public v0.4.0 source tag. Older releases retain original
 changelog notes only. Builds stop if the latest npm release lacks its documentation snapshot.
 
 ## Verification
 
-Run affected release-content and Settings tests, website type/format checks, and the static
+Run affected release-content tests, website type/format checks, and the static
 website build. Check deep links under the Pages subdirectory and portable relative base.
 The website needs no model or application backend.
 
 Related: [development](development.md), [website](../website/README.md),
-[changelog maintenance](../CONTRIBUTING.md#changelog),
-[Settings help](../packages/web-ui/src/frontend/docs/help-updates.md).
+[changelog maintenance](../CONTRIBUTING.md#changelog).

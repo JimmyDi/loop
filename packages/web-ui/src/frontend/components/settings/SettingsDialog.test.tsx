@@ -65,7 +65,6 @@ test("Settings opens General outside the mobile drawer and restores focus withou
       "Skills",
       "Remote access",
       "Archived chats",
-      "Help and updates",
     ]);
     expect(view.getByRole("tablist", { name: "Archived" })).toBeTruthy();
     expect(view.queryByRole("button", { name: "Manage" })).toBeNull();

@@ -6,7 +6,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
-- Website and Web UI: add latest-release Docs and historical Changelog pages with bilingual Docs/文档 and Changelog/更新日志 navigation beside the left-aligned brand, and Settings help links with offline dialogs for the installed version's two most recent available release snapshots. Generate documentation and notes during release preparation, reject stale snapshots, and expose website content only after npm confirms publication. Keep only the newest published documentation with no version selector, and open the same latest Docs from Settings. Switch Home, Docs, Changelog, documentation articles and full release notes without reloading the page, retaining navigation and visible content during loading and supporting browser history.
+- Website: add latest-release Docs and historical Changelog pages with bilingual Docs/文档 and Changelog/更新日志 navigation beside the left-aligned brand. Generate documentation and notes during release preparation, reject stale snapshots, and expose website content only after npm confirms publication. Keep only the newest published documentation with no version selector. Switch Home, Docs, Changelog, documentation articles and full release notes without reloading the page, retaining navigation and visible content during loading and supporting browser history.
 
 - Local development: add `pnpm run sync` to install workspace dependencies with a frozen lockfile, failing when the lockfile is missing or inconsistent with package manifests.
 

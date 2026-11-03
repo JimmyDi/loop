@@ -33,6 +33,8 @@
 
 Loop is a local-first, open-source coding harness built with TypeScript. Use it in your browser or terminal, or integrate it through the TypeScript SDK, to read and edit files and run commands in your projects. Connect your preferred model provider to get started.
 
+Continue desktop tasks from your phone through authenticated remote access, or use optional local voice input and spoken calls in the Web UI. Your projects and the Loop service stay on your computer.
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/product-dark.webp">
@@ -58,6 +60,8 @@ Loop can:
 
 - **Local-first:** work directly in your projects, with conversations and settings stored on your machine.
 - **Three ways to work:** use the Web UI, CLI, or TypeScript SDK with the same session and tool APIs.
+- **Phone access:** pair your phone to continue desktop tasks through a private tunnel; revoke paired devices from Settings. See [remote access setup](packages/web-ui/src/backend/docs/remote-access.md).
+- **Local voice:** dictate messages or use spoken calls with explicitly installed speech resources on the backend computer. See [voice setup and limits](packages/web-ui/src/frontend/docs/voice.md).
 - **Model choice:** choose your provider and model, including compatible gateways and local endpoints.
 - **Controlled execution:** set read-only, workspace-write, or full-access permissions and review approval requests.
 - **A focused core:** a single-agent loop with inspectable TypeScript code, reusable Skills, and MCP integrations.

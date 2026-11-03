@@ -10,10 +10,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("keeps copyright and legal actions with a blog entry", () => {
+it("keeps copyright and legal actions without a blog entry", () => {
   const { container } = render(<SiteFooter />);
   const footer = container.querySelector("footer")!;
-  expect(screen.getByRole("link", { name: "博客" }).getAttribute("href")).toBe("/blog/");
+  expect(within(footer).queryByRole("link")).toBeNull();
   expect(footer.querySelectorAll("img,svg")).toHaveLength(0);
   expect(footer.textContent).toContain("开源 · MIT · © 2026 Loop 贡献者");
   const nav = within(screen.getByRole("navigation", { name: "页脚导航" }));

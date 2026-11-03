@@ -67,7 +67,7 @@ GitHub supplies deployment credentials. Build jobs have read-only repository acc
 - The hero contains the startup command and a narrower, centered product screenshot. Its animated cloud background and mouse character trail respect reduced motion; the trail excludes text, controls and the product preview.
 - Three capability rows promote model/provider choice, control over longer tasks, and MCP/Skills integrations. Desktop rows alternate image placement with bottom-aligned copy; mobile layouts stack copy above the preview. The feature section uses system fonts, while the rest of the page uses local Montserrat with system Chinese fallbacks.
 - The interface section places centered copy above an 880-pixel command workbench. Its entry-choice sentence starts on a separate line. Web, CLI and SDK tabs share a fixed-height panel with internal code scrolling. Web shows the startup command, CLI shows interactive DeepSeek startup, and SDK shows a complete DeepSeek call with cleanup. Terminal panels remain dark; TypeScript uses theme-aware CSS syntax colors without a highlighting dependency. Review examples and documentation links manually when contracts change.
-- The footer follows the interface section and opens local privacy and terms dialogs. External documentation links open in new tabs.
+- The shared footer shows copyright and local privacy and terms dialogs on every page, without a Blog link. External documentation links open in new tabs.
 
 Product changes do not regenerate homepage copy, examples or assets. Published Docs and
 Changelog update after successful releases; working-tree docs and Unreleased entries never

@@ -10,12 +10,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("keeps only copyright and legal actions, leaving the social slot empty", () => {
+it("keeps copyright and legal actions with a blog entry", () => {
   const { container } = render(<SiteFooter />);
   const footer = container.querySelector("footer")!;
-  expect(footer.firstElementChild?.getAttribute("aria-hidden")).toBe("true");
-  expect(footer.firstElementChild?.textContent).toBe("");
-  expect(footer.querySelectorAll("a,img,svg")).toHaveLength(0);
+  expect(screen.getByRole("link", { name: "博客" }).getAttribute("href")).toBe("/blog/");
+  expect(footer.querySelectorAll("img,svg")).toHaveLength(0);
   expect(footer.textContent).toContain("开源 · MIT · © 2026 Loop 贡献者");
   const nav = within(screen.getByRole("navigation", { name: "页脚导航" }));
   expect(nav.getAllByRole("button")).toHaveLength(2);

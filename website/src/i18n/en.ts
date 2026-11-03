@@ -5,6 +5,7 @@ export const en = {
   socialDescription:
     "A local-first, open-source coding harness. Your projects, your models, your way of working.",
   home: "Loop home",
+  blog: "Blog",
   docs: "Docs",
   changelog: "Changelog",
   mainNavigation: "Main navigation",

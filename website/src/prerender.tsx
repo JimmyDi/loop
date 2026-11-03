@@ -6,7 +6,7 @@ import { LanguageProvider } from "./i18n/LanguageProvider";
 import { initializeLanguage } from "./i18n/initializeLanguage";
 import { browserLanguage } from "./i18n/language";
 import type { Language } from "./translations";
-import { translations } from "./translations";
+import { pageMetadata } from "./page-metadata";
 import { contentRoutes } from "./content-routes";
 
 export const render = (
@@ -23,12 +23,18 @@ export const render = (
 };
 
 export const routes = contentRoutes;
-export const languageBootstrap = (): string =>
+export const metadata = pageMetadata;
+export const languageBootstrap = (path = ""): string =>
   `(${initializeLanguage.toString()})(${browserLanguage.toString()}, ${JSON.stringify({
-    title: { en: translations.en.title, zh: translations.zh.title },
-    description: { en: translations.en.description, zh: translations.zh.description },
+    title: { en: pageMetadata(path, "en").title, zh: pageMetadata(path, "zh").title },
+    description: {
+      en: pageMetadata(path, "en").description,
+      zh: pageMetadata(path, "zh").description,
+    },
     socialDescription: {
-      en: translations.en.socialDescription,
-      zh: translations.zh.socialDescription,
+      en: pageMetadata(path, "en").socialDescription,
+      zh: pageMetadata(path, "zh").socialDescription,
     },
   }).replaceAll("<", "\\u003c")});`;
+
+export { default as blogPosts } from "virtual:blog-content";

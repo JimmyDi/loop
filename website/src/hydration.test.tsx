@@ -35,3 +35,36 @@ it.each(["zh", "en"] as const)(
     }
   },
 );
+
+it.each(["zh", "en"] as const)(
+  "hydrates the static %s blog body and switches languages",
+  async (language) => {
+    const host = document.createElement("div");
+    host.id = "root";
+    host.innerHTML = render("/", language, "blog/a-clear-agent-loop/");
+    document.body.append(host);
+    const errors = vi.fn();
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    try {
+      await act(async () => {
+        root = hydrateRoot(
+          host,
+          <LanguageProvider initialLanguage={language}>
+            <App path="blog/a-clear-agent-loop/" />
+          </LanguageProvider>,
+          { onRecoverableError: errors },
+        );
+      });
+      expect(errors).not.toHaveBeenCalled();
+      expect(host.querySelector('[data-blog-body="en"]')?.textContent).toContain(
+        "Start with one complete interaction",
+      );
+      expect(host.querySelector('[data-blog-body="zh"]')?.textContent).toContain(
+        "从一次完整的交互开始",
+      );
+    } finally {
+      await act(async () => root?.unmount());
+      host.remove();
+    }
+  },
+);

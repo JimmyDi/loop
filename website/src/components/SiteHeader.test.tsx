@@ -19,6 +19,7 @@ it("places the repository link before the language switch beside the brand", () 
     brand,
     screen.getByRole("link", { name: translations.zh.docs }),
     screen.getByRole("link", { name: translations.zh.changelog }),
+    screen.getByRole("link", { name: translations.zh.blog }),
     repository,
   ]);
   expect(repository.nextElementSibling).toBe(screen.getByRole("group", { name: "网站语言" }));
@@ -53,4 +54,18 @@ it("updates the repository accessible label and tooltip when the language change
   expect(repository.getAttribute("aria-label")).toBe(translations.zh.githubRepository);
   expect(screen.getByRole("link", { name: translations.zh.docs })).toBeTruthy();
   expect(screen.getByRole("link", { name: translations.zh.changelog })).toBeTruthy();
+});
+
+it("selects only the current section, including detail routes, and clears it on home", () => {
+  const { container, rerender } = render(<SiteHeader route="docs/web/" />);
+  expect(container.querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe("/docs/");
+  rerender(<SiteHeader route="changelog/0.5.0/" />);
+  expect(container.querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe(
+    "/changelog/",
+  );
+  rerender(<SiteHeader route="blog/a-clear-agent-loop/" />);
+  expect(container.querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe("/blog/");
+  expect(container.querySelectorAll('a[aria-current="page"]')).toHaveLength(1);
+  rerender(<SiteHeader route="" />);
+  expect(container.querySelector("a[aria-current]")).toBeNull();
 });

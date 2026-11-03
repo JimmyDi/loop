@@ -1,0 +1,340 @@
+<style>
+#loop-blog {
+  --loop-bg: light-dark(#f7f8fa, #141820);
+  --loop-ink: light-dark(#222428, #edf0f7);
+  --loop-muted: light-dark(#657084, #a7b2c5);
+  --loop-blue: light-dark(#316ad7, #93b7ff);
+  --loop-line: light-dark(#dce2eb, #363e4e);
+  --loop-tint: light-dark(#e8effc, #223452);
+  color-scheme: light dark;
+  color: var(--loop-ink);
+  font-family: system-ui, sans-serif;
+}
+#loop-blog * {
+  box-sizing: border-box;
+}
+#loop-blog [hidden] {
+  display: none !important;
+}
+#loop-blog .lb-page {
+  background: var(--loop-bg);
+  padding: 0 32px 32px;
+  min-height: 790px;
+}
+#loop-blog header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--loop-line);
+}
+#loop-blog .lb-brand {
+  font-size: 24px;
+  font-weight: 650;
+}
+#loop-blog nav {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+#loop-blog .lb-blue {
+  color: var(--loop-blue);
+}
+#loop-blog .lb-muted {
+  color: var(--loop-muted);
+}
+#loop-blog h1 {
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -1px;
+  margin: 12px 0;
+}
+#loop-blog h2 {
+  font-size: 26px;
+  font-weight: 550;
+  line-height: 1.4;
+  margin: 12px 0;
+}
+#loop-blog p {
+  margin: 10px 0;
+  line-height: 1.8;
+}
+#loop-blog .lb-intro {
+  padding: 34px 0 20px;
+}
+#loop-blog .lb-kicker {
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--loop-blue);
+}
+#loop-blog .lb-feature {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 28px;
+  align-items: center;
+  padding: 22px 0 32px;
+  border-bottom: 1px solid var(--loop-line);
+}
+#loop-blog .lb-diagram {
+  background: var(--loop-tint);
+  border-radius: 8px;
+  padding: 45px 20px;
+  line-height: 2;
+  text-align: center;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+}
+#loop-blog .lb-meta {
+  font-size: 12px;
+  color: var(--loop-muted);
+  margin: 16px 0;
+}
+#loop-blog button {
+  font: inherit;
+  background: transparent;
+  color: var(--loop-blue);
+  border: 0;
+  padding: 10px 0;
+  text-align: left;
+}
+#loop-blog .lb-row {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 24px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--loop-line);
+}
+#loop-blog h3 {
+  margin: 0 0 8px;
+  font-size: 19px;
+  font-weight: 550;
+}
+#loop-blog .lb-row p {
+  font-size: 14px;
+  color: var(--loop-muted);
+}
+#loop-blog .lb-date {
+  font-size: 12px;
+  color: var(--loop-muted);
+  padding-top: 5px;
+}
+#loop-blog footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 30px;
+  font-size: 12px;
+  color: var(--loop-muted);
+}
+#loop-blog .lb-article {
+  max-width: 640px;
+  margin: 28px auto;
+}
+#loop-blog .lb-article h1 {
+  font-size: 34px;
+}
+#loop-blog .lb-article h2 {
+  font-size: 23px;
+  margin-top: 28px;
+}
+#loop-blog details {
+  border-block: 1px solid var(--loop-line);
+  padding: 18px 0;
+  margin: 24px 0;
+}
+#loop-blog details a {
+  display: block;
+  color: var(--loop-muted);
+  font-size: 14px;
+  margin-top: 12px;
+  text-decoration: none;
+}
+#loop-blog blockquote {
+  margin: 24px 0;
+  padding: 10px 18px;
+  border-left: 2px solid var(--loop-blue);
+  background: var(--loop-tint);
+  line-height: 1.8;
+}
+@media (max-width: 600px) {
+  #loop-blog .lb-page {
+    padding: 0 20px 26px;
+    min-height: 1040px;
+  }
+  #loop-blog .lb-feature {
+    grid-template-columns: 1fr;
+  }
+  #loop-blog h1 {
+    font-size: 32px;
+  }
+  #loop-blog .lb-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  #loop-blog nav {
+    gap: 12px;
+    font-size: 13px;
+  }
+}
+@media (pointer: coarse) {
+  #loop-blog button {
+    min-height: 44px;
+  }
+}
+</style>
+<div id="loop-blog">
+  <div
+    class="viz-carousel"
+    aria-label="Loop 博客布局方案"
+    data-previous-label="上一个方案"
+    data-next-label="下一个方案"
+  >
+    <section data-variant="精选与列表" aria-label="精选与列表方案">
+      <div class="lb-page">
+        <header>
+          <span class="lb-brand">Loop</span>
+          <nav aria-label="网站导航">
+            <span>文档</span><span>更新日志</span><span class="lb-blue">博客</span
+            ><span>中文 / EN</span>
+          </nav>
+        </header>
+        <div data-index>
+          <div class="lb-intro">
+            <span class="lb-kicker">LOOP BLOG · 设计示意</span>
+            <h1>构建过程，值得记录。</h1>
+            <p class="lb-muted">关于 coding agent 的工程思考、产品设计与使用实践。</p>
+          </div>
+          <section class="lb-feature" aria-label="精选文章">
+            <div>
+              <span class="lb-kicker">工程 · 精选</span>
+              <h2>一个可靠的 Agent，<br>从清晰的循环开始</h2>
+              <p class="lb-muted">从模型响应到工具执行，理解顺序循环中的状态、取消与恢复。</p>
+              <div class="lb-meta">Loop · 示例文章 · 约 8 分钟</div>
+              <button type="button" class="cursor-interaction" data-open>阅读文章 →</button>
+            </div>
+            <div
+              class="lb-diagram"
+              role="img"
+              aria-label="模型响应、工具执行、结果写回组成顺序循环"
+            >
+              ONE LOOP. CLEAR STATE.<br><br>模型响应 → 工具执行 → 结果写回<br>↖ 下一轮输入 ↙
+            </div>
+          </section>
+          <article class="lb-row">
+            <span class="lb-date">工程</span>
+            <div>
+              <h3>上下文变长之后，如何保留有用的信息</h3>
+              <p>从输入准备到压缩，讨论可理解、可恢复的上下文管理。</p>
+              <div class="lb-meta">示例文章 · 约 6 分钟</div>
+            </div>
+          </article>
+          <article class="lb-row">
+            <span class="lb-date">产品</span>
+            <div>
+              <h3>让长任务的控制权始终清晰</h3>
+              <p>队列、过程中的补充输入，以及停止后的继续操作。</p>
+              <div class="lb-meta">示例文章 · 约 5 分钟</div>
+            </div>
+          </article>
+        </div>
+        <article class="lb-article" data-article hidden>
+          <button type="button" class="cursor-interaction" data-back>← 返回博客</button>
+          <div class="lb-kicker">工程 · 设计示意</div>
+          <h1>一个可靠的 Agent，<br>从清晰的循环开始</h1>
+          <p class="lb-muted">从模型响应到工具执行，理解顺序循环中的状态、取消与恢复。</p>
+          <div class="lb-meta">Loop · 示例文章 · 约 8 分钟</div>
+          <details>
+            <summary>本文目录</summary>
+            <a href="#lb-input">从一次输入开始</a><a href="#lb-state">让状态保持清晰</a>
+          </details>
+          <h2 id="lb-input">从一次输入开始</h2>
+          <p>
+            一个任务从用户输入开始。模型决定下一步，工具执行具体操作，结果进入下一轮上下文。每一步都有明确的输入与结果，读者才能理解系统如何前进。
+          </p>
+          <blockquote>清晰的循环，让失败更容易定位，让继续执行有据可依。</blockquote>
+          <h2 id="lb-state">让状态保持清晰</h2>
+          <p>
+            设计需要回答三个问题：现在进行到哪一步，停止后保存了什么，再次开始时从哪里继续。本文仅展示拟议的阅读排版。
+          </p>
+          <button type="button" class="cursor-interaction" data-back>← 所有文章</button>
+        </article>
+        <footer><span>Loop · 博客体验概念</span><span>文档 / 更新日志</span></footer>
+      </div>
+    </section>
+    <section data-variant="纯文字札记" aria-label="纯文字札记方案" hidden>
+      <div class="lb-page">
+        <header>
+          <span class="lb-brand">Loop</span>
+          <nav aria-label="网站导航">
+            <span>文档</span><span>更新日志</span><span class="lb-blue">博客</span
+            ><span>中文 / EN</span>
+          </nav>
+        </header>
+        <div class="lb-intro">
+          <span class="lb-kicker">LOOP BLOG · 设计示意</span>
+          <h1>构建过程，值得记录。</h1>
+          <p class="lb-muted">关于 coding agent 的工程思考、产品设计与使用实践。</p>
+        </div>
+        <article class="lb-row">
+          <span class="lb-date">精选 · 工程</span>
+          <div>
+            <h3>一个可靠的 Agent，从清晰的循环开始</h3>
+            <p>从模型响应到工具执行，理解顺序循环中的状态、取消与恢复。</p>
+            <div class="lb-meta">Loop · 示例文章 · 约 8 分钟</div>
+          </div>
+        </article>
+        <article class="lb-row">
+          <span class="lb-date">工程</span>
+          <div>
+            <h3>上下文变长之后，如何保留有用的信息</h3>
+            <p>从输入准备到压缩，讨论可理解、可恢复的上下文管理。</p>
+            <div class="lb-meta">示例文章 · 约 6 分钟</div>
+          </div>
+        </article>
+        <article class="lb-row">
+          <span class="lb-date">产品</span>
+          <div>
+            <h3>让长任务的控制权始终清晰</h3>
+            <p>队列、过程中的补充输入，以及停止后的继续操作。</p>
+            <div class="lb-meta">示例文章 · 约 5 分钟</div>
+          </div>
+        </article>
+        <footer><span>Loop · 博客体验概念</span><span>文档 / 更新日志</span></footer>
+      </div>
+    </section>
+  </div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById("loop-blog");
+  const index = root.querySelector("[data-index]");
+  const article = root.querySelector("[data-article]");
+  root.querySelector("[data-open]").addEventListener("click", () => {
+    index.hidden = true;
+    article.hidden = false;
+  });
+  root.querySelectorAll("[data-back]").forEach((button) =>
+    button.addEventListener("click", () => {
+      index.hidden = false;
+      article.hidden = true;
+    }),
+  );
+  if (globalThis.Tweak) {
+    const state = { cover: true };
+    const feature = root.querySelector(".lb-feature");
+    const tweak = new Tweak({
+      container: feature,
+      onChange: () => {
+        root.querySelector(".lb-diagram").hidden = !state.cover;
+        feature.style.gridTemplateColumns = state.cover ? "" : "1fr";
+      },
+    });
+    tweak.addToggle(state, "cover", { label: "显示精选配图" });
+  }
+})();
+</script>

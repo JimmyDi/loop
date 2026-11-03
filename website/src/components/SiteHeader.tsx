@@ -7,18 +7,32 @@ import { LanguageSwitch } from "./LanguageSwitch";
 import styles from "./SiteHeader.module.css";
 import { useHeaderScroll } from "./useHeaderScroll";
 
-export const SiteHeader = () => {
+export const SiteHeader = ({ route = "" }: { route?: string }) => {
   const { t } = useLanguage();
+  const blog = route.startsWith("blog/");
   const headerRef = useRef<HTMLElement>(null);
   useHeaderScroll(headerRef);
   return (
-    <header className={styles["site-header"]} ref={headerRef}>
+    <header
+      className={[styles["site-header"], blog ? styles.editorial : ""].join(" ")}
+      ref={headerRef}
+    >
       <div className={styles.bar}>
         <div className={styles.primary}>
           <Brand />
           <nav className={styles.navigation} aria-label={t("mainNavigation")}>
-            <a href={asset("docs/")}>{t("docs")}</a>
-            <a href={asset("changelog/")}>{t("changelog")}</a>
+            <a href={asset("docs/")} aria-current={route.startsWith("docs/") ? "page" : undefined}>
+              {t("docs")}
+            </a>
+            <a
+              href={asset("changelog/")}
+              aria-current={route.startsWith("changelog/") ? "page" : undefined}
+            >
+              {t("changelog")}
+            </a>
+            <a href={asset("blog/")} aria-current={blog ? "page" : undefined}>
+              {t("blog")}
+            </a>
           </nav>
         </div>
         <div className={styles.actions}>

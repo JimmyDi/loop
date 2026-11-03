@@ -54,3 +54,14 @@
     justify-self: center;
   }
 }
+
+.social-space a {
+  font-size: 13px;
+  color: var(--muted);
+}
+@media (max-width: 1000px) {
+  .social-space {
+    display: block;
+    text-align: center;
+  }
+}

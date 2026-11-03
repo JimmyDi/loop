@@ -14,3 +14,12 @@ it.each(["./", "/loop/"])("renders complete static content with asset base %s", 
   expect(html).toContain('srcSet="' + base + 'brand/loop-mark-white.svg"');
   expect(html).toContain('media="(prefers-color-scheme: dark)"');
 });
+
+it("renders both complete blog translations without depending on client article bodies", () => {
+  const html = render("/loop/", "en", "blog/a-clear-agent-loop/");
+  expect(html).toContain("Start with one complete interaction");
+  expect(html).toContain("从一次完整的交互开始");
+  expect(html).toContain('id="en-start-with-one-complete-interaction"');
+  expect(html).toContain('href="/loop/blog/"');
+  expect(render("/", "en", "blog/missing/")).toContain("Article not found");
+});

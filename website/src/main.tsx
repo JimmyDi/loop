@@ -9,7 +9,7 @@ const initialLanguage =
   root?.dataset.language === "en" ? "en" : root?.dataset.language === "zh" ? "zh" : undefined;
 const page = (
   <LanguageProvider initialLanguage={initialLanguage}>
-    <App />
+    <App path={root?.dataset.route || undefined} />
   </LanguageProvider>
 );
 if (root) {

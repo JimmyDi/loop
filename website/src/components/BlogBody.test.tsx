@@ -57,3 +57,28 @@ it("opens an article image and returns focus to its control on close", () => {
   fireEvent.click(screen.getByRole("button", { name: "Close image" }));
   expect(document.activeElement).toBe(opener);
 });
+
+it("keeps image assets under the deployment root while localizing article links", async () => {
+  const { setPrerenderAssetBase } = await import("../assets");
+  setPrerenderAssetBase("/loop/");
+  try {
+    const { container } = render(
+      <LanguageProvider initialLanguage="en">
+        <BlogBody
+          post={posts[0]}
+          bodies={{
+            en: '<img src="blog/post/image.png" alt="Diagram"><a href="blog/post/">Related</a>',
+          }}
+        />
+      </LanguageProvider>,
+    );
+    expect(container.querySelector('[data-blog-body="en"] img')?.getAttribute("src")).toBe(
+      "/loop/blog/post/image.png",
+    );
+    expect(screen.getByRole("link", { name: "Related" }).getAttribute("href")).toBe(
+      "/loop/en/blog/post/",
+    );
+  } finally {
+    setPrerenderAssetBase("/");
+  }
+});

@@ -9,13 +9,15 @@ type InitialMetadata = Record<
 export const initializeLanguage = (
   resolveLanguage: (languages: readonly string[]) => Language,
   metadata: InitialMetadata,
+  explicitLanguage?: Language,
 ): void => {
-  const language = resolveLanguage(
-    navigator.languages.length ? navigator.languages : [navigator.language],
-  );
+  const language =
+    explicitLanguage ??
+    resolveLanguage(navigator.languages.length ? navigator.languages : [navigator.language]);
   const root = document.getElementById("root");
   const english = document.getElementById("initial-english") as HTMLTemplateElement | null;
-  if (root && english && language === "en") root.replaceChildren(english.content);
+  if (root && english && language === "en" && root.dataset.renderedLanguage !== "en")
+    root.replaceChildren(english.content);
   english?.remove();
   if (root) root.dataset.language = language;
   document.documentElement.lang = language === "zh" ? "zh-CN" : "en";

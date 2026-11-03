@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 
+import { blogLanguage } from "../blog/blog-location";
+import { useLanguage } from "../i18n/useLanguage";
 import { blogPost } from "../blog/blog";
 import type { BlogBodies } from "../blog/types";
 import { asset } from "../assets";
 import { normalizeRoute, resolveContentRoute } from "../content-routes";
 
 export const useContentNavigation = (initialRoute: string) => {
+  const { setLanguage } = useLanguage();
+  const languageRef = useRef(setLanguage);
+  languageRef.current = setLanguage;
   const ref = useRef<HTMLDivElement>(null);
   const [content, setContent] = useState({
     route: initialRoute,
@@ -73,6 +78,8 @@ export const useContentNavigation = (initialRoute: string) => {
         }
         if (request.signal.aborted) return;
         if (push) history.pushState(null, "", url.href);
+        const locale = blogLanguage(url.pathname);
+        if (locale) languageRef.current(locale);
         currentPath = url.pathname;
         setContent({ route, html, bodies });
         requestAnimationFrame(() => {

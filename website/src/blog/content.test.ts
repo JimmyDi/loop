@@ -62,6 +62,9 @@ it("requires local image assets and prevents escaping the article asset director
   expect(renderBlogMarkdown("![Diagram](image.png)", "post", path).html).toContain(
     'src="blog/post/image.png"',
   );
+  expect(renderBlogMarkdown("![Diagram](image.png)", "post", path).html).toContain(
+    'referrerpolicy="no-referrer"',
+  );
   expect(() => renderBlogMarkdown("![Diagram](../image.png)", "post", path)).toThrow();
   expect(() => renderBlogMarkdown("![](image.png)", "post", path)).toThrow();
   expect(() =>

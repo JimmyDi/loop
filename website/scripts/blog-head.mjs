@@ -18,7 +18,9 @@ export const publicOrigin = (value) => {
 };
 
 export const routeHead = (html, route, metadata, posts, origin, base) => {
-  const post = posts.find((entry) => route === "blog/" + entry.slug + "/")?.zh;
+  const language = route.startsWith("en/blog/") ? "en" : "zh";
+  const normalized = route.replace(/^en\//, "");
+  const post = posts.find((entry) => normalized === "blog/" + entry.slug + "/")?.[language];
   const result = html
     .replace(/<title>[^<]*<\/title>/, "<title>" + escape(metadata.title) + "</title>")
     .replace(
@@ -42,6 +44,29 @@ export const routeHead = (html, route, metadata, posts, origin, base) => {
       escape(url) +
       '">'
     : "";
+  if (url) {
+    const image = new URL(base + "social-preview.png", origin).href;
+    head +=
+      '<meta property="og:image" content="' +
+      escape(image) +
+      '"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="' +
+      escape(image) +
+      '">';
+    if (normalized.startsWith("blog/")) {
+      for (const [locale, prefix] of [
+        ["zh-CN", ""],
+        ["en", "en/"],
+        ["x-default", ""],
+      ]) {
+        head +=
+          '<link rel="alternate" hreflang="' +
+          locale +
+          '" href="' +
+          escape(new URL(base + prefix + normalized, origin).href) +
+          '">';
+      }
+    }
+  }
   if (post) {
     head +=
       '<meta property="article:published_time" content="' +
@@ -58,7 +83,7 @@ export const routeHead = (html, route, metadata, posts, origin, base) => {
         description: post.summary,
         datePublished: post.publishedAt,
         dateModified: post.updatedAt ?? post.publishedAt,
-        inLanguage: "zh-CN",
+        inLanguage: language === "zh" ? "zh-CN" : "en",
         author: { "@type": "Organization", name: post.author },
         ...(url ? { mainEntityOfPage: url } : {}),
       }).replaceAll("<", "\\u003c") +

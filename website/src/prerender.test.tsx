@@ -20,6 +20,6 @@ it("renders both complete blog translations without depending on client article 
   expect(html).toContain("Start with one complete interaction");
   expect(html).toContain("从一次完整的交互开始");
   expect(html).toContain('id="en-start-with-one-complete-interaction"');
-  expect(html).toContain('href="/loop/blog/"');
+  expect(html).toContain('href="/loop/en/blog/"');
   expect(render("/", "en", "blog/missing/")).toContain("Article not found");
 });

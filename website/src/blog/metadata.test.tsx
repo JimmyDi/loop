@@ -58,3 +58,34 @@ it("uses a blog missing page for unknown slugs", () => {
   expect(view.container.textContent).toContain("Article not found");
   expect(view.container.textContent).not.toContain("From idea,");
 });
+
+it.each(["zh", "en"] as const)(
+  "emits self-canonical, language alternates and social image for %s",
+  (locale) => {
+    const route = (locale === "en" ? "en/" : "") + "blog/" + posts[0].slug + "/";
+    const html = routeHead(
+      "<head></head>",
+      route,
+      pageMetadata(route, locale),
+      posts,
+      "https://example.com",
+      "/loop/",
+    );
+    const document = new DOMParser().parseFromString(html, "text/html");
+    expect(document.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe(
+      "https://example.com/loop/" + route,
+    );
+    expect(document.querySelector('link[hreflang="en"]')?.getAttribute("href")).toBe(
+      "https://example.com/loop/en/blog/" + posts[0].slug + "/",
+    );
+    expect(document.querySelector('link[hreflang="zh-CN"]')?.getAttribute("href")).toBe(
+      "https://example.com/loop/blog/" + posts[0].slug + "/",
+    );
+    expect(document.querySelector('meta[property="og:image"]')?.getAttribute("content")).toBe(
+      "https://example.com/loop/social-preview.png",
+    );
+    expect(
+      JSON.parse(document.getElementById("blog-structured-data")!.textContent!).inLanguage,
+    ).toBe(locale === "zh" ? "zh-CN" : "en");
+  },
+);

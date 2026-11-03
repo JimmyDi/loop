@@ -1,3 +1,4 @@
+import { blogPath } from "./blog/blog-location";
 import { asset } from "./assets";
 import { blogPost } from "./blog/blog";
 import { normalizeRoute, resolveContentRoute } from "./content-routes";
@@ -58,7 +59,21 @@ export const updatePageMetadata = (path: string, language: Language): void => {
   const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
   if (canonical) {
     const origin = new URL(canonical.href).origin;
-    canonical.href = new URL(asset(normalizeRoute(path)), origin).href;
+    const route = normalizeRoute(path);
+    canonical.href = new URL(
+      asset(route.startsWith("blog/") ? blogPath(route, language) : route),
+      origin,
+    ).href;
+    for (const tag of document.querySelectorAll('link[rel="alternate"][hreflang]')) tag.remove();
+    if (route.startsWith("blog/")) {
+      for (const locale of ["zh-CN", "en", "x-default"]) {
+        const tag = document.createElement("link");
+        tag.rel = "alternate";
+        tag.hreflang = locale;
+        tag.href = new URL(asset(blogPath(route, locale === "en" ? "en" : "zh")), origin).href;
+        document.head.append(tag);
+      }
+    }
     document.querySelector('meta[property="og:url"]')?.setAttribute("content", canonical.href);
   }
   for (const [property, value] of [

@@ -1,8 +1,8 @@
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import type { BlogArticle, BlogLocale, BlogPost } from "../src/blog/types";
-import { renderBlogMarkdown } from "./blog-markdown";
+import type { BlogArticle, BlogLocale, BlogPost } from "../src/blog/types.ts";
+import { renderBlogMarkdown } from "./blog-markdown.ts";
 
 const validDate = (value: string): boolean =>
   /^\d{4}-\d{2}-\d{2}$/.test(value) &&

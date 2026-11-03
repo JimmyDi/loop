@@ -47,6 +47,8 @@ Loop can:
 - work in your browser or terminal, or inside your application through the TypeScript SDK
 - read and edit project files, run shell commands, and execute your tests
 - connect to built-in model providers, custom gateways, and compatible local model endpoints
+- continue a desktop task from your phone through authenticated remote access
+- use optional local voice input and spoken calls in the Web UI
 - save conversations by project and restore previous sessions to continue your work
 - load reusable Skills and use external MCP tools in the Web UI or through the SDK
 - compact long conversations automatically or on demand while preserving the original history
@@ -69,6 +71,8 @@ npx @loop-harness/loop web
 ```
 
 The browser opens when the local service is ready. Configure providers in Settings → Models. The published package includes the CLI, SDK and prebuilt Web UI; no Bun or frontend build tools are required.
+
+To continue from a phone, configure the private tunnel and pair the device in Settings. The service and project files remain on the backend computer; see [remote access and device pairing](packages/web-ui/src/backend/docs/remote-access.md) for setup and limitations.
 
 Optional local speech input and calls are configured in Settings → Voice. Resources are installed explicitly on the backend computer; see [voice setup and limits](packages/web-ui/src/frontend/docs/voice.md).
 

@@ -2,8 +2,8 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test } from "vitest";
 
-import { checkReleaseSnapshot } from "./check-snapshot";
-import { createReleaseContent } from "./snapshot";
+import { checkReleaseSnapshot } from "./check-snapshot.ts";
+import { createReleaseContent } from "./snapshot.ts";
 
 test("release check rejects docs edited after the snapshot was prepared", async () => {
   const root = await mkdtemp(join(import.meta.dirname, ".snapshot-test-"));

@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { blogPath } from "../blog/blog-location";
 import { asset } from "../assets";
 import { categoryLabel, readingLabel } from "../blog/blog";
 import type { BlogIndexPost } from "../blog/types";
@@ -48,7 +49,9 @@ export const BlogDataGrid = ({ posts }: { posts: BlogIndexPost[] }) => {
                     {categoryLabel(article.category, language)}
                   </td>
                   <th scope="row">
-                    <a href={asset("blog/" + post.slug + "/")}>{article.title}</a>
+                    <a href={asset(blogPath("blog/" + post.slug + "/", language))}>
+                      {article.title}
+                    </a>
                   </th>
                   <td>{article.author}</td>
                   <td>{readingLabel(article.readingMinutes, language)}</td>

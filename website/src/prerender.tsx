@@ -1,5 +1,6 @@
 import { renderToString } from "react-dom/server";
 
+import { blogLanguage } from "./blog/blog-location";
 import { App } from "./App";
 import { setPrerenderAssetBase } from "./assets";
 import { LanguageProvider } from "./i18n/LanguageProvider";
@@ -35,6 +36,6 @@ export const languageBootstrap = (path = ""): string =>
       en: pageMetadata(path, "en").socialDescription,
       zh: pageMetadata(path, "zh").socialDescription,
     },
-  }).replaceAll("<", "\\u003c")});`;
+  }).replaceAll("<", "\\u003c")}, ${JSON.stringify(blogLanguage(path))});`;
 
 export { default as blogPosts } from "virtual:blog-content";

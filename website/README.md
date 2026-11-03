@@ -42,7 +42,7 @@ pnpm --filter @loop/website build
 pnpm --filter @loop/website preview
 ```
 
-Deploy only `website/dist/` to a static host. No server, credentials or environment variables are needed. The default build targets a domain root; use `build --base=/loop/` for a specific subdirectory or `build --base=./` for portable relative asset URLs.
+Deploy only `website/dist/` to a static host. No runtime server or credentials are needed. Public builds require WEBSITE_ORIGIN and an explicit root-relative base for SEO metadata. The default build targets a domain root; use `build --base=/loop/` for a specific subdirectory or `build --base=./` for portable relative asset URLs.
 
 The [Website workflow](../.github/workflows/website.yml) checks types, formatting, tests and the production build on pull requests. PR builds do not deploy. On `main`, the workflow checks the merged commit and deploys that exact artifact to GitHub Pages. A failed check or build prevents deployment.
 
@@ -94,9 +94,9 @@ Maintain brand copies deliberately and preserve the [brand notice](public/brand/
 
 The live system color scheme selects native product captures through media-qualified picture sources, including during playback, without a reload or playback reset. Capture each product theme directly rather than recoloring with filters. Code-rendered visuals use shared theme colors. The page and browser toolbar remain theme-aware without JavaScript.
 
-The first preferred browser language selects Chinese or English before first paint. The language switch updates copy, product assets, accessible labels and metadata in place. Manual selection lasts for the current page and is not stored in cookies or local storage. Reloading returns to browser preference.
+The first preferred browser language selects Chinese or English before first paint. The language switch updates copy, product assets, accessible labels and metadata in place. Manual selection lasts for the current page and is not stored in cookies or local storage. Reloading returns to browser preference outside the blog. Blog URLs explicitly select Chinese or English, including on reload.
 
-Production contains Chinese static HTML and an inert English template. A small bootstrap selects the initial markup and metadata before React hydrates it. Chinese content remains available without JavaScript; copying, language switching and tab selection require JavaScript. Development uses client rendering.
+Production contains Chinese static HTML and an inert English template outside the blog; English blog URLs render English static HTML. A small bootstrap selects the initial markup and metadata before React hydrates it. Chinese content remains available without JavaScript; copying, language switching and tab selection require JavaScript. Development uses client rendering.
 
 The site has no analytics or third-party font requests. Privacy and terms distinguish the static website from the Loop application and external services.
 
@@ -115,7 +115,7 @@ import website code. Application builds and published package contents exclude w
 
 ## Blog
 
-The blog lives at `/blog/` and shares the website language switch and theme colors for the page, cards, search field and illustrations. The index starts with a right-aligned search field without introductory copy or an article count. It uses up to
+The blog lives at `/blog/` and shares the website language switch and theme colors for the page, cards, search field and illustrations. The index has no introductory copy or article count; search sits beside the archive heading below the cards. It uses up to
 three columns; the newest article spans two, then becomes full-width in the two-column
 layout and a single card on phones. Navigation shares the blog’s 1400px container and 32px desktop / 20px mobile gutters on every page, including on scroll.
 Articles have section navigation, copy-link feedback, code copying and related reading.
@@ -141,19 +141,17 @@ Code fences display a language label and copy action. Images open a native modal
 Escape closes it and native focus returns to the opener.
 
 Production contains both static article translations; browser bundles contain only the
-article index and section metadata. Internal article navigation loads both translations
+article index and section metadata. The temporary SSR build separates blog and release content into dedicated chunks so the render entry does not grow with article bodies. Internal article navigation loads both translations
 from static HTML while retaining the current page until the response succeeds. Language
 changes then update the article without another request. Back/Forward restores recorded
 scroll positions; failed requests fall back to ordinary page navigation.
 
 Set `WEBSITE_ORIGIN` to the public HTTPS origin at build time to emit canonical URLs,
 Open Graph URLs and `sitemap.xml`, including the configured deployment base. Without it,
-preview builds omit public URLs and the sitemap. Relative-base builds omit the sitemap;
+preview builds omit public URLs and the sitemap. Public SEO builds reject relative bases;
 use an explicit root-relative base for a public deployment. All articles include title,
-description, article dates and BlogPosting structured data. Both languages share one URL;
-Chinese is the static default for crawlers. Separate indexed locale routes and RSS are not
-implemented. The output includes `404.html`; configure the static host to serve it with a
-404 status for missing paths rather than rewrite them to the homepage. Development and
+description, article dates and BlogPosting structured data. Chinese blog routes use blog/ and English routes use en/blog/, including article pages. Each URL renders its own language, self-canonical and reciprocal zh-CN/en/x-default hreflang links. Explicit blog URLs take precedence over browser language; the shared language switch updates the blog URL. RSS is not implemented. The output includes `404.html`; configure the static host to serve it with a
+404 status for missing paths rather than rewrite them to the homepage. GitHub Pages serves the generated 404.html; its asset base is the deployment root and it carries noindex. A project site cannot control the host-root robots.txt; its project robots.txt and sitemap remain available, and sitemap submission can be used for discovery. Development and
 Vite preview fallback routing do not establish production HTTP status behavior.
 
 
@@ -168,3 +166,5 @@ When adding, updating, deleting or changing publication status of an article, th
 Development and builds validate the maintained index against the published Markdown pairs. Missing, duplicate, reordered or stale records fail validation and identify the index to update. Builds never rewrite the source index; there is no index-generation command.
 
 Blog cards and the archive use this maintained index through virtual:blog-index for search and View more pagination. Builds also export a public blog/index.json copy. The index is bundled for initial rendering, so pagination does not fetch Markdown or request additional pages. Article bodies remain in their static article pages.
+
+The GitHub Pages build resolves its public host and base path from Pages configuration. Public builds emit robots.txt, reciprocal blog hreflang links and a default social preview image, in addition to canonical URLs and the sitemap. Blog images use local assets and no-referrer.

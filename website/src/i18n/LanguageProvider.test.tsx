@@ -9,7 +9,22 @@ import { useLanguage } from "./useLanguage";
 
 afterEach(() => {
   cleanup();
+  document.getElementById("root")?.remove();
   vi.unstubAllGlobals();
+});
+
+it("preserves application metadata for a static missing-page route", () => {
+  const root = document.createElement("div");
+  root.id = "root";
+  root.dataset.route = "blog/not-found/";
+  document.body.append(root);
+  document.title = "Article not found · Loop";
+  render(
+    <LanguageProvider initialLanguage="en">
+      <LanguageSwitch />
+    </LanguageProvider>,
+  );
+  expect(document.title).toBe("Article not found · Loop");
 });
 
 it("uses the browser language in the first render without an effect-driven switch", () => {

@@ -1,3 +1,4 @@
+import { blogPath } from "./blog/blog-location";
 import { useEffect, useState } from "react";
 
 import { Capabilities } from "./components/Capabilities";
@@ -37,7 +38,10 @@ export const App = ({
       aria-busy={navigation.pending}
       className={route.startsWith("blog/") ? appStyles.blog : undefined}
     >
-      <a className={layout["skip-link"]} href={asset(route + "#main")}>
+      <a
+        className={layout["skip-link"]}
+        href={asset((route.startsWith("blog/") ? blogPath(route, language) : route) + "#main")}
+      >
         {t("skip")}
       </a>
       <SiteHeader route={route} />

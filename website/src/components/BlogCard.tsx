@@ -1,3 +1,4 @@
+import { blogPath } from "../blog/blog-location";
 import { asset } from "../assets";
 import { categoryLabel, readingLabel } from "../blog/blog";
 import type { BlogIndexArticle } from "../blog/types";
@@ -14,7 +15,7 @@ export const BlogCard = ({
   const { language } = useLanguage();
   return (
     <article className={[styles.card, featured ? styles.featured : ""].join(" ")}>
-      <a className={styles.link} href={asset("blog/" + article.slug + "/")}>
+      <a className={styles.link} href={asset(blogPath("blog/" + article.slug + "/", language))}>
         <div className={styles.meta}>
           <span>
             {featured && (language === "zh" ? "最新 · " : "Latest · ")}

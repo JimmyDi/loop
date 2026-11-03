@@ -1,4 +1,4 @@
-import type { BlogArticle, BlogIndexPost, BlogPost } from "./types";
+import type { BlogArticle, BlogIndexPost, BlogPost } from "./types.ts";
 
 export const createArticleIndex = (posts: BlogPost[]): BlogIndexPost[] =>
   posts.map(({ slug, zh, en }) => {

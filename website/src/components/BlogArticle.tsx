@@ -1,5 +1,6 @@
 import posts from "virtual:blog-content";
 
+import { blogPath } from "../blog/blog-location";
 import { asset } from "../assets";
 import { blogPost, categoryLabel, readingLabel } from "../blog/blog";
 import type { BlogBodies } from "../blog/types";
@@ -14,20 +15,26 @@ export const BlogArticle = ({ route, bodies = {} }: { route: string; bodies?: Bl
   const post = blogPost(route);
   const article = post?.[language];
   const copy = useCopyCommand(
-    typeof location === "undefined" ? "" : new URL(asset(route), location.href).href,
+    typeof location === "undefined"
+      ? ""
+      : new URL(asset(blogPath(route, language)), location.href).href,
   );
   if (!article)
     return (
       <div className={styles.page}>
         <h1 tabIndex={-1}>{language === "zh" ? "文章不存在" : "Article not found"}</h1>
-        <a href={asset("blog/")}>{language === "zh" ? "返回博客" : "Back to blog"}</a>
+        <a href={asset(blogPath("blog/", language))}>
+          {language === "zh" ? "返回博客" : "Back to blog"}
+        </a>
       </div>
     );
   const related = posts.filter((entry) => entry.slug !== post.slug).slice(0, 2);
   return (
     <div className={styles.page}>
       <header className={styles.heading}>
-        <a href={asset("blog/")}>{language === "zh" ? "← 全部文章" : "← All articles"}</a>
+        <a href={asset(blogPath("blog/", language))}>
+          {language === "zh" ? "← 全部文章" : "← All articles"}
+        </a>
         <p className={styles.category}>{categoryLabel(article.category, language)}</p>
         <h1 tabIndex={-1}>{article.title}</h1>
         <p className={styles.summary}>{article.summary}</p>
@@ -64,7 +71,10 @@ export const BlogArticle = ({ route, bodies = {} }: { route: string; bodies?: Bl
               <summary>{language === "zh" ? "本文目录" : "On this page"}</summary>
               <nav aria-label={language === "zh" ? "本文目录" : "On this page"}>
                 {article.headings.map((heading) => (
-                  <a key={heading.id} href={asset(route + "#" + language + "-" + heading.id)}>
+                  <a
+                    key={heading.id}
+                    href={asset(blogPath(route, language) + "#" + language + "-" + heading.id)}
+                  >
                     {heading.title}
                   </a>
                 ))}

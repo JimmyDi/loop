@@ -41,5 +41,5 @@ it("shows a missing article instead of the homepage", () => {
     </LanguageProvider>,
   );
   expect(screen.getByRole("heading").textContent).toBe("Article not found");
-  expect(screen.getByRole("link").getAttribute("href")).toBe("/blog/");
+  expect(screen.getByRole("link").getAttribute("href")).toBe("/en/blog/");
 });

@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 
+import { blogPath } from "../blog/blog-location";
 import { asset } from "../assets";
 import type { BlogBodies, BlogPost } from "../blog/types";
 import { useLanguage } from "../i18n/useLanguage";
@@ -58,12 +59,18 @@ export const BlogBody = ({ post, bodies }: { post: BlogPost; bodies: BlogBodies 
           )
           .replace(
             /(href|src)="((?:blog|docs|changelog)\/[^" ]*)"/g,
-            (_, attr: string, path: string) => attr + '="' + asset(path) + '"',
+            (_, attr: string, path: string) =>
+              attr +
+              '="' +
+              asset(attr === "href" && path.startsWith("blog/") ? blogPath(path, locale) : path) +
+              '"',
           )
           .replace(
             /href="#([^" ]*)"/g,
             (_, hash: string) =>
-              'href="' + asset("blog/" + post.slug + "/#" + locale + "-" + hash) + '"',
+              'href="' +
+              asset(blogPath("blog/" + post.slug + "/", locale) + "#" + locale + "-" + hash) +
+              '"',
           );
         return (
           <div
@@ -81,7 +88,7 @@ export const BlogBody = ({ post, bodies }: { post: BlogPost; bodies: BlogBodies 
         <button type="button" onClick={() => dialog.current?.close()}>
           {language === "zh" ? "关闭图片" : "Close image"}
         </button>
-        <img src={image.src || undefined} alt={image.alt} />
+        <img src={image.src || undefined} alt={image.alt} referrerPolicy="no-referrer" />
       </dialog>
     </article>
   );

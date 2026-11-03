@@ -86,7 +86,7 @@ it("retains fetched bilingual blog bodies after the browser URL changes", async 
     );
     fireEvent.click(screen.getAllByRole("link", { name: new RegExp(post.en.title) })[0]);
     await waitFor(() => expect(screen.getByRole("heading", { name: "English body" })).toBeTruthy());
-    expect(location.pathname).toBe("/blog/" + post.slug + "/");
+    expect(location.pathname).toBe("/en/blog/" + post.slug + "/");
     fireEvent.click(screen.getByRole("button", { name: "中文" }));
     expect(screen.getByRole("heading", { name: "中文正文" })).toBeTruthy();
   } finally {
@@ -95,4 +95,23 @@ it("retains fetched bilingual blog bodies after the browser URL changes", async 
       entry.en.html = clientPosts[index].en;
     });
   }
+});
+
+it("opens an explicit English blog URL and updates URL and metadata when switching language", async () => {
+  history.replaceState(null, "", "/en/blog/a-clear-agent-loop/");
+  vi.stubGlobal("navigator", { languages: ["zh-CN"], language: "zh-CN" });
+  render(
+    <LanguageProvider>
+      <App />
+    </LanguageProvider>,
+  );
+  expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+    "Reliable agents start with a clear loop",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "中文" }));
+  expect(location.pathname).toBe("/blog/a-clear-agent-loop/");
+  expect(document.documentElement.lang).toBe("zh-CN");
+  fireEvent.click(screen.getByRole("button", { name: "EN" }));
+  expect(location.pathname).toBe("/en/blog/a-clear-agent-loop/");
+  expect(document.documentElement.lang).toBe("en");
 });

@@ -14,7 +14,7 @@ it("links the complete featured card to its article with semantic publication me
       <BlogCard article={article} featured />
     </LanguageProvider>,
   );
-  expect(screen.getByRole("link").getAttribute("href")).toBe("/blog/" + article.slug + "/");
+  expect(screen.getByRole("link").getAttribute("href")).toBe("/en/blog/" + article.slug + "/");
   expect(screen.getByRole("heading").textContent).toBe(article.title);
   expect(container.querySelector("time")?.dateTime).toBe(article.publishedAt);
   expect(screen.getByText(/Latest/)).toBeTruthy();

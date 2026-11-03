@@ -42,3 +42,21 @@ it.each([
     );
   },
 );
+
+it.each(["zh", "en"] as const)(
+  "honors the explicit %s blog URL over the browser preference",
+  (locale) => {
+    vi.stubGlobal("navigator", { languages: [locale === "en" ? "zh-CN" : "en-US"] });
+    document.body.innerHTML =
+      '<div id="root" data-rendered-language="' +
+      locale +
+      '">' +
+      render("/", locale, "blog/") +
+      '</div><template id="initial-english">' +
+      render("/", "en", "blog/") +
+      "</template>";
+    new Function(languageBootstrap((locale === "en" ? "en/" : "") + "blog/"))();
+    expect(document.getElementById("root")?.dataset.language).toBe(locale);
+    expect(document.documentElement.lang).toBe(locale === "en" ? "en" : "zh-CN");
+  },
+);

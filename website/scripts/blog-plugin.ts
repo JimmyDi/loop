@@ -1,8 +1,8 @@
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
 
-import { readArticleIndex } from "./blog-index";
-import { readBlogContent } from "./blog-content";
+import { readArticleIndex } from "./blog-index.ts";
+import { readBlogContent } from "./blog-content.ts";
 
 export const blogPlugin = (): Plugin => {
   const directory = resolve(import.meta.dirname, "../content/blog");

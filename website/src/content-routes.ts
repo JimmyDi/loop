@@ -7,6 +7,8 @@ export const contentRoutes = (): string[] => [
   "docs/",
   "blog/",
   ...posts.map((post) => "blog/" + post.slug + "/"),
+  "en/blog/",
+  ...posts.map((post) => "en/blog/" + post.slug + "/"),
   "changelog/",
   ...releases.map((release) => "changelog/" + release.version + "/"),
   ...releases[0].pages.map((page) => "docs/" + page.slug + "/"),

@@ -18,7 +18,7 @@ it("lists every article with linked titles and publication metadata", () => {
   expect(within(table).getAllByRole("row")).toHaveLength(posts.length);
   for (const post of posts) {
     const link = within(table).getByRole("link", { name: post.en.title });
-    expect(link.getAttribute("href")).toBe("/blog/" + post.slug + "/");
+    expect(link.getAttribute("href")).toBe("/en/blog/" + post.slug + "/");
     const row = link.closest("tr");
     expect(row?.textContent).toContain(post.en.author);
     expect(row?.querySelector("time")?.dateTime).toBe(post.en.publishedAt);

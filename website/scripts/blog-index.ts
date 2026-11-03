@@ -2,8 +2,8 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
-import { createArticleIndex } from "../src/blog/article-index";
-import type { BlogIndexPost, BlogPost } from "../src/blog/types";
+import { createArticleIndex } from "../src/blog/article-index.ts";
+import type { BlogIndexPost, BlogPost } from "../src/blog/types.ts";
 
 export const readArticleIndex = async (
   directory: string,

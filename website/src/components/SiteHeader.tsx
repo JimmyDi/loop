@@ -1,6 +1,7 @@
 import { useRef } from "react";
 
 import { useLanguage } from "../i18n/useLanguage";
+import { blogPath } from "../blog/blog-location";
 import { asset } from "../assets";
 import { Brand } from "./Brand";
 import { LanguageSwitch } from "./LanguageSwitch";
@@ -8,7 +9,7 @@ import styles from "./SiteHeader.module.css";
 import { useHeaderScroll } from "./useHeaderScroll";
 
 export const SiteHeader = ({ route = "" }: { route?: string }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const blog = route.startsWith("blog/");
   const headerRef = useRef<HTMLElement>(null);
   useHeaderScroll(headerRef);
@@ -30,7 +31,7 @@ export const SiteHeader = ({ route = "" }: { route?: string }) => {
             >
               {t("changelog")}
             </a>
-            <a href={asset("blog/")} aria-current={blog ? "page" : undefined}>
+            <a href={asset(blogPath("blog/", language))} aria-current={blog ? "page" : undefined}>
               {t("blog")}
             </a>
           </nav>

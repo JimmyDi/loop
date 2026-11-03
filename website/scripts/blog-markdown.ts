@@ -74,7 +74,7 @@ export const renderBlogMarkdown = (
           escape(href.replace(/^\.\//, "")) +
           '" alt="' +
           escape(text) +
-          '" loading="lazy" decoding="async"></button>'
+          '" loading="lazy" decoding="async" referrerpolicy="no-referrer"></button>'
         );
       },
     },

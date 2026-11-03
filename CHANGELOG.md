@@ -10,6 +10,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Website: remove the bottom-left Blog link from the shared footer on every page.
+
 - Website: align Docs, Changelog and Blog content containers with a shared width and responsive horizontal padding, and restore continuous article-table row dividers beneath titles.
 
 - Website: configure public builds from the GitHub Pages host and base path, generate canonical links, sitemap and robots metadata, and provide bilingual blog URLs with reciprocal language links and a default social preview copied from the shared brand artwork during builds. Preserve language in article navigation and sharing, keep missing-page assets under the deployment root, document phone continuation and voice, and remove build-time import warnings and the monolithic SSR content bundle.

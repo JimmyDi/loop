@@ -7,6 +7,7 @@
 }
 
 .site-footer > p {
+  grid-column: 2;
   margin: 0;
   color: var(--muted);
   font-size: 12px;
@@ -46,22 +47,11 @@
     padding-block: 24px;
   }
 
-  .social-space {
-    display: none;
+  .site-footer > p {
+    grid-column: 1;
   }
 
   .site-footer nav {
     justify-self: center;
-  }
-}
-
-.social-space a {
-  font-size: 13px;
-  color: var(--muted);
-}
-@media (max-width: 1000px) {
-  .social-space {
-    display: block;
-    text-align: center;
   }
 }

@@ -1,6 +1,6 @@
 .page {
-  max-width: 1200px;
-  padding: 56px 32px;
+  max-width: var(--resource-content-width);
+  padding: 56px var(--resource-page-padding);
   margin-inline: auto;
 }
 .heading {
@@ -100,7 +100,7 @@
 }
 @media (max-width: 600px) {
   .page {
-    padding: 36px 20px;
+    padding-block: 36px;
   }
   .related > div {
     grid-template-columns: minmax(0, 1fr);

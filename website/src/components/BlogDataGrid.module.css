@@ -27,6 +27,7 @@
 .table td:last-child {
   text-align: right;
 }
+.table th,
 .table td {
   padding: 18px 12px;
   border-bottom: 1px solid var(--blog-border);

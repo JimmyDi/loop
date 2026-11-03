@@ -1,7 +1,7 @@
 .page {
-  max-width: 1400px;
+  max-width: var(--resource-content-width);
   margin-inline: auto;
-  padding: 64px 32px 48px;
+  padding: 64px var(--resource-page-padding) 48px;
 }
 .srOnly {
   position: absolute;
@@ -26,7 +26,7 @@
 }
 @media (max-width: 600px) {
   .page {
-    padding: 36px 20px;
+    padding-block: 36px;
   }
   .grid {
     grid-template-columns: minmax(0, 1fr);

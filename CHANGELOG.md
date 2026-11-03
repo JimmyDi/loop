@@ -4,6 +4,16 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Added
+
+- Website: add a bilingual engineering blog using shared website page, card, search and illustration colors in both themes, with an expanded two-column latest card, compact cards elsewhere, a headerless article data table below the cards with date/category, title, author and reading-time columns with search beside its heading and incremental View more pagination for all articles and search results, omitting introductory copy and article counts, a two-column latest article, plain-text Docs, Changelog and Blog navigation with a blue active section with consistent layout across pages, a stable blog-aligned width, and rounded floating-bar scroll animation, and article pages with section links, code/link copying and related reading. Maintain a source-controlled JSONL article index alongside article edits, with direct agent maintenance and stale-index validation for listing, search and pagination without article bodies, and static bilingual Markdown content with publication validation, article metadata and a missing-page fallback; share the existing website language setting.
+
+### Fixed
+
+- Website: align Docs, Changelog and Blog content containers with a shared width and responsive horizontal padding, and restore continuous article-table row dividers beneath titles.
+
+- Website: configure public builds from the GitHub Pages host and base path, generate canonical links, sitemap and robots metadata, and provide bilingual blog URLs with reciprocal language links and a default social preview copied from the shared brand artwork during builds. Preserve language in article navigation and sharing, keep missing-page assets under the deployment root, document phone continuation and voice, and remove build-time import warnings and the monolithic SSR content bundle.
+
 ## [0.5.0] - 2026-10-31
 
 ### Added

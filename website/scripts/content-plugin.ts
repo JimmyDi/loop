@@ -3,8 +3,8 @@ import { resolve } from "node:path";
 import { Marked } from "marked";
 import type { Plugin } from "vite";
 
-import { publicReleaseCatalog, readReleaseCatalog } from "../../scripts/release-content/catalog";
-import type { ReleaseContent } from "../../scripts/release-content/types";
+import { publicReleaseCatalog, readReleaseCatalog } from "../../scripts/release-content/catalog.ts";
+import type { ReleaseContent } from "../../scripts/release-content/types.ts";
 
 const escape = (text: string): string =>
   text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");

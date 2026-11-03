@@ -1,23 +1,55 @@
 import { spawnSync } from "node:child_process";
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { expect, test } from "vitest";
 
-test("release validation loads the real snapshot with native Node.js", async () => {
-  const root = fileURLToPath(new URL("../", import.meta.url));
-  const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-  const result = spawnSync(
-    process.execPath,
-    [
-      "--input-type=module",
-      "-e",
-      'import { checkReleaseSnapshot } from "./scripts/release-content/check-snapshot.ts"; await checkReleaseSnapshot(process.cwd(), process.argv[1]);',
-      manifest.version,
-    ],
-    { cwd: root, encoding: "utf8", timeout: 10000 },
-  );
-  expect(result.status, result.stderr).toBe(0);
+import { createReleaseContent } from "./release-content/snapshot.ts";
+
+test("release validation loads native Node.js modules and rejects stale documentation", async () => {
+  const root = await mkdtemp(fileURLToPath(new URL("../.release-check-", import.meta.url)));
+  try {
+    const sources = [
+      "README.md",
+      "docs/development.md",
+      "packages/web-ui/src/frontend/README.md",
+      "packages/coding-agent/README.md",
+      "packages/agent/README.md",
+    ];
+    for (const source of sources) {
+      await mkdir(join(root, source, ".."), { recursive: true });
+      await writeFile(join(root, source), "# Synthetic docs\n\nReleased content.\n");
+    }
+    await mkdir(join(root, "releases"));
+    await writeFile(join(root, "package.json"), JSON.stringify({ version: "1.0.0" }));
+    await writeFile(
+      join(root, "CHANGELOG.md"),
+      "## [Unreleased]\n\n## [1.0.0] - 2026-01-01\n\n- Synthetic feature.\n",
+    );
+    const content = await createReleaseContent(root, "1.0.0", "Synthetic summary");
+    await writeFile(join(root, "releases/1.0.0.json"), JSON.stringify(content));
+    const moduleUrl = new URL("./release-content/check-snapshot.ts", import.meta.url).href;
+    const validate = () =>
+      spawnSync(
+        process.execPath,
+        [
+          "--input-type=module",
+          "-e",
+          "const { checkReleaseSnapshot } = await import(process.argv[1]); await checkReleaseSnapshot(process.cwd(), process.argv[2]);",
+          moduleUrl,
+          "1.0.0",
+        ],
+        { cwd: root, encoding: "utf8", timeout: 10000 },
+      );
+    const result = validate();
+    expect(result.status, result.stderr).toBe(0);
+    await writeFile(join(root, "README.md"), "# Changed documentation\n");
+    const stale = validate();
+    expect(stale.status).toBe(1);
+    expect(stale.stderr).toContain("Release snapshot is stale");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test.each([

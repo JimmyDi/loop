@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
 
-import { compareVersions, publicReleaseCatalog, validateContent } from "./catalog";
-import { changelogReleases } from "./changelog";
-import type { ReleaseContent } from "./types";
+import { compareVersions, publicReleaseCatalog, validateContent } from "./catalog.ts";
+import { changelogReleases } from "./changelog.ts";
+import type { ReleaseContent } from "./types.ts";
 
 const release = (version: string): ReleaseContent => ({
   schemaVersion: 1,

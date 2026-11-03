@@ -1,13 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 
+import { blogLanguage } from "../blog/blog-location";
+import { useLanguage } from "../i18n/useLanguage";
+import { blogPost } from "../blog/blog";
+import type { BlogBodies } from "../blog/types";
 import { asset } from "../assets";
 import { normalizeRoute, resolveContentRoute } from "../content-routes";
 
 export const useContentNavigation = (initialRoute: string) => {
+  const { setLanguage } = useLanguage();
+  const languageRef = useRef(setLanguage);
+  languageRef.current = setLanguage;
   const ref = useRef<HTMLDivElement>(null);
-  const [content, setContent] = useState({ route: initialRoute, html: "" });
+  const [content, setContent] = useState({
+    route: initialRoute,
+    html: "",
+    bodies: {} as BlogBodies,
+  });
   const [pending, setPending] = useState(false);
-  useEffect(() => setContent({ route: initialRoute, html: "" }), [initialRoute]);
+  useEffect(() => setContent({ route: initialRoute, html: "", bodies: {} }), [initialRoute]);
   useEffect(() => {
     const base = document.querySelector("base");
     if (base) base.href = document.baseURI;
@@ -16,11 +27,17 @@ export const useContentNavigation = (initialRoute: string) => {
       const target = resolveContentRoute(path);
       return (
         path === home ||
-        (target.kind === "docs" ? !!target.page : target.kind === "changelog" && !!target.release)
+        (target.kind === "docs"
+          ? !!target.page
+          : (target.kind === "changelog" && !!target.release) ||
+            (target.kind === "blog" && (target.route === "blog/" || !!blogPost(target.route))))
       );
     };
+    const positions = new Map<string, number>();
+    let currentPath = location.pathname;
     let controller: AbortController | undefined;
     const navigate = async (url: URL, push: boolean) => {
+      positions.set(currentPath, window.scrollY);
       controller?.abort();
       const request = new AbortController();
       controller = request;
@@ -28,11 +45,26 @@ export const useContentNavigation = (initialRoute: string) => {
       try {
         const route = normalizeRoute(url.pathname);
         const target = resolveContentRoute(route);
+        const post = blogPost(route);
+        const bodies: BlogBodies = post ? { zh: post.zh.html, en: post.en.html } : {};
         let html = target.page?.html || (target.detail ? target.release?.html : "") || "";
-        if (!html && (target.page || target.detail)) {
+        if (
+          (!html && (target.page || (target.kind === "changelog" && target.detail))) ||
+          (post && (!bodies.zh || !bodies.en))
+        ) {
           const response = await fetch(url.href, { signal: request.signal });
           if (!response.ok) throw new Error("Content request failed.");
           const document = new DOMParser().parseFromString(await response.text(), "text/html");
+          if (post) {
+            const english = document.querySelector<HTMLTemplateElement>("#initial-english");
+            for (const locale of ["zh", "en"] as const) {
+              const selector = '[data-blog-body="' + locale + '"]';
+              const body =
+                document.querySelector(selector) ?? english?.content.querySelector(selector);
+              if (!body?.innerHTML) throw new Error("Blog translation is missing.");
+              bodies[locale] = body.innerHTML;
+            }
+          }
           const article = document.querySelector("[data-content-article]");
           const baseUrl = new URL(
             document.querySelector("base")?.getAttribute("href") || "./",
@@ -42,17 +74,26 @@ export const useContentNavigation = (initialRoute: string) => {
             link.setAttribute("href", new URL(link.getAttribute("href")!, baseUrl).href);
           }
           html = article?.innerHTML ?? "";
-          if (!html) throw new Error("Content article is missing.");
+          if (!post && !html) throw new Error("Content article is missing.");
         }
         if (request.signal.aborted) return;
         if (push) history.pushState(null, "", url.href);
-        setContent({ route, html });
+        const locale = blogLanguage(url.pathname);
+        if (locale) languageRef.current(locale);
+        currentPath = url.pathname;
+        setContent({ route, html, bodies });
         requestAnimationFrame(() => {
           const target = url.hash
             ? document.getElementById(decodeURIComponent(url.hash.slice(1)))
             : null;
           if (target) target.scrollIntoView();
-          else window.scrollTo({ top: 0, behavior: "instant" });
+          else
+            window.scrollTo({
+              top: push ? 0 : (positions.get(url.pathname) ?? 0),
+              behavior: "instant",
+            });
+          const heading = ref.current?.querySelector<HTMLElement>("main h1");
+          heading?.focus({ preventScroll: true });
         });
       } catch {
         if (!request.signal.aborted) location.assign(url.href);

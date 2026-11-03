@@ -1,0 +1,61 @@
+.body {
+  font-size: 18px;
+  min-width: 0;
+}
+.body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  cursor: zoom-in;
+}
+.body pre {
+  position: relative;
+  padding-top: 52px;
+}
+.body pre button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--blog-card);
+  border: 1px solid var(--blog-border);
+  border-radius: 4px;
+  color: var(--blog-text);
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.dialog {
+  max-width: min(1000px, 90vw);
+  max-height: 90vh;
+  padding: 20px;
+  border: 1px solid var(--blog-border);
+  border-radius: 12px;
+  background: var(--blog-card);
+  color: var(--blog-text);
+}
+.dialog::backdrop {
+  background: #0009;
+}
+.dialog button {
+  display: block;
+  margin: 0 0 16px auto;
+}
+.dialog img {
+  max-height: 75vh;
+  width: auto;
+  cursor: auto;
+}
+
+.body [data-enlarge-image] {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: block;
+  cursor: zoom-in;
+}
+.body [data-code-language] {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  font-size: 12px;
+  color: var(--blog-muted);
+}

@@ -1,15 +1,21 @@
+import posts from "virtual:blog-content";
+
 import releases from "virtual:release-content";
 
 export const contentRoutes = (): string[] => [
   "",
   "docs/",
+  "blog/",
+  ...posts.map((post) => "blog/" + post.slug + "/"),
+  "en/blog/",
+  ...posts.map((post) => "en/blog/" + post.slug + "/"),
   "changelog/",
   ...releases.map((release) => "changelog/" + release.version + "/"),
   ...releases[0].pages.map((page) => "docs/" + page.slug + "/"),
 ];
 
 export const normalizeRoute = (path: string): string => {
-  const match = path.match(/(?:^|\/)((?:docs|changelog)(?:\/.*)?)$/);
+  const match = path.match(/(?:^|\/)((?:docs|changelog|blog)(?:\/.*)?)$/);
   return match ? match[1].replace(/index\.html$/, "").replace(/\/$/, "") + "/" : "";
 };
 

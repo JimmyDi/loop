@@ -33,6 +33,8 @@
 
 Loop is a local-first, open-source coding harness built with TypeScript. Use it in your browser or terminal, or integrate it through the TypeScript SDK, to read and edit files and run commands in your projects. Connect your preferred model provider to get started.
 
+Continue desktop tasks from your phone through authenticated remote access, or use optional local voice input and spoken calls in the Web UI. Your projects and the Loop service stay on your computer.
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/product-dark.webp">
@@ -47,6 +49,8 @@ Loop can:
 - work in your browser or terminal, or inside your application through the TypeScript SDK
 - read and edit project files, run shell commands, and execute your tests
 - connect to built-in model providers, custom gateways, and compatible local model endpoints
+- continue a desktop task from your phone through authenticated remote access
+- use optional local voice input and spoken calls in the Web UI
 - save conversations by project and restore previous sessions to continue your work
 - load reusable Skills and use external MCP tools in the Web UI or through the SDK
 - compact long conversations automatically or on demand while preserving the original history
@@ -56,6 +60,8 @@ Loop can:
 
 - **Local-first:** work directly in your projects, with conversations and settings stored on your machine.
 - **Three ways to work:** use the Web UI, CLI, or TypeScript SDK with the same session and tool APIs.
+- **Phone access:** pair your phone to continue desktop tasks through a private tunnel; revoke paired devices from Settings. See [remote access setup](packages/web-ui/src/backend/docs/remote-access.md).
+- **Local voice:** dictate messages or use spoken calls with explicitly installed speech resources on the backend computer. See [voice setup and limits](packages/web-ui/src/frontend/docs/voice.md).
 - **Model choice:** choose your provider and model, including compatible gateways and local endpoints.
 - **Controlled execution:** set read-only, workspace-write, or full-access permissions and review approval requests.
 - **A focused core:** a single-agent loop with inspectable TypeScript code, reusable Skills, and MCP integrations.
@@ -69,6 +75,8 @@ npx @loop-harness/loop web
 ```
 
 The browser opens when the local service is ready. Configure providers in Settings → Models. The published package includes the CLI, SDK and prebuilt Web UI; no Bun or frontend build tools are required.
+
+To continue from a phone, configure the private tunnel and pair the device in Settings. The service and project files remain on the backend computer; see [remote access and device pairing](packages/web-ui/src/backend/docs/remote-access.md) for setup and limitations.
 
 Optional local speech input and calls are configured in Settings → Voice. Resources are installed explicitly on the backend computer; see [voice setup and limits](packages/web-ui/src/frontend/docs/voice.md).
 

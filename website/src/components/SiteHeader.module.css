@@ -7,6 +7,8 @@
   top: 0;
   z-index: 20;
   height: 56px;
+  font-family:
+    "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
 }
 
 .bar {
@@ -15,20 +17,14 @@
   display: flex;
   align-items: center;
   gap: clamp(16px, 4vw, 48px);
-  width: min(
-    calc(1120px - 160px * var(--header-progress)),
-    calc(88vw - 8vw * var(--header-progress)),
-    calc(100% - var(--page-gutter))
-  );
+  width: min(var(--resource-content-width), 100%);
   height: calc(56px - 12px * var(--header-progress));
   margin-inline: auto;
-  padding-inline: calc(20px * var(--header-progress));
+  padding-inline: var(--resource-page-padding);
   border-radius: calc(32px * var(--header-progress));
   transform: translateY(calc(8px * var(--header-progress)));
   transition:
-    width 240ms ease,
     height 240ms ease,
-    padding 240ms ease,
     border-radius 320ms ease,
     transform 240ms ease;
 }
@@ -85,16 +81,12 @@
   justify-content: center;
   flex-shrink: 0;
   height: var(--language-switch-height);
-  padding-inline: 14px;
-  border: 1px solid var(--switch-edge);
-  border-radius: 999px;
-  background: var(--switch-track);
+  padding-inline: 8px;
   color: var(--switch-ink);
   white-space: nowrap;
 }
 
 .navigation a:hover {
-  background: var(--switch-selection);
   color: var(--switch-active-ink);
 }
 
@@ -145,10 +137,7 @@
   }
 
   .bar {
-    width: calc(100% - 32px - 16px * var(--header-progress));
-    height: calc(56px - 8px * var(--header-progress));
     gap: 16px;
-    padding-inline: calc(12px * var(--header-progress));
   }
 }
 
@@ -159,7 +148,6 @@
 
   .bar {
     gap: 8px;
-    padding-inline: calc(8px * var(--header-progress));
   }
 }
 
@@ -173,5 +161,56 @@
   .bar,
   .bar::before {
     transition: none;
+  }
+}
+
+.editorial {
+  --header-glass: color-mix(in srgb, var(--blog-page) 85%, transparent);
+  --header-solid: var(--blog-page);
+}
+
+.navigation a[aria-current] {
+  color: var(--blue);
+}
+
+@media (max-width: 600px) {
+  .site-header {
+    height: 56px;
+  }
+  .bar {
+    height: calc(56px - 8px * var(--header-progress));
+  }
+  .primary {
+    gap: 8px;
+  }
+  .navigation {
+    gap: 2px;
+  }
+  .navigation a {
+    padding-inline: 4px;
+  }
+}
+
+@media (max-width: 500px) {
+  .actions > :last-child {
+    width: 104px;
+    flex-shrink: 0;
+  }
+}
+@media (max-width: 430px) {
+  .site-header {
+    height: 110px;
+  }
+  .bar {
+    flex-wrap: wrap;
+    height: calc(104px - 8px * var(--header-progress));
+    align-content: center;
+    gap: 8px;
+  }
+  .primary {
+    width: 100%;
+  }
+  .actions {
+    margin-left: auto;
   }
 }

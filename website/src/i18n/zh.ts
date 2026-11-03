@@ -6,6 +6,7 @@ export const zh = {
     "Loop，本地优先的开源 coding harness。在 Web、终端或 TypeScript SDK 中，用你选择的模型，把想法变成代码。",
   socialDescription: "本地优先的开源 coding harness。你的项目，你的模型，你的工作方式。",
   home: "Loop 首页",
+  blog: "博客",
   docs: "文档",
   changelog: "更新日志",
   mainNavigation: "主导航",

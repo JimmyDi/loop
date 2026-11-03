@@ -167,4 +167,4 @@ Development and builds validate the maintained index against the published Markd
 
 Blog cards and the archive use this maintained index through virtual:blog-index for search and View more pagination. Builds also export a public blog/index.json copy. The index is bundled for initial rendering, so pagination does not fetch Markdown or request additional pages. Article bodies remain in their static article pages.
 
-The GitHub Pages build resolves its public host and base path from Pages configuration. Public builds emit robots.txt, reciprocal blog hreflang links and a default social preview image, in addition to canonical URLs and the sitemap. Blog images use local assets and no-referrer.
+The GitHub Pages build resolves its public host and base path from Pages configuration. Public builds emit robots.txt, reciprocal blog hreflang links and a default social preview image, in addition to canonical URLs and the sitemap. The build copies the existing [social preview](../docs/assets/readme/social-preview.png) into dist/social-preview.png; no duplicate source image is maintained in website/public. Blog images use local assets and no-referrer.

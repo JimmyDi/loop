@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
@@ -17,6 +17,10 @@ const serverOutput = ".prerender";
 
 try {
   await build({ base });
+  await copyFile(
+    new URL("../../docs/assets/readme/social-preview.png", import.meta.url),
+    "dist/social-preview.png",
+  );
   await build({
     base,
     build: {

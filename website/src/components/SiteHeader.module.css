@@ -95,25 +95,6 @@
   outline-offset: 3px;
 }
 
-@media (max-width: 500px) {
-  .navigation {
-    gap: 6px;
-    font-size: 11px;
-  }
-  .navigation a {
-    padding-inline: 8px;
-  }
-  .actions {
-    gap: 8px;
-  }
-  .actions > :last-child {
-    width: 88px;
-  }
-  .github {
-    display: none;
-  }
-}
-
 .github:hover {
   background: var(--switch-selection);
   color: var(--switch-active-ink);
@@ -134,20 +115,53 @@
     --brand-font-size: calc(24px - 2px * var(--header-progress));
     --brand-artwork-size: calc(36px - 4px * var(--header-progress));
     --language-switch-height: 32px;
+    height: auto;
+    min-height: 96px;
   }
 
   .bar {
-    gap: 16px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-content: center;
+    gap: 8px 16px;
+    height: auto;
+    min-height: calc(96px - 8px * var(--header-progress));
+    padding-block: 8px;
+    border-radius: calc(24px * var(--header-progress));
+  }
+
+  .primary {
+    display: contents;
+  }
+
+  .primary > :first-child {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+  }
+
+  .actions {
+    grid-column: 2;
+    grid-row: 1;
+    gap: 8px;
+  }
+
+  .navigation {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
   }
 }
 
 @media (max-width: 500px) {
-  .primary {
-    gap: 10px;
+  .bar {
+    column-gap: 8px;
   }
 
-  .bar {
-    gap: 8px;
+  .actions > :last-child {
+    width: 104px;
   }
 }
 
@@ -171,46 +185,4 @@
 
 .navigation a[aria-current] {
   color: var(--blue);
-}
-
-@media (max-width: 600px) {
-  .site-header {
-    height: 56px;
-  }
-  .bar {
-    height: calc(56px - 8px * var(--header-progress));
-  }
-  .primary {
-    gap: 8px;
-  }
-  .navigation {
-    gap: 2px;
-  }
-  .navigation a {
-    padding-inline: 4px;
-  }
-}
-
-@media (max-width: 500px) {
-  .actions > :last-child {
-    width: 104px;
-    flex-shrink: 0;
-  }
-}
-@media (max-width: 430px) {
-  .site-header {
-    height: 110px;
-  }
-  .bar {
-    flex-wrap: wrap;
-    height: calc(104px - 8px * var(--header-progress));
-    align-content: center;
-    gap: 8px;
-  }
-  .primary {
-    width: 100%;
-  }
-  .actions {
-    margin-left: auto;
-  }
 }

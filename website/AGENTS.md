@@ -24,6 +24,17 @@
 
 ## Blog article maintenance
 
+- Write articles in an objective, official voice explaining implementation decisions and
+  tradeoffs. Avoid excessive first-person pronouns and third-party product introductions.
+  Adapt the voice for each language;
+  do not invent personal experiences, earlier versions, incidents or motivations.
+
+- Number article sections consecutively with Arabic numerals in Markdown headings,
+  in both languages, so the body and generated section directory show the same numbers.
+
+- Use Di as the author byline for all articles published by the user, in both languages
+  and in content/blog/index.jsonl, unless the user explicitly specifies another author.
+
 - When adding, editing, deleting or changing publication status of blog articles, directly update
   content/blog/index.jsonl in the same task. Do not leave index maintenance to the user or a script.
 - Keep one bilingual metadata record per published article, excluding drafts, HTML and headings.

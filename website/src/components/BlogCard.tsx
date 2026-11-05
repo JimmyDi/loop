@@ -3,6 +3,7 @@ import { asset } from "../assets";
 import { categoryLabel, readingLabel } from "../blog/blog";
 import type { BlogIndexArticle } from "../blog/types";
 import { useLanguage } from "../i18n/useLanguage";
+import { BlogIllustration } from "./BlogIllustration";
 import styles from "./BlogCard.module.css";
 
 export const BlogCard = ({
@@ -32,9 +33,8 @@ export const BlogCard = ({
             </div>
           </div>
           {featured && (
-            <div className={styles.art} aria-hidden="true">
-              <div className={styles.orbit}>LOOP</div>
-              <span>{language === "zh" ? "输入 → 执行 → 结果" : "Input → Execute → Result"}</span>
+            <div className={styles.art}>
+              <BlogIllustration slug={article.slug} />
             </div>
           )}
         </div>

@@ -117,8 +117,23 @@ import website code. Application builds and published package contents exclude w
 
 The blog lives at `/blog/` and shares the website language switch and theme colors for the page, cards, search field and illustrations. The index has no introductory copy or article count; search sits beside the archive heading below the cards. It uses up to
 three columns; the newest article spans two, then becomes full-width in the two-column
-layout and a single card on phones. Navigation shares the blog’s 1400px container and 32px desktop / 20px mobile gutters on every page, including on scroll.
-Articles have section navigation, copy-link feedback, code copying and related reading.
+layout and a single card on phones. Home sections, navigation, footer, Docs, Changelog,
+Blog and their nested or missing pages share a 1400px container with 32px desktop /
+20px mobile horizontal padding. Article headings use the full content width; article
+bodies fill the available space, reserving a 240px column only when a section directory
+is present. On narrow screens the directory stacks above the body.
+Articles have section navigation, code copying and related reading.
+Article headers show paired Written by and Published on labels above the author and
+localized publication date (作者 / 发布于 in Chinese), with Reading time / 阅读时长
+in a third column on the same row. Optional update dates use the same row; columns
+wrap on narrow screens.
+The local-voice article uses a raster cover illustration. The same artwork appears on its latest card
+and to the left of the article summary and byline metadata. On phones the artwork
+stacks above the description. BlogIllustration selects artwork
+by article slug with bilingual accessible descriptions. Article screenshots and diagrams
+select paired Light/Dark assets; image enlargement preserves the browser-selected source.
+Article headers omit category labels. Navigation focus on the article title has no
+visible outline; interactive links and controls retain their keyboard focus indicators.
 
 Author paired Markdown files in `content/blog/<slug>.zh.md` and `<slug>.en.md`. Each file
 starts with a flat frontmatter block containing `title`, `summary`, `author`, `category`,
@@ -129,8 +144,8 @@ Use plain single-line strings or JSON double-quoted strings. Nested YAML is unsu
 Public pairs need matching author, category and dates, with both `draft: false`. Incomplete
 draft pairs are excluded; incomplete public pairs fail the build. Publishing is controlled
 by the draft flag rather than a scheduler. Sort order is publication date descending, then
-slug. Reading times are estimated at build time. The initial essays discuss general design
-principles rather than promise unreleased application behavior.
+slug. Reading times are estimated at build time. The first article examines the sequential
+Agent loop and its error, cancellation and history boundaries in Chinese and English.
 
 Markdown disables raw HTML and unsafe link schemes. Internal links start with `blog/`,
 `docs/` or `changelog/`; section links use `#heading-id`. Put raster images in

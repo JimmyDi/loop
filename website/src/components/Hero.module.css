@@ -27,7 +27,8 @@
 .hero-content {
   position: relative;
   z-index: 1;
-  width: min(var(--content-width), calc(100% - var(--page-gutter)));
+  width: min(var(--resource-content-width), 100%);
+  padding-inline: var(--resource-page-padding);
   padding-block: clamp(80px, 7vw, 112px) 16px;
   margin-inline: auto;
 }

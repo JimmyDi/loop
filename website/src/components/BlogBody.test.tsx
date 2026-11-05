@@ -5,6 +5,27 @@ import posts from "virtual:blog-content";
 import { LanguageProvider } from "../i18n/LanguageProvider";
 import { BlogBody } from "./BlogBody";
 
+vi.mock("virtual:blog-content", () => ({
+  default: ["test-article", "another-article"].map((slug) => {
+    const article = (language: "zh" | "en") => ({
+      slug,
+      language,
+      title: (language === "zh" ? "测试文章 " : "Test article ") + slug,
+      summary: language === "zh" ? "测试摘要" : "Synthetic summary",
+      author: "Loop",
+      category: "engineering" as const,
+      publishedAt: "2026-01-01",
+      readingMinutes: 1,
+      html:
+        language === "zh"
+          ? '<h2 id="section">测试章节</h2><p>测试正文</p>'
+          : '<h2 id="section">Test section</h2><p>Synthetic body</p>',
+      headings: [{ id: "section", title: language === "zh" ? "测试章节" : "Test section" }],
+    });
+    return { slug, zh: article("zh"), en: article("en") };
+  }),
+}));
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -54,8 +75,30 @@ it("opens an article image and returns focus to its control on close", () => {
   fireEvent.click(opener);
   const dialog = screen.getByRole("dialog");
   expect(dialog.hasAttribute("open")).toBe(true);
+  expect(dialog.querySelector("img")?.src).toBe(opener.querySelector("img")?.src);
   fireEvent.click(screen.getByRole("button", { name: "Close image" }));
   expect(document.activeElement).toBe(opener);
+});
+
+it("enlarges the image source selected by the browser theme", () => {
+  render(
+    <LanguageProvider initialLanguage="en">
+      <BlogBody
+        post={posts[0]}
+        bodies={{
+          en: '<button type="button" data-enlarge-image aria-label="Enlarge diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="/diagram-dark.png"><img src="/diagram.png" alt="Diagram"></picture></button>',
+        }}
+      />
+    </LanguageProvider>,
+  );
+  const opener = screen.getByRole("button", { name: "Enlarge diagram" });
+  Object.defineProperty(opener.querySelector("img"), "currentSrc", {
+    value: "https://example.com/diagram-dark.png",
+  });
+  fireEvent.click(opener);
+  expect(screen.getByRole("dialog").querySelector("img")?.src).toBe(
+    "https://example.com/diagram-dark.png",
+  );
 });
 
 it("keeps image assets under the deployment root while localizing article links", async () => {

@@ -9,7 +9,6 @@
 }
 
 :root {
-  --content-width: 1520px;
   --page-gutter: clamp(32px, 7vw, 112px);
   --resource-content-width: 1400px;
   --resource-page-padding: 32px;

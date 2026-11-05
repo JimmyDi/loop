@@ -16,6 +16,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Website: keep the GitHub link and language switch beside the brand on narrow screens, with navigation on a separate responsive row to prevent toolbar overflow.
+
 - Website: preserve the browser-selected Light/Dark article image when opening its enlarged view.
 
 - Website: prevent navigation focus from outlining blog article titles.

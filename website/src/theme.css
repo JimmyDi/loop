@@ -4,6 +4,9 @@
   --text: #222428;
   --muted: #657084;
   --blue: #316ad7;
+  --illustration-clay: #cf896c;
+  --illustration-paper: #faf3e7;
+  --illustration-ink: #302a25;
   --line: #dce2eb;
   --surface: #fff;
   --surface-soft: #f3f5f9;
@@ -66,6 +69,9 @@
     --text: #edf0f7;
     --muted: #a7b2c5;
     --blue: #93b7ff;
+    --illustration-clay: #bb795f;
+    --illustration-paper: #eee2cf;
+    --illustration-ink: #28221e;
     --line: #363e4e;
     --surface: #202630;
     --surface-soft: #262d39;

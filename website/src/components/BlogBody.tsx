@@ -30,7 +30,7 @@ export const BlogBody = ({ post, bodies }: { post: BlogPost; bodies: BlogBodies 
         const selectedImage = imageButton?.querySelector("img");
         if (selectedImage) {
           opener.current = imageButton as HTMLElement;
-          setImage({ src: selectedImage.src, alt: selectedImage.alt });
+          setImage({ src: selectedImage.currentSrc || selectedImage.src, alt: selectedImage.alt });
           dialog.current?.showModal();
         }
         const button = target.closest<HTMLButtonElement>("button[data-copy-code]");
@@ -58,7 +58,7 @@ export const BlogBody = ({ post, bodies }: { post: BlogPost; bodies: BlogBodies 
               'id="' + (id.startsWith(locale + "-") ? id : locale + "-" + id) + '"',
           )
           .replace(
-            /(href|src)="((?:blog|docs|changelog)\/[^" ]*)"/g,
+            /(href|src|srcset)="((?:blog|docs|changelog)\/[^" ]*)"/g,
             (_, attr: string, path: string) =>
               attr +
               '="' +

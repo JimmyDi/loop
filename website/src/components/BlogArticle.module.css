@@ -4,27 +4,34 @@
   margin-inline: auto;
 }
 .heading {
-  max-width: 720px;
   margin-bottom: 48px;
 }
 .heading > a {
   color: var(--blog-muted);
   font-size: 14px;
 }
-.category {
-  margin: 40px 0 16px;
-  color: var(--blog-muted);
-  font-size: 13px;
+.page h1:focus {
+  outline: none;
 }
 .heading h1 {
   font-family: Georgia, "Songti SC", "SimSun", serif;
   font-size: clamp(32px, 4vw, 52px);
   font-weight: 500;
   line-height: 1.2;
-  margin: 0 0 24px;
+  margin: 40px 0 24px;
   overflow-wrap: anywhere;
 }
+.overview {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+}
+.description {
+  flex: 1;
+  min-width: 0;
+}
 .summary {
+  margin: 0;
   font-size: 19px;
   line-height: 1.7;
   color: var(--blog-muted);
@@ -32,29 +39,39 @@
 .meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 20px;
-  font-size: 12px;
+  align-items: start;
+  gap: 20px 40px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  margin: 28px 0 0;
+}
+.meta > div {
+  display: grid;
+  gap: 8px;
+}
+.meta dt {
+  font-size: 14px;
   color: var(--blog-muted);
-  margin: 24px 0;
 }
-.heading button {
-  min-height: 40px;
-  border: 1px solid var(--blog-border);
-  border-radius: 8px;
-  padding: 8px 16px;
-  color: inherit;
-  background: var(--blog-card);
-  font-size: 13px;
-}
-.feedback {
-  font-size: 12px;
-  margin-inline-start: 12px;
+.meta dd {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--blog-text);
 }
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 720px) minmax(0, 240px);
+  grid-template-columns: minmax(0, 1fr);
   gap: 64px;
   align-items: start;
+}
+.illustration {
+  flex: 0 0 280px;
+}
+.illustration:empty {
+  display: none;
+}
+.layout:has(.toc) {
+  grid-template-columns: minmax(0, 1fr) 240px;
 }
 .toc {
   position: sticky;
@@ -70,6 +87,13 @@
   display: grid;
   gap: 12px;
   margin-top: 20px;
+  margin-left: -20px;
+}
+.toc nav a {
+  padding-left: 34px;
+}
+.toc nav a.tocNested {
+  padding-left: 60px;
 }
 .toc a:hover {
   color: var(--blue);
@@ -89,7 +113,8 @@
   gap: 24px;
 }
 @media (max-width: 900px) {
-  .layout {
+  .layout,
+  .layout:has(.toc) {
     grid-template-columns: minmax(0, 1fr);
     gap: 32px;
   }
@@ -99,6 +124,14 @@
   }
 }
 @media (max-width: 600px) {
+  .overview {
+    flex-direction: column;
+    align-items: start;
+    gap: 24px;
+  }
+  .illustration {
+    flex-basis: auto;
+  }
   .page {
     padding-block: 36px;
   }

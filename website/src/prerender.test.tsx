@@ -1,6 +1,27 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 
 import { render } from "./prerender";
+
+vi.mock("virtual:blog-content", () => ({
+  default: ["test-article", "another-article"].map((slug) => {
+    const article = (language: "zh" | "en") => ({
+      slug,
+      language,
+      title: (language === "zh" ? "测试文章 " : "Test article ") + slug,
+      summary: language === "zh" ? "测试摘要" : "Synthetic summary",
+      author: "Loop",
+      category: "engineering" as const,
+      publishedAt: "2026-01-01",
+      readingMinutes: 1,
+      html:
+        language === "zh"
+          ? '<h2 id="section">测试章节</h2><p>测试正文</p>'
+          : '<h2 id="section">Test section</h2><p>Synthetic body</p>',
+      headings: [{ id: "section", title: language === "zh" ? "测试章节" : "Test section" }],
+    });
+    return { slug, zh: article("zh"), en: article("en") };
+  }),
+}));
 
 it.each(["./", "/loop/"])("renders complete static content with asset base %s", (base) => {
   const html = render(base);
@@ -16,10 +37,10 @@ it.each(["./", "/loop/"])("renders complete static content with asset base %s", 
 });
 
 it("renders both complete blog translations without depending on client article bodies", () => {
-  const html = render("/loop/", "en", "blog/a-clear-agent-loop/");
-  expect(html).toContain("Start with one complete interaction");
-  expect(html).toContain("从一次完整的交互开始");
-  expect(html).toContain('id="en-start-with-one-complete-interaction"');
+  const html = render("/loop/", "en", "blog/test-article/");
+  expect(html).toContain("Test section");
+  expect(html).toContain("测试章节");
+  expect(html).toContain('id="en-section"');
   expect(html).toContain('href="/loop/en/blog/"');
   expect(render("/", "en", "blog/missing/")).toContain("Article not found");
 });

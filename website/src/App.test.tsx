@@ -4,6 +4,34 @@ import { afterEach, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { LanguageProvider } from "./i18n/LanguageProvider";
 
+vi.mock("virtual:blog-content", () => ({
+  default: ["test-article", "another-article"].map((slug) => {
+    const article = (language: "zh" | "en") => ({
+      slug,
+      language,
+      title: (language === "zh" ? "测试文章 " : "Test article ") + slug,
+      summary: language === "zh" ? "测试摘要" : "Synthetic summary",
+      author: "Loop",
+      category: "engineering" as const,
+      publishedAt: "2026-01-01",
+      readingMinutes: 1,
+      html:
+        language === "zh"
+          ? '<h2 id="section">测试章节</h2><p>测试正文</p>'
+          : '<h2 id="section">Test section</h2><p>Synthetic body</p>',
+      headings: [{ id: "section", title: language === "zh" ? "测试章节" : "Test section" }],
+    });
+    return { slug, zh: article("zh"), en: article("en") };
+  }),
+}));
+
+vi.mock("virtual:blog-index", async () => ({
+  default: (await import("virtual:blog-content")).default.map(({ slug, zh, en }) => {
+    const metadata = ({ html: _html, headings: _headings, ...article }: typeof zh) => article;
+    return { slug, zh: metadata(zh), en: metadata(en) };
+  }),
+}));
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -98,20 +126,18 @@ it("retains fetched bilingual blog bodies after the browser URL changes", async 
 });
 
 it("opens an explicit English blog URL and updates URL and metadata when switching language", async () => {
-  history.replaceState(null, "", "/en/blog/a-clear-agent-loop/");
+  history.replaceState(null, "", "/en/blog/test-article/");
   vi.stubGlobal("navigator", { languages: ["zh-CN"], language: "zh-CN" });
   render(
     <LanguageProvider>
       <App />
     </LanguageProvider>,
   );
-  expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
-    "Reliable agents start with a clear loop",
-  );
+  expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Test article test-article");
   fireEvent.click(screen.getByRole("button", { name: "中文" }));
-  expect(location.pathname).toBe("/blog/a-clear-agent-loop/");
+  expect(location.pathname).toBe("/blog/test-article/");
   expect(document.documentElement.lang).toBe("zh-CN");
   fireEvent.click(screen.getByRole("button", { name: "EN" }));
-  expect(location.pathname).toBe("/en/blog/a-clear-agent-loop/");
+  expect(location.pathname).toBe("/en/blog/test-article/");
   expect(document.documentElement.lang).toBe("en");
 });

@@ -2,23 +2,18 @@ import posts from "virtual:blog-content";
 
 import { blogPath } from "../blog/blog-location";
 import { asset } from "../assets";
-import { blogPost, categoryLabel, readingLabel } from "../blog/blog";
+import { blogPost, readingLabel } from "../blog/blog";
 import type { BlogBodies } from "../blog/types";
 import { useLanguage } from "../i18n/useLanguage";
 import { BlogCard } from "./BlogCard";
 import { BlogBody } from "./BlogBody";
-import { useCopyCommand } from "./useCopyCommand";
+import { BlogIllustration } from "./BlogIllustration";
 import styles from "./BlogArticle.module.css";
 
 export const BlogArticle = ({ route, bodies = {} }: { route: string; bodies?: BlogBodies }) => {
   const { language } = useLanguage();
   const post = blogPost(route);
   const article = post?.[language];
-  const copy = useCopyCommand(
-    typeof location === "undefined"
-      ? ""
-      : new URL(asset(blogPath(route, language)), location.href).href,
-  );
   if (!article)
     return (
       <div className={styles.page}>
@@ -35,33 +30,46 @@ export const BlogArticle = ({ route, bodies = {} }: { route: string; bodies?: Bl
         <a href={asset(blogPath("blog/", language))}>
           {language === "zh" ? "← 全部文章" : "← All articles"}
         </a>
-        <p className={styles.category}>{categoryLabel(article.category, language)}</p>
         <h1 tabIndex={-1}>{article.title}</h1>
-        <p className={styles.summary}>{article.summary}</p>
-        <div className={styles.meta}>
-          <span>{article.author}</span>
-          <time dateTime={article.publishedAt}>{article.publishedAt}</time>
-          <span>{readingLabel(article.readingMinutes, language)}</span>
-          {article.updatedAt && (
-            <span>
-              {language === "zh" ? "更新于 " : "Updated "}
-              {article.updatedAt}
-            </span>
-          )}
+        <div className={styles.overview}>
+          <div className={styles.illustration}>
+            <BlogIllustration slug={post.slug} />
+          </div>
+          <div className={styles.description}>
+            <p className={styles.summary}>{article.summary}</p>
+            <dl className={styles.meta}>
+              <div>
+                <dt>{language === "zh" ? "作者" : "Written by"}</dt>
+                <dd>{article.author}</dd>
+              </div>
+              <div>
+                <dt>{language === "zh" ? "发布于" : "Published on"}</dt>
+                <dd>
+                  <time dateTime={article.publishedAt}>
+                    {new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      timeZone: "UTC",
+                    }).format(new Date(article.publishedAt))}
+                  </time>
+                </dd>
+              </div>
+              <div>
+                <dt>{language === "zh" ? "阅读时长" : "Reading time"}</dt>
+                <dd>{readingLabel(article.readingMinutes, language)}</dd>
+              </div>
+              {article.updatedAt && (
+                <div>
+                  <dt>{language === "zh" ? "更新于" : "Updated on"}</dt>
+                  <dd>
+                    <time dateTime={article.updatedAt}>{article.updatedAt}</time>
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </div>
         </div>
-        <button type="button" onClick={copy.copy}>
-          {language === "zh" ? "复制链接" : "Copy link"}
-        </button>
-        <span className={styles.feedback} role="status">
-          {copy.feedback &&
-            (copy.feedback === "copied"
-              ? language === "zh"
-                ? "链接已复制"
-                : "Link copied"
-              : language === "zh"
-                ? "复制失败，请从地址栏复制链接。"
-                : "Copy failed. Copy the URL from the address bar.")}
-        </span>
       </header>
       <div className={styles.layout}>
         <BlogBody key={post.slug} post={post} bodies={bodies} />
@@ -73,6 +81,7 @@ export const BlogArticle = ({ route, bodies = {} }: { route: string; bodies?: Bl
                 {article.headings.map((heading) => (
                   <a
                     key={heading.id}
+                    className={heading.depth === 3 ? styles.tocNested : undefined}
                     href={asset(blogPath(route, language) + "#" + language + "-" + heading.id)}
                   >
                     {heading.title}

@@ -11,7 +11,7 @@ export type BlogArticle = {
   updatedAt?: string;
   readingMinutes: number;
   html: string;
-  headings: { id: string; title: string }[];
+  headings: { id: string; title: string; depth: number }[];
 };
 
 export type BlogPost = { slug: string; zh: BlogArticle; en: BlogArticle };

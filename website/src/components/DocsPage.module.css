@@ -12,6 +12,9 @@
   font-size: 13px;
   margin: 0 0 16px;
 }
+.layout > article {
+  min-width: 0;
+}
 .contents {
   position: sticky;
   top: 88px;

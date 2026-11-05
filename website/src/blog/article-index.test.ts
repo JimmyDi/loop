@@ -24,13 +24,28 @@ it("indexes bilingual listing metadata in publication order without article bodi
 it("reads the maintained JSONL index and rejects malformed, missing, duplicate or stale records", async () => {
   const directory = await mkdtemp(join(tmpdir(), "loop-blog-index-"));
   const file = join(directory, "index.jsonl");
-  const records = createArticleIndex(posts);
+  const fixturePosts = ["first", "second"].map((slug) => {
+    const article = (language: "zh" | "en") => ({
+      slug,
+      language,
+      title: "Synthetic " + slug,
+      summary: "Synthetic summary",
+      author: "Loop",
+      category: "engineering" as const,
+      publishedAt: "2026-01-01",
+      readingMinutes: 1,
+      html: "<p>Synthetic body</p>",
+      headings: [],
+    });
+    return { slug, zh: article("zh"), en: article("en") };
+  });
+  const records = createArticleIndex(fixturePosts);
   const write = (value: unknown[]) =>
     writeFile(file, value.map((entry) => JSON.stringify(entry)).join("\n"));
   try {
-    await expect(readArticleIndex(directory, posts)).rejects.toThrow();
+    await expect(readArticleIndex(directory, fixturePosts)).rejects.toThrow();
     await write(records);
-    expect(await readArticleIndex(directory, posts)).toEqual(records);
+    expect(await readArticleIndex(directory, fixturePosts)).toEqual(records);
     for (const invalid of [
       records.slice(1),
       [...records, records[0]],
@@ -40,12 +55,12 @@ it("reads the maintained JSONL index and rejects malformed, missing, duplicate o
       ),
     ]) {
       await write(invalid);
-      await expect(readArticleIndex(directory, posts)).rejects.toThrow(
+      await expect(readArticleIndex(directory, fixturePosts)).rejects.toThrow(
         "Update content/blog/index.jsonl",
       );
     }
     await writeFile(file, "invalid JSON");
-    await expect(readArticleIndex(directory, posts)).rejects.toThrow("line 1");
+    await expect(readArticleIndex(directory, fixturePosts)).rejects.toThrow("line 1");
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

@@ -6,15 +6,31 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
-- Website: add a bilingual engineering blog using shared website page, card, search and illustration colors in both themes, with an expanded two-column latest card, compact cards elsewhere, a headerless article data table below the cards with date/category, title, author and reading-time columns with search beside its heading and incremental View more pagination for all articles and search results, omitting introductory copy and article counts, a two-column latest article, plain-text Docs, Changelog and Blog navigation with a blue active section with consistent layout across pages, a stable blog-aligned width, and rounded floating-bar scroll animation, and article pages with section links, code/link copying and related reading. Maintain a source-controlled JSONL article index alongside article edits, with direct agent maintenance and stale-index validation for listing, search and pagination without article bodies, and static bilingual Markdown content with publication validation, article metadata and a missing-page fallback; share the existing website language setting.
+- Website: show the local-voice article's cover illustration on its latest card and beside its summary and byline metadata, stacking above the description on narrow screens, with bilingual accessible descriptions.
+
+- Website: display labeled author, localized publication date and reading-time columns on the same row in blog article headers, with bilingual labels and optional update dates. Wrap columns on narrow screens.
+
+- Website: publish a bilingual local-voice article with the Di byline, objective technical analysis and numbered sections covering model download and installed sizes, resource management, voice input and call submission, and local-inference privacy boundaries.
+
+- Website: add a bilingual engineering blog using shared website page, card, search and illustration colors in both themes, with an expanded two-column latest card, compact cards elsewhere, a headerless article data table below the cards with date/category, title, author and reading-time columns with search beside its heading and incremental View more pagination for all articles and search results, omitting introductory copy and article counts, a two-column latest article, plain-text Docs, Changelog and Blog navigation with a blue active section with consistent layout across pages, a stable blog-aligned width, and rounded floating-bar scroll animation, and article pages with section links, code copying and related reading. Maintain a source-controlled JSONL article index alongside article edits, with direct agent maintenance and stale-index validation for listing, search and pagination without article bodies, and static bilingual Markdown content with publication validation, article metadata and a missing-page fallback; share the existing website language setting.
 
 ### Fixed
 
+- Website: preserve the browser-selected Light/Dark article image when opening its enlarged view.
+
+- Website: prevent navigation focus from outlining blog article titles.
+
 - Website: remove the bottom-left Blog link from the shared footer on every page.
 
-- Website: align Docs, Changelog and Blog content containers with a shared width and responsive horizontal padding, and restore continuous article-table row dividers beneath titles.
+- Website: align Home sections, navigation, footer, Docs, Changelog, Blog and all nested or missing pages with a shared container width and responsive horizontal padding. Let blog article headings and bodies use the available width, reserving sidebar space only when a section directory is present, and restore continuous article-table row dividers beneath titles.
 
 - Website: configure public builds from the GitHub Pages host and base path, generate canonical links, sitemap and robots metadata, and provide bilingual blog URLs with reciprocal language links and a default social preview copied from the shared brand artwork during builds. Preserve language in article navigation and sharing, keep missing-page assets under the deployment root, document phone continuation and voice, and remove build-time import warnings and the monolithic SSR content bundle.
+
+### Removed
+
+- Website: remove the blog article Copy link button, its clipboard feedback and the category label above article titles.
+
+- Website: remove the three placeholder blog articles and their bilingual index records.
 
 ## [0.5.0] - 2026-10-31
 

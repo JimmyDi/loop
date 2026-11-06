@@ -38,9 +38,10 @@ export const allowsRemoteBusiness = (path: string, method: string): boolean => {
   if (/^[/]api[/]sessions[/][^/]+[/](images|files)$/.test(path))
     return method === "GET" || method === "HEAD";
   const match = path.match(
-    /^\/api\/sessions\/[^/]+\/(history|events|prompt|queue|resume|abort|flush|compact|model|title|permission|read|pin|approvals\/[^/]+)$/,
+    /^\/api\/sessions\/[^/]+\/(navigation|history|events|prompt|queue|resume|abort|flush|compact|model|title|permission|read|pin|approvals\/[^/]+)$/,
   );
   if (!match) return false;
+  if (match[1] === "navigation") return method === "GET" || method === "PUT";
   if (match[1] === "events" || match[1] === "history") return method === "GET";
   if (["model", "permission", "read", "pin"].includes(match[1]!)) return method === "PUT";
   if (match[1] === "title") return method === "POST" || method === "PUT";

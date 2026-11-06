@@ -15,6 +15,7 @@ import { isModelEffort } from "./models/model-effort";
 import { fallbackTitle, titleInputs, validTitle } from "./titles/title-text";
 import type { SessionTitle } from "./titles/types";
 import type { ModelSelection, SessionData, SessionHeader, SessionInfo } from "./types/storage";
+import { validateBookmarks } from "./session-bookmarks";
 import { DEFAULT_PERMISSION_PRESET, isPermissionPreset } from "./permissions/types";
 import type { PermissionPreset } from "./permissions/types";
 import { validateRuntimeContexts } from "./runtime-context";
@@ -169,6 +170,7 @@ export class SessionManager {
     const messages: unknown = lines.map((line) => JSON.parse(line));
 
     validateMessages(messages);
+    validateBookmarks(header.bookmarks, messages);
     validateRuntimeContexts(header.runtimeContexts, messages);
     validatePromptTimings(header.promptTimings, messages);
     validateCompactions(header.compactions, messages);
@@ -309,6 +311,25 @@ export class SessionManager {
         else delete this.pending.header.pinnedAt;
       }
       return pinnedAt;
+    });
+  }
+
+  /** Store user-message positions without changing activity timestamps or model context. */
+  setBookmark(messageIndex: number, bookmarked: boolean): Promise<number[]> {
+    if (!Number.isSafeInteger(messageIndex) || messageIndex < 0 || typeof bookmarked !== "boolean")
+      return Promise.reject(new Error("Invalid session bookmark"));
+    return this.serialize(async () => {
+      if (this.data.messages[messageIndex]?.role !== "user")
+        throw new Error("Bookmark requires a saved user message");
+      const bookmarks = new Set(this.data.header.bookmarks ?? []);
+      if (bookmarked) bookmarks.add(messageIndex);
+      else bookmarks.delete(messageIndex);
+      const value = [...bookmarks].sort((a, b) => a - b);
+      const next = { ...this.data, header: { ...this.data.header, bookmarks: value } };
+      await this.write(next);
+      this.data = next;
+      if (this.pending) this.pending.header.bookmarks = [...value];
+      return [...value];
     });
   }
 

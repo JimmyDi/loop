@@ -21,11 +21,14 @@ export const useTimelineHistory = (
   ref: RefObject<HTMLDivElement | null>,
   onReveal: () => void,
   snapshot?: SessionSnapshot,
+  prepend?: (page: SessionHistoryPage) => boolean,
 ) => {
   const [window, setWindow] = useState(() => ({ sessionId, index: initialStart(turns) }));
   const position = useRef<ReturnType<typeof holdHistoryPosition> | undefined>(undefined);
   const pending = useRef(false);
+  const [restoring, setRestoring] = useState(false);
   const lastTop = useRef(0);
+  const programmatic = useRef(false);
   const touchY = useRef<number | undefined>(undefined);
   const loading = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,6 +66,11 @@ export const useTimelineHistory = (
     if (!element) return;
     if (pending.current) {
       position.current?.restore(true);
+      if (!restoring) {
+        setRestoring(true);
+        return;
+      }
+      setRestoring(false);
       position.current = undefined;
       pending.current = false;
       loading.current = false;
@@ -70,9 +78,10 @@ export const useTimelineHistory = (
     lastTop.current = element.scrollTop;
   });
 
-  const reveal = () => {
+  const reveal = (force = false) => {
     const element = ref.current;
-    if (!element || element.scrollTop > 120 || pending.current || loading.current) return;
+    if (!element || (!force && element.scrollTop > 120) || pending.current || loading.current)
+      return;
     if (snapshot?.history) {
       if (!snapshot.history.start) return;
       position.current = holdHistoryPosition(element);
@@ -94,9 +103,13 @@ export const useTimelineHistory = (
       )
         .then((page) => {
           if (abort.signal.aborted) return;
-          if (useSessions.getState().views[sessionId]?.snapshot?.history?.start === before) {
+          if (
+            prepend ||
+            useSessions.getState().views[sessionId]?.snapshot?.history?.start === before
+          ) {
             pending.current = true;
-            if (!useSessions.getState().prepend(sessionId, page)) pending.current = false;
+            if (!(prepend ? prepend(page) : useSessions.getState().prepend(sessionId, page)))
+              pending.current = false;
           }
           if (!pending.current) {
             position.current?.restore(false);
@@ -129,24 +142,50 @@ export const useTimelineHistory = (
   };
 
   return {
+    cancel: () => {
+      programmatic.current = true;
+      request.current?.abort();
+      position.current?.restore();
+      position.current = undefined;
+      pending.current = false;
+      loading.current = false;
+      setIsLoading(false);
+      setError(false);
+    },
+    show: (index: number) => {
+      setError(false);
+      if (!snapshot?.history)
+        setWindow({
+          sessionId,
+          index: Math.min(
+            start,
+            Math.max(
+              0,
+              turns.findIndex((turn) => turn.index === index),
+            ),
+          ),
+        });
+    },
     start,
     loading: isLoading,
     error,
-    retry: reveal,
+    retry: () => reveal(true),
     onScroll: () => {
       if (loading.current) {
-        position.current?.freeze();
+        if (!pending.current) position.current?.freeze();
         return false;
       }
       const top = ref.current?.scrollTop ?? 0;
-      if (top < lastTop.current) reveal();
+      if (!programmatic.current && top < lastTop.current) reveal();
       lastTop.current = top;
       return !loading.current;
     },
     onWheel: (event: React.WheelEvent) => {
+      programmatic.current = false;
       if (event.deltaY < 0) reveal();
     },
     onTouchStart: (event: React.TouchEvent) => {
+      programmatic.current = false;
       touchY.current = event.touches[0]?.clientY;
     },
     onTouchMove: (event: React.TouchEvent) => {

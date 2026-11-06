@@ -8,6 +8,16 @@ import { pwaZh } from "./pwa-zh";
 import { voiceZh } from "./voice-zh";
 
 export const zh = {
+  messageNavigation: {
+    label: "对话导航",
+    turn: "第 {{number}} 轮：{{text}}",
+    attachment: "附件消息",
+    noReply: "暂无回复",
+    add: "添加书签",
+    remove: "取消书签",
+    bookmarked: "已添加书签",
+    failed: "书签保存失败，请在本轮消息保存后重试。",
+  },
   voice: voiceZh,
   filePreview: {
     open: "预览 PDF",

@@ -25,6 +25,7 @@ The exported `SessionHeader` contains:
 | `createdAt`, `updatedAt` | ISO timestamp strings. |
 | `unread` | Boolean, false for new sessions. New completed output sets true; marking the latest output read sets false. Missing values read as false; nonboolean values reject. |
 | pinnedAt | Optional canonical ISO UTC timestamp of the pin. Missing means unpinned; nonstring, invalid or noncanonical values reject. |
+| bookmarks | Optional unique absolute user-message indexes. Missing means no bookmarks. Invalid, duplicate or non-user indexes reject. |
 | `model` | Optional `{ provider: string, id: string, effort?: ModelEffort }`. |
 | `title` | Optional `SessionTitle`: text, source, source message indices, and optional model identity. See [session titles](session-titles.md). |
 | permissionPreset | Required: read-only, workspace-write or danger-full-access. Invalid values reject. |

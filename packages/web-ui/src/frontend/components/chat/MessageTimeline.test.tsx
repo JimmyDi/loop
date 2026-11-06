@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { Window } from "happy-dom";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -45,7 +45,7 @@ test("opening long history renders the latest three user rounds", () => {
       connected
     />,
   );
-  expect(html).not.toContain("History request 4");
+  expect(html).not.toContain('class="user-message-text">History request 4');
   expect(html).toContain("History request 5");
   expect(html).toContain("History request 6");
   expect(html).toContain("History request 7");
@@ -318,7 +318,7 @@ test("reopened history shows phase updates, tools and final replies without exec
       html.indexOf("Read config.ts"),
     );
     expect(html.indexOf("Read config.ts")).toBeLessThan(html.indexOf("Configuration checked."));
-    expect(html.indexOf("Configuration checked.")).toBeLessThan(html.indexOf("Next request"));
+    expect(html.indexOf("Configuration checked.")).toBeLessThan(html.lastIndexOf("Next request"));
   } finally {
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
@@ -443,7 +443,7 @@ test.each([false, true])(
       },
     });
     expect(reopened.indexOf("Context compacted")).toBeLessThan(
-      reopened.indexOf("Continue working"),
+      reopened.lastIndexOf("Continue working"),
     );
     expect(reopened.match(/Context compacted/g)).toHaveLength(1);
     expect(
@@ -524,6 +524,130 @@ test("automatic compaction replaces looping status during a prompt and anchors i
     expect(html.indexOf("Context compacted")).toBeLessThan(html.indexOf("After compaction"));
     expect(html.match(/Worked for/g)).toHaveLength(1);
   } finally {
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("unloaded turn jumps align at the top after measurement without triggering paging", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, cleanup, fireEvent, act } = await import("@testing-library/react/pure");
+  const messages: Message[] = Array.from({ length: 100 }, (_, timestamp) => ({
+    role: "user",
+    content: "Request " + timestamp,
+    timestamp,
+  }));
+  const live: SessionSnapshot = {
+    ...snapshot,
+    operation: "idle",
+    history: { start: 97, total: 100, userStart: 97 },
+    state: { ...snapshot.state, messages: messages.slice(97), isRunning: false },
+  };
+  const requests: string[] = [];
+  const fetcher = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+    const url = new URL(String(input), "http://localhost");
+    if (url.pathname.endsWith("/navigation"))
+      return Response.json({
+        previews: messages.map((message, index) => ({
+          index,
+          user: "Request " + index,
+          reply: "",
+        })),
+        bookmarks: [],
+      });
+    requests.push(url.search);
+    const target = url.searchParams.get("target");
+    const before = url.searchParams.get("before");
+    const start =
+      target !== null ? Math.max(0, Number(target) - 1) : Math.max(0, Number(before) - 3);
+    const end = before !== null ? Number(before) : Math.min(100, start + 3);
+    return Response.json({
+      streamId: "stream",
+      start,
+      end,
+      total: 100,
+      userStart: start,
+      messages: messages.slice(start, end),
+    });
+  });
+  let top = 0;
+  const rect = window.HTMLElement.prototype.getBoundingClientRect;
+  window.HTMLElement.prototype.getBoundingClientRect = function () {
+    const bounds = rect.call(this);
+    if (this.classList.contains("message-timeline")) bounds.height = 200;
+    if (this.classList.contains("timeline-content")) bounds.y = -top + 20;
+    if (this.classList.contains("virtual-list")) bounds.y = -top + 20;
+    if (this.classList.contains("virtual-row")) {
+      let offset = 0;
+      for (const sibling of this.parentElement!.children) {
+        if (sibling === this) break;
+        offset += sibling.classList.contains("virtual-row")
+          ? 100
+          : Number.parseFloat((sibling as unknown as HTMLElement).style.height) || 0;
+      }
+      bounds.y = offset - top + 20;
+      bounds.height = 100;
+    }
+    if (this.classList.contains("user-message")) return this.parentElement!.getBoundingClientRect();
+    if (
+      this.parentElement?.classList.contains("timeline-content") &&
+      this.getAttribute("aria-hidden") === "true"
+    )
+      bounds.y = this.parentElement.querySelectorAll(".virtual-row").length * 100 - top + 20;
+    return bounds;
+  };
+  try {
+    const ui = render(<MessageTimeline snapshot={live} connected />);
+    const element = ui.container.querySelector<HTMLDivElement>(".message-timeline")!;
+    element.style.paddingTop = "20px";
+    Object.defineProperties(element, {
+      clientHeight: { value: 200 },
+      scrollHeight: {
+        get: () =>
+          Math.max(
+            300,
+            Number.parseFloat(
+              ui.container.querySelector<HTMLElement>(".timeline-content")!.style.minHeight,
+            ) || 0,
+          ),
+      },
+      scrollTop: {
+        get: () => top,
+        set: (value: number) => {
+          top = Math.max(0, value);
+        },
+      },
+    });
+    await act(async () => {});
+    await act(async () => fireEvent.click(ui.getByRole("button", { name: "Turn 5: Request 4" })));
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toContain("target=4");
+    expect(ui.container.querySelector('[data-row-key="test:4"]')!.getBoundingClientRect().top).toBe(
+      20,
+    );
+    fireEvent.scroll(element);
+    expect(requests).toHaveLength(1);
+    await act(async () => fireEvent.wheel(element, { deltaY: -10 }));
+    expect(requests).toHaveLength(2);
+    expect(requests[1]).toContain("before=3");
+    expect(ui.container.querySelector('[data-row-key="test:4"]')!.getBoundingClientRect().top).toBe(
+      20,
+    );
+    await act(async () =>
+      fireEvent.click(ui.getByRole("button", { name: "Turn 100: Request 99" })),
+    );
+    expect(
+      ui.container.querySelector('[data-row-key="test:99"]')!.getBoundingClientRect().top,
+    ).toBe(20);
+    expect(requests).toHaveLength(2);
+    fireEvent.scroll(element);
+    expect(requests).toHaveLength(2);
+  } finally {
+    cleanup();
+    fetcher.mockRestore();
+    window.HTMLElement.prototype.getBoundingClientRect = rect;
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

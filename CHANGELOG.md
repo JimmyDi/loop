@@ -6,6 +6,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
+- Web UI and coding-agent: add a conversation rail with all turns visible, scrolling highlights, tapered hover animation, three-line reply previews and persistent bookmarks in session metadata. Indexed jumps load the previous, selected and next turns and align the selected user message at the top while preserving virtual scrolling, bidirectional history paging and live updates.
+
 - Website: show the local-voice article's cover illustration on its latest card and beside its summary and byline metadata, stacking above the description on narrow screens, with bilingual accessible descriptions.
 
 - Website: display labeled author, localized publication date and reading-time columns on the same row in blog article headers, with bilingual labels and optional update dates. Wrap columns on narrow screens.

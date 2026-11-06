@@ -111,6 +111,9 @@ test("network history requests are deduplicated, retryable and preserve position
     const history = useTimelineHistory("paged", turns, ref, () => {}, snapshot);
     return (
       <div ref={ref} onWheel={history.onWheel} onScroll={history.onScroll}>
+        <button type="button" onClick={() => history.show(0)}>
+          Jump to first
+        </button>
         {history.loading && <span role="status">Loading more messages</span>}
         {history.error && (
           <button onClick={history.retry} type="button">

@@ -8,6 +8,16 @@ import { pwaEn } from "./pwa-en";
 import { voiceEn } from "./voice-en";
 
 export const en = {
+  messageNavigation: {
+    label: "Conversation navigation",
+    turn: "Turn {{number}}: {{text}}",
+    attachment: "Attachment message",
+    noReply: "No reply yet",
+    add: "Bookmark turn",
+    remove: "Remove bookmark",
+    bookmarked: "Bookmarked",
+    failed: "Bookmark could not be saved. Try again after this turn is saved.",
+  },
   voice: voiceEn,
   filePreview: {
     open: "Preview PDF",

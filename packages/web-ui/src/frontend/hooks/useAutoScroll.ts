@@ -8,7 +8,8 @@ export const useAutoScroll = ({
   running,
   activityKey,
   revision,
-}: TimelinePosition & { running: boolean; revision: unknown }) => {
+  navigating = false,
+}: TimelinePosition & { running: boolean; revision: unknown; navigating?: boolean }) => {
   const ref = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const userMessageRef = useRef<HTMLElement>(null);
@@ -17,6 +18,8 @@ export const useAutoScroll = ({
   const anchored = useRef(false);
   const followingUser = useRef(false);
   const bottomPinned = useRef(true);
+  const navigation = useRef(navigating);
+  navigation.current = navigating;
   const viewportSize = useRef({ width: 0, height: 0 });
   const lastScroll = useRef({ top: 0, width: 0, height: 0 });
   const [atBottom, setAtBottom] = useState(true);
@@ -86,6 +89,7 @@ export const useAutoScroll = ({
     lastScroll.current.top = element.scrollTop;
   };
   const updateMinHeight = () => {
+    if (navigation.current) return;
     const element = ref.current;
     const content = contentRef.current;
     const user = userMessageRef.current;
@@ -110,7 +114,7 @@ export const useAutoScroll = ({
     const opening = previous.current?.sessionId !== sessionId;
     const newUser =
       userMessageIndex >= 0 && previous.current?.userMessageIndex !== userMessageIndex;
-    const alignUser = userMessageIndex >= 0 && (opening ? running : newUser);
+    const alignUser = !navigating && userMessageIndex >= 0 && (opening ? running : newUser);
 
     if (opening) {
       anchored.current = false;

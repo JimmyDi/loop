@@ -1,4 +1,5 @@
 import { revealSession } from "./session-reveal";
+import { navigationRoute } from "./session-navigation";
 import { queueRoute } from "./session-queue";
 import { pageSnapshot } from "../../shared/session-history";
 import { readBody, requiredString, sessionWorkspace } from "../http/input";
@@ -44,7 +45,7 @@ export const sessionRoutes =
     }
 
     const match = url.pathname.match(
-      /^\/api\/sessions\/([^/]+)(?:\/(reveal|history|prompt|queue|resume|abort|flush|compact|model|events|title|permission|approvals|read|pin)(?:\/([^/]+))?)?$/,
+      /^\/api\/sessions\/([^/]+)(?:\/(navigation|reveal|history|prompt|queue|resume|abort|flush|compact|model|events|title|permission|approvals|read|pin)(?:\/([^/]+))?)?$/,
     );
 
     if (!match) return;
@@ -77,6 +78,8 @@ export const sessionRoutes =
     const controller = await registry.get(id!);
 
     registry.assertAvailable(controller.workspaceId);
+
+    if (action === "navigation") return navigationRoute(request, controller);
 
     if (action === "reveal") {
       if (method !== "POST") throw new HttpError(405, "method_not_allowed");

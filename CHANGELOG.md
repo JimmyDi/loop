@@ -18,6 +18,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Web UI: align the Show more projects action with project folder icons in the sidebar.
+
 - Website: keep the GitHub link and language switch beside the brand on narrow screens, with navigation on a separate responsive row to prevent toolbar overflow.
 
 - Website: preserve the browser-selected Light/Dark article image when opening its enlarged view.

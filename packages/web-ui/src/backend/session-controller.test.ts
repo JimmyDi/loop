@@ -1,6 +1,5 @@
 import { join } from "node:path";
 import { mkdtemp, rm } from "node:fs/promises";
-import { setTimeout as sleep } from "node:timers/promises";
 import { expect, test } from "vitest";
 import { createAssistantMessageEventStream, Type } from "@earendil-works/pi-ai";
 
@@ -55,9 +54,7 @@ const runtime = (streamSimple: ModelRuntime["streamSimple"], checkModel = async 
 });
 
 const waitFor = async (condition: () => boolean) => {
-  for (let i = 0; i < 100 && !condition(); i++) await sleep(2);
-
-  expect(condition()).toBe(true);
+  await expect.poll(condition, { timeout: 5000, interval: 10 }).toBe(true);
 };
 
 test("Stop retains streamed text in live snapshots and Resume appends a separately timed response", async () => {

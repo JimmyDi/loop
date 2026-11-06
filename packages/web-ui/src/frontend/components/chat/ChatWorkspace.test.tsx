@@ -105,6 +105,8 @@ test("composer voice actions follow connection and session changes without heade
   const fetched: string[] = [];
   globalThis.fetch = (async (input) => {
     fetched.push(String(input));
+    if (String(input).endsWith("/navigation"))
+      return Response.json({ previews: [], bookmarks: [] });
     return Response.json([]);
   }) as typeof fetch;
   const page = (id: string) => (
@@ -281,6 +283,7 @@ test("home creates an independent draft and keeps the composer mounted through i
   };
   const writes: unknown[] = [];
   globalThis.fetch = (async (url, init) => {
+    if (String(url).endsWith("/navigation")) return Response.json({ previews: [], bookmarks: [] });
     if (String(url) === "/api/sessions") {
       writes.push(JSON.parse(String(init?.body)));
       return Response.json(snapshot);

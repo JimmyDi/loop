@@ -4,6 +4,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-06
+
 ### Added
 
 - Web UI and coding-agent: add a conversation rail with all turns visible, scrolling highlights, tapered hover animation, three-line reply previews and persistent bookmarks in session metadata. Indexed jumps load the previous, selected and next turns and align the selected user message at the top while preserving virtual scrolling, bidirectional history paging and live updates.

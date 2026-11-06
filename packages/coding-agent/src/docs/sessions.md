@@ -25,6 +25,7 @@ SDK consumers supply one of these managers to `createAgentSession({ sessionManag
 | `SessionManager.list(cwd, sessionDir?)` | List supported session metadata for the canonical workspace, newest first; unsupported formats are excluded without changing files. |
 | `manager.markRead(messageCount)` | Persist unread: false only when the viewed message count matches saved history; return false for stale counts. |
 | manager.setPinned(pinned) | Persist optional header pinnedAt, preserving history and activity; return its timestamp or undefined after unpinning. |
+| manager.setBookmark(messageIndex, bookmarked) | Persist an explicit bookmark state for a saved user message and return sorted bookmark indexes; preserve messages and activity timestamps. |
 
 List summaries include messageCount and userMessageCount so hosts can distinguish drafts from conversations. Draft metadata edits remain in memory; the first commit containing any user message, including attachments, creates the history file with the same ID and accumulated metadata. A failed first save retains pending history for flush. Web opts into drafts; the default CLI/SDK create method still persists empty sessions immediately. Uncommitted drafts do not survive process exit.
 

@@ -10,6 +10,8 @@ Session lists include only the supported storage format. Files with other format
 
 | Endpoint | Input and result |
 | --- | --- |
+| GET /api/sessions/:id/navigation | Return bounded plain-text turn previews with absolute message indexes and saved bookmark indexes |
+| PUT /api/sessions/:id/navigation | Accept streamId, messageIndex and boolean bookmarked; persist a saved user-message bookmark and return { bookmarks: number[] } |
 | GET /api/sessions?workspaceId=… | Return unarchived conversations containing user messages, including live first runs, without session file paths |
 | POST /api/sessions | Accept a registered workspaceId or explicit null for an independent chat; return a draft snapshot with 201, without writing a history file |
 | GET /api/sessions/:id | Open or retrieve a session and return its complete snapshot |
@@ -117,3 +119,7 @@ History is stored in <dataRoot>/sessions/global/<sessionId>/ using the same meta
 Each independent draft has a private working directory under a sibling of dataRoot named <dataRoot-name>-workspaces, with a generated UUID directory. The saved cwd is reused on restore. This location keeps generated files outside protected Loop storage. Normal permission presets, context loading, resource integrations and approvals apply to that directory. Traces use <dataRoot>/traces/global/<sessionId>. Archive preserves working files, and deleting history does not remove generated files. Empty handles can leave working directories; automatic cleanup is not implemented.
 
 Independent archive and delete operations use /api/workspaces/global/archive and /api/workspaces/global/sessions/:id with the existing body and method contracts. The global scope is internal, is not registered as a project and cannot be renamed or removed as a project. Settings archive lists include independent chats. Session file and image responses resolve references against the session working directory. Remote users retain the existing local-only archive/delete restrictions.
+
+### Indexed history navigation
+
+GET /api/sessions/:id/history?target=<message-index>&streamId=<stream-id> returns the previous, selected and next rounds around the absolute user-message index, where available, without intervening history. after=<message-index> reads the next three rounds starting at that boundary, while before=<message-index> retains backward paging. Use exactly one cursor. Out-of-range, non-user and malformed cursors return 400; stale streams return 409. after may equal the history length and returns an empty page. Each response contains start, end, total, userStart, streamId and messages. All routes retain the existing session authorization.

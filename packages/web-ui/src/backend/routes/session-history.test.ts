@@ -44,6 +44,53 @@ test("history pages exactly three rounds and rejects invalid or replaced stream 
   expect(() => load("5", "old")).toThrow("history_changed");
   expect(allowsRemoteBusiness("/api/sessions/synthetic/history", "GET")).toBe(true);
   expect(allowsRemoteBusiness("/api/sessions/synthetic/history", "POST")).toBe(false);
+  const targetUrl = new URL(
+    "http://localhost/api/sessions/synthetic/history?target=1&streamId=first",
+  );
+  expect(
+    await historyRoute(new Request(targetUrl), targetUrl, "history", controller)!.json(),
+  ).toMatchObject({ start: 0, end: 3, messages: snapshot.state.messages.slice(0, 3) });
+  targetUrl.searchParams.delete("target");
+  targetUrl.searchParams.set("after", "4");
+  expect(
+    await historyRoute(new Request(targetUrl), targetUrl, "history", controller)!.json(),
+  ).toMatchObject({ start: 4, end: 7 });
+  targetUrl.searchParams.set("target", "0");
+  expect(() => historyRoute(new Request(targetUrl), targetUrl, "history", controller)).toThrow(
+    "invalid_history_cursor",
+  );
+});
+
+test("target windows include only the adjacent rounds, including full assistant content", async () => {
+  const messages = snapshot.state.messages.flatMap((message) => [
+    message,
+    {
+      ...message,
+      role: "toolResult",
+      toolCallId: "example",
+      toolName: "example",
+      content: [],
+      isError: false,
+    },
+  ]) as SessionSnapshot["state"]["messages"];
+  const controller = {
+    snapshot: { ...snapshot, state: { ...snapshot.state, messages } },
+  } as SessionController;
+  const load = async (target: number) => {
+    const url = new URL(
+      "http://localhost/api/sessions/synthetic/history?streamId=first&target=" + target,
+    );
+    return historyRoute(new Request(url), url, "history", controller)!.json();
+  };
+  expect(await load(6)).toMatchObject({
+    start: 4,
+    end: 10,
+    userStart: 2,
+    messages: messages.slice(4, 10),
+  });
+  expect(await load(0)).toMatchObject({ start: 0, end: 4, messages: messages.slice(0, 4) });
+  expect(await load(14)).toMatchObject({ start: 12, end: 16, messages: messages.slice(12) });
+  await expect(load(7)).rejects.toThrow("invalid_history_cursor");
 });
 
 test("event connection and subsequent state frames send only the newest three rounds", async () => {

@@ -126,6 +126,14 @@ test("opening a long reply measures rows before paint and survives a programmati
       <VirtualList rows={[...rows]} viewport={{ current: element as unknown as HTMLDivElement }} />,
     );
     expect(ui.container.querySelector('[data-row-key="reply"]')).not.toBeNull();
+    ui.rerender(
+      <VirtualList
+        rows={rows}
+        viewport={{ current: element as unknown as HTMLDivElement }}
+        target={{ key: "user", request: 1 }}
+      />,
+    );
+    expect(ui.container.querySelector('[data-row-key="user"]')).not.toBeNull();
   } finally {
     cleanup();
     window.HTMLElement.prototype.getBoundingClientRect = original;

@@ -23,7 +23,7 @@ export const holdHistoryPosition = (element: HTMLDivElement) => {
       if (prepended === undefined) return;
       element.scrollTop =
         prepended && anchor && element.contains(anchor) && anchorTop !== undefined
-          ? top + anchor.getBoundingClientRect().top - anchorTop
+          ? element.scrollTop + anchor.getBoundingClientRect().top - anchorTop
           : top + (prepended ? element.scrollHeight - height : 0);
     },
   };

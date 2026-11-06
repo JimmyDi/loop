@@ -19,6 +19,7 @@ export type SessionHeader = {
   updatedAt: string;
   unread?: boolean;
   pinnedAt?: string;
+  bookmarks?: number[];
   model?: ModelSelection;
   title?: SessionTitle;
   permissionPreset: PermissionPreset;

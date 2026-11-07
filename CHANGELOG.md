@@ -10,6 +10,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Web UI: focus new-session chat input only after it becomes editable, allowing immediate keyboard input without an extra click.
+
 - Website: eliminate the dark gap above the homepage background on mobile.
 
 ## [0.6.0] - 2026-11-06

@@ -49,7 +49,7 @@ it("translates the complete page without resetting the selected interface or rem
   fireEvent.click(screen.getByRole("button", { name: /CLI/ }));
   fireEvent.click(screen.getByRole("button", { name: "EN" }));
   const body = container.cloneNode(true) as HTMLElement;
-  body.querySelector('[lang="zh-CN"]')?.remove();
+  for (const button of body.querySelectorAll('button[lang="zh-CN"]')) button.remove();
   expect(body.textContent).not.toMatch(/[一-鿿]/u);
   expect(screen.getByRole("heading", { level: 1 }).textContent).toContain("reality.");
   expect(container.querySelector<HTMLElement>("#panel-cli")?.hidden).toBe(false);

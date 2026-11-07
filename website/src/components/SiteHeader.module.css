@@ -113,55 +113,37 @@
 @media (max-width: 700px) {
   .site-header {
     --brand-font-size: calc(24px - 2px * var(--header-progress));
-    --brand-artwork-size: calc(36px - 4px * var(--header-progress));
-    --language-switch-height: 32px;
-    height: auto;
-    min-height: 96px;
+    --brand-artwork-size: calc(32px - 4px * var(--header-progress));
+    --language-switch-height: 28px;
   }
 
   .bar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-content: center;
-    gap: 8px 16px;
-    height: auto;
-    min-height: calc(96px - 8px * var(--header-progress));
-    padding-block: 8px;
+    gap: 8px;
     border-radius: calc(24px * var(--header-progress));
   }
 
   .primary {
-    display: contents;
-  }
-
-  .primary > :first-child {
-    grid-column: 1;
-    grid-row: 1;
-    justify-self: start;
+    min-width: 0;
+    gap: 4px;
   }
 
   .actions {
-    grid-column: 2;
-    grid-row: 1;
-    gap: 8px;
+    gap: 4px;
   }
 
   .navigation {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 4px;
+    gap: 0;
+  }
+
+  .navigation a {
+    padding-inline: 5px;
   }
 }
 
 @media (max-width: 500px) {
   .bar {
-    column-gap: 8px;
-  }
-
-  .actions > :last-child {
-    width: 104px;
+    padding-inline: 10px;
+    gap: 4px;
   }
 }
 

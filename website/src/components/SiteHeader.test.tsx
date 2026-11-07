@@ -29,7 +29,11 @@ it("places the repository link before the language switch beside the brand", () 
   expect(brand.textContent).toBe("Loop");
   expect(container.querySelectorAll("img")).toHaveLength(1);
   expect(screen.getByRole("group", { name: "网站语言" })).toBeTruthy();
-  expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual(["中文", "EN"]);
+  expect(
+    Array.from(screen.getByRole("group", { name: "网站语言" }).querySelectorAll("button")).map(
+      (button) => button.textContent,
+    ),
+  ).toEqual(["中文", "EN"]);
 });
 
 it("updates the repository accessible label and tooltip when the language changes", () => {

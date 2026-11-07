@@ -33,3 +33,9 @@
     height: var(--brand-artwork-size, 44px);
   }
 }
+
+@media (max-width: 500px) {
+  .brand span {
+    display: none;
+  }
+}

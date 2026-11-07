@@ -4,6 +4,14 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Changed
+
+- Website: keep navigation on one row with a compact language toggle on mobile and show only the Loop icon on narrow screens.
+
+### Fixed
+
+- Website: eliminate the dark gap above the homepage background on mobile.
+
 ## [0.6.0] - 2026-11-06
 
 ### Added

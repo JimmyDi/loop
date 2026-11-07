@@ -39,3 +39,19 @@ it.each([
     expect(document.documentElement.lang).toBe("en");
   },
 );
+
+it("switches languages with the compact control", () => {
+  render(
+    <LanguageProvider initialLanguage="zh">
+      <LanguageSwitch />
+    </LanguageProvider>,
+  );
+  const toggle = screen.getByLabelText("Switch to English");
+  expect(toggle.textContent).toBe("EN");
+  fireEvent.click(toggle);
+  expect(document.documentElement.lang).toBe("en");
+  expect(toggle.getAttribute("aria-label")).toBe("切换到中文");
+  expect(toggle.textContent).toBe("中文");
+  fireEvent.click(toggle);
+  expect(document.documentElement.lang).toBe("zh-CN");
+});

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { createAssistantMessageEventStream, Type } from "@earendil-works/pi-ai";
+import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 import type { AssistantMessage, AssistantMessageEvent, Context } from "@earendil-works/pi-ai";
 import { getModel } from "@earendil-works/pi-ai/compat";
 
@@ -48,7 +48,14 @@ test("multiple prompts retain isolated completed history without duplicating sys
   const agent = new Agent({
     model,
     systemPrompt: "system",
-    tools: [{ name: "echo", description: "echo", parameters: Type.Object({}), execute: () => [] }],
+    tools: [
+      {
+        name: "echo",
+        description: "echo",
+        parameters: { type: "object", properties: {} },
+        execute: () => [],
+      },
+    ],
     streamFn: (_model, context) => {
       contexts.push(structuredClone(context));
 
@@ -222,7 +229,7 @@ test.each(["before", "during"] as const)(
       {
         name: "wait",
         description: "wait",
-        parameters: Type.Object({}),
+        parameters: { type: "object", properties: {} },
         execute: (_args, signal) => {
           executions++;
           toolSignal = signal;
@@ -338,7 +345,7 @@ test("continue resumes a complete loop without duplicating input or completed to
       {
         name: "fixture",
         description: "Fixture",
-        parameters: Type.Object({}),
+        parameters: { type: "object", properties: {} },
         execute: () => {
           executions++;
           return [];

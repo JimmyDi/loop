@@ -6,6 +6,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Changed
 
+- Agent and coding-agent: upgrade the model runtime dependency `@earendil-works/pi-ai` from 1.1.0 to 1.5.0.
+
 - Website: keep navigation on one row with a compact language toggle on mobile and show only the Loop icon on narrow screens.
 
 ### Fixed

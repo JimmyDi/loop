@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { mkdtemp, rm } from "node:fs/promises";
 import { expect, test } from "vitest";
-import { createAssistantMessageEventStream, Type } from "@earendil-works/pi-ai";
+import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 
 import { AgentSession, SessionManager } from "@loop/coding-agent";
 import type { ModelRuntime } from "@loop/coding-agent";
@@ -703,7 +703,7 @@ test("sequential tool results keep canonical indexes across multiple model turns
       {
         name: "read",
         description: "Test",
-        parameters: Type.Object({}),
+        parameters: { type: "object", properties: {} },
         execute: () => [{ type: "text", text: "result" }],
       },
     ],
@@ -741,7 +741,7 @@ test("SSE delivers commentary and running tool state while execution is still pe
       {
         name: "bash",
         description: "Synthetic gated tool",
-        parameters: Type.Object({}),
+        parameters: { type: "object", properties: {} },
         execute: async () => {
           executing = true;
           await pending;

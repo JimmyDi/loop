@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { createAssistantMessageEventStream, Type } from "@earendil-works/pi-ai";
+import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 import type { AssistantMessage, Context, Message, ToolCall } from "@earendil-works/pi-ai";
 import { getModel } from "@earendil-works/pi-ai/compat";
 
@@ -53,7 +53,7 @@ function tool(execute: AgentTool["execute"]): AgentTool {
   return {
     name: "echo",
     description: "Echo text",
-    parameters: Type.Object({ text: Type.String() }),
+    parameters: { type: "object", properties: { text: { type: "string" } }, required: ["text"] },
     execute,
   };
 }
@@ -345,7 +345,11 @@ test("passes validated/coerced parameters to tools and preserves image content",
       {
         name: "number",
         description: "number",
-        parameters: Type.Object({ value: Type.Number() }),
+        parameters: {
+          type: "object",
+          properties: { value: { type: "number" } },
+          required: ["value"],
+        },
         execute: (args) => {
           expect(args.value).toBe(12);
 

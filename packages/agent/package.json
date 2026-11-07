@@ -23,6 +23,6 @@
     "check": "biome check src"
   },
   "dependencies": {
-    "@earendil-works/pi-ai": "^1.1.0"
+    "@earendil-works/pi-ai": "^1.5.0"
   }
 }

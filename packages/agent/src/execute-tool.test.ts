@@ -1,4 +1,3 @@
-import { Type } from "@earendil-works/pi-ai";
 import type { ToolCall } from "@earendil-works/pi-ai";
 import { expect, test, vi } from "vitest";
 
@@ -11,7 +10,7 @@ test("invalid arguments never execute and valid calls preserve result identity a
   const tool: AgentTool = {
     name: "echo",
     description: "Echo",
-    parameters: Type.Object({ text: Type.String() }),
+    parameters: { type: "object", properties: { text: { type: "string" } }, required: ["text"] },
     execute,
   };
   const signal = new AbortController().signal;
@@ -42,7 +41,7 @@ test("cancellation wins over a concurrent tool failure and prevents pre-aborted 
   const tool: AgentTool = {
     name: "echo",
     description: "Echo",
-    parameters: Type.Object({}),
+    parameters: { type: "object", properties: {} },
     execute,
   };
   const call: ToolCall = { type: "toolCall", id: "first", name: "echo", arguments: {} };

@@ -229,6 +229,67 @@ test("copying a user message and pasting restores skill tokens, text and existin
   }
 });
 
+test("focus waits for editability and later readiness changes preserve focus and caret", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, fireEvent, cleanup } = await import("@testing-library/react/pure");
+  try {
+    const trigger = window.document.createElement("button");
+    window.document.body.append(trigger);
+    trigger.focus();
+    let changed = "";
+    const props = {
+      value: "Draft",
+      onChange: (text: string) => {
+        changed = text;
+      },
+      onSubmit: () => {},
+      placeholder: "Message",
+    };
+    const view = render(<ComposerInput {...props} disabled />);
+    const input = view.getByRole("textbox");
+    expect(document.activeElement).toBe(trigger);
+    expect(document.getSelection()!.rangeCount).toBe(0);
+
+    view.rerender(<ComposerInput {...props} disabled={false} />);
+    expect(document.activeElement).toBe(input);
+    expect(input.getAttribute("contenteditable")).toBe("true");
+    const selection = document.getSelection()!;
+    expect(selection.isCollapsed).toBe(true);
+    expect(selection.anchorNode).toBe(input);
+    expect(selection.anchorOffset).toBe(input.childNodes.length);
+    input.append(" typed");
+    fireEvent.input(input);
+    expect(changed).toBe("Draft typed");
+
+    const range = document.createRange();
+    range.setStart(input.firstChild!, 2);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    view.rerender(<ComposerInput {...props} disabled />);
+    view.rerender(<ComposerInput {...props} disabled={false} />);
+    expect(selection.anchorOffset).toBe(2);
+
+    trigger.focus();
+    view.rerender(<ComposerInput {...props} disabled />);
+    view.rerender(<ComposerInput {...props} disabled={false} />);
+    expect(document.activeElement).toBe(trigger);
+
+    view.rerender(<ComposerInput {...props} disabled focusRequest={1} />);
+    expect(document.activeElement).toBe(trigger);
+    view.rerender(<ComposerInput {...props} disabled={false} focusRequest={1} />);
+    expect(document.activeElement).toBe(input);
+    expect(selection.anchorNode).toBe(input);
+    expect(selection.anchorOffset).toBe(input.childNodes.length);
+  } finally {
+    cleanup();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
 test("touch composer preserves focus outside the editor on mount and session switches", async () => {
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };
@@ -246,7 +307,9 @@ test("touch composer preserves focus outside the editor on mount and session swi
       disabled: false,
       placeholder: "Message",
     };
-    const view = render(<ComposerInput {...props} />);
+    const view = render(<ComposerInput {...props} disabled />);
+    expect(window.document.activeElement).toBe(trigger);
+    view.rerender(<ComposerInput {...props} />);
     expect(window.document.activeElement).toBe(trigger);
     view.rerender(<ComposerInput {...props} focusRequest={1} />);
     expect(window.document.activeElement).toBe(trigger);

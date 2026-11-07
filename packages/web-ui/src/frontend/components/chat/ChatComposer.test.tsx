@@ -710,9 +710,10 @@ test("new and switched composers focus drafts and restore focus after sending", 
     useRequests.setState({ pending: {} });
     const fresh = { ...snapshot, sessionId: "new-session", operation: "idle" as const };
     const ui = render(composer(fresh, false));
-    expect(document.activeElement).toBe(ui.getByRole("textbox"));
+    expect(document.activeElement).not.toBe(ui.getByRole("textbox"));
     ui.rerender(composer(fresh, true));
     expect(document.activeElement).toBe(ui.getByRole("textbox"));
+    expect(document.getSelection()!.getRangeAt(0).startContainer).toBe(ui.getByRole("textbox"));
 
     ui.getByRole("button", { name: "Other control" }).focus();
     const current = { ...snapshot, operation: "idle" as const };

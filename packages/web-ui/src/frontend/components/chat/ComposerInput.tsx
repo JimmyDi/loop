@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { useComposerInput } from "../../hooks/useComposerInput";
 import { useWorkspace } from "../../state/workspace-store";
@@ -20,6 +20,7 @@ export const ComposerInput = ({
   hideSkills = false,
 }: ComposerInputProps) => {
   const editor = useComposerInput(value, onChange, onSubmit);
+  const appliedFocusRequest = useRef<number | undefined>(undefined);
   const skills = useWorkspace((state) => (sessionId ? state.skills[sessionId] : undefined));
   const visibleSkills = hideSkills ? [] : (skills ?? []);
   const removeSkill = (id: string) => {
@@ -30,7 +31,8 @@ export const ComposerInput = ({
 
   useEffect(() => {
     const input = editor.ref.current;
-    if (!input) return;
+    if (!input || disabled || appliedFocusRequest.current === focusRequest) return;
+    appliedFocusRequest.current = focusRequest;
     if (window.matchMedia("(pointer: coarse)").matches && !input.contains(document.activeElement))
       return;
 
@@ -41,7 +43,7 @@ export const ComposerInput = ({
     range.collapse(false);
     selection?.removeAllRanges();
     selection?.addRange(range);
-  }, [editor.ref, focusRequest]);
+  }, [disabled, editor.ref, focusRequest]);
 
   return (
     <div className="composer-input-area">

@@ -38,11 +38,11 @@ The independent website CI runs all website tests. Application tests do not incl
 ## Build and deployment
 
 ```bash
-pnpm --filter @loop/website build
+WEBSITE_ORIGIN=https://codewithloop.com pnpm --filter @loop/website build --base=/
 pnpm --filter @loop/website preview
 ```
 
-Deploy only `website/dist/` to a static host. No runtime server or credentials are needed. Public builds require WEBSITE_ORIGIN and an explicit root-relative base for SEO metadata. The default build targets a domain root; use `build --base=/loop/` for a specific subdirectory or `build --base=./` for portable relative asset URLs.
+Deploy only `website/dist/` to a static host. No runtime server or credentials are needed. The production website is [codewithloop.com](https://codewithloop.com/). Public builds use `WEBSITE_ORIGIN=https://codewithloop.com` and `--base=/` so assets, navigation, canonical URLs and SEO metadata target the domain root. Alternative static hosts may use an explicit subdirectory base or `build --base=./` for portable relative asset URLs.
 
 The [Website workflow](../.github/workflows/website.yml) checks types, formatting, tests and the production build on pull requests. PR builds do not deploy. On `main`, the workflow checks the merged commit and deploys that exact artifact to GitHub Pages. A failed check or build prevents deployment.
 
@@ -55,7 +55,8 @@ One-time repository setup:
 
 1. In **Settings → Pages → Build and deployment**, select **GitHub Actions** as the source.
 2. Merge website changes into `main`, or run **Actions → Website** on `main`.
-3. Use the URL reported by the `github-pages` deployment for the repository's **About → Website** field.
+3. Set **Settings → Pages → Custom domain** to `codewithloop.com` and enable **Enforce HTTPS** after DNS verification and certificate provisioning.
+4. Use `https://codewithloop.com/` for the repository's **About → Website** field.
 
 GitHub supplies deployment credentials. Build jobs have read-only repository access; only the deployment job receives Pages write and OIDC permissions. Repository environment rules may require deployment approval. Adding the workflow locally does not enable Pages or publish the site.
 
@@ -166,7 +167,7 @@ Open Graph URLs and `sitemap.xml`, including the configured deployment base. Wit
 preview builds omit public URLs and the sitemap. Public SEO builds reject relative bases;
 use an explicit root-relative base for a public deployment. All articles include title,
 description, article dates and BlogPosting structured data. Chinese blog routes use blog/ and English routes use en/blog/, including article pages. Each URL renders its own language, self-canonical and reciprocal zh-CN/en/x-default hreflang links. Explicit blog URLs take precedence over browser language; the shared language switch updates the blog URL. RSS is not implemented. The output includes `404.html`; configure the static host to serve it with a
-404 status for missing paths rather than rewrite them to the homepage. GitHub Pages serves the generated 404.html; its asset base is the deployment root and it carries noindex. A project site cannot control the host-root robots.txt; its project robots.txt and sitemap remain available, and sitemap submission can be used for discovery. Development and
+404 status for missing paths rather than rewrite them to the homepage. GitHub Pages serves the generated 404.html; its asset base is the deployment root and it carries noindex. The custom-domain deployment serves robots.txt and sitemap.xml at the domain root. Development and
 Vite preview fallback routing do not establish production HTTP status behavior.
 
 
@@ -182,4 +183,4 @@ Development and builds validate the maintained index against the published Markd
 
 Blog cards and the archive use this maintained index through virtual:blog-index for search and View more pagination. Builds also export a public blog/index.json copy. The index is bundled for initial rendering, so pagination does not fetch Markdown or request additional pages. Article bodies remain in their static article pages.
 
-The GitHub Pages build resolves its public host and base path from Pages configuration. Public builds emit robots.txt, reciprocal blog hreflang links and a default social preview image, in addition to canonical URLs and the sitemap. The build copies the existing [social preview](../docs/assets/readme/social-preview.png) into dist/social-preview.png; no duplicate source image is maintained in website/public. Blog images use local assets and no-referrer.
+The GitHub Pages build explicitly targets `https://codewithloop.com` with the root base `/`. Keep these workflow settings aligned with the repository's custom domain; rerun the Website workflow after a domain change to regenerate all asset paths and public metadata. Public builds emit robots.txt, reciprocal blog hreflang links and a default social preview image, in addition to canonical URLs and the sitemap. The build copies the existing [social preview](../docs/assets/readme/social-preview.png) into dist/social-preview.png; no duplicate source image is maintained in website/public. Blog images use local assets and no-referrer.

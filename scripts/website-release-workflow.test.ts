@@ -15,6 +15,8 @@ test("website rebuilds after successful release and verifies publication before 
   const build = steps.findIndex((step: { run?: string }) => step.run?.includes("build --base"));
   expect(verify).toBeGreaterThan(-1);
   expect(build).toBeGreaterThan(verify);
+  expect(steps[build].env.WEBSITE_ORIGIN).toBe("https://codewithloop.com");
+  expect(steps[build].run).toBe("pnpm --filter @loop/website build --base=/");
   expect(workflow.jobs.deploy.if).toContain("github.event_name != 'pull_request'");
   expect(workflow.concurrency["cancel-in-progress"]).toBe(false);
 });

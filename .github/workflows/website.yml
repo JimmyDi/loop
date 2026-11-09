@@ -52,13 +52,10 @@ jobs:
         run: node scripts/published-release-versions.mjs
       - run: pnpm --filter @loop/website check
       - run: pnpm --filter @loop/website test
-      - name: Resolve GitHub Pages deployment address
-        id: pages
-        uses: actions/configure-pages@v6.0.0
       - name: Build static assets and SEO metadata for GitHub Pages
         env:
-          WEBSITE_ORIGIN: https://${{ steps.pages.outputs.host }}
-        run: pnpm --filter @loop/website build --base="${{ steps.pages.outputs.base_path }}/"
+          WEBSITE_ORIGIN: https://codewithloop.com
+        run: pnpm --filter @loop/website build --base=/
       - if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v5.0.0
         with:

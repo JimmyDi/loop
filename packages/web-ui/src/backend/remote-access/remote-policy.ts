@@ -26,6 +26,7 @@ export const allowsRemoteBusiness = (path: string, method: string): boolean => {
     method === "GET" &&
     [
       "/api/workspaces",
+      "/api/auth/session",
       "/api/workspaces/events",
       "/api/sessions",
       "/api/models",

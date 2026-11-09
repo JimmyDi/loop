@@ -1,4 +1,5 @@
 import { pairingEn } from "./pairing-en";
+import { accountsEn } from "./accounts-en";
 import { projectsEn } from "./projects-en";
 import { permissionsEn } from "./permissions-en";
 import { mcpEn } from "./mcp-en";
@@ -8,6 +9,7 @@ import { pwaEn } from "./pwa-en";
 import { voiceEn } from "./voice-en";
 
 export const en = {
+  accounts: accountsEn,
   messageNavigation: {
     label: "Conversation navigation",
     turn: "Turn {{number}}: {{text}}",

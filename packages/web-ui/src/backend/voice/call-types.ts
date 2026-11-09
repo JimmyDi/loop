@@ -25,7 +25,7 @@ export type WebVoiceCall = {
   call: VoiceCall;
   socket?: WebSocket;
   lease?: ReturnType<typeof setTimeout>;
-  expiry?: ReturnType<typeof setTimeout>;
+  expiry?: () => void;
   unsubscribe: () => void;
   muted: boolean;
   readingPaused: boolean;

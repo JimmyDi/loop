@@ -1,72 +1,41 @@
-import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getAgentDir } from "@loop/coding-agent";
 
 import { createHttpServer, listen } from "../http/node-server";
-import { assertLocalRequest } from "../http/local-request";
-import { errorResponse } from "../http/errors";
 import { restartingResponse } from "../http/restarting-response";
 import { createDevelopmentFrontend, developmentResponse } from "../http/development-frontend";
-import { createRemoteAccess } from "../remote-access/create-remote-access";
-import { RemoteDevices } from "../remote-access/remote-devices";
-import { DeviceStore } from "../remote-access/device-store";
-import { startRemoteIngress } from "../remote-access/remote-ingress";
-import { remoteAccessRoutes } from "../routes/remote-access";
 import { startDevelopmentBackend } from "./development-backend";
 import { attachVoiceUpgrade } from "../http/voice-upgrade";
-import { localContext } from "../http/business-context";
+import { createAccountServer } from "../auth/account-server";
 
 export const startDevelopmentGateway = async (port: number) => {
-  const agentDir = getAgentDir();
   const assets = fileURLToPath(new URL("../../../dist/web/", import.meta.url));
-  const devices = new RemoteDevices(
-    new DeviceStore(join(agentDir, "web-ui", "remote-access", "devices.json")),
-  );
-  await devices.load();
   const backend = startDevelopmentBackend();
-  const unsubscribeInvalidation = devices.subscribeInvalidation(backend.revokeVoice);
-  const remote = await createRemoteAccess(agentDir, (port) =>
-    startRemoteIngress(devices, backend.handle, assets, port, backend.ready, backend.voice),
-  ).catch(async (error) => {
-    await backend.close();
-    throw error;
-  });
-  const controls = remoteAccessRoutes(remote, devices);
-  const server = createHttpServer(async (request) => {
-    try {
-      assertLocalRequest(request);
-      const url = new URL(request.url);
-      if (url.pathname === "/api/remote-session" && request.method === "GET")
-        return Response.json({ mode: "local" }, { headers: { "Cache-Control": "no-store" } });
-      const control = await controls(request, url);
-      if (control) return control;
-      if (["/", "/index.html"].includes(url.pathname) && !backend.ready())
-        return restartingResponse(request);
-      return url.pathname.startsWith("/api/")
-        ? backend.handle(request)
-        : developmentResponse(request, assets);
-    } catch (error) {
-      return errorResponse(error);
-    }
+  const application = await createAccountServer(getAgentDir(), assets, backend).catch(
+    async (error) => {
+      await backend.close();
+      throw error;
+    },
+  );
+  const server = createHttpServer((request) => {
+    const path = new URL(request.url).pathname;
+    if (["/", "/index.html"].includes(path) && !backend.ready()) return restartingResponse(request);
+    return path.startsWith("/api/")
+      ? application.handle(request)
+      : developmentResponse(request, assets);
   });
   const closeVoice = attachVoiceUpgrade(
     server,
-    (request) => {
-      assertLocalRequest(request);
-      if (request.headers.get("origin") !== new URL(request.url).origin)
-        throw new Error("invalid_origin");
-      return localContext;
-    },
-    backend.voice,
-    undefined,
+    application.authorizeVoice,
+    application.connectVoice,
+    application.trackVoice,
     { allowVite: true },
   );
   let frontend: Awaited<ReturnType<typeof createDevelopmentFrontend>> | undefined;
   const close = async () => {
     closeVoice();
-    unsubscribeInvalidation();
     try {
-      await remote.close();
+      await application.close();
     } finally {
       await backend.close();
       await frontend?.close();

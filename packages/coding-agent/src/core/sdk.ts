@@ -45,6 +45,7 @@ export async function createAgentSession(
   const allowed = new Set([
     "cwd",
     "agentDir",
+    "profileId",
     "modelRuntime",
     "settingsManager",
     "systemPrompt",
@@ -171,7 +172,12 @@ export async function createAgentSession(
     title: options.title,
     permissionPolicy,
     mcpManager: options.mcpManager,
-    skillManager: options.skillManager ?? new SkillManager(services.agentDir),
+    skillManager:
+      options.skillManager ??
+      new SkillManager(
+        services.agentDir,
+        options.profileId ? join(services.agentDir, ".agents") : undefined,
+      ),
     ownsSkillManager: !options.skillManager,
   });
 

@@ -19,6 +19,7 @@ export function parseArgs(args: string[]) {
   ]);
   const values = new Set([
     "--model",
+    "--profile",
     "--provider",
     "--api-key",
     "--base-url",
@@ -66,6 +67,7 @@ export const HELP = [
   "Loop coding assistant",
   "loop [-p] [options] [prompt]",
   "--print/-p                  Print final answer and exit",
+  "--profile USER_ID           Select a local user data profile (trusted local access)",
   "--model ID --provider NAME  Select a configured model",
   "--base-url URL --api-key KEY  Custom endpoint and authentication",
   "--continue/-c               Resume most recent project session",

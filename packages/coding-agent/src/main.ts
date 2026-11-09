@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 
 import { HELP, parseArgs } from "./cli/args";
+import { getProfileDir } from "./core/profile";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, getAgentDir, getSessionDir, VERSION } from "./config";
 import { createAgentSessionRuntime } from "./core/agent-session-runtime";
 import { createModelRuntime } from "./core/model-runtime";
@@ -26,7 +27,8 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
   }
 
   const cwd = process.cwd();
-  const agentDir = getAgentDir();
+  const profileId = flags.get("--profile");
+  const agentDir = profileId ? getProfileDir(profileId) : getAgentDir();
   const settingsManager = await SettingsManager.create(agentDir);
   const provider =
     flags.get("--provider") ??
@@ -65,7 +67,8 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
     (options) =>
       createAgentSession({
         ...options,
-        agentDir,
+        agentDir: profileId ? getAgentDir() : agentDir,
+        profileId,
         modelRuntime,
         settingsManager,
         tools: flags.has("--tools") ? flags.get("--tools")!.split(",").filter(Boolean) : undefined,

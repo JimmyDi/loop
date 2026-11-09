@@ -3,6 +3,7 @@ import { stat } from "node:fs/promises";
 import { realpathSync } from "node:fs";
 
 import { getAgentDir } from "../config";
+import { getProfileDir } from "./profile";
 import { createModelRuntime } from "./model-runtime";
 import type { ModelRuntime } from "./model-runtime";
 import { loadResources } from "./resource-loader";
@@ -12,13 +13,15 @@ import { SettingsManager } from "./settings-manager";
 export type ServiceOptions = ResourceOptions & {
   cwd?: string;
   agentDir?: string;
+  profileId?: string;
   modelRuntime?: ModelRuntime;
   settingsManager?: SettingsManager;
 };
 
 export async function createAgentSessionServices(options: ServiceOptions = {}) {
   const cwd = realpathSync(options.cwd ?? process.cwd());
-  const agentDir = resolve(options.agentDir ?? getAgentDir());
+  const root = resolve(options.agentDir ?? getAgentDir());
+  const agentDir = options.profileId ? getProfileDir(options.profileId, root) : root;
 
   if (!(await stat(cwd)).isDirectory()) throw new Error("Working directory does not exist");
 

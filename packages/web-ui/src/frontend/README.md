@@ -14,6 +14,8 @@ Configure a service in **Settings → Models**, then add a project and create a 
 
 ## Features
 
+The account screen lets users register and sign in before private views mount. **More → Account settings** shows the current profile ID and lets users change their own password, and **More → Sign out** revokes the current login. See [local accounts](../backend/docs/accounts.md) for storage, permissions and lifecycle.
+
 | Feature | Documentation |
 | --- | --- |
 | Create projects, select source folders, and navigate sessions | [Projects and sessions](docs/projects.md) |

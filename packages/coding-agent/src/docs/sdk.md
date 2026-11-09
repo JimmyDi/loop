@@ -39,6 +39,7 @@ That sample enables coding tools and runs once before exiting. Without an argume
 | --- | --- |
 | `cwd` | Workspace directory; defaults to process cwd or the supplied manager's cwd. |
 | `agentDir` | Configuration/storage root; defaults to `LOOP_DATA_DIR` or `~/.loop`. |
+| `profileId` | Select a local user data directory; see [profiles](profiles.md). |
 | `modelRuntime` | Host model lookup, authentication check, and stream service. |
 | `settingsManager` | Override loaded default-model settings. |
 | `model` | Explicit model configuration, overriding a saved/default selection. |

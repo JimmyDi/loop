@@ -5,6 +5,7 @@ import type { WebSocket } from "ws";
 import type { VoiceMode } from "../../shared/voice";
 import type { BusinessContext } from "../http/business-context";
 import { HttpError } from "../http/errors";
+import { onExpiry } from "../http/expiry";
 import type { SessionRegistry } from "../session-registry";
 import { VoiceTickets } from "./voice-tickets";
 import { forwardVoiceEvent } from "./call-events";
@@ -43,10 +44,9 @@ export class VoiceService {
     this.startingPrincipal = owner.principal;
     const abort = () => void this.runtime.close();
     signal?.addEventListener("abort", abort, { once: true });
-    const expiry = owner.expiresAt
-      ? setTimeout(() => void this.runtime.close(), Math.max(0, owner.expiresAt - Date.now()))
+    const cancelExpiry = owner.expiresAt
+      ? onExpiry(owner.expiresAt, () => void this.runtime.close())
       : undefined;
-    expiry?.unref();
     try {
       if (mode !== "test") {
         if (!sessionId) throw new HttpError(400, "invalid_sessionId");
@@ -96,16 +96,12 @@ export class VoiceService {
       });
       this.grace(state);
       if (owner.expiresAt) {
-        state.expiry = setTimeout(
-          () => void this.end(state),
-          Math.max(0, owner.expiresAt - Date.now()),
-        );
-        state.expiry.unref();
+        state.expiry = onExpiry(owner.expiresAt, () => void this.end(state));
       }
       return this.tickets.issue(state.id, owner.principal);
     } finally {
       signal?.removeEventListener("abort", abort);
-      clearTimeout(expiry);
+      cancelExpiry?.();
       this.starting = false;
       this.startingPrincipal = undefined;
     }
@@ -170,7 +166,7 @@ export class VoiceService {
     if (this.state !== state) return;
     this.state = undefined;
     clearTimeout(state.lease);
-    clearTimeout(state.expiry);
+    state.expiry?.();
     this.tickets.remove(state.id);
     state.unsubscribe();
     state.socket?.close(1000, "voice_call_closed");

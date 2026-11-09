@@ -1,4 +1,5 @@
 export { AgentSession } from "./core/agent-session";
+export { getProfileDir } from "./core/profile";
 export type { QueuedMessage } from "./core/message-queue";
 export type { PromptContent } from "@loop/agent";
 export { AgentSessionRuntime, createAgentSessionRuntime } from "./core/agent-session-runtime";

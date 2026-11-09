@@ -2,6 +2,8 @@
 
 Settings select the default provider/model and locate local configuration and sessions. The supported fields are listed below.
 
+CLI `--profile USER_ID` and SDK `profileId` select a user directory beneath the instance root. See [profiles](profiles.md).
+
 ## Settings file
 
 The agent directory defaults to `~/.loop`. `LOOP_DATA_DIR` changes that directory; SDK callers can pass `agentDir`. Its optional `settings.json` contains exactly these supported fields:

@@ -26,5 +26,7 @@ export const remoteCsrfHeaders = (method = "GET"): Record<string, string> =>
     : {};
 
 export const checkRemoteSession = (): void => {
-  if (isRemoteClient()) window.dispatchEvent(new Event("loop-remote-check"));
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new window.Event("loop-account-check"));
+  if (isRemoteClient()) window.dispatchEvent(new window.Event("loop-remote-check"));
 };

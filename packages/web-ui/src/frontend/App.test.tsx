@@ -21,8 +21,18 @@ test("pairing loads without the chat shell and approval loads the protected inte
   };
   Object.assign(globalThis, { window, document: window.document });
   let authorized = false;
-  globalThis.fetch = vi.fn(async () =>
-    Response.json(
+  globalThis.fetch = vi.fn(async (input) => {
+    if (String(input).endsWith("/auth/session")) {
+      return Response.json({
+        user: authorized
+          ? {
+              id: "00000000-0000-4000-8000-000000000001",
+              username: "owner",
+            }
+          : null,
+      });
+    }
+    return Response.json(
       authorized
         ? {
             mode: "remote",
@@ -31,8 +41,8 @@ test("pairing loads without the chat shell and approval loads the protected inte
             device: { id: "phone", name: "Phone", createdAt: 1, expiresAt: 2 },
           }
         : { mode: "remote", authorized: false },
-    ),
-  ) as typeof fetch;
+    );
+  }) as typeof fetch;
   const { render, cleanup, act, waitFor } = await import("@testing-library/react/pure");
   try {
     const view = render(<App />);

@@ -1,15 +1,24 @@
-import { useId } from "react";
+import { lazy, Suspense, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useComposerMenu } from "../../hooks/useComposerMenu";
+import { useAccount } from "../../state/account-store";
+import { command } from "../../lib/api";
 import { isRemoteClient } from "../../lib/remote-session";
 import { feedbackIssueUrl } from "../../lib/feedback-issue";
 import { ActionButton } from "../ui/ActionButton";
 import { SettingsIcon } from "../ui/SettingsIcon";
 import "./SidebarMenu.css";
 
+const AccountSettings = lazy(() =>
+  import("../accounts/AccountSettings").then((value) => ({ default: value.AccountSettings })),
+);
+
 export const SidebarMenu = ({ onOpenSettings }: { onOpenSettings(): void }) => {
   const { t } = useTranslation();
+  const user = useAccount((state) => state.user);
+  const [accountsOpen, setAccountsOpen] = useState(false);
+  const [logoutFailed, setLogoutFailed] = useState(false);
   const menu = useComposerMenu(false, false);
   const id = useId();
 
@@ -65,6 +74,33 @@ export const SidebarMenu = ({ onOpenSettings }: { onOpenSettings(): void }) => {
               {t("settings")}
             </button>
           )}
+          {user && !isRemoteClient() && (
+            <button
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={() => {
+                menu.close();
+                setAccountsOpen(true);
+              }}
+            >
+              {t("accounts.settings")}
+            </button>
+          )}
+          {user && !isRemoteClient() && (
+            <button
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={() => {
+                void command("/auth/logout")
+                  .then(() => location.reload())
+                  .catch(() => setLogoutFailed(true));
+              }}
+            >
+              {t("accounts.logout")} ({user.username})
+            </button>
+          )}
           <a
             role="menuitem"
             tabIndex={-1}
@@ -80,6 +116,12 @@ export const SidebarMenu = ({ onOpenSettings }: { onOpenSettings(): void }) => {
             {t("feedback")}
           </a>
         </div>
+      )}
+      {logoutFailed && <p role="alert">{t("accounts.failed")}</p>}
+      {accountsOpen && (
+        <Suspense fallback={null}>
+          <AccountSettings onClose={() => setAccountsOpen(false)} />
+        </Suspense>
       )}
     </div>
   );

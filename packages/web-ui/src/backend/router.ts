@@ -10,7 +10,7 @@ import { remoteAccessRoutes } from "./routes/remote-access";
 import { createBusinessRouter } from "./business-router";
 import type { RemoteDevices } from "./remote-access/remote-devices";
 import type { VoiceService } from "./voice/voice-service";
-import type { BusinessHandler } from "./http/business-context";
+import type { BusinessHandler, BusinessContext } from "./http/business-context";
 
 export const createRouter = (
   registry: SessionRegistry,
@@ -27,7 +27,7 @@ export const createRouter = (
     businessOverride ?? createBusinessRouter(registry, providers, webSettings, mcp, skills, voice);
   const remote = remoteAccess && remoteAccessRoutes(remoteAccess, devices);
 
-  return async (request: Request): Promise<Response> => {
+  return async (request: Request, context?: BusinessContext): Promise<Response> => {
     try {
       assertLocalRequest(request);
 
@@ -35,7 +35,7 @@ export const createRouter = (
       const response =
         url.pathname === "/api/remote-session" && request.method === "GET"
           ? Response.json({ mode: "local" })
-          : ((await remote?.(request, url)) ?? (await business(request)));
+          : ((await remote?.(request, url)) ?? (await business(request, context)));
 
       response.headers.set("Cache-Control", "no-store");
 

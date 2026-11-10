@@ -12,6 +12,10 @@ import "./App.css";
 
 const query = new QueryClient({ defaultOptions: { queries: { staleTime: 5000, retry: 1 } } });
 
+const AccountGate = lazy(() =>
+  import("./components/accounts/AccountGate").then((value) => ({ default: value.AccountGate })),
+);
+
 const AppShell = lazy(() =>
   import("./components/layout/AppShell").then((module) => ({ default: module.AppShell })),
 );
@@ -25,12 +29,22 @@ export const App = () => {
           <Suspense
             fallback={
               <main className="app-loading" role="status">
-                <LoopIcon size={48} />
-                <span>{t("loading")}</span>
+                {t("loading")}
               </main>
             }
           >
-            <AppShell />
+            <AccountGate>
+              <Suspense
+                fallback={
+                  <main className="app-loading" role="status">
+                    <LoopIcon size={48} />
+                    <span>{t("loading")}</span>
+                  </main>
+                }
+              >
+                <AppShell />
+              </Suspense>
+            </AccountGate>
           </Suspense>
         </RemoteAccessGate>
       </ErrorBoundary>

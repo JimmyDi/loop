@@ -1,0 +1,15 @@
+.account-settings,
+.account-settings form,
+.account-settings label {
+  display: grid;
+  gap: 8px;
+}
+
+.account-settings {
+  padding: 16px;
+}
+
+.account-settings input {
+  min-width: 0;
+  padding: 8px;
+}

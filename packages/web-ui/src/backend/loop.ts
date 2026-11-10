@@ -68,6 +68,7 @@ export const createLoopBridge = (
   settings = new WebSettings(agentDir),
   mcpManager?: McpManager,
   skillManager?: SkillManager,
+  workspaceRoot?: string,
 ): LoopBridge => {
   let runtime: Promise<ModelRuntime> | undefined;
   const archives = new Map<string, SessionArchive>();
@@ -77,7 +78,8 @@ export const createLoopBridge = (
       : getSessionDir(project.cwd, agentDir);
   const listFor = (project: Project) =>
     SessionManager.list(project.id === "global" ? undefined : project.cwd, directoryFor(project));
-  const standaloneRoot = join(dirname(agentDir), basename(agentDir) + "-workspaces");
+  const standaloneRoot =
+    workspaceRoot ?? join(dirname(agentDir), basename(agentDir) + "-workspaces");
   const archiveFor = (project: Project): SessionArchive => {
     const directory = directoryFor(project);
     let archive = archives.get(directory);

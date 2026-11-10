@@ -44,11 +44,11 @@ The backend watcher excludes frontend source and package-level TypeScript build 
 
 main handles SIGINT/SIGTERM by rejecting new session operations, waiting for registered loading/configuration work, cancelling sessions, attempting pending saves, and closing subscriptions and the server. Failed shutdown saves report an error and set a failing exit code. Closing the server is not proof that data was saved.
 
-The data root comes from coding-agent's getAgentDir, defaults to `~/.loop`, and can be set with `LOOP_DATA_DIR`. Project and provider configuration live in its web-ui subdirectory; sessions use the SDK's existing sessions directory. Closing the browser does not shut down the service.
+The data root comes from coding-agent's getAgentDir, defaults to `~/.loop`, and can be set with `LOOP_DATA_DIR`. Web configuration, sessions and traces live under `users/<userId>/`; tool and voice resources remain shared. See [local accounts](accounts.md). Closing the browser does not shut down the service.
 
 ## Limits
 
-This is a local single-user service with no public listening, login system or background daemon. The root distribution includes production assets and the web command. Publishing to npm requires separate authorization and package ownership.
+This is a local multi-account service with no public listener or background daemon. Web business APIs require [local authentication](accounts.md). The root distribution includes production assets and the web command. Publishing to npm requires separate authorization and package ownership.
 
 ## Source and Tests
 

@@ -16,6 +16,8 @@ The public root package is `@loop-harness/loop` and provides the `web` subcomman
 
 ## Model connection
 
+Use the local login page to create an account or sign in; all accounts have equal permissions, and each user has independent chats, projects, settings and model credentials. Authentication works offline with local files and no database. See [local accounts](src/backend/docs/accounts.md).
+
 Open **Settings → Models**. Add a built-in provider with its API key, or a custom provider with an ID, base URL, protocol and model IDs. Custom gateways support Chat Completions, Responses and Anthropic Messages, optional model discovery, and no authentication for local services.
 
 Save, then create a conversation. The model pill beside Send opens model search and supported reasoning effort choices. It remembers both for new conversations; the old header selector is removed. Existing conversations keep their model and remain readable after provider removal; select another configured model to continue. Finish active runs and pending saves before changing providers.

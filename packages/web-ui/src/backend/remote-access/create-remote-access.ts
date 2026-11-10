@@ -9,6 +9,7 @@ import { SignInStore } from "./sign-in-store";
 export const createRemoteAccess = async (
   agentDir: string,
   ingressFactory?: Parameters<typeof createCliRuntime>[1],
+  resourcesDir = agentDir,
 ): Promise<RemoteAccessController> => {
   const signIn = new SignInStore(join(agentDir, "web-ui", "remote-access", "sign-in.json"));
   const connection = new ConnectionStore(
@@ -22,7 +23,7 @@ export const createRemoteAccess = async (
     saveConnection: (enabled) => connection.save(enabled),
     runtime: () =>
       createCliRuntime(
-        join(agentDir, "bin", "devtunnel"),
+        join(resourcesDir, "bin", "devtunnel"),
         ingressFactory,
         join(agentDir, "web-ui", "remote-access", "tunnel.json"),
       ),

@@ -76,3 +76,8 @@ A pending storage failure enters save recovery, including in Print mode: the pro
 ## Source
 
 [cli.ts](../cli.ts), [args.ts](../cli/args.ts), [main.ts](../main.ts), [interactive mode](../modes/interactive/interactive-mode.ts), and [CLI tests](../main.test.ts).
+
+
+## User profiles
+
+Use `--profile USER_ID` to select an independent local account data directory. This is trusted local access rather than password authentication; see [profiles](profiles.md).

@@ -21,7 +21,11 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   });
 
   if (!response.ok) {
-    if ((response.status === 401 || response.status === 403) && !path.startsWith("/remote-"))
+    if (
+      (response.status === 401 || response.status === 403) &&
+      !path.startsWith("/remote-") &&
+      !path.startsWith("/auth/")
+    )
       checkRemoteSession();
     const body = await response.json().catch(() => ({}));
 

@@ -4,6 +4,11 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Added
+
+- Web UI: add offline local accounts with equal self-registered accounts and current-password-verified personal password changes, salted scrypt passwords, persistent hashed login credentials, per-user sessions, projects, settings, model credentials and remote device grants, authenticated event/audio connections, window-scoped session rechecks that preserve reconnect handling in embedded DOM contexts, and shared locally managed tool and voice resources. Present sign-in and registration with a focused branded layout, responsive light/dark styling, password visibility controls and inline feedback. Fresh installations use user profiles; existing Web data is not migrated. See [local accounts](packages/web-ui/src/backend/docs/accounts.md).
+- coding-agent CLI and SDK: select a local user data profile through `--profile`, `profileId` and `getProfileDir`.
+
 ### Changed
 
 - Website: use https://codewithloop.com/ as the public website, build assets and SEO metadata at the domain root, and update the README link and package homepage.

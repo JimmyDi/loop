@@ -3,6 +3,7 @@ import { expect, test, vi } from "vitest";
 
 import { api, command } from "./api";
 import {
+  checkRemoteSession,
   remoteCsrfHeaders,
   setRemoteCsrf,
   setBootstrapSession,
@@ -55,4 +56,30 @@ test("bootstrap authorization is consumed once and retains its original check ti
   expect(result?.session).toEqual({ mode: "remote", authorized: false });
   expect(result?.checkedAt).toBeGreaterThanOrEqual(checkedAt);
   expect(takeBootstrapSession()).toBeUndefined();
+});
+
+test("session checks use the target window Event without replacing the Node global", async () => {
+  const window = new Window({ url: "https://example.test/" });
+  const previous = { window: globalThis.window, document: globalThis.document };
+  const eventConstructor = globalThis.Event;
+  Object.assign(globalThis, { window, document: window.document });
+  const account = vi.fn();
+  const remote = vi.fn();
+  window.addEventListener("loop-account-check", account);
+  window.addEventListener("loop-remote-check", remote);
+  try {
+    checkRemoteSession();
+    expect(account).toHaveBeenCalledOnce();
+    expect(remote).not.toHaveBeenCalled();
+    window.document.head.innerHTML = '<meta name="loop-remote" content="1">';
+    checkRemoteSession();
+    expect(account).toHaveBeenCalledTimes(2);
+    expect(remote).toHaveBeenCalledOnce();
+    expect(account.mock.calls[0]?.[0]).toBeInstanceOf(window.Event);
+    expect(remote.mock.calls[0]?.[0]).toBeInstanceOf(window.Event);
+    expect(globalThis.Event).toBe(eventConstructor);
+  } finally {
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
 });

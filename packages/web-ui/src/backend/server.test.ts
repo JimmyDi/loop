@@ -1,5 +1,6 @@
 import { mkdtemp, mkdir, rm, writeFile, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { once } from "node:events";
 import { expect, test, vi } from "vitest";
 
 import { startServer } from "./server";
@@ -34,6 +35,17 @@ test.each([false, true])(
       }
       server = await startServer(0, { development: true, assetsDir: custom ? assets : undefined });
       expect((await fetch(server.url)).status).toBe(200);
+      expect((await fetch(new URL("api/workspaces", server.url))).status).toBe(401);
+      const setup = await fetch(new URL("api/auth/register", server.url), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Origin: new URL(server.url).origin },
+        body: JSON.stringify({ username: "owner", password: "synthetic-password" }),
+      });
+      expect(setup.status).toBe(200);
+      const cookie = setup.headers.get("set-cookie")!.split(";")[0]!;
+      expect(
+        (await fetch(new URL("api/workspaces", server.url), { headers: { cookie } })).status,
+      ).toBe(200);
       const remote = "http://127.0.0.1:" + ingress!.port;
       const page = await fetch(remote);
       expect(page.status).toBe(200);
@@ -124,8 +136,58 @@ test("authorized chat startup excludes optional renderers and settings from its 
     for (const [, path] of imports) await visit(path!.slice(2));
   };
   for (const root of roots) await visit(root);
-  expect(bytes).toBeLessThan(650_000);
+  // Account identity and the sign-out entry are part of authenticated startup.
+  expect(bytes).toBeLessThan(670_000);
   expect(
     [...seen].some((name) => /SettingsDialog|markdown-math|markdown-highlight/.test(name)),
   ).toBe(false);
+});
+
+test("voice upgrades require a login and logout closes the authenticated socket", async () => {
+  const { WebSocket } = await import("ws");
+  const data = await mkdtemp(join(import.meta.dirname, ".server-test-"));
+  vi.stubEnv("LOOP_DATA_DIR", data);
+  vi.mocked(createRemoteAccess).mockResolvedValue(
+    new RemoteAccessController({ supported: false, runtime: vi.fn() }),
+  );
+  const server = await startServer(0, { assetsDir: data });
+  const origin = new URL(server.url).origin;
+  const path =
+    server.url.replace("http:", "ws:") + "api/voice/calls/" + crypto.randomUUID() + "/socket";
+  const denied = new WebSocket(path, { origin });
+  denied.on("error", () => {});
+  let socket: InstanceType<typeof WebSocket> | undefined;
+  try {
+    const rejected = await new Promise<number>((resolve) =>
+      denied.on("unexpected-response", (_request, response) => {
+        resolve(response.statusCode!);
+        response.resume();
+        denied.terminate();
+      }),
+    );
+    expect(rejected).toBe(401);
+    const setup = await fetch(new URL("api/auth/register", server.url), {
+      method: "POST",
+      headers: { origin, "content-type": "application/json" },
+      body: JSON.stringify({ username: "owner", password: "synthetic-password" }),
+    });
+    const cookie = setup.headers.get("set-cookie")!.split(";")[0]!;
+    await fetch(new URL("api/workspaces", server.url), { headers: { cookie } });
+    socket = new WebSocket(path, { origin, headers: { cookie } });
+    await once(socket, "open");
+    const closed = once(socket, "close");
+    const logout = await fetch(new URL("api/auth/logout", server.url), {
+      method: "POST",
+      headers: { origin, cookie },
+    });
+    expect(logout.status).toBe(204);
+    expect((await closed)[0]).toBe(1008);
+  } finally {
+    denied.terminate();
+    socket?.terminate();
+    await server.close();
+    vi.unstubAllEnvs();
+    vi.mocked(createRemoteAccess).mockReset();
+    await rm(data, { recursive: true, force: true });
+  }
 });

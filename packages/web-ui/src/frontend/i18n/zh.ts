@@ -1,4 +1,5 @@
 import { pairingZh } from "./pairing-zh";
+import { accountsZh } from "./accounts-zh";
 import { projectsZh } from "./projects-zh";
 import { skillsZh } from "./skills-zh";
 import { permissionsZh } from "./permissions-zh";
@@ -8,6 +9,7 @@ import { pwaZh } from "./pwa-zh";
 import { voiceZh } from "./voice-zh";
 
 export const zh = {
+  accounts: accountsZh,
   messageNavigation: {
     label: "对话导航",
     turn: "第 {{number}} 轮：{{text}}",

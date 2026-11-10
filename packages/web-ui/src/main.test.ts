@@ -71,7 +71,16 @@ test("production startup serves HTML, bundled assets and API before announcing r
 
     expect(response.status).toBe(200);
     expect(html).toContain("<title>Loop</title>");
-    const remote = await fetch(new URL("api/remote-access", url));
+    expect((await fetch(new URL("api/workspaces", url))).status).toBe(401);
+    const registration = await fetch(new URL("api/auth/register", url), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", origin: new URL(url!).origin },
+      body: JSON.stringify({ username: "guest", password: "synthetic-password" }),
+    });
+    expect(registration.status).toBe(200);
+    expect(registration.headers.get("set-cookie")).toContain("HttpOnly; SameSite=Strict");
+    const cookie = registration.headers.get("set-cookie")!.split(";")[0]!;
+    const remote = await fetch(new URL("api/remote-access", url), { headers: { cookie } });
     expect(remote.headers.get("cache-control")).toBe("no-store");
     expect(remote.headers.get("set-cookie")).toContain("HttpOnly; SameSite=Strict");
     expect(await remote.json()).toMatchObject({ phase: "off", signedIn: false });
@@ -137,7 +146,7 @@ test("production startup serves HTML, bundled assets and API before announcing r
       expect((await resource.arrayBuffer()).byteLength).toBeGreaterThan(0);
     }
 
-    const projects = await fetch(new URL("api/workspaces", url));
+    const projects = await fetch(new URL("api/workspaces", url), { headers: { cookie } });
 
     expect(await projects.json()).toEqual([]);
     child.kill("SIGTERM");

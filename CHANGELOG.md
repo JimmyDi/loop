@@ -14,6 +14,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Coding-agent: strip each OSC escape sequence in session titles only up to its own terminator, so visible text between two ST-terminated sequences is kept.
+
 - Web UI: focus new-session chat input only after it becomes editable, allowing immediate keyboard input without an extra click.
 
 - Website: eliminate the dark gap above the homepage background on mobile.

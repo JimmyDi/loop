@@ -12,3 +12,14 @@ test("titles strip controls, collapse whitespace and preserve UTF-8 boundaries",
   expect(validTitle({ text: "Task", source: "model", messageIndices: [2, 0] })).toBe(false);
   expect(validTitle({ text: "Task", source: "user", messageIndices: [] })).toBe(true);
 });
+
+test("each OSC escape is stripped up to its own terminator", () => {
+  const st = "\u001b\\";
+  expect(normalizeTitle(`\u001b]0;hidden${st}Keep me\u001b]0;hidden${st} visible`)).toBe(
+    "Keep me visible",
+  );
+  expect(normalizeTitle(`\u001b]0;hidden\u0007Keep me\u001b]2;hidden${st} visible`)).toBe(
+    "Keep me visible",
+  );
+  expect(normalizeTitle(`\u001b]0;hidden${st}\u001b]0;hidden\u0007Visible`)).toBe("Visible");
+});

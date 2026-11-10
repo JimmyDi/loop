@@ -14,6 +14,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Web UI: keep clipboard feedback tied to the latest copy operation and prevent pending copies from scheduling reset timers after unmount.
+
 - Web UI: focus new-session chat input only after it becomes editable, allowing immediate keyboard input without an extra click.
 
 - Website: eliminate the dark gap above the homepage background on mobile.

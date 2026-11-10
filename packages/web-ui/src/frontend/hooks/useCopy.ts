@@ -3,12 +3,23 @@ import { useEffect, useRef, useState } from "react";
 export const useCopy = () => {
   const [status, setStatus] = useState<"copy" | "copied" | "copyFailed">("copy");
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const revision = useRef(0);
+  const disposed = useRef(false);
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => {
+    disposed.current = false;
+    return () => {
+      disposed.current = true;
+      revision.current += 1;
+      clearTimeout(timer.current);
+    };
+  }, []);
 
   const copy = async (text: string, html?: string) => {
+    const current = ++revision.current;
     clearTimeout(timer.current);
 
+    let nextStatus: "copied" | "copyFailed";
     try {
       if (html && typeof ClipboardItem !== "undefined" && navigator.clipboard.write) {
         try {
@@ -22,11 +33,13 @@ export const useCopy = () => {
           await navigator.clipboard.writeText(text);
         }
       } else await navigator.clipboard.writeText(text);
-      setStatus("copied");
+      nextStatus = "copied";
     } catch {
-      setStatus("copyFailed");
+      nextStatus = "copyFailed";
     }
 
+    if (disposed.current || current !== revision.current) return;
+    setStatus(nextStatus);
     timer.current = setTimeout(() => setStatus("copy"), 1600);
   };
 

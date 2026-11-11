@@ -9,6 +9,7 @@ import { api } from "../lib/api";
 export const useMessageNavigation = (
   snapshot: SessionSnapshot,
   viewport: RefObject<HTMLDivElement | null>,
+  hasLaterMessages = false,
 ) => {
   const [saved, setSaved] = useState<TimelineNavigation>({ previews: [], bookmarks: [] });
   const [error, setError] = useState(false);
@@ -58,6 +59,7 @@ export const useMessageNavigation = (
     const update = () => {
       if (!scrolled.current) return;
       if (
+        !hasLaterMessages &&
         element.scrollHeight > 0 &&
         element.scrollHeight - element.scrollTop - element.clientHeight <= 1
       ) {
@@ -96,7 +98,7 @@ export const useMessageNavigation = (
       element.removeEventListener("scroll", onScroll);
       observer?.disconnect();
     };
-  }, [previews, viewport]);
+  }, [previews, viewport, hasLaterMessages]);
   const toggle = async (index: number) => {
     if (saving.current) return;
     saving.current = true;

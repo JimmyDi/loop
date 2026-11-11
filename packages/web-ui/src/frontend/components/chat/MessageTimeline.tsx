@@ -74,6 +74,7 @@ export const MessageTimeline = ({
             <MessageNavigation
               key={snapshot.sessionId + ":" + snapshot.streamId}
               snapshot={live}
+              hasLaterMessages={window.detached}
               viewport={scroll.ref}
               onSelect={(index) => {
                 scroll.releaseAnchor();

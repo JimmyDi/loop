@@ -57,7 +57,13 @@ test("previews open on hover/focus, jump, save bookmarks and restore them after 
     expect(ui.getByRole("button", { name: "Remove bookmark" }).getAttribute("aria-pressed")).toBe(
       "true",
     );
-    expect(ui.container.querySelector(".message-navigation-dot")).not.toBeNull();
+    const dot = ui.container.querySelector(".message-navigation-dot")!;
+    expect(dot.parentElement?.className).toBe("message-navigation-line");
+    fireEvent.mouseLeave(ui.getByRole("navigation"));
+    fireEvent.scroll(ui.container.querySelector(".message-navigation-marks")!);
+    expect(ui.container.querySelector('[data-expanded="true"]')).toBeNull();
+    expect(mark.getAttribute("data-wave-distance")).toBe("4");
+    expect(dot.parentElement?.className).toBe("message-navigation-line");
     ui.unmount();
     const restored = render(view);
     await act(async () => {});
@@ -168,7 +174,7 @@ test("scrolling highlights the top turn and its neighbours using absolute assist
   }
 });
 
-test("long session initialization retains all marks without internal scrolling", async () => {
+test("long session initialization retains every fixed-spacing navigation target", async () => {
   const window = new Window();
   const previous = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, { window, document: window.document });

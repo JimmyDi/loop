@@ -93,7 +93,16 @@ export const MessageNavigation = ({
         ))}
       </div>
       {preview && rail.previewTop !== undefined && (
-        <div className="message-navigation-preview" style={{ top: rail.previewTop }}>
+        <div
+          className="message-navigation-preview"
+          style={
+            {
+              top: rail.previewTop,
+              "--preview-top": rail.previewTop + "px",
+              "--preview-space-below": rail.previewSpaceBelow + "px",
+            } as CSSProperties
+          }
+        >
           <button
             type="button"
             className="message-navigation-bookmark"

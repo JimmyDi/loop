@@ -265,6 +265,10 @@ test("preview renders Markdown safely with a separate jump button and bookmark c
     expect(preview.querySelector("[onerror]")).toBeNull();
     expect(preview.querySelector("button button, button a")).toBeNull();
     expect(preview.querySelector(".message-navigation-summary")?.hasAttribute("inert")).toBe(true);
+    const mark = ui.container.querySelector(".message-navigation-mark")!;
+    fireEvent.mouseOut(mark, { relatedTarget: preview });
+    fireEvent.mouseOver(preview, { relatedTarget: mark });
+    expect(ui.container.querySelector(".message-navigation-preview")).toBe(preview);
     fireEvent.click(preview.querySelector(".message-navigation-jump")!);
     expect(select).toHaveBeenCalledWith(0);
     expect(ui.getByRole("button", { name: "Bookmark turn" })).toBeDefined();

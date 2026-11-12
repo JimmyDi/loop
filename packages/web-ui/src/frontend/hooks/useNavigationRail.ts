@@ -12,22 +12,24 @@ export const useNavigationRail = (
     above: false,
     below: false,
     previewTop: undefined as number | undefined,
+    previewSpaceBelow: 0,
   });
   const measure = () => {
     const element = marks.current;
     if (!element) return;
     const mark = element.children[hoverPosition] as HTMLElement | undefined;
     const center = mark ? mark.offsetTop + mark.offsetHeight / 2 - element.scrollTop : -1;
-    const previewTop =
-      center >= 0 && center <= element.clientHeight
-        ? Math.min(element.clientHeight * 0.8, Math.max(element.clientHeight * 0.2, center))
-        : undefined;
+    const previewTop = center >= 0 && center <= element.clientHeight ? center : undefined;
+    const previewSpaceBelow = element.clientHeight - center;
     const above = element.scrollTop > 1;
     const below = element.scrollHeight - element.clientHeight - element.scrollTop > 1;
     setLayout((previous) =>
-      previous.above === above && previous.below === below && previous.previewTop === previewTop
+      previous.above === above &&
+      previous.below === below &&
+      previous.previewTop === previewTop &&
+      previous.previewSpaceBelow === previewSpaceBelow
         ? previous
-        : { above, below, previewTop },
+        : { above, below, previewTop, previewSpaceBelow },
     );
   };
   const measurement = useRef(measure);

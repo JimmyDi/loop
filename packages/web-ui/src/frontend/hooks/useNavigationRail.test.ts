@@ -40,34 +40,41 @@ test("rail follows active turns, tracks overflow and anchors previews to scrolle
     ui.rerender({ active: 99, hover: -1, count: 100 });
     expect(scroll).toHaveBeenLastCalledWith({ top: 1088, behavior: "instant" });
     expect(ui.result.current).toMatchObject({ above: true, below: false });
+    ui.rerender({ active: 99, hover: 99, count: 100 });
+    expect(ui.result.current).toMatchObject({ previewTop: 110, previewSpaceBelow: 10 });
     ui.rerender({ active: 50, hover: 50, count: 100 });
     expect(scroll).toHaveBeenLastCalledWith({ top: 600, behavior: "smooth" });
-    expect(ui.result.current).toMatchObject({ above: true, below: true, previewTop: 24 });
+    expect(ui.result.current).toMatchObject({
+      above: true,
+      below: true,
+      previewTop: 10,
+      previewSpaceBelow: 110,
+    });
     ui.rerender({ active: 49, hover: 49, count: 100 });
     expect(scroll).toHaveBeenLastCalledWith({ top: 588, behavior: "smooth" });
-    expect(ui.result.current.previewTop).toBe(24);
+    expect(ui.result.current.previewTop).toBe(10);
     scroll.mockClear();
     ui.rerender({ active: 50, hover: 50, count: 100 });
     expect(scroll).not.toHaveBeenCalled();
-    expect(ui.result.current.previewTop).toBe(24);
+    expect(ui.result.current.previewTop).toBe(22);
     ui.rerender({ active: 57, hover: 57, count: 100 });
     expect(scroll).not.toHaveBeenCalled();
     expect(694 - element.scrollTop).toBe(106);
     ui.rerender({ active: 58, hover: 58, count: 100 });
     expect(scroll).toHaveBeenLastCalledWith({ top: 596, behavior: "smooth" });
     expect(706 - element.scrollTop).toBe(110);
-    expect(ui.result.current.previewTop).toBe(96);
+    expect(ui.result.current.previewTop).toBe(110);
     ui.rerender({ active: 59, hover: 59, count: 100 });
     expect(scroll).toHaveBeenLastCalledWith({ top: 608, behavior: "smooth" });
-    expect(ui.result.current.previewTop).toBe(96);
+    expect(ui.result.current.previewTop).toBe(110);
     ui.rerender({ active: 60, hover: 60, count: 100 });
     expect(scroll).toHaveBeenLastCalledWith({ top: 620, behavior: "smooth" });
-    expect(ui.result.current.previewTop).toBe(96);
+    expect(ui.result.current.previewTop).toBe(110);
     act(() => {
       element.scrollTop += 96;
       ui.result.current.onScroll();
     });
-    expect(ui.result.current.previewTop).toBe(24);
+    expect(ui.result.current.previewTop).toBe(14);
     act(() => {
       element.scrollTop += 120;
       ui.result.current.onScroll();
@@ -90,7 +97,8 @@ test("rail follows active turns, tracks overflow and anchors previews to scrolle
     expect(ui.result.current).toMatchObject({ above: false, below: true });
     height = 240;
     act(() => window.dispatchEvent(new window.Event("resize")));
-    expect(ui.result.current.previewTop).toBe(48);
+    expect(ui.result.current.previewTop).toBe(10);
+    expect(ui.result.current.previewSpaceBelow).toBe(230);
   } finally {
     cleanup();
     media.mockRestore();

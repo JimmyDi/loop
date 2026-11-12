@@ -4,25 +4,35 @@ import { useTranslation } from "react-i18next";
 
 import type { SessionSnapshot } from "../../../shared/protocol";
 import { useMessageNavigation } from "../../hooks/useMessageNavigation";
+import { useNavigationRail } from "../../hooks/useNavigationRail";
+import { MarkdownText } from "./MarkdownText";
 import "./MessageNavigation.css";
 
 export const MessageNavigation = ({
   snapshot,
   viewport,
   onSelect,
+  hasLaterMessages = false,
 }: {
   snapshot: SessionSnapshot;
   viewport: RefObject<HTMLDivElement | null>;
   onSelect: (index: number) => void;
+  hasLaterMessages?: boolean;
 }) => {
   const { t } = useTranslation();
-  const navigation = useMessageNavigation(snapshot, viewport);
+  const navigation = useMessageNavigation(snapshot, viewport, hasLaterMessages);
   const [hovered, setHovered] = useState<number>();
   const preview = navigation.previews.find((item) => item.index === hovered);
   const hoverPosition = navigation.previews.findIndex((item) => item.index === hovered);
   const bookmarked = preview !== undefined && navigation.bookmarks.includes(preview.index);
   const active = navigation.active ?? navigation.previews.at(-1)?.index;
   const activePosition = navigation.previews.findIndex((item) => item.index === active);
+  const rail = useNavigationRail(
+    activePosition,
+    hoverPosition,
+    navigation.previews.length,
+    snapshot.sessionId + ":" + snapshot.streamId,
+  );
   if (!navigation.previews.length) return null;
   return (
     <nav
@@ -40,7 +50,13 @@ export const MessageNavigation = ({
         }
       }}
     >
-      <div className="message-navigation-marks">
+      <div
+        className="message-navigation-marks"
+        ref={rail.marks}
+        onScroll={rail.onScroll}
+        data-overflow-above={rail.above}
+        data-overflow-below={rail.below}
+      >
         {navigation.previews.map((item, position) => (
           <button
             type="button"
@@ -65,31 +81,27 @@ export const MessageNavigation = ({
             onFocus={() => setHovered(item.index)}
             onClick={() => onSelect(item.index)}
           >
-            <span className="message-navigation-line" />
-            {navigation.bookmarks.includes(item.index) && (
-              <span
-                className="message-navigation-dot"
-                aria-label={t("messageNavigation.bookmarked")}
-              />
-            )}
+            <span className="message-navigation-line">
+              {navigation.bookmarks.includes(item.index) && (
+                <span
+                  className="message-navigation-dot"
+                  aria-label={t("messageNavigation.bookmarked")}
+                />
+              )}
+            </span>
           </button>
         ))}
       </div>
-      {preview && (
+      {preview && rail.previewTop !== undefined && (
         <div
           className="message-navigation-preview"
-          style={{
-            top:
-              Math.min(
-                80,
-                Math.max(
-                  20,
-                  ((navigation.previews.findIndex((item) => item.index === hovered) + 0.5) /
-                    navigation.previews.length) *
-                    100,
-                ),
-              ) + "%",
-          }}
+          style={
+            {
+              top: rail.previewTop,
+              "--preview-top": rail.previewTop + "px",
+              "--preview-space-below": rail.previewSpaceBelow + "px",
+            } as CSSProperties
+          }
         >
           <button
             type="button"
@@ -112,16 +124,23 @@ export const MessageNavigation = ({
               <path d="M6 4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17l-6-4-6 4Z" />
             </svg>
           </button>
+          <div className="message-navigation-summary" inert>
+            <div className="message-navigation-user">
+              <MarkdownText text={preview.user || t("messageNavigation.attachment")} />
+            </div>
+            <div className="message-navigation-reply">
+              <MarkdownText text={preview.reply || t("messageNavigation.noReply")} />
+            </div>
+          </div>
           <button
             type="button"
             className="message-navigation-jump"
+            aria-label={t("messageNavigation.turn", {
+              number: hoverPosition + 1,
+              text: preview.user || t("messageNavigation.attachment"),
+            })}
             onClick={() => onSelect(preview.index)}
-          >
-            <strong>{preview.user || t("messageNavigation.attachment")}</strong>
-            <span className="message-navigation-reply">
-              {preview.reply || t("messageNavigation.noReply")}
-            </span>
-          </button>
+          />
           {navigation.error && <p role="alert">{t("messageNavigation.failed")}</p>}
         </div>
       )}

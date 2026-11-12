@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { renderMermaid } from "../lib/mermaid";
-import { createMermaidCopyButton } from "../lib/mermaid-copy";
 import { useTheme } from "../state/theme-store";
 
 type Diagram = { source: string; dark: boolean; svg: string };
@@ -48,6 +46,11 @@ export const useMermaid = (html: string, streaming: boolean) => {
         if (!source.trim()) continue;
         const saved = cache.current.get(index);
         try {
+          const [{ renderMermaid }, { createMermaidCopyButton }] = await Promise.all([
+            import("../lib/mermaid"),
+            import("../lib/mermaid-copy"),
+          ]);
+          if (controller.signal.aborted) return;
           const svg =
             saved?.source === source && saved.dark === dark
               ? saved.svg

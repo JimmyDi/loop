@@ -18,6 +18,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- coding-agent and Web UI: keep immediate approval decisions out of pending interaction state so Full access and existing MCP session grants never flash approval cards or waiting indicators on mobile or desktop, while preserving paired approval events.
+
 - Web UI: preserve the conversation position indicator while paging through unloaded messages instead of treating the end of a partial history window as the latest turn.
 
 - Web UI: anchor conversation bookmark dots 3px to the right of their navigation lines, following width animations and rail scrolling.

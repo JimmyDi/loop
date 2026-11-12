@@ -27,6 +27,7 @@ test("requests have isolated snapshots and accept exactly one matching decision"
   mutable.reason = "changed";
   const request = service.pending[0]!;
   expect(request).toMatchObject({ ...input, sessionId: "test-session", policy: "ask" });
+  expect(events[0]).toMatchObject({ type: "approval_requested", interactive: true });
   expect(request.expiresAt).toBeNull();
   Object.assign(request, { toolName: "changed" });
   Object.assign(delivered!, { toolCallId: "changed" });
@@ -88,8 +89,11 @@ test("never and missing handlers fail closed even when observers attempt approva
       () => policy,
       (event) => {
         events.push(event);
-        if (event.type === "approval_requested")
+        if (event.type === "approval_requested") {
+          expect(event.interactive).toBe(false);
+          expect(service.pending).toEqual([]);
           expect(service.respond(response(event.request))).toBe(false);
+        }
       },
     );
     if (policy === "never")
@@ -102,6 +106,61 @@ test("never and missing handlers fail closed even when observers attempt approva
     expect(deliveries).toBe(0);
     expect(service.pending).toEqual([]);
     service.dispose();
+  }
+});
+
+test("automatic MCP decisions remain observable without becoming interactive or pending", async () => {
+  for (const fullAccess of [false, true]) {
+    const events: ApprovalEvent[] = [];
+    const pendingSnapshots: ApprovalRequest[][] = [];
+    const service = new ApprovalService(
+      "session",
+      () => (fullAccess ? "never" : "ask"),
+      (event) => {
+        events.push(event);
+        pendingSnapshots.push(service.pending);
+        if (event.type === "approval_requested" && event.interactive === false)
+          expect(service.respond(response(event.request))).toBe(false);
+      },
+      () => fullAccess,
+    );
+    const handler = vi.fn(() => {});
+    service.registerHandler(handler);
+    const operation = {
+      kind: "mcp-tool" as const,
+      workspaceRoot: ".",
+      arguments: {},
+      serverName: "example",
+      toolName: "example",
+      transport: "http" as const,
+    };
+    const options = { mcp: { lifetime: new AbortController().signal, toolKey: "example" } };
+    try {
+      if (!fullAccess) {
+        const waiting = service.request({ ...input, operation }, options);
+        const request = service.pending[0]!;
+        expect(service.respond({ ...response(request), decision: "allowed-session" })).toBe(true);
+        expect((await waiting).outcome).toBe("allowed-session");
+      }
+      events.length = 0;
+      pendingSnapshots.length = 0;
+      handler.mockClear();
+      const result = await service.request({ ...input, operation }, options);
+      expect(result).toMatchObject({
+        outcome: "allowed-once",
+        source: fullAccess ? "full-access" : "session-grant",
+      });
+      expect(events.map((event) => event.type)).toEqual([
+        "approval_requested",
+        "approval_resolved",
+      ]);
+      expect(events[0]).toMatchObject({ interactive: false });
+      expect(pendingSnapshots).toEqual([[], []]);
+      expect(handler).not.toHaveBeenCalled();
+      expect(service.pending).toEqual([]);
+    } finally {
+      service.dispose();
+    }
   }
 });
 

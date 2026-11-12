@@ -14,6 +14,8 @@ Approval cards have no expiry countdown; built-in tool requests wait for a decis
 
 Approval cards have an orange rounded border and a tinted Waiting for approval header with a status dot. The summary sits in the card body, with expandable details below. Choose Deny or Allow once using the right-aligned rounded buttons; Allow once uses a black background with white text. The layout adapts to narrow screens and both color themes. Allow once resumes only the waiting operation and leaves the permission preset unchanged. It does not confirm execution success; ordinary tool results report that separately. Stop generating cancels the run and pending approval. Resolved requests remove their cards and decision buttons without leaving an outcome label or empty approval area above the composer.
 
+Full access and existing MCP session grants resolve automatically before any approval card or waiting indicator appears, on both mobile and desktop. Automatic decisions retain their core event records but never enter the pending approval list.
+
 MCP cards summarize the server and tool name and offer Allow this tool for this session when core advertises that option. It covers that exact tool with any arguments, stays in live-session memory, and expires on configuration/catalog changes or session disposal. The core rejects this decision for built-in file and shell requests. Manage MCP connections and enable switches in [Integrations](integrations.md); there are no separate server/tool permission controls.
 
 ## Connection lifecycle

@@ -39,6 +39,51 @@ const setup = () => {
 
 const input = { toolCallId: "call", toolName: "write", reason: "Review this change" };
 
+test("automatic MCP approvals never publish pending snapshots to live or replaying clients", async () => {
+  const { session, controller, approvals } = setup();
+  const frames: Frame[] = [];
+  const disconnect = approvals.connect((frame) => frames.push(frame));
+  const operation = {
+    kind: "mcp-tool" as const,
+    workspaceRoot: ".",
+    arguments: {},
+    serverName: "example",
+    toolName: "example",
+    transport: "http" as const,
+  };
+  const options = { mcp: { lifetime: new AbortController().signal, toolKey: "example" } };
+  try {
+    const waiting = session.requestApproval({ ...input, operation }, options);
+    const request = session.state.pendingApprovals![0]!;
+    approvals.respond(request.requestId, "allowed-session");
+    await waiting;
+    const cursor = { streamId: controller.events.streamId, seq: frames.at(-1)!.seq };
+    frames.length = 0;
+    expect(await session.requestApproval({ ...input, operation }, options)).toMatchObject({
+      outcome: "allowed-once",
+      source: "session-grant",
+    });
+    const replay: Frame[] = [];
+    const detach = approvals.connect((frame) => replay.push(frame), cursor);
+    try {
+      expect(frames).toHaveLength(2);
+      expect(replay).toEqual(frames);
+      for (const frame of [...frames, ...replay]) {
+        expect(frame.type).toBe("session.state");
+        if ("snapshot" in frame) expect(frame.snapshot.state.pendingApprovals).toEqual([]);
+      }
+      expect(controller.snapshot.lastApproval?.outcome).toBe("allowed-once");
+      expect(controller.busy).toBe(false);
+    } finally {
+      detach();
+    }
+  } finally {
+    disconnect();
+    approvals.dispose();
+    await controller.close();
+  }
+});
+
 test("only interactive connections enable approval; tabs share one handler and first decision wins", async () => {
   const { session, controller, approvals } = setup();
   const frames: Frame[] = [];

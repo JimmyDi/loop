@@ -18,7 +18,7 @@ export const applyEvent = (
       ...(next.state.pendingApprovals ?? []).filter(
         (request) => request.requestId !== event.request.requestId,
       ),
-      event.request,
+      ...(event.interactive === false ? [] : [event.request]),
     ];
   } else if (event.type === "approval_resolved") {
     const { outcome, resolvedAt, request } = event.result;

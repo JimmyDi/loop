@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { SessionSnapshot } from "../../../shared/protocol";
 import { useMessageNavigation } from "../../hooks/useMessageNavigation";
 import { useNavigationRail } from "../../hooks/useNavigationRail";
+import { MarkdownText } from "./MarkdownText";
 import "./MessageNavigation.css";
 
 export const MessageNavigation = ({
@@ -114,16 +115,23 @@ export const MessageNavigation = ({
               <path d="M6 4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17l-6-4-6 4Z" />
             </svg>
           </button>
+          <div className="message-navigation-summary" inert>
+            <div className="message-navigation-user">
+              <MarkdownText text={preview.user || t("messageNavigation.attachment")} />
+            </div>
+            <div className="message-navigation-reply">
+              <MarkdownText text={preview.reply || t("messageNavigation.noReply")} />
+            </div>
+          </div>
           <button
             type="button"
             className="message-navigation-jump"
+            aria-label={t("messageNavigation.turn", {
+              number: hoverPosition + 1,
+              text: preview.user || t("messageNavigation.attachment"),
+            })}
             onClick={() => onSelect(preview.index)}
-          >
-            <strong>{preview.user || t("messageNavigation.attachment")}</strong>
-            <span className="message-navigation-reply">
-              {preview.reply || t("messageNavigation.noReply")}
-            </span>
-          </button>
+          />
           {navigation.error && <p role="alert">{t("messageNavigation.failed")}</p>}
         </div>
       )}

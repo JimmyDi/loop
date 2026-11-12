@@ -6,6 +6,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Changed
 
+- Web UI: render conversation navigation previews with the existing Markdown renderer, regular 12px text, a single foreground user line and up to three softer gray reply lines, preserving click-to-jump behavior.
+
 - Web UI: keep conversation navigation marks evenly spaced in long sessions, fade overflowing edges, and smoothly scroll the rail when the active mark touches the top or bottom content edge, letting the mark travel with the reading position before keeping it at that boundary and previews aligned.
 
 - Website: use https://codewithloop.com/ as the public website, build assets and SEO metadata at the domain root, and update the README link and package homepage.

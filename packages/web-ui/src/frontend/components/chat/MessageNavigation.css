@@ -60,13 +60,21 @@
   animation: navigation-preview-in 160ms ease-out;
 }
 .message-navigation-preview::before { content: ""; position: absolute; width: 10px; top: 0; bottom: 0; right: 100%; }
-.message-navigation-jump { display: block; border: 0; background: transparent; padding: 0; width: 100%; text-align: left; color: inherit; font: inherit; cursor: pointer; }
-.message-navigation-jump strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; padding-right: 28px; font-size: 13px; font-weight: 500; line-height: 1.6; overflow-wrap: anywhere; }
-.message-navigation-reply { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; margin-top: 8px; color: var(--ink-muted); font-size: 13px; line-height: 1.65; white-space: pre-line; overflow-wrap: anywhere; }
-.message-navigation-bookmark { position: absolute; top: 10px; right: 9px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--ink-muted); cursor: pointer; }
+.message-navigation-summary { pointer-events: none; font-family: inherit; font-size: 12px; font-weight: 400; line-height: 1.75; }
+.message-navigation-jump { position: absolute; inset: 0; border: 0; border-radius: inherit; background: transparent; cursor: pointer; }
+.message-navigation-user { padding-right: 28px; color: var(--ink); }
+.message-navigation-reply { margin-top: 4px; color: color-mix(in srgb, var(--ink-muted) 82%, var(--surface-raised)); }
+.message-navigation-preview .markdown-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.message-navigation-user .markdown-text { -webkit-line-clamp: 1; }
+.message-navigation-reply .markdown-text { -webkit-line-clamp: 3; }
+.message-navigation-preview .markdown-text :is(strong, b, h1, h2, h3, h4, h5, h6) { font-weight: 400; }
+.message-navigation-preview .markdown-text :is(h1, h2, h3, h4, h5, h6, p, pre, ul, ol, blockquote) { margin: 0; font-size: inherit; line-height: inherit; }
+.message-navigation-preview .markdown-text pre { padding: 2px 5px; }
+.message-navigation-preview :is(.markdown-code-copy, .message-image-gallery, .message-files) { display: none; }
+.message-navigation-bookmark { position: absolute; z-index: 1; top: 10px; right: 9px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--ink-muted); cursor: pointer; }
 .message-navigation-bookmark:hover, .message-navigation-bookmark[aria-pressed="true"] { color: var(--ink); }
 .message-navigation-bookmark:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
-.message-navigation-preview p { margin: 8px 0 0; color: var(--ink-muted); font-size: 12px; }
+.message-navigation-preview > p { margin: 8px 0 0; color: var(--ink-muted); font-size: 12px; }
 .message-navigation :focus-visible { outline: 2px solid var(--ink-muted); outline-offset: 2px; border-radius: 4px; }
 @keyframes navigation-preview-in { from { opacity: 0; translate: -5px 0; } to { opacity: 1; translate: 0 0; } }
 @media (prefers-reduced-motion: reduce) { .message-navigation-line { transition: none; } .message-navigation-preview { animation: none; } }

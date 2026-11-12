@@ -48,7 +48,7 @@ test("previews open on hover/focus, jump, save bookmarks and restore them after 
     expect(ui.container.querySelector(".message-navigation-preview")).toBeNull();
     const mark = ui.getByRole("button", { name: "Turn 1: Request" });
     fireEvent.mouseEnter(mark);
-    expect(ui.container.querySelector(".message-navigation-reply")?.textContent).toBe(
+    expect(ui.container.querySelector(".message-navigation-reply")?.textContent?.trim()).toBe(
       "No reply yet",
     );
     fireEvent.click(mark);
@@ -214,6 +214,60 @@ test("long session initialization retains every fixed-spacing navigation target"
     ).toBe("100");
     const last = marks.querySelector<HTMLElement>('[data-active="true"]')!;
     expect(last.getAttribute("aria-label")).toBe("Turn 100: Request 99");
+  } finally {
+    cleanup();
+    fetcher.mockRestore();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("preview renders Markdown safely with a separate jump button and bookmark control", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, cleanup, fireEvent, act } = await import("@testing-library/react/pure");
+  const fetcher = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    Response.json({
+      previews: [
+        {
+          index: 0,
+          user: "**Question**",
+          reply:
+            "# Answer\n\n**Result** with \u0060code\u0060 and [link](https://example.com)\n\n<img src=x onerror=alert(1)>",
+        },
+      ],
+      bookmarks: [],
+    }),
+  );
+  const snapshot = {
+    sessionId: "test",
+    streamId: "stream",
+    state: { messages: [] },
+    tools: {},
+    operation: "idle",
+  } as unknown as SessionSnapshot;
+  const select = vi.fn();
+  try {
+    const ui = render(
+      <MessageNavigation snapshot={snapshot} viewport={{ current: null }} onSelect={select} />,
+    );
+    await act(async () => {});
+    fireEvent.mouseEnter(ui.container.querySelector(".message-navigation-mark")!);
+    const preview = ui.container.querySelector(".message-navigation-preview")!;
+    expect(preview.querySelector(".message-navigation-user strong")?.textContent).toBe("Question");
+    expect(preview.querySelector(".message-navigation-reply")?.textContent).toContain("Answer");
+    expect(preview.querySelector(".message-navigation-reply")?.textContent).not.toContain(
+      "# Answer",
+    );
+    expect(preview.querySelector(".message-navigation-reply strong")?.textContent).toBe("Result");
+    expect(preview.querySelector("code")?.textContent).toBe("code");
+    expect(preview.querySelector("[onerror]")).toBeNull();
+    expect(preview.querySelector("button button, button a")).toBeNull();
+    expect(preview.querySelector(".message-navigation-summary")?.hasAttribute("inert")).toBe(true);
+    fireEvent.click(preview.querySelector(".message-navigation-jump")!);
+    expect(select).toHaveBeenCalledWith(0);
+    expect(ui.getByRole("button", { name: "Bookmark turn" })).toBeDefined();
   } finally {
     cleanup();
     fetcher.mockRestore();

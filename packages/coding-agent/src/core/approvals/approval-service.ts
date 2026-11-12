@@ -44,7 +44,9 @@ export class ApprovalService {
   ) {}
 
   get pending(): ApprovalRequest[] {
-    return [...this.requests.values()].map(({ request }) => structuredClone(request));
+    return [...this.requests.values()]
+      .filter(({ interactive }) => interactive)
+      .map(({ request }) => structuredClone(request));
   }
 
   registerHandler(handler: ApprovalHandler): () => void {
@@ -142,7 +144,7 @@ export class ApprovalService {
       options.signal?.removeEventListener("abort", cancel);
     };
 
-    this.publish({ type: "approval_requested", request });
+    this.publish({ type: "approval_requested", request, interactive: pending.interactive });
     if (immediate) this.settle(pending, immediate);
     else if (this.requests.has(request.requestId)) {
       try {

@@ -77,7 +77,12 @@ export type ApprovalRequestOptions = {
 export type ApprovalHandler = (request: ApprovalRequest) => void | Promise<void>;
 
 export type ApprovalEvent =
-  | { type: "approval_requested"; request: ApprovalRequest }
+  | {
+      type: "approval_requested";
+      request: ApprovalRequest;
+      /** False records an immediate decision that must not be presented for user approval. */
+      interactive?: boolean;
+    }
   | { type: "approval_resolved"; result: ApprovalResult };
 
 export const DEFAULT_APPROVAL_TIMEOUT_MS = null;

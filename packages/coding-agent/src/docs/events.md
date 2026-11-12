@@ -42,7 +42,7 @@ See the full [SDK sample](../sdk.sample.ts) for construction and cleanup. It onl
 | `agent_settled` | An accepted prompt's execution and save attempt have finished. Inspect outcome and pending-save state. |
 | `session_title` | Title display changed or generation failed; carries title and optional error. May arrive after a run settles. |
 | permission_changed | Managed permission selection saved; carries permissionPreset. No prompt run ID is needed. |
-| `approval_requested` | Carries the approval request snapshot. Can occur outside a prompt and may resolve immediately. |
+| `approval_requested` | Carries the approval request snapshot and an interactive flag. False records an immediate decision without a user prompt; omitted means interactive for compatibility. Can occur outside a prompt. |
 | `approval_resolved` | Carries the request and final outcome in `result`; removes the matching pending request. |
 
 Approval events are paired by request ID, including unavailable, rejected and cancelled outcomes. A normal event subscription does not make approval available: a trusted host must explicitly register an interaction handler. See [approvals](approvals.md) for registration, decision submission, timeout and lifecycle behavior.

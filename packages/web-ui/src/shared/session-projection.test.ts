@@ -132,6 +132,21 @@ test("cumulative drafts replace rather than append and full snapshots replace hi
   const requested = applyEvent(initial, { type: "approval_requested", request });
   const duplicate = applyEvent(requested, { type: "approval_requested", request });
   expect(duplicate.state.pendingApprovals).toEqual([request]);
+  for (const source of ["full-access", "session-grant"] as const) {
+    const automatic = { ...request, requestId: source };
+    const decided = applyEvent(requested, {
+      type: "approval_requested",
+      request: automatic,
+      interactive: false,
+    });
+    expect(decided.state.pendingApprovals).toEqual([request]);
+    const completed = applyEvent(decided, {
+      type: "approval_resolved",
+      result: { request: automatic, outcome: "allowed-once", resolvedAt: 2, source },
+    });
+    expect(completed.state.pendingApprovals).toEqual([request]);
+    expect(completed.lastApproval?.request.requestId).toBe(source);
+  }
   expect(initial.state.pendingApprovals).toBeUndefined();
   const resolved = applyEvent(duplicate, {
     type: "approval_resolved",

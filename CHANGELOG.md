@@ -6,7 +6,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Changed
 
-- Web UI: render conversation navigation previews with the existing Markdown renderer, regular 12px text, a single foreground user line and up to three softer gray reply lines, preserving click-to-jump behavior. Keep edge previews beside their hovered marks so moving the pointer into the card does not close it.
+- Web UI: render conversation navigation previews with the existing Markdown renderer, regular 12px text, a single foreground user line and up to three softer gray reply lines, preserving click-to-jump behavior. Load diagram rendering and copy controls only when a Mermaid block is present to keep the initial chat download within its budget. Keep edge previews beside their hovered marks so moving the pointer into the card does not close it.
 
 - Web UI: keep conversation navigation marks evenly spaced in long sessions, leave 64px clearance above and below the rail, fade overflowing edges, and smoothly scroll the rail when the active mark touches the top or bottom content edge, letting the mark travel with the reading position before keeping it at that boundary and previews aligned.
 

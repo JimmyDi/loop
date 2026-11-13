@@ -30,7 +30,7 @@ test("normalizes mixed question shapes and waits for an explicit atomic answer",
   const waiting = tool.execute(
     {
       questions: [
-        { title: "Next step?", options: ["Continue"] },
+        { title: "Next step?", options: ["直接继续（推荐）"] },
         { title: "Details?" },
         { title: "Another choice?", options: ["A", "B", "C", "D", "E", "F", "G"] },
         { title: "More details?" },
@@ -43,7 +43,7 @@ test("normalizes mixed question shapes and waits for an explicit atomic answer",
   expect(request.questions[0]).toEqual({
     id: "question-1",
     text: "Next step?",
-    options: [{ id: "option-1", label: "Continue" }],
+    options: [{ id: "option-1", label: "直接继续（推荐）" }],
   });
   expect(request.questions[1]).toEqual({ id: "question-2", text: "Details?" });
   expect(service.pending).toHaveLength(1);

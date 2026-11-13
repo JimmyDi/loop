@@ -38,7 +38,7 @@ const normalizeQuestions = (value: unknown): UserInputQuestion[] => {
 export const createUserInputTool = (service?: UserInputService): AgentTool => ({
   name: "request_user_input",
   description:
-    "Ask about a consequential choice or missing requirement, then wait for the user. Investigate discoverable facts first; decide low-impact reversible details yourself. Supply at least one question with a title. For a choice between concrete alternatives, provide a non-empty options array of strings; do not put choices only in the title. Omit options for free-text questions. Choice questions also accept custom text. The first option is preselected, but answers require explicit user submission. Answers do not grant execution permissions. Do not request secrets.",
+    "Ask about a consequential choice or missing requirement, then wait for the user. Investigate discoverable facts first; decide low-impact reversible details yourself. Supply at least one question with a title. For a choice between concrete alternatives, provide a non-empty options array of strings; do not put choices only in the title. If recommending an option, append the localized recommendation marker to that option string, for example Continue (Recommended) or 直接继续（推荐）; keep recommendations out of the question title. Omit options for free-text questions. Choice questions also accept custom text. The first option is preselected, but answers require explicit user submission. Answers do not grant execution permissions. Do not request secrets.",
   parameters: {
     type: "object",
     properties: {
@@ -48,11 +48,17 @@ export const createUserInputTool = (service?: UserInputService): AgentTool => ({
         items: {
           type: "object",
           properties: {
-            title: { type: "string", minLength: 1, maxLength: 2000 },
+            title: {
+              type: "string",
+              description:
+                "Question text only; put recommendation markers in the relevant option string, not here.",
+              minLength: 1,
+              maxLength: 2000,
+            },
             options: {
               type: "array",
               description:
-                "Single-choice suggestions; the first is preselected without submitting. Users can also enter custom text. Omit for free-text questions.",
+                "Single-choice suggestions. Append any recommendation marker to the recommended option string, e.g. Continue (Recommended). The first is preselected without submitting. Users can also enter custom text. Omit for free-text questions.",
               minItems: 1,
               items: { type: "string", minLength: 1, maxLength: 300 },
             },

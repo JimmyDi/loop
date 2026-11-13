@@ -35,11 +35,13 @@ The tool accepts a non-empty `questions` array. Each question contains only `tit
 ```json
 {
   "questions": [
-    { "title": "What should happen next?", "options": ["Continue", "Adjust", "Pause"] },
+    { "title": "What should happen next?", "options": ["Continue (Recommended)", "Adjust", "Pause"] },
     { "title": "Provide the requirements." }
   ]
 }
 ```
+
+Put recommendation hints inside the relevant option string, for example `"直接继续（推荐）"` or `"Continue (Recommended)"`. Keep the title focused on the question; do not put recommendation hints in the title. Recommendation text is displayed as part of the option label.
 
 The host request normalizes titles to `text` and assigns IDs such as `question-1` and `option-1`. SDK handlers use these request IDs when responding. Host/history contracts retain structured options and recommendation metadata for compatibility; those fields are not model tool parameters. Explicit skipping is allowed for every question.
 

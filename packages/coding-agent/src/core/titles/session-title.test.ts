@@ -19,7 +19,7 @@ const model: Model<Api> = {
   baseUrl: "https://example.invalid",
   input: ["text", "image"],
   reasoning: false,
-  contextWindow: 4096,
+  contextWindow: 32_768,
   maxTokens: 512,
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 };

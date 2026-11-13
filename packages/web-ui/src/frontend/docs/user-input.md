@@ -1,6 +1,6 @@
 # Answering Loop questions
 
-When Loop needs a consequential choice or missing requirement, a compact question card appears directly above the chat composer with an 8px gap and matching width. The composer remains mounted and keeps its draft. The card uses rounded corners and a subtle border, without a modal backdrop. Long questions scroll within a bounded card height.
+When Loop needs a consequential choice or missing requirement, a compact question card appears directly above the chat composer with an 8px gap and matching width. The composer remains mounted and keeps its draft. The card uses rounded corners and a subtle border, without a modal backdrop. Long questions scroll within a bounded card height. The card and completed-answer history load on demand to keep question UI out of the initial chat download.
 
 Each page contains one question. The upper-right arrows and page count support browsing while preserving answers; arrows never submit. The lower-right Next button advances after a valid answer. Send appears on the final page and submits the complete set only after every question has an answer or explicit skip. Navigation and submission are disabled while disconnected or submitting.
 

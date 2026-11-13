@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SessionSnapshot } from "../../../shared/protocol";
@@ -14,9 +14,15 @@ import { LoopIcon } from "../ui/LoopIcon";
 import { MessageTimeline } from "./MessageTimeline";
 import { ChatComposer } from "./ChatComposer";
 import { SessionStatus } from "./SessionStatus";
-import { SessionApprovals } from "./SessionApprovals";
-import { UserInputCard } from "./UserInputCard";
 import "./ChatWorkspace.css";
+
+const SessionApprovals = lazy(() =>
+  import("./SessionApprovals").then((module) => ({ default: module.SessionApprovals })),
+);
+
+const UserInputCard = lazy(() =>
+  import("./UserInputCard").then((module) => ({ default: module.UserInputCard })),
+);
 
 export const ChatWorkspace = ({ id }: { id?: string }) => {
   const { t } = useTranslation();
@@ -83,13 +89,19 @@ export const ChatWorkspace = ({ id }: { id?: string }) => {
           )}
           <div className="chat-workspace-input">
             <SessionStatus snapshot={snapshot} connected={connected} />
-            <SessionApprovals snapshot={snapshot} connected={connected} />
+            {!!snapshot.state.pendingApprovals?.length && (
+              <Suspense fallback={null}>
+                <SessionApprovals snapshot={snapshot} connected={connected} />
+              </Suspense>
+            )}
             {snapshot.state.pendingUserInputs?.[0] && (
-              <UserInputCard
-                key={snapshot.state.pendingUserInputs[0].requestId}
-                request={snapshot.state.pendingUserInputs[0]}
-                connected={connected}
-              />
+              <Suspense fallback={null}>
+                <UserInputCard
+                  key={snapshot.state.pendingUserInputs[0].requestId}
+                  request={snapshot.state.pendingUserInputs[0]}
+                  connected={connected}
+                />
+              </Suspense>
             )}
             <ChatComposer key={snapshot.sessionId} snapshot={snapshot} connected={connected} />
           </div>

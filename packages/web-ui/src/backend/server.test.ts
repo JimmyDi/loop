@@ -126,6 +126,10 @@ test("authorized chat startup excludes optional renderers and settings from its 
   for (const root of roots) await visit(root);
   expect(bytes).toBeLessThan(650_000);
   expect(
-    [...seen].some((name) => /SettingsDialog|markdown-math|markdown-highlight/.test(name)),
+    [...seen].some((name) =>
+      /SettingsDialog|markdown-math|markdown-highlight|UserInputCard|UserInputHistory|SessionApprovals/.test(
+        name,
+      ),
+    ),
   ).toBe(false);
 });

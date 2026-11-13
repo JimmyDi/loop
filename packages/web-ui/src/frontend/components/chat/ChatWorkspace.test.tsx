@@ -180,6 +180,7 @@ test("composer voice actions follow connection and session changes without heade
       }));
     });
     expect(composer()).toBe(mountedComposer);
+    await waitFor(() => expect(ui.container.querySelector(".user-input-card")).toBeTruthy());
     const card = ui.container.querySelector(".user-input-card")!;
     expect(card).toBeTruthy();
     expect(card.parentElement).toBe(composer().parentElement?.parentElement);

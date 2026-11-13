@@ -647,7 +647,11 @@ test("runtime context survives filtered failures and stays out of titles, images
   const contexts: Context[] = [];
   const titleContexts: Context[] = [];
   const visibleUsers: unknown[] = [];
-  const selected = { ...model, input: ["text", "image"] as Array<"text" | "image"> };
+  const selected = {
+    ...model,
+    contextWindow: 32_768,
+    input: ["text", "image"] as Array<"text" | "image">,
+  };
   const { session } = await createAgentSession({
     cwd: root,
     model: selected,

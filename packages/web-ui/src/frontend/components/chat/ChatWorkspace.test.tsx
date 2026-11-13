@@ -151,6 +151,52 @@ test("composer voice actions follow connection and session changes without heade
     expect(composer().querySelector(".composer-input-row .voice-input-button")).toBeNull();
     expect(ui.getAllByRole("button", { name: "Call" })).toHaveLength(1);
 
+    const mountedComposer = composer();
+    const pending = {
+      ...snapshots[0]!,
+      operation: "prompt" as const,
+      state: {
+        ...snapshots[0]!.state,
+        isRunning: true,
+        pendingUserInputs: [
+          {
+            sessionId: "first",
+            requestId: "question",
+            createdAt: 0,
+            questions: [
+              { id: "q", text: "Which approach?", options: [{ id: "a", label: "First" }] },
+            ],
+          },
+        ],
+      },
+    };
+    act(() => {
+      useWorkspace.getState().draft("first", "Unsent draft");
+      useSessions.setState((state) => ({
+        views: {
+          ...state.views,
+          first: { snapshot: pending, connected: true },
+        },
+      }));
+    });
+    expect(composer()).toBe(mountedComposer);
+    await waitFor(() => expect(ui.container.querySelector(".user-input-card")).toBeTruthy());
+    const card = ui.container.querySelector(".user-input-card")!;
+    expect(card).toBeTruthy();
+    expect(card.parentElement).toBe(composer().parentElement?.parentElement);
+    expect(card.nextElementSibling?.contains(composer())).toBe(true);
+    expect(useWorkspace.getState().drafts.first).toBe("Unsent draft");
+    act(() =>
+      useSessions.setState((state) => ({
+        views: {
+          ...state.views,
+          first: { snapshot: snapshots[0]!, connected: true },
+        },
+      })),
+    );
+    expect(composer()).toBe(mountedComposer);
+    expect(ui.container.querySelector(".user-input-card")).toBeNull();
+
     const firstSource = connections.find((source) => source.url.includes("/first/events"))!;
     expect(firstSource).toBeTruthy();
     act(() => firstSource.onerror?.());
@@ -174,7 +220,7 @@ test("composer voice actions follow connection and session changes without heade
     expect(connections.some((source) => source.url.includes("/second/events"))).toBe(true);
     expect(within(header).queryByRole("button", { name: "Call" })).toBeNull();
     expect(within(composer()).getByRole("button", { name: "Voice input" })).toBeTruthy();
-    expect(fetched).toEqual([]);
+    expect(fetched).toEqual(["/api/sessions/first/navigation"]);
   } finally {
     cleanup();
     client.clear();

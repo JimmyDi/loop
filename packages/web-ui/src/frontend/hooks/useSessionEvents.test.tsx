@@ -479,9 +479,13 @@ test("an SSE burst preserves each tool's running indication while results and er
     ).toBeNull();
     expect(history.container.querySelectorAll('.tool-card[data-status="success"]')).toHaveLength(2);
   } finally {
-    cleanup();
-    client.clear();
-    useSessions.setState({ views: {} });
+    await act(async () => {
+      cleanup();
+      client.clear();
+      useSessions.setState({ views: {} });
+      // React's scheduler can finish passive cleanup on the next host task.
+      await sleep(0);
+    });
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

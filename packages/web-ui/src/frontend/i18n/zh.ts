@@ -8,6 +8,24 @@ import { pwaZh } from "./pwa-zh";
 import { voiceZh } from "./voice-zh";
 
 export const zh = {
+  answeredQuestions: "已回答的问题",
+  cancelledQuestions: "问题已取消",
+  unavailableQuestions: "无法获取用户回答",
+
+  waitingForAnswer: "等待你的回答",
+  recommendedAnswer: "推荐",
+  customAnswer: "或输入自定义回答",
+  questionReply: "请输入回答…",
+  questionProgress: "{{current}} / {{total}}",
+  nextQuestionPage: "查看下一题",
+  needsInput: "Needs input",
+  previousQuestion: "上一题",
+  nextQuestion: "下一题",
+  questionHeading: "问题",
+  skipAnswer: "跳过",
+  submitAnswer: "发送",
+  submittingAnswer: "正在提交…",
+
   messageNavigation: {
     label: "对话导航",
     turn: "第 {{number}} 轮：{{text}}",
@@ -250,6 +268,7 @@ export const zh = {
     mcp_config_write_failed: "无法保存 MCP 配置，请检查磁盘空间和文件权限。",
     invalid_permission_preset: "请选择有效的权限级别。",
     invalid_approval_decision: "请选择可用的审批选项。",
+    user_input_not_pending: "此问题已结束或回答无效，正在刷新会话。",
     approval_not_pending: "此请求已结束或审批界面已断开，正在刷新会话。",
     invalid_text_files: "最多添加 4 个 UTF-8 文本或代码文件，暂不支持文档、压缩包和二进制文件。",
     invalid_text_encoding: "此文件不是 UTF-8 纯文本，请转换编码或选择文本文件。",

@@ -13,7 +13,13 @@ export const applyEvent = (
     tools: updateTools(snapshot.tools, event),
   };
 
-  if (event.type === "approval_requested") {
+  if (event.type === "user_input_requested") {
+    next.state.pendingUserInputs = [event.request];
+  } else if (event.type === "user_input_resolved") {
+    next.state.pendingUserInputs = (next.state.pendingUserInputs ?? []).filter(
+      (request) => request.requestId !== event.result.request.requestId,
+    );
+  } else if (event.type === "approval_requested") {
     next.state.pendingApprovals = [
       ...(next.state.pendingApprovals ?? []).filter(
         (request) => request.requestId !== event.request.requestId,

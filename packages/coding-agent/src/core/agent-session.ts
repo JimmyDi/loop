@@ -43,7 +43,11 @@ import { stoppedResponse } from "./stopped-response";
 import { SessionTrace } from "./telemetry/session-trace";
 import { traceModelRuntime } from "./telemetry/model-trace";
 
+import { UserInputService } from "./user-input/user-input-service";
+import type { UserInputHandler, UserInputResponse } from "./user-input/types";
+
 export class AgentSession {
+  private readonly userInput: UserInputService;
   private listeners = new Set<SessionEventListener>();
   private active?: Promise<void>;
   private agent?: Agent;
@@ -80,8 +84,10 @@ export class AgentSession {
   constructor(private readonly options: SessionOptions) {
     validateRequestMaxTokens(options.maxTokens);
     this.trace = new SessionTrace(options.traceRecorder);
+    this.userInput = new UserInputService(this.sessionId, (event) => this.emit(event));
     this.options = {
       ...options,
+      userInputService: this.userInput,
       modelRuntime: traceModelRuntime(options.modelRuntime, this.trace),
     };
     this.unsubscribeWrites = options.sessionManager.subscribeWrites((event) =>
@@ -175,6 +181,15 @@ export class AgentSession {
 
   get permissionPreset(): PermissionPreset | undefined {
     return this.options.permissionPolicy?.preset();
+  }
+
+  registerUserInputHandler(handler: UserInputHandler): () => void {
+    if (this.disposed) throw new Error("Session is disposed");
+    return this.userInput.registerHandler(handler);
+  }
+
+  respondToUserInput(response: UserInputResponse): boolean {
+    return this.userInput.respond(response);
   }
 
   registerApprovalHandler(handler: ApprovalHandler): () => void {
@@ -282,6 +297,7 @@ export class AgentSession {
         : {}),
       skillLoads: structuredClone(this.skillLoads),
       pendingApprovals: this.approvals.pending,
+      pendingUserInputs: this.userInput.pending,
       ...(this.permissionPreset ? { permissionPreset: this.permissionPreset } : {}),
       title: this.titles.title,
       titleError: this.titleError,
@@ -536,6 +552,7 @@ export class AgentSession {
     this.controller?.abort(new Error("Run cancelled"));
     this.agent?.abort();
     this.approvals.cancelPending();
+    this.userInput.cancelPending();
     await this.waitForIdle();
     await this.titles.wait();
   }
@@ -690,6 +707,7 @@ export class AgentSession {
     this.assertIdle(false, true);
     this.disposed = true;
     this.approvals.dispose();
+    this.userInput.dispose();
     this.titles.dispose();
     this.traceClosing = this.titles
       .wait()
@@ -996,6 +1014,7 @@ export class AgentSession {
     } finally {
       this.acceptingRunApprovals = false;
       this.approvals.cancelPending();
+      this.userInput.cancelPending();
       try {
         await autoCompaction?.wait();
         if (this.agent) {

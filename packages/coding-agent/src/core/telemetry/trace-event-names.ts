@@ -11,6 +11,8 @@ export const sessionTraceEventNames = {
   message_end: "message.completed",
   tool_execution_start: "tool.started",
   tool_execution_end: "tool.completed",
+  user_input_requested: undefined,
+  user_input_resolved: undefined,
   approval_requested: "approval.started",
   approval_resolved: "approval.completed",
   agent_settled: "agent.settled",

@@ -168,7 +168,6 @@ export class SessionController {
 
   async close(): Promise<void> {
     await this.abort();
-
     if (this.session.state.hasPendingSave) await this.command("flush", () => this.session.flush());
 
     this.dispose();
@@ -206,6 +205,7 @@ export class SessionController {
     if (
       event.type === "session_title" ||
       event.type === "permission_changed" ||
+      event.type.startsWith("user_input_") ||
       event.type === "approval_requested" ||
       event.type === "approval_resolved"
     ) {

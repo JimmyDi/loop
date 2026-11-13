@@ -166,3 +166,82 @@ test("delete failures stay in the confirmation and are cleared when it closes or
     await window.happyDOM.close();
   }
 });
+
+test("question waits show Needs input from summaries and clear when the live session settles", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, act, cleanup } = await import("@testing-library/react/pure");
+  const { useSessions } = await import("../../state/session-store");
+  const sessions = useSessions.getState();
+  const client = new QueryClient();
+  const session = {
+    id: "needs-input",
+    workspaceId: "project",
+    title: "Choose a strategy",
+    createdAt: "2026-01-01",
+    updatedAt: "2026-01-01",
+    messageCount: 1,
+    userMessageCount: 1,
+    isGenerating: true,
+    isWaitingForUserInput: true,
+  };
+  try {
+    const ui = render(
+      <QueryClientProvider client={client}>
+        <ul>
+          <SessionItem session={session} />
+        </ul>
+      </QueryClientProvider>,
+    );
+    expect(ui.getByRole("status", { name: "Needs input" }).textContent).toBe("Needs input");
+    expect(ui.queryByRole("img", { name: "Looping..." })).toBeNull();
+    expect(ui.container.querySelector(".session-list-pending")).toBeNull();
+    act(() =>
+      useSessions.setState({
+        views: {
+          [session.id]: {
+            connected: true,
+            revision: 0,
+            snapshot: {
+              sessionId: session.id,
+              streamId: "stream",
+              workspaceId: "project",
+              operation: "idle",
+              tools: {},
+              model: { id: "test", name: "Test", provider: "test" },
+              state: {
+                messages: [],
+                isRunning: false,
+                outcome: "success",
+                hasPendingSave: false,
+                listenerErrors: [],
+                pendingUserInputs: [],
+              },
+            },
+          },
+        },
+      }),
+    );
+    expect(ui.queryByText("Needs input")).toBeNull();
+    act(() => useSessions.setState({ views: {} }));
+    expect(ui.getByText("Needs input")).toBeTruthy();
+    ui.rerender(
+      <QueryClientProvider client={client}>
+        <ul>
+          <SessionItem
+            session={{ ...session, isWaitingForUserInput: false, isWaitingForApproval: true }}
+          />
+        </ul>
+      </QueryClientProvider>,
+    );
+    expect(ui.queryByText("Needs input")).toBeNull();
+    expect(ui.getByRole("img", { name: "Waiting for approval" })).toBeTruthy();
+  } finally {
+    cleanup();
+    client.clear();
+    useSessions.setState(sessions, true);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});

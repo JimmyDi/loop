@@ -165,3 +165,40 @@ test("cumulative drafts replace rather than append and full snapshots replace hi
     })?.state.messages,
   ).toHaveLength(0);
 });
+
+test("question snapshots deduplicate requests and stale resolutions preserve a newer question", () => {
+  const snapshot: SessionSnapshot = {
+    streamId: "stream",
+    sessionId: "session",
+    workspaceId: null,
+    model: { id: "m", provider: "p", name: "Model" },
+    operation: "prompt",
+    tools: {},
+    state: {
+      messages: [],
+      isRunning: true,
+      hasPendingSave: false,
+      outcome: "idle",
+      listenerErrors: [],
+    },
+  };
+  const request = {
+    sessionId: "session",
+    requestId: "one",
+    createdAt: 1,
+    questions: [{ id: "q", text: "Which strategy?" }],
+  };
+  const first = applyEvent(snapshot, { type: "user_input_requested", request });
+  const again = applyEvent(first, { type: "user_input_requested", request });
+  expect(again.state.pendingUserInputs).toEqual([request]);
+  const next = applyEvent(again, {
+    type: "user_input_requested",
+    request: { ...request, requestId: "two" },
+  });
+  const stale = applyEvent(next, {
+    type: "user_input_resolved",
+    result: { request, outcome: "cancelled", resolvedAt: 2 },
+  });
+  expect(stale.state.pendingUserInputs?.[0]?.requestId).toBe("two");
+  expect(snapshot.state.pendingUserInputs).toBeUndefined();
+});

@@ -29,10 +29,15 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
   const togglePin = () => void action.setPinned(!pinned);
   const snapshot = view?.connected ? view.snapshot : undefined;
   const generating = snapshot ? snapshot.operation === "prompt" : session.isGenerating === true;
-  const waiting = snapshot
-    ? (snapshot.state.pendingApprovals?.some((request) => request.sessionId === session.id) ??
-      false)
-    : session.isWaitingForApproval === true;
+  const answering = snapshot
+    ? !!snapshot.state.pendingUserInputs?.length
+    : session.isWaitingForUserInput === true;
+  const waiting =
+    answering ||
+    (snapshot
+      ? (snapshot.state.pendingApprovals?.some((request) => request.sessionId === session.id) ??
+        false)
+      : session.isWaitingForApproval === true);
   const unread =
     !waiting && !generating && (snapshot ? snapshot.state.unread : session.unread) === true;
   const busy =
@@ -100,25 +105,24 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
                 }
               }}
             >
-              {waiting && (
-                <span
-                  className="session-list-waiting"
-                  aria-hidden="true"
-                  title={t("permissions.waiting")}
-                />
+              {waiting && !answering && (
+                <span className="session-list-waiting" aria-hidden="true" />
               )}
               <span className="session-list-title">{title}</span>
               {waiting && (
                 <span
-                  className="session-list-pending"
-                  role="img"
-                  aria-label={t("permissions.waiting")}
-                  title={t("permissions.waiting")}
+                  className={answering ? "session-list-needs-input" : "session-list-pending"}
+                  role={answering ? "status" : "img"}
+                  aria-label={t(answering ? "needsInput" : "permissions.waiting")}
                 >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 7v5l3 2" />
-                  </svg>
+                  {answering ? (
+                    t("needsInput")
+                  ) : (
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M12 7v5l3 2" />
+                    </svg>
+                  )}
                 </span>
               )}
               {generating && !waiting && (

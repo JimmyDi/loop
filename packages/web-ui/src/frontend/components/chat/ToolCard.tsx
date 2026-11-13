@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useTimelineDisclosure } from "../../hooks/useTimelineDisclosure";
@@ -8,7 +9,12 @@ import { useToolStatus } from "../../hooks/useToolStatus";
 import { ToolStatusIcon } from "./ToolStatusIcon";
 import { ToolActionIcon } from "./ToolActionIcon";
 import { toolLabel } from "./tool-label";
+import { userInputResult } from "../../../shared/user-input-result";
 import "./ToolCard.css";
+
+const UserInputHistory = lazy(() =>
+  import("./UserInputHistory").then((module) => ({ default: module.UserInputHistory })),
+);
 
 export const ToolCard = ({
   tool,
@@ -21,6 +27,14 @@ export const ToolCard = ({
   const [expanded, setExpanded] = useTimelineDisclosure("tool:" + tool.id);
   const iconStatus = useToolStatus(tool.id, tool.status);
   const { action, label, target, text } = toolLabel(tool, t);
+
+  const answer = userInputResult(tool);
+  if (answer)
+    return (
+      <Suspense fallback={null}>
+        <UserInputHistory result={answer} />
+      </Suspense>
+    );
 
   return (
     <details

@@ -9,7 +9,7 @@ export const sessionSummaries = (
   const summaries = new Map(
     records.map((record) => [
       record.id,
-      { ...record, isGenerating: false, isWaitingForApproval: false },
+      { ...record, isGenerating: false, isWaitingForApproval: false, isWaitingForUserInput: false },
     ]),
   );
   for (const controller of instances) {
@@ -38,6 +38,7 @@ export const sessionSummaries = (
       pinnedAt: controller.session.sessionManager.getHeader().pinnedAt,
       title: state.title?.text ?? record?.title,
       isGenerating: operation === "prompt",
+      isWaitingForUserInput: !!state.pendingUserInputs?.length,
       isWaitingForApproval:
         state.pendingApprovals?.some((request) => request.sessionId === sessionId) ?? false,
     });

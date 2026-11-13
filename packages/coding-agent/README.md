@@ -39,6 +39,7 @@ The CLI is interactive by default. The SDK sample performs one request workflow 
 | Discover and call tools through isolated JavaScript | [Codemode](src/docs/codemode.md) |
 | Install, discover, select and load task workflows | [Skills](src/docs/skills.md) |
 | Session permission presets and native file sandboxing | [Permissions](src/docs/permissions.md) |
+| Ask users for choices and missing requirements | [User input](src/docs/user-input.md) |
 | Request, answer and cancel host approvals | [Approvals](src/docs/approvals.md) |
 | Run local speech recognition and synthesis | [Voice runtime](src/docs/voice.md) |
 | Discover project instructions | [Context files](src/docs/context-files.md) |

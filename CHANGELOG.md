@@ -4,6 +4,10 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Added
+
+- coding-agent, SDK, CLI and Web UI: add model-driven user questions using a title and optional non-empty string options, with no question type field. Guide the model to investigate workspace facts before asking for requirements, preferences, constraints or material implementation decisions, and decide low-impact reversible details itself. Put the recommended option first and keep recommendation hints in its option string rather than the question title. Support single-choice suggestions or custom text, default to the first option without automatic submission, and paginate Web questions with retained answers and a single final submission. Advance to the next question after an explicit option selection, highlight the selected number when revisiting, and keep final submission manual. Load question cards, approval cards and completed-answer history on demand to preserve the initial chat download budget. Show compact question cards above the mounted chat composer and a blue Needs input session badge, with no required/optional question distinction. Put browsing arrows in the card header and Skip plus Next/Send actions at the bottom; preserve composer drafts and allow explicit skipping on every question while rejecting blank text. Continue the same run after explicit answers, keep questions separate from permissions, reject stale or duplicate submissions, cancel waits when stopped, restore Web questions across reconnects and retain completed answers in history.
+
 ### Changed
 
 - Web UI: render conversation navigation previews with the existing Markdown renderer, regular 12px text, a single foreground user line and up to three softer gray reply lines, preserving click-to-jump behavior. Load diagram rendering and copy controls only when a Mermaid block is present to keep the initial chat download within its budget. Keep edge previews beside their hovered marks so moving the pointer into the card does not close it.

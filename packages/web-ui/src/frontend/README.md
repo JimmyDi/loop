@@ -23,6 +23,7 @@ Configure a service in **Settings → Models**, then add a project and create a 
 | Custom providers and the current session's model | [Model settings](docs/models.md) |
 | Configure, enable and discover MCP servers | [Integration settings](docs/integrations.md) |
 | SSE subscriptions, snapshots, and reconnection | [Streaming state](docs/events.md) |
+| Answer questions with choices or text | [User input](docs/user-input.md) |
 | Per-session permissions and allow-once/reject controls | [Permissions and approvals](docs/permissions.md) |
 | Layout, language, appearance, and browser storage | [Interface preferences](docs/preferences.md) |
 | Microsoft sign-in, tunnel controls and device pairing | [Remote connection settings](docs/remote-access.md) |

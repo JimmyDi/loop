@@ -45,10 +45,11 @@ test("request and idle estimate share declarations, catalog rules and permission
   };
   const restricted = buildSessionModelContext(options, model, "read-only");
   expect(restricted.systemPrompt).toContain("Project instructions");
-  expect(restricted.systemPrompt).toContain('["read"]');
+  expect(restricted.systemPrompt).toContain('["request_user_input","read"]');
   expect(restricted.systemPrompt).toContain("<permissions>");
   expect(restricted.systemPrompt).toContain("read-only");
-  expect(restricted.tools).toEqual(options.tools);
+  expect(restricted.tools.slice(1)).toEqual(options.tools);
+  expect(restricted.tools[0]?.name).toBe("request_user_input");
   const full = buildSessionModelContext(options, model, "danger-full-access");
   expect(full.systemPrompt).toContain("danger-full-access");
   expect(full.systemPrompt).not.toBe(restricted.systemPrompt);

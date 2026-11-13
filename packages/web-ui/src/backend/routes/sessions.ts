@@ -1,3 +1,4 @@
+import type { UserInputAnswer } from "../../shared/protocol";
 import { revealSession } from "./session-reveal";
 import { navigationRoute } from "./session-navigation";
 import { queueRoute } from "./session-queue";
@@ -45,13 +46,13 @@ export const sessionRoutes =
     }
 
     const match = url.pathname.match(
-      /^\/api\/sessions\/([^/]+)(?:\/(navigation|reveal|history|prompt|queue|resume|abort|flush|compact|model|events|title|permission|approvals|read|pin)(?:\/([^/]+))?)?$/,
+      /^\/api\/sessions\/([^/]+)(?:\/(navigation|reveal|history|prompt|queue|resume|abort|flush|compact|model|events|title|permission|approvals|user-input|read|pin)(?:\/([^/]+))?)?$/,
     );
 
     if (!match) return;
 
     const [, id, action, requestId] = match;
-    if ((action === "approvals") !== !!requestId) return;
+    if ((action === "approvals" || action === "user-input") !== !!requestId) return;
     if (action === "pin") {
       if (method !== "PUT") throw new HttpError(405, "method_not_allowed");
       const body = await readBody(request);
@@ -72,6 +73,7 @@ export const sessionRoutes =
       action === "model" ||
       action === "permission" ||
       action === "approvals" ||
+      action === "user-input" ||
       (action === "title" && method === "PUT")
         ? await readBody(request, action === "prompt" ? Infinity : undefined)
         : {};
@@ -93,6 +95,18 @@ export const sessionRoutes =
 
     const history = historyRoute(request, url, action, controller);
     if (history) return history;
+
+    if (action === "user-input" && method === "POST") {
+      if (
+        !controller.session.respondToUserInput?.({
+          sessionId: id!,
+          requestId: requestId!,
+          answers: body.answers as UserInputAnswer[],
+        })
+      )
+        throw new HttpError(409, "user_input_not_pending");
+      return Response.json(pageSnapshot(controller.snapshot));
+    }
 
     if (action === "approvals" && method === "POST") {
       if (

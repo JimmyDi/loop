@@ -38,6 +38,8 @@ export type SessionPort = Pick<
   Partial<
     Pick<
       AgentSession,
+      | "registerUserInputHandler"
+      | "respondToUserInput"
       | "validateSkillSelection"
       | "compact"
       | "enqueue"

@@ -56,9 +56,9 @@ test("input preparation snapshots changed capabilities without mutating retained
     messages: [{ role: "user", content: "first", timestamp: 1 }],
     systemPromptCheckpoints: first.systemPromptCheckpoints,
   });
-  expect(first.tools).toEqual([]);
+  expect(first.tools.map((tool) => tool.name)).toEqual(["request_user_input"]);
   expect(first.systemPromptCheckpoints).toHaveLength(1);
-  expect(second.tools.map((tool) => tool.name)).toEqual(["fixture"]);
+  expect(second.tools.map((tool) => tool.name)).toEqual(["request_user_input", "fixture"]);
   expect(second.toolDisplayNames.get("fixture")).toBe("Readable fixture");
   expect(second.systemPromptCheckpoints.at(-1)?.messageCount).toBe(2);
   expect(second.userTurn).toBe(1);

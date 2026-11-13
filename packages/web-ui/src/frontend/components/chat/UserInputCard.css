@@ -1,0 +1,206 @@
+.user-input-card {
+  position: relative;
+  flex: 0 1 auto;
+  min-height: 0;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+  width: min(calc(100% - 36px), 860px);
+  margin: 0 auto 8px;
+  max-height: min(40dvh, 360px);
+  overflow-y: auto;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-size: 13px;
+}
+.user-input-header, .user-input-heading, .user-input-navigation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.user-input-progress {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+.user-input-header {
+  justify-content: space-between;
+  margin: 0 0 16px;
+  color: var(--ink-muted);
+}
+.user-input-heading svg, .user-input-custom svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.user-input-close.action-button, .user-input-page.action-button {
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  padding: 0;
+  width: 28px;
+  min-height: 28px;
+  font-size: 20px;
+}
+.user-input-card fieldset {
+  border: 0;
+  margin: 0 0 12px;
+  padding: 0;
+  min-width: 0;
+}
+.user-input-card legend {
+  padding: 0 4px;
+  margin-bottom: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.user-input-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  margin: 2px 0;
+  border-radius: 10px;
+  cursor: pointer;
+  line-height: 1.4;
+}
+.user-input-option:hover {
+  background: var(--surface-selected);
+}
+.user-input-option:has(input:focus-visible) {
+  outline: 2px solid var(--focus-border);
+}
+.user-input-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.user-input-number {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+.user-input-option-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.user-input-option-text small, .user-input-description {
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+.user-input-description {
+  display: block;
+  margin-top: 2px;
+}
+.user-input-option:has(input:checked) .user-input-number {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+.user-input-option:has(input:checked) .user-input-option-text {
+  font-weight: 500;
+}
+.user-input-custom {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 6px 4px 0;
+  padding: 6px 4px;
+  border-radius: 8px;
+  color: var(--ink-muted);
+}
+.user-input-custom svg {
+  margin-top: 3px;
+}
+.user-input-card textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 22px;
+  max-height: 120px;
+  field-sizing: content;
+  resize: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  line-height: 22px;
+}
+.user-input-card textarea:focus {
+  outline: none;
+}
+.user-input-custom:focus-within {
+  outline: 2px solid var(--focus-border);
+}
+.user-input-card textarea::placeholder {
+  color: var(--ink-muted);
+}
+.user-input-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.user-input-actions .action-button {
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.user-input-navigation { gap: 4px; }
+.user-input-page.action-button { font-size: 18px; }
+.user-input-footer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.user-input-footer .user-input-custom { flex: 1; min-width: 0; margin: 0; }
+.user-input-footer .user-input-actions { flex-shrink: 0; margin-bottom: 2px; }
+.user-input-footer[data-choice="false"] { flex-wrap: wrap; }
+.user-input-footer[data-choice="false"] .user-input-custom {
+  flex-basis: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.user-input-footer[data-choice="false"] svg { display: none; }
+.user-input-footer[data-choice="false"] .user-input-actions { margin-left: auto; margin-top: 8px; }
+.user-input-send.action-button {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+.user-input-send.action-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 85%, var(--surface));
+}
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .user-input-card {
+    width: calc(100% - max(12px, env(safe-area-inset-left)) - max(12px, env(safe-area-inset-right)));
+    padding: 10px 12px;
+  }
+  .user-input-card textarea { font-size: 16px; }
+  .user-input-option, .user-input-actions .action-button, .user-input-close.action-button, .user-input-page.action-button {
+    min-height: 44px;
+  }
+  .user-input-close.action-button, .user-input-page.action-button { width: 44px; }
+  .user-input-footer { flex-wrap: wrap; }
+  .user-input-footer .user-input-custom { flex-basis: 100%; }
+  .user-input-footer .user-input-actions { margin-left: auto; }
+}

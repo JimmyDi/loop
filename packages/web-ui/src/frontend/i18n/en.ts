@@ -8,6 +8,24 @@ import { pwaEn } from "./pwa-en";
 import { voiceEn } from "./voice-en";
 
 export const en = {
+  answeredQuestions: "Answered questions",
+  cancelledQuestions: "Questions cancelled",
+  unavailableQuestions: "User input unavailable",
+
+  waitingForAnswer: "Waiting for your answer",
+  recommendedAnswer: "Recommended",
+  customAnswer: "Or write your own response",
+  questionReply: "Reply…",
+  questionProgress: "{{current}} of {{total}}",
+  nextQuestionPage: "Next question",
+  needsInput: "Needs input",
+  previousQuestion: "Previous",
+  nextQuestion: "Next",
+  questionHeading: "Question",
+  skipAnswer: "Skip",
+  submitAnswer: "Send",
+  submittingAnswer: "Submitting…",
+
   messageNavigation: {
     label: "Conversation navigation",
     turn: "Turn {{number}}: {{text}}",
@@ -257,6 +275,8 @@ export const en = {
       "Cannot save MCP configuration. Check disk space and file permissions.",
     invalid_permission_preset: "Choose a supported permission level.",
     invalid_approval_decision: "Choose an available approval option.",
+    user_input_not_pending:
+      "This question has ended or the answer is invalid. Refreshing the session.",
     approval_not_pending:
       "This request has already ended or its approval interface disconnected. Refreshing the session.",
     invalid_text_files:

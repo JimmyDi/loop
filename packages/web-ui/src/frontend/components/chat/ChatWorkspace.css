@@ -16,6 +16,13 @@
   flex-shrink: 0;
   min-width: 0;
 }
+.chat-workspace-input:has(.user-input-card) {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 1;
+  min-height: 0;
+  max-height: 70%;
+}
 .chat-workspace-body[data-empty="true"] {
   display: grid;
   grid-template-rows: minmax(min-content, 1fr) auto minmax(24px, 1fr);

@@ -36,6 +36,7 @@ export type SessionSummary = {
   title?: string;
   isGenerating?: boolean;
   isWaitingForApproval?: boolean;
+  isWaitingForUserInput?: boolean;
   unread?: boolean;
   pinnedAt?: string;
   archived?: boolean;
@@ -94,3 +95,10 @@ export type ListChange =
   | { type: "sessions.changed" | "projects.changed"; workspaceId: string | null };
 
 export type ListFrame = ListChange & Cursor;
+
+export type {
+  UserInputRequest,
+  UserInputAnswer,
+  UserInputResponse,
+  UserInputResult,
+} from "@loop/coding-agent";

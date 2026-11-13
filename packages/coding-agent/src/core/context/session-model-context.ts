@@ -10,6 +10,8 @@ import { buildCapabilityPrompt } from "../capability-prompt";
 import { createSkillTool } from "../skills/skill-tool";
 import { createCodemodeTool } from "../codemode/tool";
 
+import { createUserInputTool } from "../user-input/user-input-tool";
+
 /** Snapshot ready capabilities without waiting for discovery or executing tools. */
 export const buildSessionModelContext = (
   options: SessionOptions,
@@ -18,14 +20,23 @@ export const buildSessionModelContext = (
 ): { systemPrompt: string; tools: AgentTool[] } => {
   const cwd = options.sessionManager.getCwd();
   const mcp = options.mcpManager?.snapshot(cwd);
+  if (options.tools.some((tool) => tool.name === "request_user_input"))
+    throw new Error("The request_user_input tool name is reserved");
   const ordinaryTools = [
+    createUserInputTool(options.userInputService),
     ...options.tools,
     ...(options.skillManager ? [createSkillTool(options.skillManager, cwd)] : []),
   ];
   if (mcp?.tools.length && ordinaryTools.some((tool) => tool.name === "codemode"))
     throw new Error("The codemode tool name is reserved while MCP tools are available");
   const tools = mcp?.tools.length
-    ? [...ordinaryTools, createCodemodeTool([...ordinaryTools, ...mcp.tools], mcp.servers)]
+    ? [
+        ...ordinaryTools,
+        createCodemodeTool(
+          [...ordinaryTools.filter((tool) => tool.name !== "request_user_input"), ...mcp.tools],
+          mcp.servers,
+        ),
+      ]
     : ordinaryTools;
   const permission = buildPermissionContext(permissionPreset, cwd);
   const systemPrompt =

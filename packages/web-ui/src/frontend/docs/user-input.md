@@ -1,0 +1,17 @@
+# Answering Loop questions
+
+When Loop needs a consequential choice or missing requirement, a compact question card appears directly above the chat composer with an 8px gap and matching width. The composer remains mounted and keeps its draft. The card uses rounded corners and a subtle border, without a modal backdrop. Long questions scroll within a bounded card height.
+
+Each page contains one question. The upper-right arrows and page count support browsing while preserving answers; arrows never submit. The lower-right Next button advances after a valid answer. Send appears on the final page and submits the complete set only after every question has an answer or explicit skip. Navigation and submission are disabled while disconnected or submitting.
+
+Choice questions show numbered suggestions with the first option preselected, plus a borderless custom response field. Explicitly selecting a suggestion saves it and advances to the next question. Clicking the preselected first suggestion also advances; preselection itself does not. Selecting an option on the final page never submits. Returning to a question highlights the selected number with a filled contrasting badge and emphasizes its label. Typing clears the selected suggestion. Text questions show a bordered single-line field that grows with content and receives focus on desktop. Fields do not automatically open the mobile keyboard. Preselection never submits.
+
+All questions use the same presentation, without required markers or optional labels. Titles are displayed verbatim; any requirement wording in a title is only a text hint. Skip is available for every question. It explicitly records a skipped answer and advances to the next page. On the final page it submits the complete set; if earlier pages remain unanswered, it returns to the first incomplete page instead. Empty or whitespace-only text cannot directly advance or send and is never silently skipped. Previous answers and skips can be edited before final submission.
+
+Submitting continues the same run. Failed submissions retain edits and request a fresh snapshot. Disconnected cards disable submission; reconnect or refresh restores the question while the server remains alive. The header close control (**Stop**) cancels the run and invalidates the question. Completed answers appear in collapsed history cards. The session row shows a blue **Needs input** badge while waiting for an answer, including background sessions and reconnect fallback summaries. The badge clears after answering or cancellation.
+
+Answers are distinct from operation approval: choosing an implementation strategy does not authorize file, shell or external operations.
+
+Requests contain at least one question. Questions with options support a single choice (including a single suggestion) or custom text; questions without options require free text. Model-generated questions require an answer or explicit skip. The model supplies only a title and optional string options for each question. Pending waits do not survive server restart. Normal drafts and queued messages are retained, but voice and attachments are not answer inputs.
+
+See [card](../components/chat/UserInputCard.tsx), [tests](../components/chat/UserInputCard.test.tsx), [history](../components/chat/UserInputHistory.tsx), [transport](../../backend/docs/user-input.md), [chat input](chat.md) and [core contracts](../../../../coding-agent/src/docs/user-input.md).

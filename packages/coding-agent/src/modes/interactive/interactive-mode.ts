@@ -8,6 +8,8 @@ import { InteractiveOutput } from "./interactive-output";
 import { InteractiveApprovals } from "./interactive-approvals";
 import { isPermissionPreset } from "../../core/permissions/types";
 
+import { InteractiveUserInput } from "./interactive-user-input";
+
 export async function runInteractiveMode(
   runtime: AgentSessionRuntime,
   models: ModelRuntime,
@@ -28,10 +30,16 @@ export async function runInteractiveMode(
     input.prompt();
   }, !!process.stdin.isTTY && !!process.stdout.isTTY);
 
+  const userInput = new InteractiveUserInput((text) => {
+    process.stdout.write("\n" + text + "\n");
+    input.prompt();
+  }, !!process.stdin.isTTY && !!process.stdout.isTTY);
+
   const bind = (session: AgentSession) => {
     unsubscribe();
     unsubscribe = session.subscribe((event) => output.handle(event));
     approvals.bind(session);
+    userInput.bind(session);
   };
 
   bind(runtime.session);
@@ -41,7 +49,10 @@ export async function runInteractiveMode(
   const handle = async (line: string) => {
     const text = line.trim();
 
-    if (!text) return;
+    if (!text) {
+      if (userInput.handle(text)) input.prompt();
+      return;
+    }
 
     if (text === "/quit") {
       if (runtime.session.state.hasPendingSave)
@@ -51,7 +62,7 @@ export async function runInteractiveMode(
       return;
     }
 
-    if (approvals.handle(text)) {
+    if (approvals.handle(text) || userInput.handle(text)) {
       input.prompt();
       return;
     }
@@ -146,6 +157,7 @@ export async function runInteractiveMode(
     process.stdin.pause();
     unsubscribe();
     approvals.dispose();
+    userInput.dispose();
     output.finish();
     runtime.setRebindSession(undefined);
   }

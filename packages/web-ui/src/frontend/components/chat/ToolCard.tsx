@@ -8,6 +8,8 @@ import { useToolStatus } from "../../hooks/useToolStatus";
 import { ToolStatusIcon } from "./ToolStatusIcon";
 import { ToolActionIcon } from "./ToolActionIcon";
 import { toolLabel } from "./tool-label";
+import { userInputResult } from "../../../shared/user-input-result";
+import { UserInputHistory } from "./UserInputHistory";
 import "./ToolCard.css";
 
 export const ToolCard = ({
@@ -21,6 +23,9 @@ export const ToolCard = ({
   const [expanded, setExpanded] = useTimelineDisclosure("tool:" + tool.id);
   const iconStatus = useToolStatus(tool.id, tool.status);
   const { action, label, target, text } = toolLabel(tool, t);
+
+  const answer = userInputResult(tool);
+  if (answer) return <UserInputHistory result={answer} />;
 
   return (
     <details

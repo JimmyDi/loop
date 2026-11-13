@@ -18,9 +18,13 @@ import type { SkillManager } from "../skills/skill-manager";
 import type { LoadedSkill } from "../skills/types";
 import type { CompactionCheckpoint } from "../context/compaction-checkpoint";
 
+import type { UserInputEvent, UserInputRequest } from "../user-input/types";
+import type { UserInputService } from "../user-input/user-input-service";
+
 export type SessionEvent =
   | (AgentEvent & { toolDisplayName?: string })
   | ApprovalEvent
+  | UserInputEvent
   | { type: "agent_settled" }
   | { type: "queue_changed" }
   | { type: "prompt_timing"; timing: PromptTiming }
@@ -65,10 +69,13 @@ export type SessionState = {
   >;
   permissionPreset?: PermissionPreset;
   pendingApprovals?: ApprovalRequest[];
+  pendingUserInputs?: UserInputRequest[];
   skillLoads?: Array<{ userTurn: number; skills: LoadedSkill[] }>;
 };
 
 export type SessionOptions = {
+  /** Internal session-owned question bridge. */
+  userInputService?: UserInputService;
   model: Model<Api>;
   modelRuntime: ModelRuntime;
   sessionManager: SessionManager;

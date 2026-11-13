@@ -1156,3 +1156,87 @@ test.each(["edit", "cancel-edit"])(
     }
   },
 );
+
+test("waiting questions survive disconnect and reconnect; HTTP answers bind the request and first answer wins", async () => {
+  let calls = 0;
+  const session = new AgentSession({
+    model,
+    tools: [],
+    systemPrompt: "Test",
+    sessionManager: SessionManager.inMemory(),
+    modelRuntime: runtime(() => {
+      const native = createAssistantMessageEventStream();
+      calls++;
+      if (calls === 1) {
+        const message = {
+          ...answer(""),
+          stopReason: "toolUse" as const,
+          content: [
+            {
+              type: "toolCall" as const,
+              id: "ask",
+              name: "request_user_input",
+              arguments: { questions: [{ title: "Which strategy?" }] },
+            },
+          ],
+        };
+        native.push({ type: "done", reason: "toolUse", message });
+      } else native.push({ type: "done", reason: "stop", message: answer("Complete") });
+      return native;
+    }),
+  });
+  const controller = new SessionController(session, "project");
+  const frames: Frame[] = [];
+  const disconnect = controller.approvals.connect((frame) => frames.push(frame));
+  const routes = sessionRoutes({
+    get: async () => controller,
+    assertAvailable: () => {},
+  } as unknown as SessionRegistry);
+  const respond = async (requestId: string, answers: unknown) => {
+    const url = new URL(
+      "https://example.invalid/api/sessions/" + session.sessionId + "/user-input/" + requestId,
+    );
+    return routes(
+      new Request(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers }),
+      }),
+      url,
+    );
+  };
+  try {
+    controller.prompt("run", "Choose a strategy");
+    await waitFor(() => !!controller.snapshot.state.pendingUserInputs?.length);
+    const request = controller.snapshot.state.pendingUserInputs![0]!;
+    disconnect();
+    expect(calls).toBe(1);
+    expect(session.state.pendingUserInputs).toEqual([request]);
+    const replay: Frame[] = [];
+    const second = controller.approvals.connect((frame) => replay.push(frame));
+    try {
+      expect(replay[0]).toMatchObject({
+        type: "session.snapshot",
+        snapshot: { state: { pendingUserInputs: [request] } },
+      });
+      await expect(respond("wrong-request", [])).rejects.toThrow("user_input_not_pending");
+      await expect(
+        respond(request.requestId, [
+          { questionId: "wrong-question", type: "text", text: "answer" },
+        ]),
+      ).rejects.toThrow("user_input_not_pending");
+      const answers = [{ questionId: "question-1", type: "text", text: "Use manual updates" }];
+      expect((await respond(request.requestId, answers))?.status).toBe(200);
+      await expect(respond(request.requestId, answers)).rejects.toThrow("user_input_not_pending");
+      await waitFor(() => controller.snapshot.operation === "idle");
+      expect(calls).toBe(2);
+      expect(controller.snapshot.state.pendingUserInputs).toEqual([]);
+      expect(JSON.stringify(session.sessionManager.messages)).toContain("Use manual updates");
+    } finally {
+      second();
+    }
+  } finally {
+    disconnect();
+    await controller.close();
+  }
+});

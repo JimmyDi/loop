@@ -108,3 +108,14 @@ export type {
   VoiceEvent,
   VoiceEventListener,
 } from "./core/voice/voice-types";
+
+export type {
+  UserInputOption,
+  UserInputQuestion,
+  UserInputAnswer,
+  UserInputRequest,
+  UserInputResponse,
+  UserInputResult,
+  UserInputHandler,
+  UserInputEvent,
+} from "./core/user-input/types";

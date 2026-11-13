@@ -227,3 +227,35 @@ test("new Web sessions remain drafts until the first user message, appear during
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("question waits appear separately from approvals and clear for unloaded sessions", () => {
+  const record: SessionSummary = {
+    id: "session",
+    workspaceId: "project",
+    createdAt: "2026-01-01",
+    updatedAt: "2026-01-01",
+    messageCount: 1,
+    userMessageCount: 1,
+  };
+  const controller = {
+    workspaceId: "project",
+    createdAt: "2026-01-01",
+    session: { sessionManager: { getHeader: () => ({}) } },
+    snapshot: {
+      sessionId: "session",
+      operation: "prompt",
+      state: {
+        messages: [],
+        pendingUserInputs: [{ sessionId: "session", requestId: "q", questions: [], createdAt: 1 }],
+      },
+    },
+  } as unknown as SessionController;
+  expect(sessionSummaries([record], [controller], "project")[0]).toMatchObject({
+    isWaitingForUserInput: true,
+    isWaitingForApproval: false,
+  });
+  expect(
+    sessionSummaries([{ ...record, isWaitingForUserInput: true }], [], "project")[0]
+      ?.isWaitingForUserInput,
+  ).toBe(false);
+});

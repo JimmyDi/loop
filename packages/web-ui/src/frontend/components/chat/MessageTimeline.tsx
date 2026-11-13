@@ -55,7 +55,11 @@ export const MessageTimeline = ({
   );
   const compacting = snapshot.operation === "compact" || !!automatic;
   const compactStartedAt = automatic?.startedAt ?? snapshot.compactionStartedAt;
-  const looping = connected && snapshot.operation === "prompt" && !compacting;
+  const looping =
+    connected &&
+    snapshot.operation === "prompt" &&
+    !compacting &&
+    !snapshot.state.pendingUserInputs?.length;
   useReadReceipt(live, connected && !window.detached, scroll.ref, scroll.endRef);
   const history = useTimelineHistory(
     snapshot.sessionId,

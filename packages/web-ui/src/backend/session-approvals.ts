@@ -8,6 +8,7 @@ export class SessionApprovals {
   private clients = 0;
   private detach?: () => void;
   private disposed = false;
+  private detachUserInput?: () => void;
 
   constructor(
     private readonly session: SessionPort,
@@ -20,6 +21,9 @@ export class SessionApprovals {
       if (!this.clients) throw new Error("No approval interface connected");
       // The session event subscription has already published the pending snapshot.
     });
+    this.detachUserInput ??= this.session.registerUserInputHandler?.(() => {
+      if (!this.clients) throw new Error("No question interface connected");
+    });
     this.clients++;
     let disconnected = false;
     let unsubscribe = () => {};
@@ -28,7 +32,7 @@ export class SessionApprovals {
       disconnected = true;
       unsubscribe();
       this.clients--;
-      // Keep existing approvals pending while the user is away; reconnect restores them.
+      // Keep existing interactions pending while the user is away; reconnect restores them.
     };
     try {
       unsubscribe = this.events.connect(listener, cursor, () => {
@@ -65,5 +69,7 @@ export class SessionApprovals {
     const detach = this.detach;
     this.detach = undefined;
     detach?.();
+    this.detachUserInput?.();
+    this.detachUserInput = undefined;
   }
 }

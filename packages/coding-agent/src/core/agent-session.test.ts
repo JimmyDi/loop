@@ -149,9 +149,13 @@ test("MCP discovery cannot block prompts; ready tools join the next prompt and e
       true,
     );
     await session.prompt("First prompt while MCP is connecting");
-    expect(requests[0]!.tools?.map((tool) => tool.name)).toEqual(["read", "load_skill"]);
+    expect(requests[0]!.tools?.map((tool) => tool.name)).toEqual([
+      "request_user_input",
+      "read",
+      "load_skill",
+    ]);
     expect(requests[0]!.systemPrompt).toContain("<tool_usage>");
-    expect(requests[0]!.systemPrompt).toContain('["read","load_skill"]');
+    expect(requests[0]!.systemPrompt).toContain('["request_user_input","read","load_skill"]');
     expect(requests[0]!.systemPrompt).not.toContain("- mcp_");
     expect(requests[0]!.systemPrompt).not.toContain("<mcp_servers>");
     ready.resolve({
@@ -182,15 +186,18 @@ test("MCP discovery cannot block prompts; ready tools join the next prompt and e
       { type: "history", messageIndex: 4 },
     ]);
     expect(session.modelInputProjection?.historyMessageCount).toBe(5);
-    expect(requests[1]!.tools).toHaveLength(3);
+    expect(requests[1]!.tools).toHaveLength(4);
     expect(requests[1]!.tools?.map((tool) => tool.name)).toEqual([
+      "request_user_input",
       "read",
       "load_skill",
       "codemode",
     ]);
     expect(requests[1]!.systemPrompt).not.toContain("Complete direct-call tool names");
     expect(requests[1]!.systemPrompt).not.toContain("- read:");
-    expect(requests[1]!.systemPrompt).toContain('["read","load_skill","codemode"]');
+    expect(requests[1]!.systemPrompt).toContain(
+      '["request_user_input","read","load_skill","codemode"]',
+    );
     expect(requests[1]!.systemPrompt).toContain(
       "exact literal name field of each tool declaration (tools[].name)",
     );
@@ -235,7 +242,11 @@ test("MCP discovery cannot block prompts; ready tools join the next prompt and e
     });
     await manager.setEnabled("fixture", false);
     await session.prompt("Next prompt with MCP disabled");
-    expect(requests.at(-1)!.tools?.map((tool) => tool.name)).toEqual(["read", "load_skill"]);
+    expect(requests.at(-1)!.tools?.map((tool) => tool.name)).toEqual([
+      "request_user_input",
+      "read",
+      "load_skill",
+    ]);
     expect(requests.at(-1)!.systemPrompt).not.toContain("- " + external.name);
     expect(requests.at(-1)!.systemPrompt).not.toContain("<mcp_servers>");
     expect(requests.at(-1)!.systemPrompt).not.toContain("Complete direct-call tool names");
@@ -948,7 +959,7 @@ test("two prompts create fresh Agents, preserve complete tool history and commit
     expect(
       contexts.every(
         (context) =>
-          context.tools?.length === 5 && context.systemPrompt === contexts[0].systemPrompt,
+          context.tools?.length === 6 && context.systemPrompt === contexts[0].systemPrompt,
       ),
     ).toBe(true);
     expect(signals[0]).toBe(signals[1]);
@@ -1466,9 +1477,12 @@ test("explicit and automatic skills preserve instructions in durable history wit
     await session.prompt("Review the source");
     expect(requests[0]?.systemPrompt).toContain("Base\n\n<cwd>");
     expect(requests[0]?.systemPrompt).toContain("<tool_usage>");
-    expect(requests[0]?.systemPrompt).toContain('["load_skill"]');
+    expect(requests[0]?.systemPrompt).toContain('["request_user_input","load_skill"]');
     expect(requests[0]?.systemPrompt).not.toContain("- load_skill:");
-    expect(requests[0]?.tools?.map((tool) => tool.name)).toEqual(["load_skill"]);
+    expect(requests[0]?.tools?.map((tool) => tool.name)).toEqual([
+      "request_user_input",
+      "load_skill",
+    ]);
     expect(requests[0]?.systemPrompt).toContain("<skills>\nSkills provide task-specific");
     expect(requests[0]?.systemPrompt).toContain(
       "- " + skill.handle + " (example, project): Review source",
@@ -2117,6 +2131,168 @@ test("stop during queue acceptance retains the selected input for exactly one re
     ]);
   } finally {
     detach();
+    await session.abort();
+    session.dispose();
+    await session.flushTrace();
+  }
+});
+
+test("user input blocks model continuation in full access and persists the exact answer", async () => {
+  let calls = 0;
+  const ready = Promise.withResolvers<void>();
+  const options = {
+    model,
+    modelRuntime: runtime((_model, context) => {
+      calls++;
+      expect(context.tools?.some((tool) => tool.name === "request_user_input")).toBe(true);
+      return stream(
+        calls === 1
+          ? answer(
+              [
+                {
+                  type: "toolCall",
+                  id: "question-call",
+                  name: "request_user_input",
+                  arguments: { questions: [{ title: "Which strategy?" }] },
+                },
+              ],
+              "toolUse",
+            )
+          : answer(),
+      );
+    }),
+    noContextFiles: true,
+    settingsManager: SettingsManager.inMemory(),
+    sessionManager: SessionManager.inMemory(),
+    tools: [],
+    permissionPreset: "danger-full-access" as const,
+  };
+  const { session } = await createAgentSession(options);
+  session.registerUserInputHandler(() => {
+    ready.resolve();
+  });
+  try {
+    const running = session.prompt("Choose a strategy");
+    await ready.promise;
+    expect(calls).toBe(1);
+    expect(session.state.pendingApprovals).toEqual([]);
+    const request = session.state.pendingUserInputs![0]!;
+    expect(
+      session.respondToUserInput({
+        ...request,
+        answers: [{ questionId: "question-1", type: "text", text: "Use the simple approach" }],
+      }),
+    ).toBe(true);
+    await running;
+    expect(calls).toBe(2);
+    const result = session.sessionManager.messages.find((message) => message.role === "toolResult");
+    expect(result).toMatchObject({ toolCallId: "question-call", isError: false });
+    expect(JSON.stringify(result)).toContain("Use the simple approach");
+    expect(session.state.pendingUserInputs).toEqual([]);
+    expect(session.permissionPreset).toBe("danger-full-access");
+  } finally {
+    await session.abort();
+    session.dispose();
+    await session.flushTrace();
+  }
+});
+
+test("aborting a waiting question cancels it and rejects stale answers", async () => {
+  const ready = Promise.withResolvers<void>();
+  const session = new AgentSession({
+    model,
+    systemPrompt: "Test",
+    tools: [],
+    sessionManager: SessionManager.inMemory(),
+    modelRuntime: runtime(() =>
+      stream(
+        answer(
+          [
+            {
+              type: "toolCall",
+              id: "question",
+              name: "request_user_input",
+              arguments: { questions: [{ title: "Which approach?" }] },
+            },
+          ],
+          "toolUse",
+        ),
+      ),
+    ),
+  });
+  session.registerUserInputHandler(() => {
+    ready.resolve();
+  });
+  try {
+    const running = session.prompt("Plan the change");
+    const rejected = expect(running).rejects.toThrow();
+    await ready.promise;
+    const request = session.state.pendingUserInputs![0]!;
+    await session.abort();
+    await rejected;
+    expect(session.state.pendingUserInputs).toEqual([]);
+    expect(
+      session.respondToUserInput({
+        ...request,
+        answers: [{ questionId: "q", type: "text", text: "late" }],
+      }),
+    ).toBe(false);
+    expect(session.state.outcome).toBe("cancelled");
+  } finally {
+    session.dispose();
+    await session.flushTrace();
+  }
+});
+
+test("queued messages remain untouched until the current question is answered", async () => {
+  let calls = 0;
+  const ready = Promise.withResolvers<void>();
+  const session = new AgentSession({
+    model,
+    tools: [],
+    systemPrompt: "Test",
+    sessionManager: SessionManager.inMemory(),
+    modelRuntime: runtime(() => {
+      calls++;
+      return stream(
+        calls === 1
+          ? answer(
+              [
+                {
+                  type: "toolCall",
+                  id: "q",
+                  name: "request_user_input",
+                  arguments: { questions: [{ title: "Which strategy?" }] },
+                },
+              ],
+              "toolUse",
+            )
+          : answer(),
+      );
+    }),
+  });
+  session.registerUserInputHandler(() => {
+    ready.resolve();
+  });
+  try {
+    const running = session.prompt("First task");
+    await ready.promise;
+    const queued = session.enqueue("Next task");
+    expect(session.state.queue?.[0]?.id).toBe(queued);
+    expect(calls).toBe(1);
+    const request = session.state.pendingUserInputs![0]!;
+    session.respondToUserInput({
+      ...request,
+      answers: [{ questionId: "question-1", type: "text", text: "Simple" }],
+    });
+    await running;
+    await session.waitForIdle();
+    expect(session.state.queue).toEqual([]);
+    expect(calls).toBe(3);
+    expect(
+      session.sessionManager.messages.filter((message) => message.role === "user"),
+    ).toHaveLength(2);
+  } finally {
     await session.abort();
     session.dispose();
     await session.flushTrace();

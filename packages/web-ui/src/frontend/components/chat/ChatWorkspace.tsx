@@ -15,6 +15,7 @@ import { MessageTimeline } from "./MessageTimeline";
 import { ChatComposer } from "./ChatComposer";
 import { SessionStatus } from "./SessionStatus";
 import { SessionApprovals } from "./SessionApprovals";
+import { UserInputCard } from "./UserInputCard";
 import "./ChatWorkspace.css";
 
 export const ChatWorkspace = ({ id }: { id?: string }) => {
@@ -83,6 +84,13 @@ export const ChatWorkspace = ({ id }: { id?: string }) => {
           <div className="chat-workspace-input">
             <SessionStatus snapshot={snapshot} connected={connected} />
             <SessionApprovals snapshot={snapshot} connected={connected} />
+            {snapshot.state.pendingUserInputs?.[0] && (
+              <UserInputCard
+                key={snapshot.state.pendingUserInputs[0].requestId}
+                request={snapshot.state.pendingUserInputs[0]}
+                connected={connected}
+              />
+            )}
             <ChatComposer key={snapshot.sessionId} snapshot={snapshot} connected={connected} />
           </div>
         </div>

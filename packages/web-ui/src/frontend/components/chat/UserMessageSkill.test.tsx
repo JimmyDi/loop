@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from "node:timers/promises";
 import { expect, test, vi } from "vitest";
 import { Window } from "happy-dom";
 
@@ -12,7 +13,7 @@ test("saved skill descriptions open on hover or focus and dismiss without moving
     fetch: globalThis.fetch,
   };
   Object.assign(globalThis, { window, document: window.document });
-  const { render, fireEvent, cleanup, waitFor } = await import("@testing-library/react/pure");
+  const { render, fireEvent, cleanup, waitFor, act } = await import("@testing-library/react/pure");
   const language = i18n.language;
   const fetch = vi.fn();
   globalThis.fetch = fetch;
@@ -53,8 +54,11 @@ test("saved skill descriptions open on hover or focus and dismiss without moving
     await waitFor(() => expect(view.queryByRole("tooltip")).toBeNull());
     expect(trigger.textContent).toBe("Review");
   } finally {
-    cleanup();
-    await i18n.changeLanguage(language);
+    await act(async () => {
+      cleanup();
+      await i18n.changeLanguage(language);
+      await sleep(0);
+    });
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }
@@ -68,7 +72,7 @@ test("legacy descriptions resolve by exact source only on demand and handle miss
     fetch: globalThis.fetch,
   };
   Object.assign(globalThis, { window, document: window.document });
-  const { render, fireEvent, cleanup, waitFor } = await import("@testing-library/react/pure");
+  const { render, fireEvent, cleanup, waitFor, act } = await import("@testing-library/react/pure");
   const language = i18n.language;
   const fetch = vi.fn(async () =>
     Response.json({
@@ -103,8 +107,11 @@ test("legacy descriptions resolve by exact source only on demand and handle miss
       expect(missing.getByRole("tooltip").textContent).toBe("Skill description is unavailable."),
     );
   } finally {
-    cleanup();
-    await i18n.changeLanguage(language);
+    await act(async () => {
+      cleanup();
+      await i18n.changeLanguage(language);
+      await sleep(0);
+    });
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

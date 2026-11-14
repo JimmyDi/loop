@@ -17,16 +17,14 @@ import { SessionStatus } from "./SessionStatus";
 import { PlanPanelContext } from "../../lib/plan-panel-context";
 import { usePanelTabs } from "../../hooks/usePanelTabs";
 import { PlanIcon } from "./PlanIcon";
+import { WorkspacePanel, PanelResizer, PanelTabs } from "../../lib/lazy-panel-components";
 import {
-  WorkspacePanel,
-  PanelResizer,
-  PanelTabs,
-  ChatComposer,
   SessionApprovals,
   UserInputCard,
   PlanReviewCard,
-  PlanContentPanel,
-} from "../../lib/lazy-workspace-components";
+} from "../../lib/lazy-session-interactions";
+import { ChatComposer } from "../../lib/lazy-composer";
+import { PlanContentPanel } from "../../lib/lazy-plan-content";
 import "./ChatWorkspace.css";
 
 export const ChatWorkspace = ({ id }: { id?: string }) => {

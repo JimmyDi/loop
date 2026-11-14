@@ -1,0 +1,6 @@
+.plan-content-panel { display: flex; flex-direction: column; height: 100%; min-height: 0; min-width: 0; background: var(--surface-raised); }
+.plan-content-panel > header { display: flex; justify-content: flex-end; padding: 4px 12px; }
+.plan-content-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; min-height: 0; padding: 12px 24px 40px; }
+.plan-content-scroll > h2 { margin: 0 0 24px; font-size: 22px; }
+.plan-content-scroll .markdown-container { font-size: 14px; line-height: 1.6; }
+@media (max-width: 767px) { .plan-content-scroll { padding: 12px 16px 32px; } }

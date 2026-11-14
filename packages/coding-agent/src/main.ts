@@ -80,6 +80,7 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
       }),
     { cwd: sessionManager.getCwd(), sessionManager, model },
   );
+  if (flags.has("--plan")) await runtime.session.setMode("plan");
   let signalCode = 0;
   const interrupt = () => {
     signalCode = 130;

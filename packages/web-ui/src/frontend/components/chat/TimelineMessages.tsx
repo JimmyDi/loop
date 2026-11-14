@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, lazy, Suspense } from "react";
 
 import type { RefObject } from "react";
 import type { SessionSnapshot } from "../../../shared/protocol";
@@ -11,6 +11,11 @@ import { AssistantTurn } from "./AssistantTurn";
 import { PromptDuration } from "./PromptDuration";
 import { CompactionStatus } from "./CompactionStatus";
 import { projectAssistantTurn } from "./timeline-turns";
+import { plansForTimelineEntry } from "./timeline-plans";
+
+const SessionPlans = lazy(() =>
+  import("./SessionPlans").then((module) => ({ default: module.SessionPlans })),
+);
 
 export const TimelineMessages = ({
   snapshot,
@@ -72,7 +77,12 @@ export const TimelineMessages = ({
     }
 
     const entries = projectAssistantTurn(turn.messages);
-    for (const entry of entries)
+    for (const entry of entries) {
+      const plans = plansForTimelineEntry(
+        entry,
+        turn.messages,
+        snapshot.state.planning?.plans ?? [],
+      );
       rows.push({
         key: key + ":" + (entry.index + offset),
         render: () => (
@@ -87,12 +97,18 @@ export const TimelineMessages = ({
               draftIndex={draftIndex}
               running={snapshot.operation === "prompt" && turn === turns.at(-1)}
             />
+            {!!plans.length && (
+              <Suspense fallback={null}>
+                <SessionPlans plans={plans} />
+              </Suspense>
+            )}
             {position === compactedPosition && entry === entries.at(-1) && (
               <CompactionStatus key={checkpoint?.id} />
             )}
           </Fragment>
         ),
       });
+    }
   });
 
   const pinned = rows.flatMap((row, index) =>

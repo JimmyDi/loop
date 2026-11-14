@@ -1,0 +1,24 @@
+.composer-plan-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  cursor: pointer;
+}
+.composer-plan-item:disabled { opacity: 0.5; cursor: not-allowed; }
+.composer-plan-item:focus-visible { outline: 2px solid var(--ink-muted); outline-offset: 2px; }
+
+.composer-plan-icon { display: grid; width: 16px; height: 16px; place-items: center; }
+.composer-plan-icon > * { grid-area: 1 / 1; }
+.composer-plan-close { visibility: hidden; }
+.composer-plan-item:not(:disabled):hover,
+.composer-plan-item:not(:disabled):focus-visible { background: var(--surface-hover); }
+.composer-plan-item:not(:disabled):hover .plan-icon,
+.composer-plan-item:not(:disabled):focus-visible .plan-icon { visibility: hidden; }
+.composer-plan-item:not(:disabled):hover .composer-plan-close,
+.composer-plan-item:not(:disabled):focus-visible .composer-plan-close { visibility: visible; }

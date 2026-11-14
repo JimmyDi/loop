@@ -38,6 +38,9 @@ export const sessionSummaries = (
       pinnedAt: controller.session.sessionManager.getHeader().pinnedAt,
       title: state.title?.text ?? record?.title,
       isGenerating: operation === "prompt",
+      isPlanning: operation === "prompt" && state.planning?.mode === "plan",
+      isPlanReady:
+        state.planning?.mode === "plan" && state.planning.plans.at(-1)?.status === "ready",
       isWaitingForUserInput: !!state.pendingUserInputs?.length,
       isWaitingForApproval:
         state.pendingApprovals?.some((request) => request.sessionId === sessionId) ?? false,

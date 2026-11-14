@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { lazy, Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
+import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SessionSnapshot } from "../../../shared/protocol";
@@ -12,20 +13,24 @@ import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { LoopIcon } from "../ui/LoopIcon";
 import { MessageTimeline } from "./MessageTimeline";
-import { ChatComposer } from "./ChatComposer";
 import { SessionStatus } from "./SessionStatus";
+import { PlanPanelContext } from "../../lib/plan-panel-context";
+import { usePanelTabs } from "../../hooks/usePanelTabs";
+import { PlanIcon } from "./PlanIcon";
+import { WorkspacePanel, PanelResizer, PanelTabs } from "../../lib/lazy-panel-components";
+import {
+  SessionApprovals,
+  UserInputCard,
+  PlanReviewCard,
+} from "../../lib/lazy-session-interactions";
+import { ChatComposer } from "../../lib/lazy-composer";
+import { PlanContentPanel } from "../../lib/lazy-plan-content";
 import "./ChatWorkspace.css";
-
-const SessionApprovals = lazy(() =>
-  import("./SessionApprovals").then((module) => ({ default: module.SessionApprovals })),
-);
-
-const UserInputCard = lazy(() =>
-  import("./UserInputCard").then((module) => ({ default: module.UserInputCard })),
-);
 
 export const ChatWorkspace = ({ id }: { id?: string }) => {
   const { t } = useTranslation();
+  const [panelRatio, setPanelRatio] = useState(0.5);
+  const [resizing, setResizing] = useState(false);
   const client = useQueryClient();
   const view = useSessions((state) => (id ? state.views[id] : undefined));
   const query = useQuery({
@@ -61,6 +66,7 @@ export const ChatWorkspace = ({ id }: { id?: string }) => {
 
   const snapshot = view?.snapshot ?? query.data;
   const connected = view?.connected ?? false;
+  const panel = usePanelTabs<{ kind: "plan"; planId: string }>(snapshot?.sessionId ?? id ?? "new");
   const empty =
     snapshot &&
     snapshot.state.messages.length === 0 &&
@@ -68,45 +74,118 @@ export const ChatWorkspace = ({ id }: { id?: string }) => {
     snapshot.operation !== "prompt";
 
   return (
-    <main className="chat-workspace">
-      <SessionHeader snapshot={snapshot} />
-      {query.error && (
-        <div className="workspace-error">
-          <ErrorNotice error={query.error} />
-          <ActionButton onClick={() => void query.refetch()}>{t("retry")}</ActionButton>
-        </div>
-      )}
-      {!snapshot && !query.error && <p className="workspace-loading">{t("loading")}</p>}
-      {snapshot && (
-        <div className="chat-workspace-body" data-empty={empty}>
-          {empty ? (
-            <div className="chat-welcome">
-              <LoopIcon size={64} />
-              <h1>Loop everything</h1>
-            </div>
-          ) : (
-            <MessageTimeline snapshot={snapshot} connected={connected} />
-          )}
-          <div className="chat-workspace-input">
-            <SessionStatus snapshot={snapshot} connected={connected} />
-            {!!snapshot.state.pendingApprovals?.length && (
+    <PlanPanelContext
+      value={(id) => {
+        const plan = snapshot?.state.planning?.plans.find((plan) => plan.id === id);
+        if (plan)
+          panel.add({
+            id,
+            title: "Plan",
+            content: { kind: "plan", planId: id },
+          });
+      }}
+    >
+      <div
+        className="chat-panel-workspace"
+        data-panel={panel.open}
+        data-resizing={resizing}
+        style={{ "--panel-ratio": panelRatio * 100 + "%" } as CSSProperties}
+      >
+        <SessionHeader
+          snapshot={snapshot}
+          panel={panel.open || panel.tabs.length ? panel : undefined}
+          tabs={
+            !!panel.tabs.length && (
               <Suspense fallback={null}>
-                <SessionApprovals snapshot={snapshot} connected={connected} />
+                <PanelTabs
+                  tabs={panel.tabs}
+                  active={panel.active}
+                  select={panel.select}
+                  close={panel.close}
+                  renderIcon={() => <PlanIcon />}
+                />
               </Suspense>
+            )
+          }
+        />
+        <div className="chat-plan-layout" data-panel={panel.open} data-resizing={resizing}>
+          {panel.open && (
+            <Suspense fallback={null}>
+              <PanelResizer ratio={panelRatio} change={setPanelRatio} dragging={setResizing} />
+            </Suspense>
+          )}
+          <main className="chat-workspace">
+            {query.error && (
+              <div className="workspace-error">
+                <ErrorNotice error={query.error} />
+                <ActionButton onClick={() => void query.refetch()}>{t("retry")}</ActionButton>
+              </div>
             )}
-            {snapshot.state.pendingUserInputs?.[0] && (
+            {!snapshot && !query.error && <p className="workspace-loading">{t("loading")}</p>}
+            {snapshot && (
+              <div className="chat-workspace-body" data-empty={empty}>
+                {empty ? (
+                  <div className="chat-welcome">
+                    <LoopIcon size={64} />
+                    <h1>Loop everything</h1>
+                  </div>
+                ) : (
+                  <MessageTimeline snapshot={snapshot} connected={connected} />
+                )}
+                <div className="chat-workspace-input">
+                  <SessionStatus snapshot={snapshot} connected={connected} />
+                  {!!snapshot.state.pendingApprovals?.length && (
+                    <Suspense fallback={null}>
+                      <SessionApprovals snapshot={snapshot} connected={connected} />
+                    </Suspense>
+                  )}
+                  {snapshot.state.pendingUserInputs?.[0] && (
+                    <Suspense fallback={null}>
+                      <UserInputCard
+                        key={snapshot.state.pendingUserInputs[0].requestId}
+                        request={snapshot.state.pendingUserInputs[0]}
+                        connected={connected}
+                      />
+                    </Suspense>
+                  )}
+                  {snapshot.state.planning?.plans.at(-1)?.status === "ready" && (
+                    <Suspense fallback={null}>
+                      <PlanReviewCard
+                        key={snapshot.sessionId + snapshot.state.planning.plans.at(-1)!.id}
+                        snapshot={snapshot}
+                        connected={connected}
+                      />
+                    </Suspense>
+                  )}
+                  <Suspense fallback={null}>
+                    <ChatComposer
+                      key={snapshot.sessionId}
+                      snapshot={snapshot}
+                      connected={connected}
+                    />
+                  </Suspense>
+                </div>
+              </div>
+            )}
+          </main>
+          <div className="workspace-panel-slot" inert={!panel.open} aria-hidden={!panel.open}>
+            {!!panel.tabs.length && (
               <Suspense fallback={null}>
-                <UserInputCard
-                  key={snapshot.state.pendingUserInputs[0].requestId}
-                  request={snapshot.state.pendingUserInputs[0]}
-                  connected={connected}
+                <WorkspacePanel
+                  tabs={panel.tabs}
+                  active={panel.active}
+                  renderContent={(content) => {
+                    const plan = snapshot?.state.planning?.plans.find(
+                      (plan) => plan.id === content.planId,
+                    );
+                    return plan ? <PlanContentPanel plan={plan} /> : null;
+                  }}
                 />
               </Suspense>
             )}
-            <ChatComposer key={snapshot.sessionId} snapshot={snapshot} connected={connected} />
           </div>
         </div>
-      )}
-    </main>
+      </div>
+    </PlanPanelContext>
   );
 };

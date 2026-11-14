@@ -70,7 +70,7 @@ Web displays a question card immediately above the mounted chat composer. Each p
 
 ## Limitations
 
-Pending tool waits are not persisted or resumed across process restarts. Restored sessions retain completed answers, but interrupted requests cannot accept old responses. Model judgment about when to ask is guided, not guaranteed. Web cards appear above the composer while waiting; voice and attachments are not answer inputs. This feature does not implement Plan Mode.
+Pending tool waits are not persisted or resumed across process restarts. Restored sessions retain completed answers, but interrupted requests cannot accept old responses. Model judgment about when to ask is guided, not guaranteed. Web cards appear above the composer while waiting; voice and attachments are not answer inputs. Plan mode reuses these questions for requirement clarification; see [Plan mode](plan-mode.md).
 
 ## Source and tests
 

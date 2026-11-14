@@ -562,3 +562,58 @@ test("a failed turn checkpoint and exhausted request budget do not consume queue
     expect(queued).toEqual(["retained"]);
   }
 });
+
+test("successful terminal tool pairs remaining calls and finishes without consuming queued input", async () => {
+  const history: Message[] = [];
+  let executions = 0;
+  let requests = 0;
+  let polls = 0;
+  const final = answer([call("first"), call("second")]);
+  const result = await runAgentLoop("task", history, {
+    model,
+    streamFn: () => {
+      requests++;
+      return stream(final);
+    },
+    tools: [
+      {
+        ...tool(() => {
+          executions++;
+          return [{ type: "text", text: "saved" }];
+        }),
+        endTurn: true,
+      },
+    ],
+    maxTurns: 1,
+    getFollowUpMessages: () => {
+      polls++;
+      return ["next"];
+    },
+  });
+  expect(result).toEqual(final);
+  expect(executions).toBe(1);
+  expect(requests).toBe(1);
+  expect(polls).toBe(0);
+  expect(history.filter((item) => item.role === "toolResult")).toMatchObject([
+    { toolCallId: "first", isError: false },
+    { toolCallId: "second", isError: true },
+  ]);
+});
+
+test("failed terminal tool does not end the run", async () => {
+  let requests = 0;
+  const result = await runAgentLoop("task", [], {
+    model,
+    streamFn: () => stream(++requests === 1 ? answer([call("first")]) : answer()),
+    tools: [
+      {
+        ...tool(() => {
+          throw new Error("Save failed");
+        }),
+        endTurn: true,
+      },
+    ],
+  });
+  expect(requests).toBe(2);
+  expect(result.stopReason).toBe("stop");
+});

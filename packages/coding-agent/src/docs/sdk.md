@@ -101,3 +101,7 @@ Hosts can supply a shared `mcpManager` to add ready external tools to each promp
 ## Source
 
 [sdk.ts](../core/sdk.ts), [agent-session.ts](../core/agent-session.ts), [agent-session-services.ts](../core/agent-session-services.ts), and [sdk.test.ts](../core/sdk.test.ts).
+
+## Planning
+
+Use `session.setMode("plan")` while idle, then prompt normally. `state.planning` retains versioned plans. `session.executePlan(id, version)` confirms the latest ready plan and starts execution; its promise settles with the run. See [Plan mode](plan-mode.md).

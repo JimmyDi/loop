@@ -1,0 +1,123 @@
+.plan-review-card {
+  box-sizing: border-box;
+  width: min(calc(100% - 36px), 860px);
+  margin: 0 auto 8px;
+  padding: 12px 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-size: 13px;
+}
+.plan-review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 6px 10px;
+  font-size: 14px;
+}
+.plan-review-card button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 12px;
+  min-height: 30px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.plan-review-card button:hover:not(:disabled) { background: var(--surface-hover); }
+.plan-review-card button:disabled { opacity: 0.5; cursor: not-allowed; }
+.plan-review-card .plan-review-close {
+  border: 0;
+  padding: 0;
+  width: 28px;
+  min-height: 28px;
+  color: var(--ink-muted);
+  font-size: 18px;
+}
+.plan-review-card .plan-review-implement {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-hover);
+}
+.plan-review-choice {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface-selected);
+}
+.plan-review-arrow { margin-left: auto; color: var(--ink-muted); font-size: 18px; }
+.plan-review-footer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 8px 6px 0;
+}
+.plan-review-feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 3px 4px;
+  border-radius: 8px;
+}
+.plan-review-feedback svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 3px;
+  fill: none;
+  stroke: var(--ink-muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.plan-review-feedback textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 22px;
+  max-height: 120px;
+  field-sizing: content;
+  resize: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  line-height: 22px;
+}
+.plan-review-feedback textarea::placeholder { color: var(--ink-muted); }
+.plan-review-feedback textarea:focus { outline: none; }
+.plan-review-feedback:focus-within, .plan-review-card button:focus-visible {
+  outline: 2px solid var(--focus-border);
+}
+.plan-review-card .plan-review-send {
+  background: var(--ink);
+  color: var(--surface-raised);
+}
+.plan-review-card .plan-review-send:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 85%, var(--surface));
+}
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .plan-review-card {
+    width: calc(100% - max(12px, env(safe-area-inset-left)) - max(12px, env(safe-area-inset-right)));
+  }
+  .plan-review-card button { min-height: 44px; }
+  .plan-review-card .plan-review-close { min-height: 44px; width: 44px; }
+  .plan-review-feedback textarea { font-size: 16px; }
+  .plan-review-footer { flex-wrap: wrap; }
+  .plan-review-feedback { flex-basis: 100%; }
+  .plan-review-footer > button:first-of-type { margin-left: auto; }
+}

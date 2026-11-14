@@ -1,3 +1,5 @@
+import { ComposerPlanControls } from "./ComposerPlanControls";
+import { useComposerMode } from "../../hooks/useComposerMode";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -5,8 +7,7 @@ import type { ChatComposerProps } from "./chat-composer-types";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { usePrompt } from "../../hooks/usePrompt";
 import { useModelSelection } from "../../hooks/useModelSelection";
-import { useSessionPermission } from "../../hooks/useSessionPermission";
-import { command } from "../../lib/api";
+import { ApiError, command } from "../../lib/api";
 import { ComposerDeliveryNotice } from "./ComposerDeliveryNotice";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { MessageQueue } from "./MessageQueue";
@@ -14,9 +15,7 @@ import { ComposerInput } from "./ComposerInput";
 import { ComposerToolbar } from "./ComposerToolbar";
 import { ComposerSkills } from "./ComposerSkills";
 import { ComposerModelSettings } from "./ComposerModelSettings";
-import { SessionPermissions } from "./SessionPermissions";
 import { ComposerAttachments } from "./ComposerAttachments";
-import { ComposerAddMenu } from "./ComposerAddMenu";
 import { useComposerAttachments } from "../../hooks/useComposerAttachments";
 import { useComposerProject } from "../../hooks/useComposerProject";
 import { ComposerProjectSelector } from "./ComposerProjectSelector";
@@ -24,7 +23,7 @@ import { useModels } from "../../hooks/useModels";
 import { useContextCompaction } from "../../hooks/useContextCompaction";
 import { ComposerCommands } from "./ComposerCommands";
 import { ComposerSendButton } from "./ComposerSendButton";
-import { ApiError } from "../../lib/api";
+import { composerError, composerBlocked } from "../../lib/composer-error";
 import { useQueuedComposer } from "../../hooks/useQueuedComposer";
 import { VoiceControls } from "./VoiceControls";
 import { ComposerSubmitActions } from "./ComposerSubmitActions";
@@ -44,9 +43,9 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
   const queue = useQueuedComposer(snapshot, () => setFocusRequest((request) => request + 1));
   const stopping = useAsyncAction();
   const model = useModelSelection(snapshot);
-  const permission = useSessionPermission(snapshot);
-  const attachments = useComposerAttachments(snapshot.sessionId);
-  const models = useModels();
+  const { permission, planning } = useComposerMode(snapshot);
+  const attachments = useComposerAttachments(snapshot.sessionId),
+    models = useModels();
   const compact = useContextCompaction(snapshot, connected);
   const inputValue = compact.running && /^\s*\/[a-z]*\s*$/i.test(prompt.text) ? "" : prompt.text;
   const current =
@@ -66,8 +65,14 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
     compact.running ||
     prompt.uncertain ||
     queue.pending;
-  const blocked =
-    disabled || model.pending || permission.pending || attachments.pending || stopping.pending;
+  const blocked = composerBlocked(
+    disabled,
+    planning.pending,
+    model.pending,
+    permission.pending,
+    attachments.pending,
+    stopping.pending,
+  );
   const control = (action: "abort" | "resume") =>
     void stopping.run(() => command("/sessions/" + snapshot.sessionId + "/" + action));
   const submit = () => {
@@ -82,22 +87,21 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
       return;
     }
     if (!prompt.text.trim() && !prompt.images.length && !prompt.files.length) return;
-
     setFocusRequest((request) => request + 1);
     void prompt.submit();
   };
 
-  const error = [
+  const error = composerError([
     prompt.error,
     queue.error,
     compact.error,
     stopping.error,
     model.error,
-    permission.error,
+    ...[permission.error, planning.error],
     attachments.error,
     project.error,
     unsupportedImages ? new ApiError("model_images_unsupported", "", 400) : undefined,
-  ].find((error) => error !== undefined);
+  ]);
 
   return (
     <div className="composer-region" ref={region}>
@@ -158,19 +162,15 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
           onCompact={() => void compact.start()}
         />
         <ComposerToolbar control={voice}>
-          <ComposerAddMenu
-            disabled={blocked}
+          <ComposerPlanControls
+            snapshot={snapshot}
+            blocked={blocked}
+            running={running}
             imageCount={prompt.images.length}
             fileCount={prompt.files.length}
             add={(files) => void attachments.add(files)}
-          />
-          <SessionPermissions
-            key={snapshot.sessionId}
-            snapshot={snapshot}
-            disabled={disabled || running || model.pending || attachments.pending}
-            pending={permission.pending}
-            error={permission.error}
-            select={permission.change}
+            planning={planning}
+            permission={permission}
           />
           <ComposerModelSettings
             snapshot={snapshot}

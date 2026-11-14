@@ -1,3 +1,4 @@
+import { planningRoute } from "./session-planning";
 import type { UserInputAnswer } from "../../shared/protocol";
 import { revealSession } from "./session-reveal";
 import { navigationRoute } from "./session-navigation";
@@ -15,19 +16,15 @@ export const sessionRoutes =
   (registry: SessionRegistry) =>
   async (request: Request, url: URL): Promise<Response | undefined> => {
     const method = request.method;
-
     if (url.pathname === "/api/models" && method === "GET") {
       return Response.json(await registry.loop.models());
     }
-
     if (url.pathname === "/api/sessions") {
       if (method === "GET") {
         const id =
           url.searchParams.get("scope") === "global" ? null : url.searchParams.get("workspaceId");
-
         if (id === null && url.searchParams.get("scope") !== "global")
           throw new HttpError(400, "invalid_workspaceId");
-
         const archived = url.searchParams.get("archived") === "true";
         return Response.json(
           (await registry.list(id)).filter(
@@ -36,21 +33,16 @@ export const sessionRoutes =
           ),
         );
       }
-
       if (method === "POST") {
         const body = await readBody(request);
         const controller = await registry.create(sessionWorkspace(body));
-
         return Response.json(pageSnapshot(controller.snapshot), { status: 201 });
       }
     }
-
     const match = url.pathname.match(
-      /^\/api\/sessions\/([^/]+)(?:\/(navigation|reveal|history|prompt|queue|resume|abort|flush|compact|model|events|title|permission|approvals|user-input|read|pin)(?:\/([^/]+))?)?$/,
+      /^\/api\/sessions\/([^/]+)(?:\/(navigation|reveal|history|prompt|queue|resume|abort|flush|compact|model|events|title|permission|mode|execute-plan|skip-plan|approvals|user-input|read|pin)(?:\/([^/]+))?)?$/,
     );
-
     if (!match) return;
-
     const [, id, action, requestId] = match;
     if ((action === "approvals" || action === "user-input") !== !!requestId) return;
     if (action === "pin") {
@@ -72,30 +64,26 @@ export const sessionRoutes =
       action === "prompt" ||
       action === "model" ||
       action === "permission" ||
+      action === "mode" ||
+      action === "execute-plan" ||
+      action === "skip-plan" ||
       action === "approvals" ||
       action === "user-input" ||
       (action === "title" && method === "PUT")
         ? await readBody(request, action === "prompt" ? Infinity : undefined)
         : {};
     const controller = await registry.get(id!);
-
     registry.assertAvailable(controller.workspaceId);
-
     if (action === "navigation") return navigationRoute(request, controller);
-
     if (action === "reveal") {
       if (method !== "POST") throw new HttpError(405, "method_not_allowed");
       await revealSession(controller.session.sessionManager.getSessionFile());
       return new Response(null, { status: 204 });
     }
-
     if (action === "queue" || action === "resume") return queueRoute(request, action, controller);
-
     if (!action && method === "GET") return Response.json(pageSnapshot(controller.snapshot));
-
     const history = historyRoute(request, url, action, controller);
     if (history) return history;
-
     if (action === "user-input" && method === "POST") {
       if (
         !controller.session.respondToUserInput?.({
@@ -107,7 +95,6 @@ export const sessionRoutes =
         throw new HttpError(409, "user_input_not_pending");
       return Response.json(pageSnapshot(controller.snapshot));
     }
-
     if (action === "approvals" && method === "POST") {
       if (
         body.decision !== "allowed-once" &&
@@ -118,12 +105,9 @@ export const sessionRoutes =
       controller.approvals.respond(requestId!, body.decision);
       return Response.json(pageSnapshot(controller.snapshot));
     }
-
     if (action === "prompt" && method === "POST") {
       const requestId = requiredString(body, "requestId");
-
       if (requestId.length > 128) throw new HttpError(400, "invalid_requestId");
-
       const images = body.images ?? [];
       const files = body.files ?? [];
       const skills = body.skills ?? [];
@@ -150,10 +134,10 @@ export const sessionRoutes =
         skills as string[],
         body.steering === true,
       );
-
       return Response.json({ runId }, { status: 202 });
     }
-
+    const planning = await planningRoute(request, action, body, controller);
+    if (planning) return planning;
     if (action === "permission" && method === "PUT") {
       if (!isPermissionPreset(body.preset)) throw new HttpError(400, "invalid_permission_preset");
       const preset = body.preset;
@@ -182,7 +166,6 @@ export const sessionRoutes =
         !model?.efforts?.includes(body.effort)
       )
         throw new HttpError(400, "invalid_model_effort");
-
       await controller.command("model", () =>
         registry.loop.setModel(controller.session, {
           ...choice,
@@ -190,6 +173,5 @@ export const sessionRoutes =
         }),
       );
     } else throw new HttpError(405, "method_not_allowed");
-
     return Response.json(pageSnapshot(controller.snapshot));
   };

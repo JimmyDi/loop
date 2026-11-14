@@ -1,5 +1,5 @@
 .composer-add-menu {
-  position: relative;
+  position: static;
   flex: 0 0 auto;
 }
 .composer-add-trigger.action-button {
@@ -10,10 +10,13 @@
 }
 .composer-add-popover {
   position: absolute;
-  bottom: calc(100% + 12px);
+  bottom: calc(100% + 8px);
   left: 0;
   z-index: 20;
-  width: min(280px, calc(100vw - 64px));
+  right: 0;
+  max-height: min(360px, 60dvh);
+  overflow-y: auto;
+  box-sizing: border-box;
   padding: 8px;
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -23,18 +26,19 @@
   font-size: 14px;
 }
 .composer-add-heading {
-  padding: 4px 12px 8px;
+  padding: 2px 8px 6px;
   color: var(--ink-muted);
   font-size: 13px;
 }
 .composer-add-popover button {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  padding: 10px 12px;
+  min-height: 32px;
+  padding: 6px 8px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 16px;
   background: transparent;
   color: inherit;
   text-align: left;
@@ -48,4 +52,20 @@
 .composer-add-popover button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.composer-add-popover button > svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+.composer-add-title { flex: 0 0 auto; }
+.composer-add-description {
+  color: var(--ink-muted);
+  font-size: 13px;
+  min-width: 0;
+}
+.composer-add-check { margin-left: auto; flex: 0 0 auto; }
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .composer-add-popover button { min-height: 44px; }
 }

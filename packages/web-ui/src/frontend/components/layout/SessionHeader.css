@@ -8,6 +8,7 @@
   border-bottom: 1px solid var(--line);
   background: var(--surface-header);
 }
+.session-header .session-panel-toggle { margin-left: auto; flex-shrink: 0; width: 32px; height: 32px; padding: 4px; }
 .session-header .session-folder {
   flex-shrink: 0;
   width: 32px;
@@ -60,3 +61,21 @@
     padding: 10px;
   }
 }
+
+.session-header { position: relative; }
+.session-header-panel-divider { z-index: 1; position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 100%) minmax(0, 0%); pointer-events: none; overflow: hidden; transition: grid-template-columns 280ms cubic-bezier(.22,1,.36,1); }
+.session-header-panel-divider::after { content: ''; grid-column: 2; margin-block: 10px; border-left: 1px solid var(--line); }
+.chat-panel-workspace[data-panel="true"] .session-header-panel-divider { grid-template-columns: minmax(0, calc(100% - var(--panel-width))) minmax(0, var(--panel-width)); }
+.chat-panel-workspace[data-resizing="true"] .session-header-panel-divider { transition: none; }
+@media (max-width: 767px) { .session-header-panel-divider { display: none; } }
+@media (prefers-reduced-motion: reduce) { .session-header-panel-divider { transition: none; } }
+.session-header-panel-tabs { transition: left 280ms cubic-bezier(.22,1,.36,1); position: absolute; left: calc(100% - var(--panel-width)); right: 56px; top: 0; bottom: 0; display: flex; align-items: center; padding: 4px 8px; background: var(--surface-header); min-width: 0; }
+.chat-panel-workspace[data-panel="true"] .session-header > .session-name { max-width: calc(100% - var(--panel-width) - 48px); }
+@media (max-width: 767px) { .session-header-panel-tabs { left: 0; right: 64px; } }
+
+.chat-panel-workspace[data-resizing="true"] .session-header-panel-tabs { transition: none; }
+@media (prefers-reduced-motion: reduce) { .session-header-panel-tabs { transition: none; } }
+
+.session-header-panel-tabs { animation: panel-tabs-enter 280ms cubic-bezier(.22,1,.36,1); }
+@keyframes panel-tabs-enter { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .session-header-panel-tabs { animation: none; } }

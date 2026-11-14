@@ -63,17 +63,14 @@ export class SessionController {
       .update(JSON.stringify({ content, skills, steering }))
       .digest("hex");
     const existing = this.requests.get(requestId);
-
     if (existing?.text !== undefined && existing.text !== signature)
       throw new HttpError(409, "request_conflict");
     if (existing) return existing.runId;
-
     if (this.snapshot.operation !== "idle" && this.snapshot.operation !== "prompt")
       throw new HttpError(409, "session_busy");
     if (this.session.state.hasPendingSave) throw new HttpError(409, "pending_save");
     if (images.length && !this.session.model.input.includes("image"))
       throw new HttpError(400, "model_images_unsupported");
-
     const runId = crypto.randomUUID();
     this.requests.set(requestId, { text: signature, runId });
     if (this.requests.size > 256) this.requests.delete(this.requests.keys().next().value!);
@@ -113,7 +110,6 @@ export class SessionController {
       .finally(() => {
         if (this.snapshot.runId === runId && !this.settled) this.sync();
       });
-
     return runId;
   }
 
@@ -146,7 +142,7 @@ export class SessionController {
   }
 
   async command(
-    operation: "model" | "flush" | "title" | "permission" | "compact",
+    operation: Exclude<SessionSnapshot["operation"], "idle" | "prompt">,
     action: () => Promise<void>,
   ): Promise<void> {
     this.assertIdle(operation === "flush");
@@ -161,7 +157,6 @@ export class SessionController {
         throw error;
       })
       .finally(() => this.sync());
-
     this.active = work.catch(() => {});
     await work;
   }
@@ -169,7 +164,6 @@ export class SessionController {
   async close(): Promise<void> {
     await this.abort();
     if (this.session.state.hasPendingSave) await this.command("flush", () => this.session.flush());
-
     this.dispose();
     await this.session.flushTrace?.();
   }
@@ -185,7 +179,6 @@ export class SessionController {
   private assertIdle(allowPending = false): void {
     if (this.snapshot.operation !== "idle" || this.session.state.pendingApprovals?.length)
       throw new HttpError(409, "session_busy");
-
     if (!allowPending && this.session.state.hasPendingSave)
       throw new HttpError(409, "pending_save");
   }
@@ -203,6 +196,7 @@ export class SessionController {
       return;
     }
     if (
+      event.type === "planning_changed" ||
       event.type === "session_title" ||
       event.type === "permission_changed" ||
       event.type.startsWith("user_input_") ||
@@ -217,10 +211,8 @@ export class SessionController {
       "message" in event
         ? (this.snapshot.draftIndex ?? this.snapshot.state.messages.length)
         : undefined;
-
     this.snapshot = applyEvent(this.snapshot, event, messageIndex);
     this.events.publish({ type: "loop.event", runId: this.snapshot.runId!, event, messageIndex });
-
     if (event.type === "agent_settled") {
       this.settled = true;
       this.sync();

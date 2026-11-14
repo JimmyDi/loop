@@ -33,6 +33,8 @@ export type StreamFn = (
 ) => AssistantMessageEventStream | Promise<AssistantMessageEventStream>;
 
 export type AgentTool = Pick<Tool, "name" | "description" | "parameters"> & {
+  /** End the run after successful execution, pairing remaining calls without dispatch. */
+  endTurn?: boolean;
   execute(
     parameters: Record<string, unknown>,
     signal: AbortSignal,

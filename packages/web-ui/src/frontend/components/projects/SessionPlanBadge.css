@@ -1,0 +1,14 @@
+.session-plan-badge {
+  flex-shrink: 0;
+  color: var(--ink-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.session-plan-badge[data-ready="true"] {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+  line-height: 18px;
+}

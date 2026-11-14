@@ -1,3 +1,5 @@
+import { SessionPlanner } from "./planning";
+import type { SessionMode } from "./planning-types";
 import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 import { randomUUID } from "node:crypto";
 
@@ -48,6 +50,9 @@ import type { UserInputHandler, UserInputResponse } from "./user-input/types";
 
 export class AgentSession {
   private readonly userInput: UserInputService;
+  private readonly planner: SessionPlanner;
+  private executingConfirmedPlan = false;
+  private planningTools = new Set<PermissionTool>();
   private listeners = new Set<SessionEventListener>();
   private active?: Promise<void>;
   private agent?: Agent;
@@ -84,10 +89,12 @@ export class AgentSession {
   constructor(private readonly options: SessionOptions) {
     validateRequestMaxTokens(options.maxTokens);
     this.trace = new SessionTrace(options.traceRecorder);
+    this.planner = new SessionPlanner(options.sessionManager, (event) => this.emit(event));
     this.userInput = new UserInputService(this.sessionId, (event) => this.emit(event));
     this.options = {
       ...options,
       userInputService: this.userInput,
+      planner: this.planner,
       modelRuntime: traceModelRuntime(options.modelRuntime, this.trace),
     };
     this.unsubscribeWrites = options.sessionManager.subscribeWrites((event) =>
@@ -104,6 +111,10 @@ export class AgentSession {
     this.toolApprovals = new ToolApprovals(
       (input, options) => this.requestApproval(input, options),
       (event) => this.trace.nested(event),
+      (tool) => {
+        if (this.planner.state.mode === "plan" && !this.planningTools.has(tool))
+          throw new Error("Tool is not permitted in Plan mode");
+      },
     );
     this.approvals = new ApprovalService(
       this.sessionId,
@@ -221,6 +232,83 @@ export class AgentSession {
     return this.approvals.respond(response);
   }
 
+  setMode(mode: SessionMode): Promise<void> {
+    try {
+      this.assertIdle();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    this.busy = true;
+    this.active = this.planner
+      .setMode(mode)
+      .then(() => {
+        this.contextBudget = estimateSessionContextBudget(
+          this.options,
+          this.selected,
+          this.permissionPreset,
+          this.selectedEffort,
+        );
+      })
+      .finally(() => {
+        this.busy = false;
+        this.emit({ type: "agent_settled" });
+      });
+    return this.active;
+  }
+
+  executePlan(id: string, version: number): Promise<void> {
+    try {
+      this.assertIdle();
+      if (this.queue.messages.length)
+        throw new Error("Resolve queued messages before executing a plan");
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    this.busy = true;
+    this.active = this.planner
+      .accept(id, version)
+      .then((content) => {
+        this.paused = false;
+        this.continuation = undefined;
+        this.executingConfirmedPlan = true;
+        return this.start(content, []);
+      })
+      .catch((error) => {
+        if (!this.prompting) {
+          this.busy = false;
+          this.emit({ type: "agent_settled" });
+        }
+        throw error;
+      });
+    return this.active;
+  }
+
+  skipPlan(id: string, version: number): Promise<void> {
+    try {
+      this.assertIdle();
+      if (this.queue.messages.length)
+        throw new Error("Resolve queued messages before skipping a plan");
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    this.busy = true;
+    this.active = this.planner
+      .skip(id, version)
+      .then(() => {
+        this.contextBudget = estimateSessionContextBudget(
+          this.options,
+          this.selected,
+          this.permissionPreset,
+          this.selectedEffort,
+        );
+      })
+      .finally(() => {
+        this.busy = false;
+        this.emit({ type: "agent_settled" });
+      });
+    return this.active;
+  }
+
   setPermissionPreset(preset: PermissionPreset): Promise<void> {
     try {
       this.assertIdle();
@@ -270,6 +358,7 @@ export class AgentSession {
       if (displayName && !names.has(tool.name)) names.set(tool.name, displayName);
     }
     return {
+      planning: this.planner.state,
       messages: (this.agent?.messages ?? this.sessionManager.messages).map((message) =>
         withToolDisplayName(message, names),
       ),
@@ -827,6 +916,8 @@ export class AgentSession {
     };
 
     const prepareInput = async (input: PromptContent | undefined, skills: string[]) => {
+      if (input !== undefined) await this.planner.invalidate(this.executingConfirmedPlan);
+      this.executingConfirmedPlan = false;
       const id = this.trace.begin("input.prepare", { skills, resume: input === undefined });
       try {
         const prepared = await prepareSessionInput({
@@ -871,10 +962,10 @@ export class AgentSession {
       const request = createSessionRequest({
         options: this.options,
         prepared,
-        bindTools: (tools) =>
-          this.options.permissionPolicy || this.options.mcpManager
-            ? this.toolApprovals.bind(tools)
-            : tools,
+        bindTools: (tools) => {
+          this.planningTools = new Set(tools);
+          return this.toolApprovals.bind(tools);
+        },
         history: () =>
           this.agent!.messages.map((message) =>
             withToolDisplayName(message, this.toolDisplayNames),
@@ -1070,7 +1161,7 @@ export class AgentSession {
           hasPendingSave: this.sessionManager.hasPendingSave,
         });
         this.emit({ type: "agent_settled" });
-        if (!failures.length) this.drain();
+        if (!failures.length && this.planner.state.plans.at(-1)?.status !== "ready") this.drain();
       }
     }
 

@@ -1,0 +1,6 @@
+.panel-resizer { position: absolute; z-index: 5; left: calc(100% - var(--panel-width) - 3px); top: 0; bottom: 0; width: 6px; cursor: col-resize; touch-action: none; }
+.panel-resizer:hover, .panel-resizer:focus-visible { background: var(--accent-soft); }
+.panel-resizer:focus-visible { outline: 1px solid var(--accent); }
+.chat-plan-layout[data-resizing="true"] { transition: none; user-select: none; cursor: col-resize; }
+.chat-plan-layout[data-resizing="true"] .workspace-panel-slot { pointer-events: none; }
+@media (max-width: 767px) { .panel-resizer { display: none; } }

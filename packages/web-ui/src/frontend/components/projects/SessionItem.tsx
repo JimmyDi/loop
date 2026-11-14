@@ -1,3 +1,4 @@
+import { SessionActivity } from "./SessionActivity";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -125,14 +126,12 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
                   )}
                 </span>
               )}
-              {generating && !waiting && (
-                <span
-                  className="session-list-spinner"
-                  role="img"
-                  aria-label={t("looping", "Looping...")}
-                  title={t("looping", "Looping...")}
-                />
-              )}
+              <SessionActivity
+                session={session}
+                snapshot={snapshot}
+                waiting={waiting}
+                generating={generating}
+              />
               {unread && (
                 <span
                   className="session-list-unread"

@@ -1,0 +1,12 @@
+.session-header-panel-tabs [role="tablist"] { display: flex; align-items: center; gap: 4px; overflow-x: auto; min-width: 0; flex: 1; scrollbar-width: thin; }
+.workspace-panel-tab { display: flex; align-items: center; flex: 1 1 0; min-width: 96px; max-width: 240px; border: 1px solid transparent; border-radius: 9px; color: var(--ink-muted); }
+.workspace-panel-tab:hover { background: var(--surface-hover); }
+.workspace-panel-tab[data-active="true"] { border-color: var(--line); background: var(--surface-raised); color: var(--ink); }
+.session-header-panel-tabs button { border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.session-header-panel-tabs button:hover { background: var(--surface-hover); }
+.session-header-panel-tabs [role="tab"]:focus-visible, .session-header-panel-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.session-header-panel-tabs [role="tab"] { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; box-sizing: border-box; padding: 5px 8px; font-size: 12px; height: 30px; white-space: nowrap; cursor: pointer; }
+.session-header-panel-tabs [role="tab"] > span { overflow: hidden; text-overflow: ellipsis; }
+.session-header-panel-tabs [role="tab"] svg { width: 16px; height: 16px; flex-shrink: 0; }
+.workspace-panel-tab-close { flex-shrink: 0; width: 28px; height: 28px; margin-right: 3px; color: var(--ink-muted) !important; }
+@media (pointer: coarse) { .session-header-panel-tabs button, .session-header-panel-tabs [role="tab"] { min-height: 44px; } .workspace-panel-tab-close { min-width: 44px; } }

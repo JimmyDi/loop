@@ -119,3 +119,6 @@ export type {
   UserInputHandler,
   UserInputEvent,
 } from "./core/user-input/types";
+
+export type { SessionMode, SessionPlan, SessionPlanning } from "./core/planning-types";
+export { isSessionMode } from "./core/planning-types";

@@ -76,3 +76,7 @@ A pending storage failure enters save recovery, including in Print mode: the pro
 ## Source
 
 [cli.ts](../cli.ts), [args.ts](../cli/args.ts), [main.ts](../main.ts), [interactive mode](../modes/interactive/interactive-mode.ts), and [CLI tests](../main.test.ts).
+
+## Plan mode
+
+Use `--plan` to start in Plan mode, including Print mode. Interactive `/plan` enables planning, `/execute` disables it without starting work, and `/implement` confirms the latest ready plan. See [Plan mode](plan-mode.md).

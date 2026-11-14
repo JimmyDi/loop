@@ -123,3 +123,7 @@ Independent archive and delete operations use /api/workspaces/global/archive and
 ### Indexed history navigation
 
 GET /api/sessions/:id/history?target=<message-index>&streamId=<stream-id> returns the previous, selected and next rounds around the absolute user-message index, where available, without intervening history. after=<message-index> reads the next three rounds starting at that boundary, while before=<message-index> retains backward paging. Use exactly one cursor. Out-of-range, non-user and malformed cursors return 400; stale streams return 409. after may equal the history length and returns an empty page. Each response contains start, end, total, userStart, streamId and messages. All routes retain the existing session authorization.
+
+## Planning
+
+PUT /api/sessions/:id/mode accepts a mode of plan or execute while idle. POST /api/sessions/:id/execute-plan accepts the latest ready plan ID and version, reserves a run and returns 202. Stale, duplicate or queued confirmations return 409. POST /api/sessions/:id/skip-plan accepts the latest ready ID and version, persists skipped status and exits Plan mode without execution. The main session router parses the request body; stale or duplicate decisions return 409. Snapshots and planning_changed events include versioned plans; reconnects do not start execution. Core enforces Plan restrictions; see [Plan mode](../../../../coding-agent/src/docs/plan-mode.md).

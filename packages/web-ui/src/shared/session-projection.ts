@@ -13,7 +13,9 @@ export const applyEvent = (
     tools: updateTools(snapshot.tools, event),
   };
 
-  if (event.type === "user_input_requested") {
+  if (event.type === "planning_changed") {
+    next.state.planning = event.planning;
+  } else if (event.type === "user_input_requested") {
     next.state.pendingUserInputs = [event.request];
   } else if (event.type === "user_input_resolved") {
     next.state.pendingUserInputs = (next.state.pendingUserInputs ?? []).filter(

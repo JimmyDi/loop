@@ -48,6 +48,7 @@ test("Add menu filters supported attachments and supports dismissal and disabled
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     expect(view.getByRole("menu", { name: "Add" })).toBeTruthy();
     const item = view.getByRole("menuitem", { name: "Files" });
+    expect(view.getByText("Attach images or text files")).toBeTruthy();
     expect(document.activeElement).toBe(item);
     fireEvent.click(item);
     expect(pickerOpened).toBe(1);
@@ -87,6 +88,50 @@ test("Add menu filters supported attachments and supports dismissal and disabled
       />,
     );
     expect((trigger as HTMLButtonElement).disabled).toBe(true);
+  } finally {
+    cleanup();
+    await i18n.changeLanguage(language);
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("Plan remains accessible at attachment limits and participates in keyboard navigation", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { render, fireEvent, cleanup } = await import("@testing-library/react/pure");
+  const language = i18n.language;
+  try {
+    await i18n.changeLanguage("en");
+    let active = false;
+    const view = render(
+      <ComposerAddMenu
+        disabled={false}
+        imageCount={MAX_IMAGES}
+        fileCount={MAX_TEXT_FILES}
+        add={() => {}}
+        plan={{
+          active,
+          disabled: false,
+          change: (next) => {
+            active = next;
+          },
+        }}
+      />,
+    );
+    const trigger = view.getByRole("button", { name: "Add attachments" });
+    expect((trigger as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(trigger);
+    expect((view.getByRole("menuitem", { name: "Files" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+    fireEvent.keyDown(view.getByRole("menu"), { key: "ArrowDown" });
+    const item = view.getByRole("menuitemradio");
+    expect(document.activeElement).toBe(item);
+    fireEvent.click(item);
+    expect(active).toBe(true);
+    expect(view.queryByRole("menu")).toBeNull();
   } finally {
     cleanup();
     await i18n.changeLanguage(language);

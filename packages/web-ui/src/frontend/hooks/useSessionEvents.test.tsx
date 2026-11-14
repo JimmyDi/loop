@@ -153,10 +153,10 @@ test.each([false, true])(
       await waitFor(() => expect(pending).toHaveLength(2));
       await act(async () => {
         pending[0]!.resolve(Response.json(summaries));
-        await sleep(10);
+        await sleep(0);
       });
       expect(within(first).getByRole("img", { name: indicator })).toBeTruthy();
-      await act(async () => {
+      act(() => {
         pending[1]!.resolve(
           Response.json(
             summaries.map((item) => ({
@@ -166,9 +166,14 @@ test.each([false, true])(
             })),
           ),
         );
-        await sleep(10);
       });
-      expect(within(first).getByRole("img", { name: indicator })).toBeTruthy();
+      await waitFor(() => {
+        expect(client.getQueryState(["sessions", "project"])?.fetchStatus).toBe("idle");
+        expect(
+          client.getQueryData<SessionSummary[]>(["sessions", "project"])?.[0]?.isGenerating,
+        ).toBe(true);
+        expect(within(first).getByRole("img", { name: indicator })).toBeTruthy();
+      });
       act(() =>
         lists.onmessage?.({
           data: JSON.stringify({
@@ -180,11 +185,14 @@ test.each([false, true])(
         }),
       );
       await waitFor(() => expect(pending).toHaveLength(3));
-      await act(async () => {
+      act(() => {
         pending[2]!.resolve(Response.json(summaries));
-        await sleep(10);
       });
-      expect(within(first).queryByRole("img", { name: indicator })).toBeNull();
+      // Query notifications and React rendering can take another host task on Windows.
+      await waitFor(() => {
+        expect(client.getQueryState(["sessions", "project"])?.fetchStatus).toBe("idle");
+        expect(within(first).queryByRole("img", { name: indicator })).toBeNull();
+      });
       expect(useSessions.getState().views.first?.snapshot?.operation).toBe("prompt");
       expect(useWorkspace.getState().active?.id).toBe("second");
     } finally {

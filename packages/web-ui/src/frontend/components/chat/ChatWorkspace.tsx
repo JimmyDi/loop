@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -13,31 +13,21 @@ import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { LoopIcon } from "../ui/LoopIcon";
 import { MessageTimeline } from "./MessageTimeline";
-import { ChatComposer } from "./ChatComposer";
 import { SessionStatus } from "./SessionStatus";
 import { PlanPanelContext } from "../../lib/plan-panel-context";
 import { usePanelTabs } from "../../hooks/usePanelTabs";
-import { WorkspacePanel } from "./WorkspacePanel";
-import { PanelResizer } from "./PanelResizer";
 import { PlanIcon } from "./PlanIcon";
-import { PanelTabs } from "./PanelTabs";
+import {
+  WorkspacePanel,
+  PanelResizer,
+  PanelTabs,
+  ChatComposer,
+  SessionApprovals,
+  UserInputCard,
+  PlanReviewCard,
+  PlanContentPanel,
+} from "../../lib/lazy-workspace-components";
 import "./ChatWorkspace.css";
-
-const SessionApprovals = lazy(() =>
-  import("./SessionApprovals").then((module) => ({ default: module.SessionApprovals })),
-);
-
-const UserInputCard = lazy(() =>
-  import("./UserInputCard").then((module) => ({ default: module.UserInputCard })),
-);
-
-const PlanReviewCard = lazy(() =>
-  import("./PlanReviewCard").then((module) => ({ default: module.PlanReviewCard })),
-);
-
-const PlanContentPanel = lazy(() =>
-  import("./PlanContentPanel").then((module) => ({ default: module.PlanContentPanel })),
-);
 
 export const ChatWorkspace = ({ id }: { id?: string }) => {
   const { t } = useTranslation();
@@ -107,18 +97,24 @@ export const ChatWorkspace = ({ id }: { id?: string }) => {
           snapshot={snapshot}
           panel={panel.open || panel.tabs.length ? panel : undefined}
           tabs={
-            <PanelTabs
-              tabs={panel.tabs}
-              active={panel.active}
-              select={panel.select}
-              close={panel.close}
-              renderIcon={() => <PlanIcon />}
-            />
+            !!panel.tabs.length && (
+              <Suspense fallback={null}>
+                <PanelTabs
+                  tabs={panel.tabs}
+                  active={panel.active}
+                  select={panel.select}
+                  close={panel.close}
+                  renderIcon={() => <PlanIcon />}
+                />
+              </Suspense>
+            )
           }
         />
         <div className="chat-plan-layout" data-panel={panel.open} data-resizing={resizing}>
           {panel.open && (
-            <PanelResizer ratio={panelRatio} change={setPanelRatio} dragging={setResizing} />
+            <Suspense fallback={null}>
+              <PanelResizer ratio={panelRatio} change={setPanelRatio} dragging={setResizing} />
+            </Suspense>
           )}
           <main className="chat-workspace">
             {query.error && (
@@ -163,30 +159,32 @@ export const ChatWorkspace = ({ id }: { id?: string }) => {
                       />
                     </Suspense>
                   )}
-                  <ChatComposer
-                    key={snapshot.sessionId}
-                    snapshot={snapshot}
-                    connected={connected}
-                  />
+                  <Suspense fallback={null}>
+                    <ChatComposer
+                      key={snapshot.sessionId}
+                      snapshot={snapshot}
+                      connected={connected}
+                    />
+                  </Suspense>
                 </div>
               </div>
             )}
           </main>
           <div className="workspace-panel-slot" inert={!panel.open} aria-hidden={!panel.open}>
-            <WorkspacePanel
-              tabs={panel.tabs}
-              active={panel.active}
-              renderContent={(content) => {
-                const plan = snapshot?.state.planning?.plans.find(
-                  (plan) => plan.id === content.planId,
-                );
-                return plan ? (
-                  <Suspense fallback={null}>
-                    <PlanContentPanel plan={plan} />
-                  </Suspense>
-                ) : null;
-              }}
-            />
+            {!!panel.tabs.length && (
+              <Suspense fallback={null}>
+                <WorkspacePanel
+                  tabs={panel.tabs}
+                  active={panel.active}
+                  renderContent={(content) => {
+                    const plan = snapshot?.state.planning?.plans.find(
+                      (plan) => plan.id === content.planId,
+                    );
+                    return plan ? <PlanContentPanel plan={plan} /> : null;
+                  }}
+                />
+              </Suspense>
+            )}
           </div>
         </div>
       </div>

@@ -1,0 +1,15 @@
+.plan-result-card { border: 1px solid var(--line-subtle); border-radius: 12px; background: var(--surface-raised); overflow: hidden; }
+.plan-result-card header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: var(--ink-muted); font-size: 12px; }
+.plan-result-label { display: flex; align-items: center; gap: 6px; }
+.plan-result-version { margin-right: auto; font-size: 11px; }
+.plan-result-expand { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-muted); cursor: pointer; }
+.plan-result-expand svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.plan-result-expand:hover { background: var(--surface-hover); }
+.plan-result-preview { position: relative; padding: 4px 16px 16px; height: 160px; overflow: hidden; cursor: pointer; }
+.plan-result-preview::after { content: ''; position: absolute; inset: auto 0 0; height: 48px; background: linear-gradient(transparent, var(--surface-raised)); pointer-events: none; }
+.plan-result-preview h3 { margin: 0 0 14px; font-size: 18px; font-weight: 600; }
+.plan-result-preview .markdown-text { font-size: 13px; }
+.plan-result-preview .markdown-text h1, .plan-result-preview .markdown-text h2 { font-size: 16px; }
+.plan-result-preview .markdown-container { pointer-events: none; }
+.plan-result-preview:focus-visible, .plan-result-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (pointer: coarse) { .plan-result-expand { width: 44px; height: 44px; } }

@@ -6,6 +6,7 @@ export const traceEventNames = Object.keys(SESSION_TRACE_SCHEMA.events);
 
 /** Undefined entries are intentionally captured at another boundary or omitted. */
 export const sessionTraceEventNames = {
+  planning_changed: undefined,
   message_start: "message.started",
   message_update: undefined,
   message_end: "message.completed",

@@ -14,6 +14,46 @@ import { createLoopBridge } from "../loop";
 import { ProviderSettings } from "../providers/provider-settings";
 import type { ListFrame } from "../../shared/protocol";
 import { sessionRoutes } from "./sessions";
+import type { SessionController } from "../session-controller";
+
+test("main session router dispatches Skip with its plan identity instead of returning Not Found", async () => {
+  const state = {
+    messages: [],
+    isRunning: false,
+    planning: { mode: "plan", plans: [{ id: "p", version: 2, status: "ready" }] },
+  };
+  const skipped: unknown[] = [];
+  const controller = {
+    workspaceId: null,
+    busy: false,
+    session: {
+      state,
+      skipPlan: async (id: string, version: number) => {
+        skipped.push({ id, version });
+        state.planning.mode = "execute";
+        state.planning.plans[0]!.status = "skipped";
+      },
+    },
+    snapshot: { state, tools: {}, operation: "idle" },
+    command: async (_operation: string, action: () => Promise<void>) => action(),
+  } as unknown as SessionController;
+  const route = sessionRoutes({
+    get: async () => controller,
+    assertAvailable: () => {},
+  } as unknown as SessionRegistry);
+  const url = new URL("https://example.invalid/api/sessions/s/skip-plan");
+  const request = () =>
+    new Request(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "p", version: 2 }),
+    });
+  const response = await route(request(), url);
+  expect(response?.status).toBe(200);
+  expect(skipped).toEqual([{ id: "p", version: 2 }]);
+  expect((await response!.json()).state.planning.plans[0].status).toBe("skipped");
+  await expect(route(request(), url)).rejects.toMatchObject({ status: 409 });
+});
 
 test("HTTP permissions persist per session and an exact file write waits for a live human decision", async () => {
   const root = await mkdtemp(join(import.meta.dirname, ".permissions-http-"));

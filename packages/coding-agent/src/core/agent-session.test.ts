@@ -1,3 +1,4 @@
+import { PermissionPolicy } from "./permissions/policy";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
@@ -2300,5 +2301,107 @@ test("queued messages remain untouched until the current question is answered", 
     await session.abort();
     session.dispose();
     await session.flushTrace();
+  }
+});
+
+test("Plan mode can answer research questions and remains active after an implementation message", async () => {
+  const contexts: Context[] = [];
+  const session = new AgentSession({
+    model,
+    systemPrompt: "Test",
+    tools: [],
+    sessionManager: SessionManager.inMemory(),
+    modelRuntime: runtime((_model, context) => {
+      contexts.push(context);
+      return stream(answer());
+    }),
+  });
+  try {
+    await session.setMode("plan");
+    await session.prompt("Explain how the session stores plans.");
+    expect(session.state.outcome).toBe("success");
+    expect(session.state.planning).toEqual({ mode: "plan", plans: [] });
+    await session.prompt("Implement it now.");
+    expect(session.state.planning).toEqual({ mode: "plan", plans: [] });
+    for (const context of contexts) {
+      expect(context.systemPrompt).toContain("Stay in this mode until the host explicitly changes");
+      expect(context.systemPrompt).toContain("Do not call submit_plan unless the user wants");
+      expect(context.tools?.some((tool) => tool.name === "write")).toBe(false);
+    }
+  } finally {
+    session.dispose();
+  }
+});
+
+test("Plan mode ignores custom write tools under Full access and executes only after explicit confirmation", async () => {
+  let calls = 0;
+  let unsafe = 0;
+  const contexts: Context[] = [];
+  const manager = SessionManager.inMemory();
+  await manager.setPermissionPreset("danger-full-access");
+  const session = new AgentSession({
+    model,
+    systemPrompt: "Complete the task",
+    sessionManager: manager,
+    permissionPolicy: new PermissionPolicy(manager.getCwd(), {
+      permissionPreset: "danger-full-access",
+    }),
+    tools: [
+      {
+        name: "write",
+        description: "Unsafe",
+        parameters: { type: "object" },
+        execute: () => {
+          unsafe++;
+          return [];
+        },
+      },
+    ],
+    modelRuntime: runtime((_model, context) => {
+      contexts.push(context);
+      calls++;
+      if (calls === 1)
+        return stream({
+          ...answer(),
+          content: [
+            {
+              type: "toolCall",
+              id: "submit",
+              name: "submit_plan",
+              arguments: {
+                title: "Example plan",
+                markdown: "Implement a small change and verify it.",
+              },
+            },
+            { type: "toolCall", id: "unsafe", name: "write", arguments: {} },
+          ],
+          stopReason: "toolUse",
+        });
+      return stream();
+    }),
+  });
+  try {
+    await session.setMode("plan");
+    await session.prompt("Plan the change");
+    expect(calls).toBe(1);
+    expect(unsafe).toBe(0);
+    expect(contexts[0]!.tools?.map((tool) => tool.name)).toEqual([
+      "request_user_input",
+      "read",
+      "bash",
+      "submit_plan",
+    ]);
+    expect(session.state.outcome).toBe("success");
+    const plan = session.state.planning!.plans.at(-1)!;
+    const executing = session.executePlan(plan.id, plan.version);
+    await expect(session.executePlan(plan.id, plan.version)).rejects.toThrow("already running");
+    await executing;
+    expect(calls).toBe(2);
+    expect(session.state.planning!.mode).toBe("execute");
+    expect(contexts[1]!.systemPrompt).toContain(plan.markdown);
+    expect(contexts[1]!.systemPrompt).not.toContain("## Submit and revise");
+    await expect(session.executePlan(plan.id, plan.version)).rejects.toThrow("no longer ready");
+  } finally {
+    session.dispose();
   }
 });

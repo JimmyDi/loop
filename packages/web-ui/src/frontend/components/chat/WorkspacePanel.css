@@ -1,0 +1,3 @@
+.workspace-panel { display: flex; flex-direction: column; height: 100%; min-height: 0; min-width: 0; border-left: 1px solid var(--line); background: var(--surface-raised); }
+.workspace-panel-content { flex: 1; min-height: 0; overflow: hidden; }
+.workspace-panel-content[hidden] { display: none; }

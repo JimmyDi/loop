@@ -11,6 +11,7 @@ export function parseArgs(args: string[]) {
   };
   const booleans = new Set([
     "--print",
+    "--plan",
     "--continue",
     "--no-session",
     "--help",
@@ -66,6 +67,7 @@ export const HELP = [
   "Loop coding assistant",
   "loop [-p] [options] [prompt]",
   "--print/-p                  Print final answer and exit",
+  "--plan                      Start in Plan mode",
   "--model ID --provider NAME  Select a configured model",
   "--base-url URL --api-key KEY  Custom endpoint and authentication",
   "--continue/-c               Resume most recent project session",
@@ -77,6 +79,6 @@ export const HELP = [
   "--tools read,bash,edit,write Enable tools (empty string disables all)",
   "--permission-preset LEVEL   read-only, workspace-write or danger-full-access",
   "--help/-h --version/-v",
-  "Interactive: /abort /model [provider/model] /permissions [level] /new /resume [path] /flush /quit",
+  "Interactive: /plan /execute /implement /abort /model [provider/model] /permissions [level] /new /resume [path] /flush /quit",
   "Approval: /approve REQUEST_ID or /reject REQUEST_ID; eligible MCP: /approve-session REQUEST_ID (interactive terminal only)",
 ].join("\n");

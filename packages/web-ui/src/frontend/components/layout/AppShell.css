@@ -61,7 +61,7 @@
   min-width: 0;
   min-height: 0;
 }
-.app-shell-content > .chat-workspace {
+.app-shell-content > .chat-panel-workspace {
   flex: 1;
   min-height: 0;
   height: auto;

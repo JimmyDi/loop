@@ -37,7 +37,21 @@ export async function runInteractiveMode(
 
   const bind = (session: AgentSession) => {
     unsubscribe();
-    unsubscribe = session.subscribe((event) => output.handle(event));
+    unsubscribe = session.subscribe((event) => {
+      output.handle(event);
+      if (event.type === "planning_changed" && event.planning.plans.at(-1)?.status === "ready") {
+        const plan = event.planning.plans.at(-1)!;
+        console.log(
+          "\n" +
+            plan.title +
+            " · v" +
+            plan.version +
+            "\n\n" +
+            plan.markdown +
+            "\n\n/implement to start execution; enter feedback to revise.",
+        );
+      }
+    });
     approvals.bind(session);
     userInput.bind(session);
   };
@@ -67,7 +81,17 @@ export async function runInteractiveMode(
       return;
     }
 
-    if (text === "/abort") await runtime.session.abort();
+    if (text === "/plan") {
+      await runtime.session.setMode("plan");
+      console.log("Mode: Plan");
+    } else if (text === "/execute") {
+      await runtime.session.setMode("execute");
+      console.log("Mode: Execute");
+    } else if (text === "/implement") {
+      const plan = runtime.session.state.planning?.plans.at(-1);
+      if (!plan || plan.status !== "ready") throw new Error("No plan ready for execution");
+      await runtime.session.executePlan(plan.id, plan.version);
+    } else if (text === "/abort") await runtime.session.abort();
     else if (text === "/permissions")
       console.log("Permissions: " + runtime.session.permissionPreset);
     else if (text.startsWith("/permissions ")) {
@@ -139,7 +163,9 @@ export async function runInteractiveMode(
   const terminate = () => input.close();
 
   process.on("SIGTERM", terminate);
-  console.log("Loop · /abort /compact /model /permissions /new /resume /quit");
+  console.log(
+    "Loop · /plan /execute /implement /abort /compact /model /permissions /new /resume /quit",
+  );
   console.log("Model: " + runtime.session.model.provider + "/" + runtime.session.model.id);
   console.log("Permissions: " + runtime.session.permissionPreset);
   input.prompt();

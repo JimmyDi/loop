@@ -21,6 +21,7 @@ test("SessionHeader exposes its accessible content and state", () => {
   expect(html).not.toContain("Regenerate title");
   expect(html).not.toContain("session-heading");
   expect(html).not.toContain("session-header-actions");
+  expect(html).not.toContain("session-panel-toggle");
   client.clear();
 });
 

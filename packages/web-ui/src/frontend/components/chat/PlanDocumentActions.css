@@ -1,0 +1,11 @@
+.plan-document-actions { display: flex; gap: 2px; }
+.plan-document-actions button { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--ink-muted); cursor: pointer; }
+.plan-document-actions button:hover { background: var(--surface-hover); color: var(--ink); }
+.plan-document-actions button:focus-visible { outline: 2px solid var(--accent); }
+.plan-document-actions svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+@media (pointer: coarse) { .plan-document-actions button { width: 44px; height: 44px; } }
+.plan-document-actions { position: relative; }
+.plan-document-actions button[data-status="copied"] { color: var(--accent); }
+.plan-document-actions button[data-status="copyFailed"] { color: var(--error-ink); }
+.plan-copy-feedback { position: absolute; z-index: 6; top: calc(100% + 4px); right: 0; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-raised); color: var(--ink); white-space: nowrap; font-size: 12px; box-shadow: 0 2px 8px var(--shadow-soft); pointer-events: none; }
+.plan-copy-feedback[data-status="copyFailed"] { color: var(--error-ink); }

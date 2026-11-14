@@ -1,3 +1,4 @@
+import { planningPrompt } from "../planning-prompt";
 import type { Api, Model } from "@earendil-works/pi-ai";
 
 import type { AgentTool } from "@loop/agent";
@@ -19,12 +20,14 @@ export const buildSessionModelContext = (
   permissionPreset?: PermissionPreset,
 ): { systemPrompt: string; tools: AgentTool[] } => {
   const cwd = options.sessionManager.getCwd();
-  const mcp = options.mcpManager?.snapshot(cwd);
+  const planning = options.planner?.state ??
+    options.sessionManager.getHeader().planning ?? { mode: "execute" as const, plans: [] };
+  const mcp = planning.mode === "plan" ? undefined : options.mcpManager?.snapshot(cwd);
   if (options.tools.some((tool) => tool.name === "request_user_input"))
     throw new Error("The request_user_input tool name is reserved");
   const ordinaryTools = [
     createUserInputTool(options.userInputService),
-    ...options.tools,
+    ...(planning.mode === "plan" ? (options.planner?.tools() ?? []) : options.tools),
     ...(options.skillManager ? [createSkillTool(options.skillManager, cwd)] : []),
   ];
   if (mcp?.tools.length && ordinaryTools.some((tool) => tool.name === "codemode"))
@@ -38,7 +41,11 @@ export const buildSessionModelContext = (
         ),
       ]
     : ordinaryTools;
-  const permission = buildPermissionContext(permissionPreset, cwd);
+  const permission = buildPermissionContext(
+    planning.mode === "plan" ? "read-only" : permissionPreset,
+    cwd,
+  );
+  const modePrompt = planningPrompt(planning);
   const systemPrompt =
     buildCapabilityPrompt({
       systemPrompt: options.systemPrompt,
@@ -46,7 +53,9 @@ export const buildSessionModelContext = (
       skills: options.skillManager?.view(cwd).skills,
       mcpServers: mcp?.servers,
       contextWindow: model.contextWindow,
-    }) + (permission ? "\n\n" + renderSystemPromptSection("permissions", permission) : "");
+    }) +
+    (modePrompt ? "\n\n" + renderSystemPromptSection("mode", modePrompt) : "") +
+    (permission ? "\n\n" + renderSystemPromptSection("permissions", permission) : "");
 
   return { systemPrompt, tools };
 };

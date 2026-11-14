@@ -35,6 +35,8 @@ export type SessionSummary = {
   userMessageCount: number;
   title?: string;
   isGenerating?: boolean;
+  isPlanning?: boolean;
+  isPlanReady?: boolean;
   isWaitingForApproval?: boolean;
   isWaitingForUserInput?: boolean;
   unread?: boolean;
@@ -60,7 +62,7 @@ export type SessionSnapshot = {
   state: SessionState;
   model: ModelChoice;
   effort?: ModelEffort;
-  operation: "idle" | "prompt" | "model" | "flush" | "title" | "permission" | "compact";
+  operation: "idle" | "prompt" | "model" | "flush" | "title" | "permission" | "compact" | "mode";
   compactionStartedAt?: number;
   lastApproval?: Pick<ApprovalResult, "outcome" | "resolvedAt"> & {
     request: Pick<ApprovalRequest, "sessionId" | "requestId" | "toolName">;

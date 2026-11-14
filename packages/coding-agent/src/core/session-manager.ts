@@ -1,3 +1,5 @@
+import type { SessionPlanning } from "./planning-types";
+import { validatePlanning } from "./planning-types";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { realpathSync } from "node:fs";
 import { readFile, readdir, stat } from "node:fs/promises";
@@ -164,6 +166,8 @@ export class SessionManager {
           (header.model.effort !== undefined && !isModelEffort(header.model.effort))))
     )
       throw new Error("Invalid session metadata");
+
+    if (header.planning !== undefined) validatePlanning(header.planning);
 
     if (!(await stat(header.cwd)).isDirectory()) throw new Error("Session cwd is not a directory");
 
@@ -432,6 +436,28 @@ export class SessionManager {
         await this.write(this.pending!);
         this.data = this.pending!;
         this.pending = undefined;
+      });
+    } finally {
+      this.writing = false;
+    }
+  }
+
+  async setPlanning(planning: SessionPlanning): Promise<void> {
+    validatePlanning(planning);
+    if (this.pending || this.writing) throw new Error("Pending session save");
+    this.writing = true;
+    try {
+      await this.serialize(async () => {
+        const next = {
+          ...this.data,
+          header: {
+            ...this.data.header,
+            planning: structuredClone(planning),
+            updatedAt: new Date().toISOString(),
+          },
+        };
+        await this.write(next);
+        this.data = next;
       });
     } finally {
       this.writing = false;

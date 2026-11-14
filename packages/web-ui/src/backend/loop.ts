@@ -38,6 +38,9 @@ export type SessionPort = Pick<
   Partial<
     Pick<
       AgentSession,
+      | "setMode"
+      | "executePlan"
+      | "skipPlan"
       | "registerUserInputHandler"
       | "respondToUserInput"
       | "validateSkillSelection"
@@ -125,6 +128,7 @@ export const createLoopBridge = (
           title,
           unread,
           pinnedAt,
+          planning,
         }) => ({
           id,
           workspaceId: project.id === "global" ? null : project.id,
@@ -136,6 +140,7 @@ export const createLoopBridge = (
           pinnedAt,
           title: title?.text,
           archived: archived.has(id),
+          isPlanReady: planning?.mode === "plan" && planning.plans.at(-1)?.status === "ready",
         }),
       );
     },

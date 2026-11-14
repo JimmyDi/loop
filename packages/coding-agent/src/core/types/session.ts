@@ -1,3 +1,5 @@
+import type { SessionPlanning } from "../planning-types";
+import type { SessionPlanner } from "../planning";
 import type { Api, AssistantMessage, Message, Model } from "@earendil-works/pi-ai";
 import type { TraceRecorder } from "@loop/telemetry";
 
@@ -25,6 +27,7 @@ export type SessionEvent =
   | (AgentEvent & { toolDisplayName?: string })
   | ApprovalEvent
   | UserInputEvent
+  | { type: "planning_changed"; planning: SessionPlanning }
   | { type: "agent_settled" }
   | { type: "queue_changed" }
   | { type: "prompt_timing"; timing: PromptTiming }
@@ -45,6 +48,7 @@ export type SessionEvent =
 export type SessionEventListener = (event: SessionEvent) => void | Promise<void>;
 
 export type SessionState = {
+  planning?: SessionPlanning;
   messages: Message[];
   queue?: QueuedMessage[];
   canResume?: boolean;
@@ -76,6 +80,7 @@ export type SessionState = {
 export type SessionOptions = {
   /** Internal session-owned question bridge. */
   userInputService?: UserInputService;
+  planner?: SessionPlanner;
   model: Model<Api>;
   modelRuntime: ModelRuntime;
   sessionManager: SessionManager;

@@ -53,6 +53,7 @@ export class ToolApprovals {
       options: ApprovalRequestOptions,
     ) => Promise<ApprovalResult>,
     private readonly observe?: (event: NestedToolEvent) => void,
+    private readonly beforeExecute?: (tool: AgentTool) => void,
   ) {}
 
   onEvent(event: AgentEvent): void {
@@ -79,6 +80,7 @@ export class ToolApprovals {
     signal: AbortSignal,
     id: string,
   ): Promise<Awaited<ReturnType<AgentTool["execute"]>>> {
+    this.beforeExecute?.(tool);
     const parameters = structuredClone(args);
     let active = true;
     let requested = false;

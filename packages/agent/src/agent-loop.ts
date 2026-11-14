@@ -51,6 +51,7 @@ export const runAgentLoop = async (
     const message = await streamModelResponse(history, requestOptions, emit, signal);
     const calls = message.content.filter((item) => item.type === "toolCall");
     let completed = 0;
+    let endTurn = false;
 
     try {
       await append(message, true);
@@ -76,7 +77,14 @@ export const runAgentLoop = async (
           args: call.arguments,
         });
 
-        const result = await executeTool(call, requestOptions.tools ?? [], signal);
+        const result = endTurn
+          ? createToolError(call, new Error("Skipped after a tool completed the run"))
+          : await executeTool(call, requestOptions.tools ?? [], signal);
+        if (
+          !result.isError &&
+          requestOptions.tools?.find((tool) => tool.name === call.name)?.endTurn
+        )
+          endTurn = true;
 
         // Commit before notifying so a failed listener cannot leave an unpaired call.
         history.push(structuredClone(result));
@@ -118,6 +126,7 @@ export const runAgentLoop = async (
       signal,
     );
     signal.throwIfAborted();
+    if (endTurn) return structuredClone(message);
     // Never take an input that cannot receive a model request in this run.
     if (options.maxTurns !== undefined && turn + 1 >= options.maxTurns) {
       if (calls.length) throw new Error("Maximum model turns reached: " + options.maxTurns);

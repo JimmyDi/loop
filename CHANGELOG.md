@@ -4,6 +4,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-14
+
 ### Added
 
 - coding-agent, SDK, CLI and Web UI: add persistent session Plan mode with read-only investigation, clarification, versioned Markdown plans and explicit execution confirmation under existing permissions. Support CLI /plan, /execute, /implement and --plan. Web users can enable Plan from the composer Add menu, revise or skip a ready plan, and read each version at its originating conversation turn. Skipping persists completion and exits Plan mode without execution, including through the main HTTP route. Show preview cards with copy confirmation and Markdown download, plus a resizable, animated reading panel with closable toolbar tabs, keyboard navigation and reduced-motion support. Load the composer and panel components on demand to preserve the chat startup download budget. Agent: let successful terminal tools finish a run without another model request, pairing remaining calls as skipped.
@@ -18,11 +20,13 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Website: use https://codewithloop.com/ as the public website, build assets and SEO metadata at the domain root, and update the README link and package homepage.
 
-- Agent and coding-agent: upgrade the model runtime dependency `@earendil-works/pi-ai` from 1.1.0 to 1.5.0.
+- Agent and coding-agent: upgrade the model runtime dependency `@earendil-works/pi-ai` from 1.1.0 to the 1.5 series, with 1.5.2 in the lockfile.
 
 - Website: keep navigation on one row with a compact language toggle on mobile and show only the Loop icon on narrow screens.
 
 ### Fixed
+
+- Dependencies: update `@hono/node-server` to 2.1.6 and Hono to 4.13.18 in the lockfile to resolve runtime security vulnerabilities.
 
 - coding-agent and Web UI: keep immediate approval decisions out of pending interaction state so Full access and existing MCP session grants never flash approval cards or waiting indicators on mobile or desktop, while preserving paired approval events.
 

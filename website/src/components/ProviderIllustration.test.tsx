@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, expect, it } from "vitest";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { LanguageProvider } from "../i18n/LanguageProvider";
 import { providerDemoFrames } from "./provider-demo";
@@ -58,6 +58,11 @@ it.each(["zh", "en"] as const)(
     expect(pictures).toHaveLength(providerDemoFrames.length);
     for (const [index, { image }] of providerDemoFrames.entries()) {
       const picture = pictures[index]!;
+      if (index > 0) {
+        expect(picture.querySelector("img")!.hasAttribute("src")).toBe(false);
+        expect(picture.querySelector("source")!.hasAttribute("srcset")).toBe(false);
+        continue;
+      }
       expect(picture.querySelector("img")!.width).toBe(760);
       expect(picture.querySelector("img")!.height).toBe(556);
       const source = picture.querySelector("source")!;
@@ -69,3 +74,36 @@ it.each(["zh", "en"] as const)(
     }
   },
 );
+
+it("loads only the first scene before viewport entry and preserves it until the next is ready", () => {
+  vi.useFakeTimers();
+  let intersect: (entries: { isIntersecting: boolean }[]) => void = () => {};
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      constructor(callback: typeof intersect) {
+        intersect = callback;
+      }
+      observe = vi.fn();
+      disconnect = vi.fn();
+    },
+  );
+  try {
+    const { container } = render(<ProviderIllustration />);
+    expect(container.querySelectorAll("img[src]")).toHaveLength(1);
+    act(() => intersect([{ isIntersecting: true }]));
+    expect(container.querySelectorAll("img[src]")).toHaveLength(2);
+    const images = container.querySelectorAll("img");
+    fireEvent.load(images[0]!);
+    act(() => vi.advanceTimersByTime(60000));
+    expect(container.querySelector('[data-active="true"] img')).toBe(images[0]);
+    fireEvent.load(images[1]!);
+    act(() => vi.advanceTimersByTime(providerDemoFrames[0].duration));
+    expect(container.querySelector('[data-active="true"] img')).toBe(images[1]);
+    expect(container.querySelectorAll("img[src]")).toHaveLength(3);
+  } finally {
+    cleanup();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  }
+});

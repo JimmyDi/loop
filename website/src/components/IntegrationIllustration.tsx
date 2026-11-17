@@ -6,7 +6,7 @@ import { useDemoPlayback } from "./useDemoPlayback";
 
 export const IntegrationIllustration = () => {
   const { language, t } = useLanguage();
-  const playback = useDemoPlayback(integrationDemoFrames);
+  const playback = useDemoPlayback(integrationDemoFrames, language);
 
   return (
     <div className={styles["integration-visual"]} ref={playback.root}>
@@ -15,20 +15,29 @@ export const IntegrationIllustration = () => {
           <picture
             className={styles.frame}
             data-active={index === playback.frame}
-            key={frame.image}
+            key={`${frame.image}-${playback.sourceKey}`}
             aria-hidden="true"
           >
             <source
               media="(prefers-color-scheme: dark)"
-              srcSet={asset(`integration-demo/${frame.image}-${language}-dark.webp`)}
+              srcSet={
+                playback.shouldLoad(index)
+                  ? asset(`integration-demo/${frame.image}-${language}-dark.webp`)
+                  : undefined
+              }
             />
             <img
-              src={asset(`integration-demo/${frame.image}-${language}-light.webp`)}
+              src={
+                playback.shouldLoad(index)
+                  ? asset(`integration-demo/${frame.image}-${language}-light.webp`)
+                  : undefined
+              }
               alt=""
               width={1020}
               height={604}
               loading="lazy"
               decoding="async"
+              onLoad={() => playback.onLoad(index)}
             />
           </picture>
         ))}

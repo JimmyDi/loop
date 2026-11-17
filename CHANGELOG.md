@@ -4,6 +4,10 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Fixed
+
+- Website: speed up blog cover loading with responsive WebP images, prioritize the homepage product preview, and load demo animation frames progressively while waiting for image readiness before transitions.
+
 ## [0.7.0] - 2026-11-14
 
 ### Added

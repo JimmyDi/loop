@@ -14,8 +14,18 @@ it("selects the article illustration in both languages and omits unassigned artw
   );
   const { rerender } = render(view("local-voice-167-mib", "en"));
   expect(screen.getByRole("img").getAttribute("alt")).toBe("Local voice input illustration");
+  const image = screen.getByRole("img");
+  expect(image.getAttribute("src")).toContain("illustration-960.webp");
+  for (const width of [480, 960, 1536]) {
+    expect(image.getAttribute("srcset")).toContain(`illustration-${width}.webp ${width}w`);
+    const bytes = readFileSync(`public/blog/local-voice-167-mib/illustration-${width}.webp`);
+    expect(bytes.subarray(8, 12).toString()).toBe("WEBP");
+    expect(bytes.length).toBeLessThan(width === 1536 ? 350_000 : 150_000);
+  }
+  expect(image.getAttribute("sizes")).toContain("400px");
   rerender(view("local-voice-167-mib", "zh"));
   expect(screen.getByRole("img").getAttribute("alt")).toBe("本地语音输入插画");
   rerender(view("unassigned-article", "en"));
   expect(screen.queryByRole("img")).toBeNull();
 });
+import { readFileSync } from "node:fs";

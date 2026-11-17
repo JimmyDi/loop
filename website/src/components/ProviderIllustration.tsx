@@ -6,7 +6,7 @@ import { useDemoPlayback } from "./useDemoPlayback";
 
 export const ProviderIllustration = () => {
   const { language, t } = useLanguage();
-  const playback = useDemoPlayback(providerDemoFrames);
+  const playback = useDemoPlayback(providerDemoFrames, language);
 
   return (
     <div className={styles["provider-visual"]} ref={playback.root}>
@@ -15,20 +15,29 @@ export const ProviderIllustration = () => {
           <picture
             className={styles.frame}
             data-active={index === playback.frame}
-            key={frame.image}
+            key={`${frame.image}-${playback.sourceKey}`}
             aria-hidden="true"
           >
             <source
               media="(prefers-color-scheme: dark)"
-              srcSet={asset(`provider-demo/${frame.image}-${language}-dark.webp`)}
+              srcSet={
+                playback.shouldLoad(index)
+                  ? asset(`provider-demo/${frame.image}-${language}-dark.webp`)
+                  : undefined
+              }
             />
             <img
-              src={asset(`provider-demo/${frame.image}-${language}-light.webp`)}
+              src={
+                playback.shouldLoad(index)
+                  ? asset(`provider-demo/${frame.image}-${language}-light.webp`)
+                  : undefined
+              }
               alt=""
               width={760}
               height={556}
               loading="lazy"
               decoding="async"
+              onLoad={() => playback.onLoad(index)}
             />
           </picture>
         ))}

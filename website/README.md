@@ -87,7 +87,7 @@ All product media captures the real frontend with fictional engineering data. Ca
 
 Every scene has Chinese/English and native Light/Dark variants. Captures exclude scrollbars, surrounding backing margins and metadata. Animation previews fill their containers without additional borders or letterboxing; proportional corner clipping removes residual captured backgrounds at every display size. Preserve scene names, dimensions and paired variants when replacing assets, with each file below 250 KB.
 
-Provider and MCP/Skills sequences loop over 18 seconds; the workflow sequence loops over 31 seconds. Each has a compact play/pause control without scene navigation. Reduced motion keeps frames static; hidden or offscreen previews stop advancing.
+Provider and MCP/Skills sequences loop over 18 seconds; the workflow sequence loops over 31 seconds. Each has a compact play/pause control without scene navigation. Reduced motion keeps frames static; hidden or offscreen previews stop advancing. Only the current frame has image URLs initially. Visible, playing previews request one upcoming frame at a time and retain visited frames for reuse. Playback waits for both the current and upcoming images to load; failed images keep the current scene visible. Language and theme changes reset image readiness.
 
 Maintain brand copies deliberately and preserve the [brand notice](public/brand/NOTICE.md), [font notice](public/fonts/README.md) and [font license](public/fonts/OFL.txt).
 
@@ -131,7 +131,7 @@ wrap on narrow screens.
 The local-voice article uses a raster cover illustration. The same artwork appears on its latest card
 and to the left of the article summary and byline metadata. On phones the artwork
 stacks above the description. BlogIllustration selects artwork
-by article slug with bilingual accessible descriptions. Article screenshots and diagrams
+by article slug with bilingual accessible descriptions. Cover artwork uses responsive 480px, 960px and 1536px WebP derivatives; the original PNG remains as the editing source and is not requested by the page. Article screenshots and diagrams
 select paired Light/Dark assets; image enlargement preserves the browser-selected source.
 Article headers omit category labels. Navigation focus on the article title has no
 visible outline; interactive links and controls retain their keyboard focus indicators.

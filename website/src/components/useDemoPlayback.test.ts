@@ -33,9 +33,12 @@ it.each([
       disconnect = disconnect;
     },
   );
-  const { result, unmount } = renderHook(() => useDemoPlayback(frames));
+  const { result, unmount } = renderHook(() => useDemoPlayback(frames, "en"));
   act(() => vi.advanceTimersByTime(8000));
   expect(result.current.frame).toBe(0);
+  act(() => {
+    frames.forEach((_, index) => result.current.onLoad(index));
+  });
   act(() => intersect([{ isIntersecting: true }]));
   act(() => vi.advanceTimersByTime(frames[0].duration));
   expect(result.current.frame).toBe(1);
@@ -75,7 +78,7 @@ it("keeps reduced-motion scenes static and suspends hidden-page playback", () =>
     },
   );
   const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(false);
-  const { result } = renderHook(() => useDemoPlayback(providerDemoFrames));
+  const { result } = renderHook(() => useDemoPlayback(providerDemoFrames, "en"));
   act(() => intersect([{ isIntersecting: true }]));
   act(() => vi.advanceTimersByTime(10000));
   expect(result.current.frame).toBe(0);
@@ -86,8 +89,73 @@ it("keeps reduced-motion scenes static and suspends hidden-page playback", () =>
   act(() => document.dispatchEvent(new Event("visibilitychange")));
   act(() => vi.advanceTimersByTime(10000));
   expect(result.current.frame).toBe(0);
+  act(() => {
+    providerDemoFrames.forEach((_, index) => result.current.onLoad(index));
+  });
   hidden.mockReturnValue(false);
   act(() => document.dispatchEvent(new Event("visibilitychange")));
   act(() => vi.advanceTimersByTime(4000));
   expect(result.current.frame).toBe(1);
+});
+
+it("requests one upcoming frame in view and waits for loads across language and theme changes", () => {
+  vi.useFakeTimers();
+  const motion = { matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+  const theme = { matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+  vi.spyOn(window, "matchMedia").mockImplementation(
+    (query) => (query.includes("color-scheme") ? theme : motion) as unknown as MediaQueryList,
+  );
+  let intersect: (entries: { isIntersecting: boolean }[]) => void = () => {};
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      constructor(callback: typeof intersect) {
+        intersect = callback;
+      }
+      observe = vi.fn();
+      disconnect = vi.fn();
+    },
+  );
+  const { result, rerender } = renderHook(
+    ({ language }) => useDemoPlayback(providerDemoFrames, language),
+    { initialProps: { language: "en" } },
+  );
+  expect(providerDemoFrames.map((_, index) => result.current.shouldLoad(index))).toEqual([
+    true,
+    false,
+    false,
+  ]);
+  act(() => intersect([{ isIntersecting: true }]));
+  expect(providerDemoFrames.map((_, index) => result.current.shouldLoad(index))).toEqual([
+    true,
+    true,
+    false,
+  ]);
+  act(() => result.current.onLoad(0));
+  act(() => vi.advanceTimersByTime(60000));
+  expect(result.current.frame).toBe(0);
+  act(() => result.current.onLoad(1));
+  act(() => vi.advanceTimersByTime(providerDemoFrames[0].duration));
+  expect(result.current.frame).toBe(1);
+  expect(result.current.shouldLoad(2)).toBe(true);
+  act(() => vi.advanceTimersByTime(60000));
+  expect(result.current.frame).toBe(1);
+  act(() => result.current.onLoad(2));
+  rerender({ language: "zh" });
+  act(() => vi.advanceTimersByTime(60000));
+  expect(result.current.frame).toBe(1);
+  act(() => {
+    result.current.onLoad(1);
+    result.current.onLoad(2);
+  });
+  theme.matches = true;
+  act(() => theme.addEventListener.mock.calls[0]![1]());
+  act(() => vi.advanceTimersByTime(60000));
+  expect(result.current.frame).toBe(1);
+  act(() => {
+    result.current.onLoad(1);
+    result.current.onLoad(2);
+  });
+  act(() => vi.advanceTimersByTime(providerDemoFrames[1].duration));
+  expect(result.current.frame).toBe(2);
 });

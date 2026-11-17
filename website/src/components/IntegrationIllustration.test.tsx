@@ -37,15 +37,20 @@ it.each(["zh", "en"] as const)(
     expect(pictures).toHaveLength(integrationDemoFrames.length);
     for (const [index, { image }] of integrationDemoFrames.entries()) {
       const picture = pictures[index]!;
-      expect(picture.querySelector("img")!.width).toBe(1020);
-      expect(picture.querySelector("img")!.height).toBe(604);
-      expect(picture.querySelector("source")?.media).toBe("(prefers-color-scheme: dark)");
-      expect(picture.querySelector("source")?.srcset).toContain(
-        `integration-demo/${image}-${language}-dark.webp`,
-      );
-      expect(picture.querySelector("img")?.src).toContain(
-        `integration-demo/${image}-${language}-light.webp`,
-      );
+      if (index > 0) {
+        expect(picture.querySelector("img")!.hasAttribute("src")).toBe(false);
+        expect(picture.querySelector("source")!.hasAttribute("srcset")).toBe(false);
+      } else {
+        expect(picture.querySelector("img")!.width).toBe(1020);
+        expect(picture.querySelector("img")!.height).toBe(604);
+        expect(picture.querySelector("source")?.media).toBe("(prefers-color-scheme: dark)");
+        expect(picture.querySelector("source")?.srcset).toContain(
+          `integration-demo/${image}-${language}-dark.webp`,
+        );
+        expect(picture.querySelector("img")?.src).toContain(
+          `integration-demo/${image}-${language}-light.webp`,
+        );
+      }
       const light = readFileSync(`public/integration-demo/${image}-${language}-light.webp`);
       const dark = readFileSync(`public/integration-demo/${image}-${language}-dark.webp`);
       expect(light.equals(dark)).toBe(false);

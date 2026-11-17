@@ -6,7 +6,7 @@ import { useDemoPlayback } from "./useDemoPlayback";
 
 export const QueueIllustration = () => {
   const { language, t } = useLanguage();
-  const playback = useDemoPlayback(workflowDemoFrames);
+  const playback = useDemoPlayback(workflowDemoFrames, language);
 
   return (
     <div className={styles["queue-visual"]} ref={playback.root}>
@@ -15,20 +15,29 @@ export const QueueIllustration = () => {
           <picture
             className={styles.frame}
             data-active={index === playback.frame}
-            key={frame.image}
+            key={`${frame.image}-${playback.sourceKey}`}
             aria-hidden="true"
           >
             <source
               media="(prefers-color-scheme: dark)"
-              srcSet={asset(`workflow-demo/${frame.image}-${language}-dark.webp`)}
+              srcSet={
+                playback.shouldLoad(index)
+                  ? asset(`workflow-demo/${frame.image}-${language}-dark.webp`)
+                  : undefined
+              }
             />
             <img
-              src={asset(`workflow-demo/${frame.image}-${language}-light.webp`)}
+              src={
+                playback.shouldLoad(index)
+                  ? asset(`workflow-demo/${frame.image}-${language}-light.webp`)
+                  : undefined
+              }
               alt=""
               width={1056}
               height={587}
               loading="lazy"
               decoding="async"
+              onLoad={() => playback.onLoad(index)}
             />
           </picture>
         ))}

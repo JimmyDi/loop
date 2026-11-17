@@ -14,6 +14,7 @@ export const ProductScreenshot = ({ language, label }: { language: Language; lab
       width={1440}
       height={800}
       decoding="async"
+      fetchPriority="high"
     />
   </picture>
 );

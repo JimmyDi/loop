@@ -12,6 +12,7 @@ it("renders native theme-aware screenshots and switches language without playbac
   expect(screen.getByRole("img").getAttribute("src")).toContain(
     "product/storefront-filters-zh-light.webp",
   );
+  expect(screen.getByRole("img").getAttribute("fetchpriority")).toBe("high");
   expect(container.querySelector("source")?.getAttribute("media")).toBe(
     "(prefers-color-scheme: dark)",
   );

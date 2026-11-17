@@ -37,15 +37,20 @@ it.each(["zh", "en"] as const)(
     expect(pictures).toHaveLength(workflowDemoFrames.length);
     for (const [index, { image }] of workflowDemoFrames.entries()) {
       const picture = pictures[index]!;
-      expect(picture.querySelector("img")!.width).toBe(1056);
-      expect(picture.querySelector("img")!.height).toBe(587);
-      expect(picture.querySelector("source")?.media).toBe("(prefers-color-scheme: dark)");
-      expect(picture.querySelector("source")?.srcset).toContain(
-        `workflow-demo/${image}-${language}-dark.webp`,
-      );
-      expect(picture.querySelector("img")?.src).toContain(
-        `workflow-demo/${image}-${language}-light.webp`,
-      );
+      if (index > 0) {
+        expect(picture.querySelector("img")!.hasAttribute("src")).toBe(false);
+        expect(picture.querySelector("source")!.hasAttribute("srcset")).toBe(false);
+      } else {
+        expect(picture.querySelector("img")!.width).toBe(1056);
+        expect(picture.querySelector("img")!.height).toBe(587);
+        expect(picture.querySelector("source")?.media).toBe("(prefers-color-scheme: dark)");
+        expect(picture.querySelector("source")?.srcset).toContain(
+          `workflow-demo/${image}-${language}-dark.webp`,
+        );
+        expect(picture.querySelector("img")?.src).toContain(
+          `workflow-demo/${image}-${language}-light.webp`,
+        );
+      }
       const light = readFileSync(`public/workflow-demo/${image}-${language}-light.webp`);
       const dark = readFileSync(`public/workflow-demo/${image}-${language}-dark.webp`);
       expect(light.equals(dark)).toBe(false);

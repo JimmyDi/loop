@@ -1,3 +1,5 @@
+import { supportsImages } from "./composer-model-capabilities";
+import { ComposerWorkspace } from "./ComposerWorkspace";
 import { ComposerPlanControls } from "./ComposerPlanControls";
 import { useComposerMode } from "../../hooks/useComposerMode";
 import { useState } from "react";
@@ -18,7 +20,6 @@ import { ComposerModelSettings } from "./ComposerModelSettings";
 import { ComposerAttachments } from "./ComposerAttachments";
 import { useComposerAttachments } from "../../hooks/useComposerAttachments";
 import { useComposerProject } from "../../hooks/useComposerProject";
-import { ComposerProjectSelector } from "./ComposerProjectSelector";
 import { useModels } from "../../hooks/useModels";
 import { useContextCompaction } from "../../hooks/useContextCompaction";
 import { ComposerCommands } from "./ComposerCommands";
@@ -32,8 +33,8 @@ import { useComposerHeight } from "../../hooks/useComposerHeight";
 import "./ChatComposer.css";
 
 export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
-  const { t } = useTranslation();
-  const region = useComposerHeight();
+  const { t } = useTranslation(),
+    region = useComposerHeight();
   const [focusRequest, setFocusRequest] = useState(0);
   const newSession =
     snapshot.state.messages.length === 0 && !snapshot.state.draft && !snapshot.requestId;
@@ -48,11 +49,8 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
     models = useModels();
   const compact = useContextCompaction(snapshot, connected);
   const inputValue = compact.running && /^\s*\/[a-z]*\s*$/i.test(prompt.text) ? "" : prompt.text;
-  const current =
-    models.data?.find(
-      (model) => model.provider === snapshot.model.provider && model.id === snapshot.model.id,
-    ) ?? snapshot.model;
-  const unsupportedImages = prompt.images.length > 0 && current.input?.includes("image") === false;
+  const unsupportedImages =
+    prompt.images.length > 0 && !supportsImages(models.data, snapshot.model);
   const running = snapshot.operation === "prompt" || compact.running;
   const hasContent = !!prompt.text.trim() || !!prompt.images.length || !!prompt.files.length;
   const queueing = snapshot.operation === "prompt" && !!snapshot.state.queue?.length && hasContent;
@@ -118,7 +116,7 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
         editingId={queue.editing?.id}
         onEdit={(id) => void queue.begin(id)}
       />
-      {newSession && <ComposerProjectSelector selection={project} disabled={blocked} />}
+      {newSession && <ComposerWorkspace snapshot={snapshot} project={project} blocked={blocked} />}
       <form
         className="chat-composer"
         data-running={snapshot.operation === "prompt" && !queue.editing}
@@ -147,13 +145,15 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
           onFiles={(files) => void attachments.add(files)}
           placeholder={t("placeholder")}
         />
-        <ComposerSkills
-          sessionId={snapshot.sessionId}
-          workspaceId={snapshot.workspaceId ?? undefined}
-          text={prompt.text}
-          onText={prompt.setText}
-          disabled={blocked}
-        />
+        {snapshot.state.execution !== "sandbox" && (
+          <ComposerSkills
+            sessionId={snapshot.sessionId}
+            workspaceId={snapshot.workspaceId ?? undefined}
+            text={prompt.text}
+            onText={prompt.setText}
+            disabled={blocked}
+          />
+        )}
         <ComposerCommands
           snapshot={snapshot}
           text={prompt.text}

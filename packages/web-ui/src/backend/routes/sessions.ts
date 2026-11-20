@@ -1,3 +1,4 @@
+import { executionConfiguration, requestedExecution } from "../settings/execution";
 import { planningRoute } from "./session-planning";
 import type { UserInputAnswer } from "../../shared/protocol";
 import { revealSession } from "./session-reveal";
@@ -8,14 +9,17 @@ import { readBody, requiredString, sessionWorkspace } from "../http/input";
 import { historyRoute } from "./session-history";
 import { HttpError } from "../http/errors";
 import type { SessionRegistry } from "../session-registry";
+import type { McpManager } from "@loop/coding-agent";
 import { isModelEffort, isPermissionPreset } from "@loop/coding-agent";
 import { validImages } from "../../shared/prompt-images";
 import { validTextFiles } from "../../shared/prompt-files";
 
 export const sessionRoutes =
-  (registry: SessionRegistry) =>
+  (registry: SessionRegistry, mcp?: McpManager) =>
   async (request: Request, url: URL): Promise<Response | undefined> => {
     const method = request.method;
+    if (url.pathname === "/api/execution-environments" && method === "GET")
+      return Response.json(await executionConfiguration(mcp));
     if (url.pathname === "/api/models" && method === "GET") {
       return Response.json(await registry.loop.models());
     }
@@ -35,7 +39,10 @@ export const sessionRoutes =
       }
       if (method === "POST") {
         const body = await readBody(request);
-        const controller = await registry.create(sessionWorkspace(body));
+        const controller = await registry.create(
+          sessionWorkspace(body),
+          await requestedExecution(body.execution, mcp),
+        );
         return Response.json(pageSnapshot(controller.snapshot), { status: 201 });
       }
     }

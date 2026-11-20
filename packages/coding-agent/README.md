@@ -65,3 +65,5 @@ pnpm run check
 ```
 
 Coding-agent supports Loop's sequential Agent, editable input queue, steering, cancellation, local voice runtime and JSONL history, including manual and automatic [context compaction](src/docs/compaction.md).
+
+- [Disposable sandbox execution](src/docs/sandbox.md)

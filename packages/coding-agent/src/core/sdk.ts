@@ -1,3 +1,8 @@
+import { McpSandboxExecution } from "./execution/mcp-sandbox";
+import { SandboxExecution } from "./execution/sandbox";
+import { validateExecution } from "./execution/types";
+import type { ExecutionEnvironment } from "./execution/types";
+import { buildSystemPrompt } from "./system-prompt";
 import { basename, join } from "node:path";
 import { realpathSync } from "node:fs";
 import type { Api, Model } from "@earendil-works/pi-ai";
@@ -23,6 +28,7 @@ import type { McpManager } from "./mcp/mcp-manager";
 import { SkillManager } from "./skills/skill-manager";
 
 export type CreateAgentSessionOptions = ServiceOptions & {
+  execution?: ExecutionEnvironment;
   model?: Model<Api>;
   mcpManager?: McpManager;
   skillManager?: SkillManager;
@@ -43,6 +49,7 @@ export async function createAgentSession(
   options: CreateAgentSessionOptions = {},
 ): Promise<{ session: AgentSession }> {
   const allowed = new Set([
+    "execution",
     "cwd",
     "agentDir",
     "modelRuntime",
@@ -77,8 +84,21 @@ export async function createAgentSession(
   if (manager && options.cwd && realpathSync(options.cwd) !== realpathSync(manager.getCwd()))
     throw new Error("Session cwd does not match");
 
+  const execution = validateExecution(
+    options.execution ?? manager?.getHeader().execution ?? { type: "local" },
+  );
+  const remote = execution.type === "sandbox";
+  if (remote && options.tools)
+    throw new Error("Custom local tools are unavailable in sandbox mode");
+  if (
+    manager?.getHeader().execution &&
+    options.execution &&
+    JSON.stringify(execution) !== JSON.stringify(manager.getHeader().execution)
+  )
+    throw new Error("Session execution environment does not match");
   const services = await createAgentSessionServices({
     ...options,
+    noContextFiles: remote || options.noContextFiles,
     cwd: manager?.getCwd() ?? options.cwd,
   });
   const saved = manager?.getHeader().model;
@@ -96,7 +116,7 @@ export async function createAgentSession(
     throw new Error("Model unavailable: " + provider + "/" + id + ". Select a configured model.");
 
   // Validate selected tool names before creating any storage.
-  createTools(services.cwd, options.tools);
+  if (!remote) createTools(services.cwd, options.tools);
   if (
     options.effort !== undefined &&
     (!isModelEffort(options.effort) ||
@@ -130,7 +150,19 @@ export async function createAgentSession(
     },
     () => sessionManager.getHeader().permissionPreset,
   );
-  const tools = createTools(services.cwd, options.tools, permissionPolicy);
+  if (!sessionManager.getHeader().execution && (remote || !sessionManager.messages.length))
+    await sessionManager.setExecution(execution);
+  const sandbox =
+    execution.type === "sandbox"
+      ? "serverId" in execution
+        ? await McpSandboxExecution.create(
+            services.agentDir,
+            execution.serverId,
+            sessionManager.getSessionId(),
+          )
+        : new SandboxExecution(execution, sessionManager.getSessionId())
+      : undefined;
+  const tools = sandbox?.tools() ?? createTools(services.cwd, options.tools, permissionPolicy);
 
   if (
     !saved ||
@@ -164,14 +196,23 @@ export async function createAgentSession(
     modelRuntime: services.modelRuntime,
     sessionManager,
     tools,
-    systemPrompt: services.systemPrompt,
+    sandboxExecution: sandbox,
+    systemPrompt: remote
+      ? buildSystemPrompt("/workspace", options.systemPrompt, []) +
+        (sandbox && "instructions" in sandbox && sandbox.instructions
+          ? "\nSelected MCP provider instructions:\n" + sandbox.instructions
+          : "") +
+        "\nAll workspace tools execute through the selected remote execution provider. No local project is uploaded. Follow the provider tool schemas for paths, sessions and lifecycle. If results report a generation change, previous files and processes may be lost."
+      : services.systemPrompt,
     maxTurns: options.maxTurns,
     maxTokens: options.maxTokens,
     effort,
     title: options.title,
     permissionPolicy,
-    mcpManager: options.mcpManager,
-    skillManager: options.skillManager ?? new SkillManager(services.agentDir),
+    mcpManager: remote ? undefined : options.mcpManager,
+    skillManager: remote
+      ? undefined
+      : (options.skillManager ?? new SkillManager(services.agentDir)),
     ownsSkillManager: !options.skillManager,
   });
 

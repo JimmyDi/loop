@@ -1,0 +1,19 @@
+.execution-environment {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin: 4px 0;
+}
+.execution-environment select {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+.execution-environment-detail {
+  opacity: 0.65;
+}

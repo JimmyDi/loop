@@ -233,6 +233,8 @@ export class AgentSession {
   }
 
   setMode(mode: SessionMode): Promise<void> {
+    if (this.options.sandboxExecution && mode === "plan")
+      throw new Error("Plan mode is unavailable in sandbox sessions");
     try {
       this.assertIdle();
     } catch (error) {
@@ -352,12 +354,21 @@ export class AgentSession {
   get state(): SessionState {
     const timing = this.promptTiming;
     const checkpoint = this.sessionManager.getCompactions().at(-1);
+    const execution = this.sessionManager.getHeader().execution;
     const names = new Map(this.toolDisplayNames);
     for (const tool of this.options.mcpManager?.tools(this.sessionManager.getCwd()) ?? []) {
       const displayName = (tool as PermissionTool).displayName;
       if (displayName && !names.has(tool.name)) names.set(tool.name, displayName);
     }
     return {
+      execution: this.options.sandboxExecution ? "sandbox" : "local",
+      sandbox: this.options.sandboxExecution?.snapshot,
+      sandboxServerId:
+        execution?.type === "sandbox" && "serverId" in execution ? execution.serverId : undefined,
+      sandboxLabel:
+        this.options.sandboxExecution && "label" in this.options.sandboxExecution
+          ? this.options.sandboxExecution.label
+          : undefined,
       planning: this.planner.state,
       messages: (this.agent?.messages ?? this.sessionManager.messages).map((message) =>
         withToolDisplayName(message, names),
@@ -643,6 +654,7 @@ export class AgentSession {
     this.approvals.cancelPending();
     this.userInput.cancelPending();
     await this.waitForIdle();
+    await this.options.sandboxExecution?.cancelRunning();
     await this.titles.wait();
   }
 
@@ -808,6 +820,7 @@ export class AgentSession {
         return this.trace.close();
       });
     if (this.options.ownsSkillManager) void this.options.skillManager?.close();
+    void this.options.sandboxExecution?.close();
     this.listeners.clear();
   }
 

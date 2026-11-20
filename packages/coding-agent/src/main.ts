@@ -1,5 +1,7 @@
 import { resolve } from "node:path";
 
+import { connectSandbox } from "./cli/sandbox-connect";
+import { sandboxConfiguration, sandboxUrl } from "./core/execution/connection";
 import { HELP, parseArgs } from "./cli/args";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, getAgentDir, getSessionDir, VERSION } from "./config";
 import { createAgentSessionRuntime } from "./core/agent-session-runtime";
@@ -12,7 +14,11 @@ import { recoverPendingSave } from "./modes/save-recovery";
 import { runInteractiveMode, runPrintMode } from "./modes";
 
 export async function main(args = process.argv.slice(2)): Promise<number> {
+  if (args[0] === "sandbox" && args[1] === "connect") return connectSandbox(args.slice(2));
   const { flags, prompt } = parseArgs(args);
+  const configuredSandbox = flags.has("--sandbox") ? sandboxConfiguration() : undefined;
+  if (flags.has("--sandbox") && !configuredSandbox)
+    throw new Error("Run loop sandbox connect before using --sandbox");
   const permissionPreset = flags.get("--permission-preset");
 
   if (flags.has("--help")) {
@@ -65,6 +71,19 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
     (options) =>
       createAgentSession({
         ...options,
+        ...(flags.has("--sandbox-mcp")
+          ? { execution: { type: "sandbox" as const, serverId: flags.get("--sandbox-mcp")! } }
+          : flags.has("--sandbox-url")
+            ? {
+                execution: {
+                  type: "sandbox" as const,
+                  url: sandboxUrl(flags.get("--sandbox-url")!),
+                  tokenEnv: "LOOP_SANDBOX_TOKEN",
+                },
+              }
+            : configuredSandbox
+              ? { execution: configuredSandbox }
+              : {}),
         agentDir,
         modelRuntime,
         settingsManager,

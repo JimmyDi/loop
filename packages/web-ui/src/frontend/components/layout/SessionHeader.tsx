@@ -1,3 +1,4 @@
+import { ExecutionEnvironment } from "../chat/ExecutionEnvironment";
 import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 
@@ -44,6 +45,9 @@ export const SessionHeader = ({
         <SessionName key={snapshot.sessionId} snapshot={snapshot} />
       ) : (
         <span className="session-name-placeholder">{t("newSession")}</span>
+      )}
+      {snapshot?.state.execution === "sandbox" && (
+        <ExecutionEnvironment snapshot={snapshot} editable={false} />
       )}
       {panel && (
         <ActionButton

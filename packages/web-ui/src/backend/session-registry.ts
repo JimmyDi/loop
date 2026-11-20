@@ -1,3 +1,4 @@
+import type { ExecutionEnvironment } from "@loop/coding-agent";
 import type { Project, SessionSummary } from "../shared/protocol";
 import { HttpError } from "./http/errors";
 import type { LoopBridge } from "./loop";
@@ -45,9 +46,12 @@ export class SessionRegistry {
     });
   }
 
-  async create(workspaceId: string | null): Promise<SessionController> {
+  async create(
+    workspaceId: string | null,
+    execution?: ExecutionEnvironment,
+  ): Promise<SessionController> {
     return this.withProject(workspaceId, async (project) => {
-      const session = await this.loop.load(project);
+      const session = await this.loop.load(project, undefined, execution);
       const controller = new SessionController(session, workspaceId);
       this.events.watch(controller);
       this.instances.set(session.sessionId, controller);

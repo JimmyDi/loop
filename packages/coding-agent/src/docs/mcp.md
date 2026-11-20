@@ -70,3 +70,11 @@ Before dispatch, core checks the live session's Full access state, then consults
 This feature supports MCP tools over STDIO and Streamable HTTP only. It does not install packages, perform OAuth, expose MCP resources/prompts, load skills or install plugin bundles. Server availability does not prove its tools are safe; call authorization follows the [approval contract](approvals.md) and session permissions.
 
 Source and colocated tests: [manager](../core/mcp/mcp-manager.ts), [connections](../core/mcp/connection.ts), [configuration](../core/mcp/config-store.ts), [tool adapters](../core/mcp/mcp-tools.ts), [session integration](../core/agent-session.test.ts). See [context budget](context-budget.md).
+
+
+## Exclusive sandbox execution
+
+Configured servers can also be selected as the sole workspace execution provider
+for a new Web conversation. This uses a dedicated per-chat connection and excludes
+local tools and all other servers. See [sandbox execution](sandbox.md#select-a-configured-mcp-provider)
+for selection, SDK/CLI references, session identity and provider limitations.

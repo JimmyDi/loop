@@ -50,6 +50,8 @@ export const sessionImageRoutes =
     if (!["GET", "HEAD"].includes(request.method)) throw new HttpError(405, "method_not_allowed");
     const controller = await registry.get(match[1]!);
     registry.assertAvailable(controller.workspaceId);
+    if (controller.snapshot.state.execution === "sandbox")
+      throw new HttpError(404, "file_not_found");
     const path = url.searchParams.get("path") ?? "";
     const messages = [...controller.snapshot.state.messages];
     if (controller.snapshot.state.draft) messages.push(controller.snapshot.state.draft);

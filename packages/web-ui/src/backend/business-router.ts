@@ -33,7 +33,7 @@ export const createBusinessRouter = (
     projectRoutes(registry),
     sessionImageRoutes(registry),
     sessionFileRoutes(registry),
-    sessionRoutes(registry),
+    sessionRoutes(registry, mcp),
   ];
   const handle: BusinessHandler = async (request, context = localContext): Promise<Response> => {
     const url = new URL(request.url);

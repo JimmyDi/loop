@@ -18,3 +18,10 @@ Configuration is global for the Web backend, shared across projects. It is store
 See the public [core contracts](../../../../coding-agent/src/docs/mcp.md) for transport fields, write-only values, background limits, tool approvals and error behavior. The browser workflow is documented in [Integrations](../../frontend/docs/integrations.md).
 
 Source: [routes](../routes/mcp.ts), [route tests](../routes/mcp.test.ts), [server](../server.ts), [session bridge](../loop.ts).
+
+
+Configured enabled servers appear in the new-chat execution environment selector.
+Selecting one binds that chat to its MCP server ID and uses only its catalog as
+workspace tools, with no local execution fallback. Credentials remain server-side.
+HTTP sandbox providers receive the stable chat ID in Loop-Session-Id; STDIO
+providers receive LOOP_SESSION_ID. The provider owns sandbox allocation and reuse.

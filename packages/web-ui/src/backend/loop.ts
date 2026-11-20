@@ -8,13 +8,17 @@ import {
   SessionManager,
   SettingsManager,
 } from "@loop/coding-agent";
-import type { AgentSession, ModelRuntime, McpManager, SkillManager } from "@loop/coding-agent";
-
+import type {
+  AgentSession,
+  ModelRuntime,
+  McpManager,
+  SkillManager,
+  ExecutionEnvironment,
+} from "@loop/coding-agent";
 import type { ModelChoice, ModelSelection, Project, SessionSummary } from "../shared/protocol";
 import { ProviderSettings } from "./providers/provider-settings";
 import { WebSettings } from "./settings/web-settings";
 import { HttpError } from "./http/errors";
-
 export type SessionPort = Pick<
   AgentSession,
   | "sessionId"
@@ -56,17 +60,15 @@ export type SessionPort = Pick<
       | "flushTrace"
     >
   >;
-
 export type LoopBridge = {
   standaloneProject?(): Promise<Project>;
   models(): Promise<ModelChoice[]>;
   list(project: Project): Promise<SessionSummary[]>;
   archive(project: Project, ids: string[], archived: boolean): Promise<void>;
   deleteSessions(project: Project, ids: string[], archivedOnly: boolean): Promise<void>;
-  load(project: Project, id?: string): Promise<SessionPort>;
+  load(project: Project, id?: string, execution?: ExecutionEnvironment): Promise<SessionPort>;
   setModel(session: SessionPort, choice: ModelSelection): Promise<void>;
 };
-
 export const createLoopBridge = (
   agentDir: string,
   providers = new ProviderSettings(join(agentDir, "web-ui", "provider.json")),
@@ -102,7 +104,6 @@ export const createLoopBridge = (
       runtime = undefined;
       throw error;
     }));
-
   return {
     standaloneProject: async () => ({ id: "global", name: "Chats", cwd: standaloneRoot }),
     models: () => providers.models(),
@@ -144,7 +145,7 @@ export const createLoopBridge = (
         }),
       );
     },
-    load: async (project, id) => {
+    load: async (project, id, execution) => {
       const records = id ? await listFor(project) : [];
       const record = records.find((item) => item.id === id);
 
@@ -160,6 +161,7 @@ export const createLoopBridge = (
       const modelRuntime = await getRuntime();
       const settingsManager = await SettingsManager.create(agentDir);
       const { session } = await createAgentSession({
+        execution,
         mcpManager,
         skillManager,
         cwd,

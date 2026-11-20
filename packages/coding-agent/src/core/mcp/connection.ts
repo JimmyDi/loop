@@ -54,7 +54,7 @@ const transportFor = (config: McpServerConfig): Transport => {
       stderr: "ignore",
     });
   }
-  const headers = new Headers();
+  const headers = new Headers({ "Loop-Session-Id": "loop-discovery" });
   for (const { key, value } of config.headers) headers.set(key, value);
   for (const { key, value } of config.envHeaders) headers.set(key, environment(value));
   if (config.bearerTokenEnv)

@@ -4,6 +4,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-21
+
 ### Added
 
 - Web UI: show a blue dot on Home whenever an accessible unarchived chat is unread, including chats in collapsed projects and beyond visible list limits; clear it as read state updates and avoid application-shell rerenders for streaming updates that leave unread status unchanged.

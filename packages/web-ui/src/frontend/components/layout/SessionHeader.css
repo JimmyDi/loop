@@ -1,19 +1,19 @@
 .session-header {
-  min-height: 48px;
+  min-height: 40px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 0;
-  padding: 5px 16px;
+  padding: 3px 12px;
   border-bottom: 1px solid var(--line);
   background: var(--surface-header);
 }
 .session-header .session-panel-toggle { margin-left: auto; flex-shrink: 0; width: 32px; height: 32px; padding: 4px; }
 .session-header .session-folder {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  padding: 3px;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
 }
 .session-header > .session-name,
 .session-header > .session-name-placeholder {
@@ -24,22 +24,22 @@
   min-width: 0;
   padding: 4px 8px;
   border: 1px solid transparent;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 26px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 22px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .session-header {
-    padding: 5px 12px;
+    padding: 2px 12px;
   }
 }
 
 @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .session-header {
-    padding: max(5px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 5px max(12px, env(safe-area-inset-left));
+    padding: max(2px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 2px max(12px, env(safe-area-inset-left));
   }
   .session-header .action-button {
     min-width: 44px;
@@ -48,17 +48,17 @@
 }
 
 @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
-  .session-name-placeholder { font-size: 16px; }
+  .session-name-placeholder { font-size: 13px; }
 }
 
 @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .session-header {
-    min-height: 56px;
+    min-height: 48px;
   }
   .session-header .session-folder {
     width: 44px;
     height: 44px;
-    padding: 10px;
+    padding: 13px;
   }
 }
 
@@ -79,3 +79,9 @@
 .session-header-panel-tabs { animation: panel-tabs-enter 280ms cubic-bezier(.22,1,.36,1); }
 @keyframes panel-tabs-enter { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
 @media (prefers-reduced-motion: reduce) { .session-header-panel-tabs { animation: none; } }
+
+.session-header .session-folder svg,
+.session-header .session-panel-toggle svg {
+  width: 16px;
+  height: 16px;
+}

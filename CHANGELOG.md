@@ -4,6 +4,16 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Added
+
+- Web UI: show a blue dot on Home whenever an accessible unarchived chat is unread, including chats in collapsed projects and beyond visible list limits; clear it as read state updates and avoid application-shell rerenders for streaming updates that leave unread status unchanged.
+
+### Changed
+
+- Web UI: compact the conversation header with a shorter bar, smaller title and icons, while retaining mobile touch targets and inline title editing.
+
+- Web UI: add a compact left navigation bar with Home aligned with the sidebar brand and a bottom Settings menu opening to its right, with rounded corners where it meets the session sidebar; open settings as a full-workspace panel with a centered content column and balanced side spacing, with Home and Escape returning to the existing conversation, retaining drafts and sidebar state and focusing the selected settings category on entry.
+
 ### Fixed
 
 - Website: speed up blog cover loading with responsive WebP images, prioritize the homepage product preview, and load demo animation frames progressively while waiting for image readiness before transitions.

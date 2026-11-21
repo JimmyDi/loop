@@ -222,6 +222,8 @@ export const en = {
   resize: "Resize sidebar",
   language: "Language",
   settings: "Settings",
+  home: "Home",
+  appNavigation: "Application navigation",
   appMenu: "More",
   feedback: "Feedback",
   personal: "Personal",

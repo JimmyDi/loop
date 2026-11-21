@@ -8,7 +8,13 @@ import { ActionButton } from "../ui/ActionButton";
 import { SettingsIcon } from "../ui/SettingsIcon";
 import "./SidebarMenu.css";
 
-export const SidebarMenu = ({ onOpenSettings }: { onOpenSettings(): void }) => {
+export const SidebarMenu = ({
+  onOpenSettings,
+  active = false,
+}: {
+  onOpenSettings(): void;
+  active?: boolean;
+}) => {
   const { t } = useTranslation();
   const menu = useComposerMenu(false, false);
   const id = useId();
@@ -25,7 +31,9 @@ export const SidebarMenu = ({ onOpenSettings }: { onOpenSettings(): void }) => {
       <ActionButton
         ref={menu.trigger}
         className="sidebar-menu-trigger ghost"
-        aria-label={t("appMenu")}
+        aria-label={t("settings")}
+        title={t("settings")}
+        data-active={active}
         aria-haspopup="menu"
         aria-expanded={!!menu.page}
         aria-controls={menu.page ? id : undefined}
@@ -39,7 +47,7 @@ export const SidebarMenu = ({ onOpenSettings }: { onOpenSettings(): void }) => {
           }
         }}
       >
-        {t("appMenu")}
+        <SettingsIcon />
       </ActionButton>
       {menu.page && (
         <div
@@ -47,7 +55,7 @@ export const SidebarMenu = ({ onOpenSettings }: { onOpenSettings(): void }) => {
           ref={menu.panel}
           className="sidebar-menu-panel"
           role="menu"
-          aria-label={t("appMenu")}
+          aria-label={t("settings")}
           onKeyDown={menu.navigate}
         >
           {!isRemoteClient() && (
@@ -55,7 +63,6 @@ export const SidebarMenu = ({ onOpenSettings }: { onOpenSettings(): void }) => {
               type="button"
               role="menuitem"
               tabIndex={-1}
-              aria-haspopup="dialog"
               onClick={() => {
                 menu.close();
                 onOpenSettings();

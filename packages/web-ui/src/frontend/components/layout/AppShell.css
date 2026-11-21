@@ -1,14 +1,17 @@
 .app-shell {
   display: grid;
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  --navigation-width: 44px;
+  --surface-navigation: color-mix(in srgb, var(--surface-sidebar) 90%, var(--ink) 10%);
+  grid-template-columns: var(--navigation-width) minmax(0, 1fr);
   height: 100dvh;
   overflow: hidden;
 }
 .sidebar-container {
   min-height: 0;
+  background: var(--surface-navigation);
 }
 .sidebar-resizer {
-  position: fixed;
+  position: absolute;
   z-index: 10;
   top: 0;
   bottom: 0;
@@ -25,7 +28,7 @@
 }
 @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .app-shell {
-    grid-template-columns: minmax(0, 1fr);
+    --navigation-width: 40px;
     position: fixed;
     inset-inline: 0;
     top: var(--app-viewport-top, 0px);
@@ -69,5 +72,32 @@
 @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .sidebar-container, .sidebar-scrim {
     position: absolute;
+  }
+}
+
+.app-shell-workspace {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+.app-shell-home {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+.app-shell-home[hidden] {
+  display: none;
+}
+.settings-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+}
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .app-shell-home {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

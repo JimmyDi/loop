@@ -6,17 +6,17 @@
 .session-name-input {
   display: block;
   max-width: 100%;
-  min-height: 36px;
+  min-height: 30px;
   margin: 0;
-  padding: 4px 8px;
+  padding: 3px 6px;
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
   color: var(--ink);
   font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 26px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 22px;
 }
 .session-name-button {
   overflow: hidden;
@@ -56,5 +56,6 @@
 }
 
 @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
-  .session-name-button, .session-name-input { font-size: 16px; }
+  .session-name-button { font-size: 13px; }
+  .session-name-input { font-size: 16px; }
 }

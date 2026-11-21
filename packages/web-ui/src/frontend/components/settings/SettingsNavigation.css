@@ -46,3 +46,8 @@
     font-size: 12px;
   }
 }
+
+.settings-navigation-item.action-button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

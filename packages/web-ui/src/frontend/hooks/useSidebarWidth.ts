@@ -14,8 +14,9 @@ export const useSidebarWidth = () => {
   const onPointerDown = (event: PointerEvent<HTMLElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
   };
-  const onPointerMove = (event: PointerEvent<HTMLElement>) => {
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) setWidth(clampWidth(event.clientX));
+  const onPointerMove = (event: PointerEvent<HTMLElement>, offset = 0) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId))
+      setWidth(clampWidth(event.clientX - offset));
   };
 
   return {

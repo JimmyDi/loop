@@ -6,8 +6,8 @@ import { feedbackIssueUrl } from "../../lib/feedback-issue";
 import { SidebarMenu } from "./SidebarMenu";
 
 test.each([
-  ["en", "More", "Settings", "Feedback"],
-  ["zh", "更多", "设置", "反馈"],
+  ["en", "Settings", "Settings", "Feedback"],
+  ["zh", "设置", "设置", "反馈"],
 ])(
   "sidebar menu supports actions and keyboard dismissal in %s",
   async (language, label, settings, feedback) => {
@@ -86,7 +86,7 @@ test("remote application menu hides desktop settings", async () => {
   const { render, fireEvent, cleanup } = await import("@testing-library/react/pure");
   try {
     const view = render(<SidebarMenu onOpenSettings={() => {}} />);
-    fireEvent.click(view.getByRole("button", { name: "More" }));
+    fireEvent.click(view.getByRole("button", { name: "Settings" }));
     expect(view.getAllByRole("menuitem")).toHaveLength(1);
     expect(view.queryByRole("menuitem", { name: "Settings" })).toBeNull();
     expect(view.getByRole("menuitem", { name: "Feedback" })).toBeTruthy();

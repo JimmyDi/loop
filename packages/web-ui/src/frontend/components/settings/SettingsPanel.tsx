@@ -1,8 +1,6 @@
-import { useId, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Modal } from "../ui/Modal";
 import { GeneralSettings } from "./GeneralSettings";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { ModelsSettings } from "./ModelsSettings";
@@ -14,9 +12,9 @@ import { VoiceSettings } from "./VoiceSettings";
 import { SettingsNavigation } from "./SettingsNavigation";
 import { settingsGroups } from "./settings-sections";
 import type { SettingsSection } from "./settings-sections";
-import "./SettingsDialog.css";
+import "./SettingsPanel.css";
 
-export const SettingsDialog = ({
+export const SettingsPanel = ({
   onClose,
   initialSection = "general",
 }: {
@@ -26,14 +24,36 @@ export const SettingsDialog = ({
   const { t } = useTranslation();
   const id = useId();
   const [section, setSection] = useState<SettingsSection>(initialSection);
-  return createPortal(
-    <Modal
-      title={t("settings")}
-      className="settings-dialog"
-      closeLabel={t("close")}
-      onClose={onClose}
+  const panel = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    panel.current
+      ?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
+      ?.focus({ preventScroll: true });
+    return () => previous?.focus({ preventScroll: true });
+  }, []);
+
+  return (
+    <section
+      ref={panel}
+      className="settings-panel"
+      aria-label={t("settings")}
+      onKeyDown={(event) => {
+        if (
+          event.key === "Escape" &&
+          !event.defaultPrevented &&
+          !(event.target as HTMLElement).closest("dialog")
+        ) {
+          event.stopPropagation();
+          onClose();
+        }
+      }}
     >
-      <div className="settings-dialog-body">
+      <header className="settings-panel-header">
+        <h2>{t("settings")}</h2>
+      </header>
+      <div className="settings-panel-body">
         <SettingsNavigation id={id} section={section} onSelect={setSection} />
         {settingsGroups
           .flatMap((group) => [...group.items])
@@ -67,7 +87,6 @@ export const SettingsDialog = ({
             </section>
           ))}
       </div>
-    </Modal>,
-    document.body,
+    </section>
   );
 };

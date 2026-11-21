@@ -22,8 +22,8 @@ test("Sidebar exposes its accessible content and state", () => {
   expect(html.indexOf("sidebar-new-task")).toBeLessThan(html.indexOf("sidebar-scroll"));
   expect(html.slice(html.indexOf("sidebar-scroll"))).not.toContain("sidebar-new-task");
   expect(html).toContain("Loop");
-  expect(html).toContain("More");
-  expect(html).toContain('aria-haspopup="menu"');
+  expect(html).not.toContain("More");
+
   expect(html).not.toContain("Sign in");
   expect(html).not.toContain("Model settings");
   expect(html).not.toContain("Language");

@@ -220,6 +220,8 @@ export const zh = {
   resize: "调整侧栏宽度",
   language: "语言",
   settings: "设置",
+  home: "主页",
+  appNavigation: "应用导航",
   appMenu: "更多",
   feedback: "反馈",
   personal: "个人",

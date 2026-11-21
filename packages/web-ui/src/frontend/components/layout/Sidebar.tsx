@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { flushSync } from "react-dom";
 
@@ -19,13 +19,8 @@ import { PinnedSessions } from "../projects/PinnedSessions";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { LoopIcon } from "../ui/LoopIcon";
-import { SidebarMenu } from "./SidebarMenu";
 import { NewTaskButton } from "./NewTaskButton";
 import "./Sidebar.css";
-
-const SettingsDialog = lazy(() =>
-  import("../settings/SettingsDialog").then((module) => ({ default: module.SettingsDialog })),
-);
 
 export const Sidebar = () => {
   const { t } = useTranslation();
@@ -35,7 +30,6 @@ export const Sidebar = () => {
   const projectsId = useId();
   const [projectsExpanded, setProjectsExpanded] = useState(true);
   const [adding, setAdding] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [addedProjectId, setAddedProjectId] = useState<string>();
   const projectList = useRef<HTMLDivElement>(null);
   const scroll = useSidebarClipping();
@@ -165,9 +159,6 @@ export const Sidebar = () => {
           )}
         </div>
       </div>
-      <footer>
-        <SidebarMenu onOpenSettings={() => setSettingsOpen(true)} />
-      </footer>
       {adding && (
         <AddProjectDialog
           onAdded={(project) => {
@@ -178,11 +169,6 @@ export const Sidebar = () => {
           }}
           onClose={() => setAdding(false)}
         />
-      )}
-      {settingsOpen && (
-        <Suspense fallback={<p role="status">{t("loading")}</p>}>
-          <SettingsDialog onClose={() => setSettingsOpen(false)} />
-        </Suspense>
       )}
     </aside>
   );

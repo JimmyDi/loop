@@ -9,7 +9,8 @@
   padding: 16px 8px 8px;
   background: var(--surface-sidebar);
   border-right: 1px solid var(--line);
-  border-left: 1px solid transparent;
+  border-left: 1px solid var(--line);
+  border-radius: 16px 0 0 16px;
 }
 @supports (backdrop-filter: blur(24px)) or (-webkit-backdrop-filter: blur(24px)) {
   .sidebar {
@@ -133,12 +134,6 @@
 }
 .sidebar-empty {
   margin: 12px;
-}
-.sidebar > footer {
-  display: grid;
-  gap: 8px;
-  padding: 8px 0 0;
-  border-top: 1px solid var(--line);
 }
 .sidebar-close {
   display: none;

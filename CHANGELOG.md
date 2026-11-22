@@ -4,6 +4,10 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Fixed
+
+- coding-agent: validate workflow-only voice CI changes without attempting to republish existing voice resources, while retaining version checks for resource changes and voice tag pushes.
+
 ## [0.8.0] - 2026-11-21
 
 ### Added

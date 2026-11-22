@@ -74,7 +74,10 @@ test("manual workflow passes selected targets through validated prepare output a
   expect(version.run).toContain('REQUESTED_TAG\" != \"$tag');
   expect(workflow.on.workflow_dispatch.inputs.release_tag.default).toBeUndefined();
   expect(workflow.jobs.publish.needs).toEqual(["prepare", "catalog"]);
-  expect(workflow.jobs.publish.if).toBe("github.event_name == 'push'");
+  expect(prepare.steps[0].with["fetch-depth"]).toBe(0);
+  expect(prepare.outputs.should_publish).toBe("$" + "{{ steps.changes.outputs.should_publish }}");
+  expect(version.env.SHOULD_PUBLISH).toBe("$" + "{{ steps.changes.outputs.should_publish }}");
+  expect(workflow.jobs.publish.if).toBe("needs.prepare.outputs.should_publish == 'true'");
   expect(workflow.permissions.contents).toBe("read");
   expect(workflow.jobs.publish.permissions.contents).toBe("write");
   const publish = workflow.jobs.publish.steps.find(

@@ -37,8 +37,53 @@ jobs:
       matrix: ${{ steps.targets.outputs.matrix }}
       targets: ${{ steps.targets.outputs.targets }}
       release_tag: ${{ steps.version.outputs.release_tag }}
+      should_publish: ${{ steps.changes.outputs.should_publish }}
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - id: changes
+        name: Detect voice resource changes
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          should_publish=false
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "tag" ]]; then
+            should_publish=true
+          elif [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            if [[ "$BEFORE_SHA" =~ ^0+$ ]]; then
+              BEFORE_SHA=$(git hash-object -w -t tree /dev/null)
+            fi
+            if git diff --quiet --no-renames "$BEFORE_SHA" "$AFTER_SHA" -- \
+              'packages/coding-agent/src/core/voice/native' \
+              ':(exclude,glob)packages/coding-agent/src/core/voice/native/**/*.test.ts' \
+              ':(exclude,glob)packages/coding-agent/src/core/voice/native/**/*.md' \
+              'packages/coding-agent/src/core/voice/resources/catalog.ts' \
+              'packages/coding-agent/src/core/voice/resources/download.ts' \
+              'packages/coding-agent/src/core/voice/resources/resource-types.ts' \
+              'packages/coding-agent/src/core/voice/resources/release-version.ts' \
+              ':(glob)packages/coding-agent/src/core/voice/protocol-*.ts'; then
+              should_publish=false
+            else
+              status=$?
+              if [[ "$status" != 1 ]]; then exit "$status"; fi
+              should_publish=true
+            fi
+            if [[ "$should_publish" == "false" ]]; then
+              if git diff --quiet --no-renames "$BEFORE_SHA" "$AFTER_SHA" -- \
+                'packages/coding-agent/src/core/voice/native/licenses'; then
+                should_publish=false
+              else
+                status=$?
+                if [[ "$status" != 1 ]]; then exit "$status"; fi
+                should_publish=true
+              fi
+            fi
+          fi
+          echo "should_publish=$should_publish" >> "$GITHUB_OUTPUT"
       - uses: pnpm/action-setup@v6.1.1
       - uses: actions/setup-node@v7.1.0
         with:
@@ -49,6 +94,7 @@ jobs:
         name: Resolve voice resource release version
         env:
           REQUESTED_TAG: ${{ inputs.release_tag }}
+          SHOULD_PUBLISH: ${{ steps.changes.outputs.should_publish }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         shell: bash
@@ -65,7 +111,7 @@ jobs:
             exit 1
           fi
           [[ "$tag" =~ ^voice-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || exit 1
-          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+          if [[ "$SHOULD_PUBLISH" == "true" ]]; then
             releases=$(gh api --paginate --slurp "repos/$GH_REPO/releases?per_page=100")
             draft=$(printf '%s' "$releases" | jq -r --arg tag "$tag" '[.[][] | select(.tag_name == $tag) | .draft] | if length == 0 then "missing" else .[0] end')
             if [[ "$draft" == "false" ]]; then
@@ -153,7 +199,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
   publish:
-    if: github.event_name == 'push'
+    if: needs.prepare.outputs.should_publish == 'true'
     needs: [prepare, catalog]
     runs-on: ubuntu-22.04
     permissions:

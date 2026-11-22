@@ -56,10 +56,15 @@ contracts and the workflow itself. Native tests and documentation are excluded;
 retained licenses are included. Ordinary frontend and Agent changes do not trigger it.
 Each matching main push rebuilds all engine and model bundles using the semantic
 version in resources/release-version.ts, targeting that exact source commit.
+Preparation compares the complete push range for resource changes, including
+renames, deletions and retained licenses. Workflow-only updates build and validate
+artifacts and skip publication and the already-published-version check. Resource
+changes and voice tag pushes enable publication and its version checks. A missing
+comparison commit fails preparation so publication requires a verified decision.
 Bump major for incompatible contracts, minor for compatible features/models and
 patch for fixes before publishing changed resources. The current supported resource
-version is 1.0.1. Preparation rejects already public versions before building;
-publication checks again before uploading. Each changed resource release requires
+version is 1.0.1. For publication runs, preparation rejects already public versions
+before building, and publication checks again before uploading. Each changed resource release requires
 a new semantic version. Voice tags and optional manual release_tag inputs must
 match VOICE_RELEASE_VERSION exactly; manual runs default to that checked-in version.
 This monitors checked-in inputs, not upstream releases; upstream updates require
@@ -69,7 +74,8 @@ darwin-arm64, and only prepare artifacts. It validates the list before generatin
 the build matrix for selected macOS/Linux x64 and ARM64 or Windows x64 CPU bundles,
 three model bundles, SHA-256 and expanded
 file manifests, and a published-catalog.ts candidate. It uploads CI artifacts
-for all entry points. Main and tag pushes additionally publish verified archives, manifests,
+for all entry points. Main pushes with resource changes and voice tag pushes publish
+verified archives, manifests,
 SHA256SUMS and the catalog candidate to GitHub Releases. Publication stages a draft
 before making it public, named `Loop Voice vX.Y.Z — Local speech engine & models`.
 Public releases cannot be overwritten by this workflow. Only failed drafts from

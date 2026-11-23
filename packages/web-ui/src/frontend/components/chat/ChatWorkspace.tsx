@@ -127,7 +127,7 @@ export const ChatWorkspace = ({ id }: { id?: string }) => {
                 {empty ? (
                   <div className="chat-welcome">
                     <LoopIcon size={64} />
-                    <h1>Loop everything</h1>
+                    <h1>{snapshot.state.remoteOnly ? "Echo" : "Loop everything"}</h1>
                   </div>
                 ) : (
                   <MessageTimeline snapshot={snapshot} connected={connected} />

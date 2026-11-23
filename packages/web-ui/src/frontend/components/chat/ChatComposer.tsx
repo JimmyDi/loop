@@ -33,19 +33,19 @@ import "./ChatComposer.css";
 
 export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
   const { t } = useTranslation();
+  const state = snapshot.state;
   const region = useComposerHeight();
   const [focusRequest, setFocusRequest] = useState(0);
-  const newSession =
-    snapshot.state.messages.length === 0 && !snapshot.state.draft && !snapshot.requestId;
-  const project = useComposerProject(snapshot, newSession);
+  const newSession = state.messages.length === 0 && !state.draft && !snapshot.requestId;
+  const project = useComposerProject(snapshot, newSession && !state.remoteOnly);
   const voice = useVoiceComposer(snapshot, connected, project.hasProject);
   const prompt = usePrompt(snapshot, project.hasProject);
   const queue = useQueuedComposer(snapshot, () => setFocusRequest((request) => request + 1));
   const stopping = useAsyncAction();
   const model = useModelSelection(snapshot);
   const { permission, planning } = useComposerMode(snapshot);
-  const attachments = useComposerAttachments(snapshot.sessionId),
-    models = useModels();
+  const attachments = useComposerAttachments(snapshot.sessionId);
+  const models = useModels();
   const compact = useContextCompaction(snapshot, connected);
   const inputValue = compact.running && /^\s*\/[a-z]*\s*$/i.test(prompt.text) ? "" : prompt.text;
   const current =
@@ -54,13 +54,14 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
     ) ?? snapshot.model;
   const unsupportedImages = prompt.images.length > 0 && current.input?.includes("image") === false;
   const running = snapshot.operation === "prompt" || compact.running;
+  const inputDisabled =
+    !connected || project.pending || model.pending || permission.pending || queue.pending;
   const hasContent = !!prompt.text.trim() || !!prompt.images.length || !!prompt.files.length;
-  const queueing = snapshot.operation === "prompt" && !!snapshot.state.queue?.length && hasContent;
+  const queueing = snapshot.operation === "prompt" && !!state.queue?.length && hasContent;
   const disabled =
-    !connected ||
-    project.pending ||
+    inputDisabled ||
     (snapshot.operation !== "idle" && snapshot.operation !== "prompt") ||
-    snapshot.state.hasPendingSave ||
+    state.hasPendingSave ||
     prompt.pending ||
     compact.running ||
     prompt.uncertain ||
@@ -86,18 +87,18 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
       if ("compact".startsWith(slash[1]!.toLowerCase())) void compact.start();
       return;
     }
-    if (!prompt.text.trim() && !prompt.images.length && !prompt.files.length) return;
+    if (!hasContent) return;
     setFocusRequest((request) => request + 1);
     void prompt.submit();
   };
-
   const error = composerError([
     prompt.error,
     queue.error,
     compact.error,
     stopping.error,
     model.error,
-    ...[permission.error, planning.error],
+    permission.error,
+    planning.error,
     attachments.error,
     project.error,
     unsupportedImages ? new ApiError("model_images_unsupported", "", 400) : undefined,
@@ -118,7 +119,9 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
         editingId={queue.editing?.id}
         onEdit={(id) => void queue.begin(id)}
       />
-      {newSession && <ComposerProjectSelector selection={project} disabled={blocked} />}
+      {newSession && !state.remoteOnly && (
+        <ComposerProjectSelector selection={project} disabled={blocked} />
+      )}
       <form
         className="chat-composer"
         data-running={snapshot.operation === "prompt" && !queue.editing}
@@ -141,13 +144,12 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
           value={inputValue}
           onChange={prompt.setText}
           onSubmit={submit}
-          disabled={
-            !connected || project.pending || model.pending || permission.pending || queue.pending
-          }
+          disabled={inputDisabled}
           onFiles={(files) => void attachments.add(files)}
           placeholder={t("placeholder")}
         />
         <ComposerSkills
+          hidden={state.remoteOnly}
           sessionId={snapshot.sessionId}
           workspaceId={snapshot.workspaceId ?? undefined}
           text={prompt.text}
@@ -179,20 +181,18 @@ export const ChatComposer = ({ snapshot, connected }: ChatComposerProps) => {
             error={model.error}
             select={model.change}
           />
-          <ComposerSubmitActions control={voice}>
+          <ComposerSubmitActions control={voice} hideVoice={state.remoteOnly}>
             <ComposerSendButton
               running={running && !queue.editing && !queueing}
               stopping={stopping.pending}
               disabled={blocked || !project.hasProject || unsupportedImages || !hasContent}
-              resume={
-                snapshot.state.canResume && !queue.editing ? { disabled: blocked } : undefined
-              }
+              resume={state.canResume && !queue.editing ? { disabled: blocked } : undefined}
               onResume={() => control("resume")}
               onStop={() => control("abort")}
             />
           </ComposerSubmitActions>
         </ComposerToolbar>
-        <VoiceControls control={voice} />
+        {!state.remoteOnly && <VoiceControls control={voice} />}
       </form>
     </div>
   );

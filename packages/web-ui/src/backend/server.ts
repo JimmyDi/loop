@@ -20,6 +20,7 @@ import { VoiceService } from "./voice/voice-service";
 import { attachVoiceUpgrade } from "./http/voice-upgrade";
 import { assertLocalRequest } from "./http/local-request";
 import { localContext } from "./http/business-context";
+import { createEchoService } from "./echo/service";
 
 export type ServerOptions = { development?: boolean; assetsDir?: string };
 
@@ -43,8 +44,9 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
     options.assetsDir ??
     fileURLToPath(new URL(options.development ? "../../dist/web/" : "./web/", import.meta.url));
   const voice = new VoiceService(new VoiceResourceManager(agentDir), registry);
+  const echo = createEchoService(agentDir, providers);
   const unsubscribeInvalidation = devices.subscribeInvalidation(voice.revoke);
-  const business = createBusinessRouter(registry, providers, settings, mcp, skills, voice);
+  const business = createBusinessRouter(registry, providers, settings, mcp, skills, voice, echo);
   const remoteAccess = await createRemoteAccess(agentDir, (port) =>
     startRemoteIngress(devices, business, assetsDir, port, undefined, voice.connect),
   );
@@ -94,6 +96,7 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
         try {
           await remoteAccess.close();
           await registry.close();
+          await echo.close();
         } finally {
           await mcp.close();
           await skills.close();
@@ -115,6 +118,7 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
     await skills.close();
     await frontend?.close();
     await registry.close();
+    await echo.close();
     server.closeAllConnections();
     server.close();
     throw error;

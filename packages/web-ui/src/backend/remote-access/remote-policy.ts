@@ -6,7 +6,9 @@ export const assertRemoteOrigin = (request: Request, origin: string): void => {
   // Browser handoffs and sign-in redirects may retain cross-site navigation metadata.
   const pairingNavigation =
     read &&
-    ["/", "/index.html", "/remote.html"].includes(new URL(request.url).pathname) &&
+    ["/", "/index.html", "/remote.html", "/echo", "/settings"].includes(
+      new URL(request.url).pathname,
+    ) &&
     request.headers.get("sec-fetch-mode") === "navigate" &&
     request.headers.get("sec-fetch-dest") === "document";
   if (

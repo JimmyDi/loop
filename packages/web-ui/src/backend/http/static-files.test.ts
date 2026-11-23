@@ -18,6 +18,10 @@ test("static assets enforce package confinement and support HEAD and missing ass
     const response = await staticResponse(new Request("http://localhost/"), assets);
     expect(await response.text()).toBe("<title>Loop</title>");
     expect(response.headers.get("content-type")).toContain("text/html");
+    for (const route of ["/echo", "/settings"]) {
+      const page = await staticResponse(new Request("http://localhost" + route), assets);
+      expect(await page.text()).toBe("<title>Loop</title>");
+    }
     const manifest = await staticResponse(
       new Request("http://localhost/manifest.webmanifest"),
       assets,

@@ -52,7 +52,6 @@ export class SessionRegistry {
       this.events.watch(controller);
       this.instances.set(session.sessionId, controller);
       this.owners.set(session.sessionId, workspaceId);
-
       return controller;
     });
   }
@@ -182,6 +181,13 @@ export class SessionRegistry {
     }
   }
 
+  async unload(id: string): Promise<void> {
+    const controller = this.instances.get(id);
+    if (!controller) return;
+    if (controller.busy) throw new HttpError(409, "session_busy");
+    await controller.close();
+    this.instances.delete(id);
+  }
   async configure(action: () => Promise<void>): Promise<void> {
     this.assertAvailable("");
 

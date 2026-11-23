@@ -48,6 +48,7 @@ export type SessionEvent =
 export type SessionEventListener = (event: SessionEvent) => void | Promise<void>;
 
 export type SessionState = {
+  remoteOnly?: boolean;
   planning?: SessionPlanning;
   messages: Message[];
   queue?: QueuedMessage[];
@@ -86,6 +87,8 @@ export type SessionOptions = {
   sessionManager: SessionManager;
   systemPrompt: string;
   tools: AgentTool[];
+  remoteOnly?: boolean;
+  assistantLabel?: string;
   mcpManager?: McpManager;
   skillManager?: SkillManager;
   ownsSkillManager?: boolean;

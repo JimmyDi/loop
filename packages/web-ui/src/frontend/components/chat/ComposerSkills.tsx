@@ -13,16 +13,18 @@ export const ComposerSkills = ({
   text,
   disabled,
   onText,
+  hidden,
 }: {
   sessionId: string;
   workspaceId?: string;
   text: string;
   disabled: boolean;
+  hidden?: boolean;
   onText(text: string): void;
 }) => {
   const { t } = useTranslation();
   const token = text.match(/(?:^|\s)\$([a-z0-9-]*)$/i);
-  const api = useSkills(workspaceId, !!token && !disabled);
+  const api = useSkills(workspaceId, !!token && !disabled && !hidden);
   const [dismissed, setDismissed] = useState<string>();
   const root = useRef<HTMLDivElement>(null);
   const [highlighted, setHighlighted] = useState(0);
@@ -44,7 +46,7 @@ export const ComposerSkills = ({
     setHighlighted(0);
   }, [text]);
   useEffect(() => {
-    if (!token || text === dismissed || disabled) return;
+    if (!token || text === dismissed || disabled || hidden) return;
     const form = root.current?.closest("form");
     const handle = (event: KeyboardEvent) => {
       if (
@@ -78,6 +80,7 @@ export const ComposerSkills = ({
     form?.addEventListener("keydown", handle, true);
     return () => form?.removeEventListener("keydown", handle, true);
   });
+  if (hidden) return null;
   return (
     <div className="composer-skills" ref={root}>
       {token && text !== dismissed && !disabled && (

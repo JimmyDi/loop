@@ -9,11 +9,15 @@ export const NavigationBar = ({
   unread = false,
   onHome,
   onSettings,
+  echoOpen = false,
+  onEcho,
 }: {
   settingsOpen: boolean;
   unread?: boolean;
   onHome(): void;
   onSettings(): void;
+  echoOpen?: boolean;
+  onEcho?(): void;
 }) => {
   const { t } = useTranslation();
   return (
@@ -22,7 +26,7 @@ export const NavigationBar = ({
         className="navigation-home ghost"
         aria-label={t("home")}
         title={t("home")}
-        aria-current={!settingsOpen ? "page" : undefined}
+        aria-current={!settingsOpen && !echoOpen ? "page" : undefined}
         onClick={onHome}
       >
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -30,6 +34,26 @@ export const NavigationBar = ({
         </svg>
         {unread && <span className="navigation-home-unread" role="img" aria-label={t("unread")} />}
       </ActionButton>
+      {onEcho && (
+        <ActionButton
+          className="navigation-echo ghost"
+          aria-label="Echo"
+          title="Echo"
+          aria-current={echoOpen && !settingsOpen ? "page" : undefined}
+          onClick={onEcho}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <circle cx="12" cy="12" r="8" />
+          </svg>
+        </ActionButton>
+      )}
       <SidebarMenu active={settingsOpen} onOpenSettings={onSettings} />
     </nav>
   );

@@ -27,6 +27,11 @@ const AssistantMessageView = ({
   <article className="assistant-message" aria-busy={streaming}>
     {timing && <PromptDuration timing={timing} />}
     <div className="assistant-body">
+      {(message as typeof message & { loopAssistantLabel?: string }).loopAssistantLabel && (
+        <span className="assistant-agent-name">
+          {(message as typeof message & { loopAssistantLabel?: string }).loopAssistantLabel}
+        </span>
+      )}
       <AssistantContent
         message={message}
         tools={tools}

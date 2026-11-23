@@ -3,7 +3,15 @@ import type { Message } from "@earendil-works/pi-ai";
 /** Host-owned labels are presentation metadata, never model tool identifiers. */
 export type ToolDisplayNames = ReadonlyMap<string, string>;
 
-export const withToolDisplayName = <T extends Message>(message: T, names: ToolDisplayNames): T => {
+export const withToolDisplayName = <T extends Message>(
+  message: T,
+  names: ToolDisplayNames,
+  assistantLabel?: string,
+): T => {
+  if (message.role === "assistant" && assistantLabel) {
+    const previous = (message as T & { loopAssistantLabel?: string }).loopAssistantLabel;
+    return previous ? message : { ...message, loopAssistantLabel: assistantLabel };
+  }
   if (message.role !== "toolResult") return message;
   const displayName = names.get(message.toolName);
   if (!displayName) return message;

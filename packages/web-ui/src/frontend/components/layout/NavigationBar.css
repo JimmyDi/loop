@@ -41,3 +41,15 @@
   background: var(--accent-solid);
   pointer-events: none;
 }
+
+.navigation-echo.action-button {
+  width: 32px;
+  height: 32px;
+  padding: 7px;
+  border: 0;
+  border-radius: 10px;
+  margin-top: 12px;
+  margin-bottom: auto;
+}
+.navigation-echo svg { width: 18px; height: 18px; }
+.navigation-echo[aria-current="page"] { background: color-mix(in srgb, var(--ink) 8%, transparent); }

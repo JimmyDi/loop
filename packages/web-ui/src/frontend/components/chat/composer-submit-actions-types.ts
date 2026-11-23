@@ -4,5 +4,6 @@ import type { VoiceComposerControl } from "../../hooks/voice-composer-types";
 
 export interface ComposerSubmitActionsProps {
   control: VoiceComposerControl;
+  hideVoice?: boolean;
   children: ReactNode;
 }

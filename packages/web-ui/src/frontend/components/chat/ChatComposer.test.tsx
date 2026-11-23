@@ -105,6 +105,7 @@ test.each([
       defaultOptions: { queries: { staleTime: Infinity, retry: false } },
     });
     client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
+    client.setQueryData(["execution-environments"], { sandboxAvailable: false });
     client.setQueryData(["models"], [snapshot.model]);
     const current: SessionSnapshot = {
       ...snapshot,
@@ -198,6 +199,7 @@ test("composer keeps icon-only voice actions immediately before send through con
     defaultOptions: { queries: { staleTime: Infinity, retry: false } },
   });
   client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
+  client.setQueryData(["execution-environments"], { sandboxAvailable: false });
   client.setQueryData(["models"], [snapshot.model]);
   client.setQueryData(["voice-status"], {
     supported: true,
@@ -301,6 +303,7 @@ test.each(["running", "paused", "idle"])(
     const client = new QueryClient({
       defaultOptions: { queries: { staleTime: Infinity, retry: false } },
     });
+    client.setQueryData(["execution-environments"], { sandboxAvailable: false });
     client.setQueryData(["models"], [snapshot.model]);
     const item = {
       id: "a",
@@ -405,6 +408,7 @@ test("queued follow-up drafts show only Send until cleared or accepted", async (
   const client = new QueryClient({
     defaultOptions: { queries: { staleTime: Infinity, retry: false } },
   });
+  client.setQueryData(["execution-environments"], { sandboxAvailable: false });
   client.setQueryData(["models"], [snapshot.model]);
   const current: SessionSnapshot = {
     ...snapshot,
@@ -481,6 +485,7 @@ test("Stop becomes a resume control that preserves queued items and drafts throu
     defaultOptions: { queries: { staleTime: Infinity, retry: false } },
   });
   client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
+  client.setQueryData(["execution-environments"], { sandboxAvailable: false });
   client.setQueryData(["models"], [snapshot.model]);
   const response = Promise.withResolvers<Response>();
   const writes: string[] = [];
@@ -573,6 +578,7 @@ test.each(["success", "error", "cancelled"] as const)(
       defaultOptions: { queries: { staleTime: Infinity, retry: false } },
     });
     client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
+    client.setQueryData(["execution-environments"], { sandboxAvailable: false });
     client.setQueryData(["models"], [snapshot.model]);
     const response = Promise.withResolvers<Response>();
     let submitted = 0;
@@ -692,6 +698,7 @@ test("new and switched composers focus drafts and restore focus after sending", 
     defaultOptions: { queries: { staleTime: Infinity, retry: false } },
   });
   client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
+  client.setQueryData(["execution-environments"], { sandboxAvailable: false });
   client.setQueryData(["models"], [snapshot.model]);
   let submitted = 0;
   globalThis.fetch = (async (_url) => {
@@ -777,6 +784,7 @@ test("attachment errors can be closed without losing drafts and reappear on the 
     defaultOptions: { queries: { staleTime: Infinity, retry: false } },
   });
   client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
+  client.setQueryData(["execution-environments"], { sandboxAvailable: false });
   client.setQueryData(["models"], [current.model]);
   const files = [{ name: "example.txt", text: "Keep attachment" }];
   const invalid = new File([new Uint8Array([0])], "binary.txt");
@@ -836,6 +844,7 @@ test("composer owns model controls, blocks send while switching and preserves dr
     effort: "low",
   };
   client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
+  client.setQueryData(["execution-environments"], { sandboxAvailable: false });
   client.setQueryData(["models"], [current.model]);
   let finish!: (response: Response) => void;
   const requests: string[] = [];
@@ -918,6 +927,7 @@ test("standalone chat accepts submission without selecting a project", async () 
     defaultOptions: { queries: { staleTime: Infinity, retry: false } },
   });
   client.setQueryData(["projects"], [{ id: "project", name: "Example", cwd: "/example" }]);
+  client.setQueryData(["execution-environments"], { sandboxAvailable: false });
   client.setQueryData(["models"], [snapshot.model]);
   const writes: string[] = [];
   globalThis.fetch = (async (url) => {

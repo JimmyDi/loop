@@ -1,3 +1,4 @@
+import type { ExecutionEnvironment } from "../execution/types";
 import type { SessionPlanning } from "../planning-types";
 import type { Message } from "@earendil-works/pi-ai";
 import type { ModelEffort } from "../models/model-effort";
@@ -24,6 +25,7 @@ export type SessionHeader = {
   model?: ModelSelection;
   title?: SessionTitle;
   permissionPreset: PermissionPreset;
+  execution?: ExecutionEnvironment;
   planning?: SessionPlanning;
   runtimeContexts?: RuntimeContextSnapshot[];
   compactions?: CompactionCheckpoint[];

@@ -1,3 +1,6 @@
+import type { McpSandboxExecution } from "../execution/mcp-sandbox";
+import type { SandboxExecution } from "../execution/sandbox";
+import type { SandboxStatus } from "../execution/types";
 import type { SessionPlanning } from "../planning-types";
 import type { SessionPlanner } from "../planning";
 import type { Api, AssistantMessage, Message, Model } from "@earendil-works/pi-ai";
@@ -48,6 +51,10 @@ export type SessionEvent =
 export type SessionEventListener = (event: SessionEvent) => void | Promise<void>;
 
 export type SessionState = {
+  execution?: "local" | "sandbox";
+  sandbox?: SandboxStatus;
+  sandboxServerId?: string;
+  sandboxLabel?: string;
   planning?: SessionPlanning;
   messages: Message[];
   queue?: QueuedMessage[];
@@ -86,6 +93,7 @@ export type SessionOptions = {
   sessionManager: SessionManager;
   systemPrompt: string;
   tools: AgentTool[];
+  sandboxExecution?: SandboxExecution | McpSandboxExecution;
   mcpManager?: McpManager;
   skillManager?: SkillManager;
   ownsSkillManager?: boolean;

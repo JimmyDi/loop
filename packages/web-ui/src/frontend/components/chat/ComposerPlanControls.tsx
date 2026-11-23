@@ -37,7 +37,7 @@ export const ComposerPlanControls = ({
       add={add}
       plan={{
         active: snapshot.state.planning?.mode === "plan",
-        disabled: blocked || running,
+        disabled: blocked || running || snapshot.state.execution === "sandbox",
         change: planning.change,
       }}
     />
@@ -50,7 +50,7 @@ export const ComposerPlanControls = ({
     />
     <PlanModeItem
       active={snapshot.state.planning?.mode === "plan"}
-      disabled={blocked || running}
+      disabled={blocked || running || snapshot.state.execution === "sandbox"}
       change={planning.change}
     />
   </>

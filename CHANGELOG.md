@@ -4,6 +4,12 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Added
+
+- coding-agent, CLI and Web: add loop sandbox connect, hidden token input, OS credential storage with an explicit private-file fallback, shared saved connections and --sandbox; preserve environment-based SDK credentials and sandbox session identity across server token rotation.
+
+- coding-agent, SDK, CLI and Web UI: select a configured HTTP or STDIO MCP server as the exclusive sandbox execution provider from a new-chat selector, SDK serverId or CLI --sandbox-mcp. Discover provider tool schemas, preserve per-chat identity and MCP approvals, exclude local tools and other servers, and retain legacy Loop Sandbox connections. Providers own sandbox lifecycle; Loop Sandbox workspaces are disposable.
+
 ### Fixed
 
 - coding-agent: validate workflow-only voice CI changes without attempting to republish existing voice resources, while retaining version checks for resource changes and voice tag pushes.

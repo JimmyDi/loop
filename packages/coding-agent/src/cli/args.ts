@@ -10,6 +10,7 @@ export function parseArgs(args: string[]) {
     "-v": "--version",
   };
   const booleans = new Set([
+    "--sandbox",
     "--print",
     "--plan",
     "--continue",
@@ -19,6 +20,8 @@ export function parseArgs(args: string[]) {
     "--no-context-files",
   ]);
   const values = new Set([
+    "--sandbox-mcp",
+    "--sandbox-url",
     "--model",
     "--provider",
     "--api-key",
@@ -52,6 +55,9 @@ export function parseArgs(args: string[]) {
     else messages.push(argument);
   }
 
+  if (["--sandbox", "--sandbox-url", "--sandbox-mcp"].filter((flag) => flags.has(flag)).length > 1)
+    throw new Error("Choose only one sandbox execution option");
+
   if (["--no-session", "--session", "--continue"].filter((flag) => flags.has(flag)).length > 1)
     throw new Error("Choose only one of --session, --continue or --no-session");
 
@@ -68,6 +74,10 @@ export const HELP = [
   "loop [-p] [options] [prompt]",
   "--print/-p                  Print final answer and exit",
   "--plan                      Start in Plan mode",
+  "sandbox connect [--file]   Save a connection (OS credential store; explicit private-file fallback)",
+  "--sandbox-mcp ID            Use a configured MCP server as the exclusive execution provider",
+  "--sandbox                   Use the saved sandbox connection",
+  "--sandbox-url URL           Use disposable remote MCP tools (LOOP_SANDBOX_TOKEN required)",
   "--model ID --provider NAME  Select a configured model",
   "--base-url URL --api-key KEY  Custom endpoint and authentication",
   "--continue/-c               Resume most recent project session",

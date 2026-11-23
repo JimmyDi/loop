@@ -167,3 +167,45 @@
 - Root bin.ts dispatches CLI and Web; sdk.ts re-exports the coding-agent SDK without terminal side effects. These are application distribution entries, not core capabilities.
 - Architecture checks cover declarations, type imports, re-exports, dynamic imports, undeclared dependencies and runtime cycles. Only coding-agent/core/model-runtime.ts may import model runtime dependency values to configure and inject the runtime.
 - Existing style/test ownership exceptions are explicitly listed in the Web architecture test; new components require colocated companions. Translation dictionaries are data, not implementation-size targets.
+
+## Sandbox execution maintenance
+
+- Session sandbox integration belongs in coding-agent/core/execution; the minimal agent loop stays provider-independent.
+- Preserve session identity, local-tool exclusion, MCP approval enforcement, and no retry/local fallback on uncertain outcomes.
+- Keep disposable lifecycle and empty-workspace limitations documented in packages/coding-agent/src/docs/sandbox.md.
+
+- Implemented session-bound disposable MCP execution on 2026-11-20. Validation:
+  focused SDK/session/CLI/Web tests passed (103 checks in the initial affected
+  selection, plus bridge persistence, context, approval and environment-switch
+  regressions); Biome, architecture, TypeScript, Node/Vite and distribution builds
+  passed. The opt-in synthetic-model integration passed against live MCP and Docker.
+  No real model call was made. Connection configuration supports saved local credentials and server
+  environment variables; sandbox Plan mode, project upload and artifact retrieval
+  are not supported.
+
+- Credential setup added on 2026-11-20: CLI sandbox connect uses hidden input and
+  OS credential storage (explicit --file fallback), with shared connection discovery
+  for CLI/Web and credential resolution in core/execution. Keep tokens out of
+  session records, UI responses, child-process argv and error output. Environment
+  credentials take precedence; custom SDK tokenEnv never uses the saved default.
+
+- Credential verification: 10 affected CLI/core/Web tests plus 30 architecture
+  checks passed, along with Biome, TypeScript, production builds and distribution
+  validation. Real MCP/Docker synthetic-model execution passed with saved file
+  credentials; built CLI hidden input passed through a PTY. OS store adapters are
+  covered with mocks; live Keychain/Secret Service access was not exercised.
+
+- Configured MCP sandbox providers (2026-11-20): new chats may select an enabled
+  MCP server from Settings; SDK stores execution.serverId and CLI uses --sandbox-mcp.
+  core/execution/mcp-sandbox.ts owns a dedicated catalog-driven connection; preserve
+  exclusive execution, config revalidation before dispatch, secret-free session
+  references and stable HTTP/STDIO chat identity. Provider-specific lifecycle is
+  not standardized by MCP. Keep legacy URL-based sessions readable.
+
+- Configured-provider validation: affected core/MCP/Web/bridge selection passed
+  (30 checks before additional targeted regressions); composer/session routes
+  passed 25 checks, and STDIO identity/empty catalog cleanup passed. Biome,
+  TypeScript, 30 architecture checks, Node/Vite and distribution builds passed.
+  The synthetic-model flow with configured MCP to real Docker passed, including
+  files, commands and session isolation. No real model call or third-party sandbox
+  deployment was used; UI selection was tested with the component harness.

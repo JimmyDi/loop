@@ -98,3 +98,10 @@ The main area always uses ChatWorkspace. With no selected session it opens an in
 The project selector shows **No project** by default. Before the first message, select a registered project or remove the selection to start an independent chat. Selecting a different scope creates a new empty handle and transfers unsent text, attachments and model/permission choices. A conversation containing messages cannot change project ownership.
 
 Independent conversations appear under **Chats**. Pinned conversations appear only under **Pinned**. Both use the same session row actions as project conversations. Chats, Pinned and the Projects list initially show five entries; **Show more** reveals ten additional entries per click. Each section supports folding and heading navigation. Empty Chats and Pinned sections are hidden.
+
+## Execution environment
+
+New chats select Local or Loop Sandbox when the Web server configures
+LOOP_SANDBOX_URL and LOOP_SANDBOX_TOKEN. Sandbox workspaces start empty, use the
+saved chat identity, and exclude local tools. The environment is fixed after the
+first message. The header shows generation changes and discarded files.

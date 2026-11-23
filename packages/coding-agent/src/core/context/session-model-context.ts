@@ -19,7 +19,9 @@ export const buildSessionModelContext = (
   model: Model<Api>,
   permissionPreset?: PermissionPreset,
 ): { systemPrompt: string; tools: AgentTool[] } => {
-  const cwd = options.sessionManager.getCwd();
+  const cwd = options.sandboxExecution ? "/workspace" : options.sessionManager.getCwd();
+  if (options.sandboxExecution && options.sessionManager.getHeader().planning?.mode === "plan")
+    throw new Error("Plan mode is unavailable in sandbox sessions");
   const planning = options.planner?.state ??
     options.sessionManager.getHeader().planning ?? { mode: "execute" as const, plans: [] };
   const mcp = planning.mode === "plan" ? undefined : options.mcpManager?.snapshot(cwd);

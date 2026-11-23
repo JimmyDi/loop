@@ -122,3 +122,7 @@ export type {
 
 export type { SessionMode, SessionPlan, SessionPlanning } from "./core/planning-types";
 export { isSessionMode } from "./core/planning-types";
+
+export type { ExecutionEnvironment, SandboxStatus } from "./core/execution/types";
+
+export { sandboxConfiguration } from "./core/execution/connection";

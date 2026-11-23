@@ -395,3 +395,43 @@ test("standalone history restores without registered projects and shares pin/rea
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("Web bridge persists sandbox selection and restores its session identity", async () => {
+  const { ProviderSettings } = await import("./providers/provider-settings");
+  const root = await mkdtemp(join(import.meta.dirname, ".bridge-sandbox-test-"));
+  const settings = new ProviderSettings(join(root, "provider.json"));
+  try {
+    await settings.upsert(
+      {
+        id: "synthetic",
+        kind: "custom",
+        name: "Synthetic",
+        api: "openai-completions",
+        baseUrl: "http://localhost:8080/v1",
+        authentication: "none",
+        models: [{ id: "synthetic" }],
+      },
+      true,
+    );
+    const project = { id: "project", name: "Example", cwd: root };
+    const bridge = createLoopBridge(root, settings);
+    const session = await bridge.load(project, undefined, {
+      type: "sandbox",
+      url: "http://localhost:8080/mcp/",
+      tokenEnv: "SYNTHETIC_TOKEN",
+    });
+    expect(session.state.execution).toBe("sandbox");
+    await session.sessionManager.commit([
+      { role: "user", content: "synthetic saved chat", timestamp: 0 },
+    ]);
+    session.dispose();
+    await session.flushTrace?.();
+    const restored = await bridge.load(project, session.sessionId);
+    expect(restored.state.execution).toBe("sandbox");
+    expect(restored.sessionId).toBe(session.sessionId);
+    restored.dispose();
+    await restored.flushTrace?.();
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

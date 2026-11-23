@@ -1,3 +1,5 @@
+import { validateExecution } from "./execution/types";
+import type { ExecutionEnvironment } from "./execution/types";
 import type { SessionPlanning } from "./planning-types";
 import { validatePlanning } from "./planning-types";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
@@ -167,6 +169,7 @@ export class SessionManager {
     )
       throw new Error("Invalid session metadata");
 
+    if (header.execution !== undefined) validateExecution(header.execution);
     if (header.planning !== undefined) validatePlanning(header.planning);
 
     if (!(await stat(header.cwd)).isDirectory()) throw new Error("Session cwd is not a directory");
@@ -486,6 +489,22 @@ export class SessionManager {
           },
         };
 
+        await this.write(next);
+        this.data = next;
+      });
+    } finally {
+      this.writing = false;
+    }
+  }
+
+  async setExecution(execution: ExecutionEnvironment): Promise<void> {
+    const value = validateExecution(execution);
+    if (this.data.messages.length || this.pending || this.writing)
+      throw new Error("Execution environment is fixed after the first message");
+    this.writing = true;
+    try {
+      await this.serialize(async () => {
+        const next = { ...this.data, header: { ...this.data.header, execution: value } };
         await this.write(next);
         this.data = next;
       });

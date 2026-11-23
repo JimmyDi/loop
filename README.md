@@ -13,6 +13,7 @@
 
 <p align="center">
   <a href="https://codewithloop.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/website-dark.svg"><img src="docs/assets/readme/website-light.svg" alt="Loop website"></picture></a>
+  <a href="https://www.npmjs.com/package/@loop-harness/loop"><img src="https://img.shields.io/npm/v/@loop-harness/loop?style=flat&amp;logo=npm&amp;logoColor=white" alt="npm: @loop-harness/loop version"></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/runtime-Node.js%2024%2B-5FA04E?style=flat&amp;logo=nodedotjs&amp;logoColor=white" alt="Runtime: Node.js 24 or newer"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/language-TypeScript-3178C6?style=flat&amp;logo=typescript&amp;logoColor=white" alt="Language: TypeScript"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-D4A72C?style=flat" alt="Software license: MIT"></a>

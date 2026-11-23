@@ -22,6 +22,7 @@ The CLI is interactive by default. The SDK sample performs one request workflow 
 
 | Feature | Documentation |
 | --- | --- |
+| Host-supplied tools and remote computers | [Remote computers](src/docs/computers.md) |
 | Investigate, review and confirm implementation plans | [Plan mode](src/docs/plan-mode.md) |
 | Embed Loop and call the public API | [SDK](src/docs/sdk.md) |
 | Interactive commands and Print mode | [CLI](src/docs/cli.md) |

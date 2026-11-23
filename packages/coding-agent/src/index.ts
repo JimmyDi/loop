@@ -1,4 +1,7 @@
 export { AgentSession } from "./core/agent-session";
+export { LoopSandboxProvider } from "./core/computers/loop-sandbox";
+export { createComputerTools } from "./core/computers/tools";
+export type { Computer, ComputerActor, ComputerProvider } from "./core/computers/types";
 export type { QueuedMessage } from "./core/message-queue";
 export type { PromptContent } from "@loop/agent";
 export { AgentSessionRuntime, createAgentSessionRuntime } from "./core/agent-session-runtime";

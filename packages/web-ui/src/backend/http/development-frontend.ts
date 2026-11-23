@@ -8,7 +8,10 @@ const retryDelay = 2000;
 
 export const developmentResponse = async (request: Request, assetsDir: string) => {
   const response = await staticResponse(request, assetsDir);
-  if (response.status !== 404 || !["/", "/index.html"].includes(new URL(request.url).pathname))
+  if (
+    response.status !== 404 ||
+    !["/", "/index.html", "/echo", "/settings"].includes(new URL(request.url).pathname)
+  )
     return response;
 
   return new Response(

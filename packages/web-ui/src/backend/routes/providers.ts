@@ -6,8 +6,10 @@ import { discoverModels } from "../providers/discover-models";
 import type { SessionRegistry } from "../session-registry";
 
 export const providerRoutes =
-  (registry: SessionRegistry, providers: ProviderSettings) =>
+  (registry: SessionRegistry, providers: ProviderSettings, echoRegistry?: SessionRegistry) =>
   async (request: Request, url: URL): Promise<Response | undefined> => {
+    const configure = (action: () => Promise<void>) =>
+      registry.configure(() => (echoRegistry ? echoRegistry.configure(action) : action()));
     if (url.pathname === "/api/settings/providers/discover" && request.method === "POST") {
       return Response.json(await discoverModels(await readBody(request), providers.store));
     }
@@ -16,11 +18,11 @@ export const providerRoutes =
       const id = segments[4];
       if (request.method === "GET" && !id) return Response.json(await providers.view());
       if (request.method === "DELETE" && id) {
-        await registry.configure(() => providers.remove(id));
+        await configure(() => providers.remove(id));
       } else if ((request.method === "POST" && !id) || (request.method === "PUT" && id)) {
         const input = validateProviderConfig(await readBody(request));
         if (id && input.id !== id) throw new HttpError(400, "invalid_provider_id");
-        await registry.configure(() => providers.upsert(input, !id));
+        await configure(() => providers.upsert(input, !id));
       } else throw new HttpError(405, "method_not_allowed");
       return Response.json(await providers.view());
     }

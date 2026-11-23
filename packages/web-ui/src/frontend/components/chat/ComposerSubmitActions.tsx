@@ -6,7 +6,12 @@ import { ComposerVoiceCall } from "./ComposerVoiceCall";
 import { ComposerVoiceOrb } from "./ComposerVoiceOrb";
 import "./ComposerSubmitActions.css";
 
-export const ComposerSubmitActions = ({ control, children }: ComposerSubmitActionsProps) => {
+export const ComposerSubmitActions = ({
+  control,
+  children,
+  hideVoice,
+}: ComposerSubmitActionsProps) => {
+  if (hideVoice) return <div className="composer-submit-actions">{children}</div>;
   const call = control.voice.mode === "conversation";
   const active = call || !!control.dictation?.active;
   return (

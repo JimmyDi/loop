@@ -22,6 +22,8 @@ export const buildSessionModelContext = (
   const cwd = options.sessionManager.getCwd();
   const planning = options.planner?.state ??
     options.sessionManager.getHeader().planning ?? { mode: "execute" as const, plans: [] };
+  if (options.remoteOnly && planning.mode === "plan")
+    throw new Error("Plan mode is unavailable for remote-only sessions");
   const mcp = planning.mode === "plan" ? undefined : options.mcpManager?.snapshot(cwd);
   if (options.tools.some((tool) => tool.name === "request_user_input"))
     throw new Error("The request_user_input tool name is reserved");

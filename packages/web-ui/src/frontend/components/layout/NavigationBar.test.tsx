@@ -4,6 +4,20 @@ import { expect, test } from "vitest";
 import "../../i18n/setup";
 import { NavigationBar } from "./NavigationBar";
 
+test("Echo is an independent navigation destination", () => {
+  const html = renderToStaticMarkup(
+    <NavigationBar
+      settingsOpen={false}
+      echoOpen
+      onHome={() => {}}
+      onEcho={() => {}}
+      onSettings={() => {}}
+    />,
+  );
+  expect(html).toContain('aria-label="Echo"');
+  expect(html.match(/aria-current="page"/g)).toHaveLength(1);
+});
+
 test("navigation exposes Home and the Settings menu with the active view", () => {
   const render = (settingsOpen: boolean) =>
     renderToStaticMarkup(

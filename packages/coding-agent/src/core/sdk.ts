@@ -21,12 +21,18 @@ import { isPermissionPreset } from "./permissions/types";
 import type { PermissionPreset } from "./permissions/types";
 import type { McpManager } from "./mcp/mcp-manager";
 import { SkillManager } from "./skills/skill-manager";
+import type { AgentTool } from "@loop/agent";
 
 export type CreateAgentSessionOptions = ServiceOptions & {
   model?: Model<Api>;
   mcpManager?: McpManager;
   skillManager?: SkillManager;
   tools?: readonly string[];
+  /** Host-supplied tools replace the built-in tool set. */
+  customTools?: AgentTool[];
+  /** Suppress local skills and Plan tools for remote-only sessions. */
+  remoteOnly?: boolean;
+  assistantLabel?: string;
   sessionManager?: SessionManager;
   maxTurns?: number;
   maxTokens?: number;
@@ -51,6 +57,9 @@ export async function createAgentSession(
     "noContextFiles",
     "model",
     "tools",
+    "customTools",
+    "remoteOnly",
+    "assistantLabel",
     "sessionManager",
     "maxTurns",
     "maxTokens",
@@ -66,6 +75,13 @@ export async function createAgentSession(
   for (const key of Object.keys(options)) {
     if (!allowed.has(key)) throw new Error("Unsupported session option: " + key);
   }
+  if (options.remoteOnly && !options.customTools)
+    throw new Error("Remote-only sessions require host-supplied tools");
+  if (
+    options.assistantLabel !== undefined &&
+    (!options.assistantLabel.trim() || options.assistantLabel.length > 80)
+  )
+    throw new Error("Invalid assistant label");
 
   const manager = options.sessionManager;
   validateRequestMaxTokens(options.maxTokens);
@@ -130,7 +146,9 @@ export async function createAgentSession(
     },
     () => sessionManager.getHeader().permissionPreset,
   );
-  const tools = createTools(services.cwd, options.tools, permissionPolicy);
+  const tools = options.customTools ?? createTools(services.cwd, options.tools, permissionPolicy);
+  if (new Set(tools.map((tool) => tool.name)).size !== tools.length)
+    throw new Error("Duplicate tool names");
 
   if (
     !saved ||
@@ -164,14 +182,18 @@ export async function createAgentSession(
     modelRuntime: services.modelRuntime,
     sessionManager,
     tools,
+    remoteOnly: options.remoteOnly,
+    assistantLabel: options.assistantLabel,
     systemPrompt: services.systemPrompt,
     maxTurns: options.maxTurns,
     maxTokens: options.maxTokens,
     effort,
     title: options.title,
     permissionPolicy,
-    mcpManager: options.mcpManager,
-    skillManager: options.skillManager ?? new SkillManager(services.agentDir),
+    mcpManager: options.remoteOnly ? undefined : options.mcpManager,
+    skillManager: options.remoteOnly
+      ? undefined
+      : (options.skillManager ?? new SkillManager(services.agentDir)),
     ownsSkillManager: !options.skillManager,
   });
 

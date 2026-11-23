@@ -233,6 +233,8 @@ export class AgentSession {
   }
 
   setMode(mode: SessionMode): Promise<void> {
+    if (mode === "plan" && this.options.remoteOnly)
+      return Promise.reject(new Error("Plan mode is unavailable for remote-only sessions"));
     try {
       this.assertIdle();
     } catch (error) {
@@ -359,6 +361,7 @@ export class AgentSession {
     }
     return {
       planning: this.planner.state,
+      ...(this.options.remoteOnly ? { remoteOnly: true } : {}),
       messages: (this.agent?.messages ?? this.sessionManager.messages).map((message) =>
         withToolDisplayName(message, names),
       ),
@@ -855,7 +858,11 @@ export class AgentSession {
       (event.type === "message_start" || event.type === "message_update") &&
       event.message.role === "assistant"
     )
-      this.draft = structuredClone(event.message);
+      this.draft = withToolDisplayName(
+        structuredClone(event.message),
+        this.toolDisplayNames,
+        this.options.assistantLabel,
+      );
 
     if (event.type === "message_end" && event.message.role === "assistant") this.draft = undefined;
 
@@ -876,7 +883,23 @@ export class AgentSession {
       (event.type === "message_start" || event.type === "message_end") &&
       event.message.role === "toolResult"
     ) {
-      this.emit({ ...event, message: withToolDisplayName(event.message, this.toolDisplayNames) });
+      this.emit({
+        ...event,
+        message: withToolDisplayName(
+          event.message,
+          this.toolDisplayNames,
+          this.options.assistantLabel,
+        ),
+      });
+    } else if ("message" in event && event.message.role === "assistant") {
+      this.emit({
+        ...event,
+        message: withToolDisplayName(
+          event.message,
+          this.toolDisplayNames,
+          this.options.assistantLabel,
+        ),
+      });
     } else this.emit(event);
   }
 
@@ -968,7 +991,7 @@ export class AgentSession {
         },
         history: () =>
           this.agent!.messages.map((message) =>
-            withToolDisplayName(message, this.toolDisplayNames),
+            withToolDisplayName(message, this.toolDisplayNames, this.options.assistantLabel),
           ),
         onRetained: () => {
           runtimeContexts = prepared.runtimeContexts;
@@ -1008,7 +1031,7 @@ export class AgentSession {
         // Queue edits and reorders remain live while asynchronous Skill preparation runs.
         if (JSON.stringify(next) !== JSON.stringify(this.queue.peek(steeringOnly))) continue;
         const messages = this.agent!.messages.map((message) =>
-          withToolDisplayName(message, this.toolDisplayNames),
+          withToolDisplayName(message, this.toolDisplayNames, this.options.assistantLabel),
         );
         await this.sessionManager.commit(messages, runtimeContexts, finishTiming(messages), {
           systemPromptCheckpoints,
@@ -1071,7 +1094,7 @@ export class AgentSession {
         finishTurn: async ({ message }) => {
           signal.throwIfAborted();
           const completed = this.agent!.messages.map((message) =>
-            withToolDisplayName(message, this.toolDisplayNames),
+            withToolDisplayName(message, this.toolDisplayNames, this.options.assistantLabel),
           );
           await this.sessionManager.commit(
             completed,
@@ -1110,7 +1133,7 @@ export class AgentSession {
         await autoCompaction?.wait();
         if (this.agent) {
           const messages = this.agent.messages.map((message) =>
-            withToolDisplayName(message, this.toolDisplayNames),
+            withToolDisplayName(message, this.toolDisplayNames, this.options.assistantLabel),
           );
           const partial = signal.aborted && this.paused ? stoppedResponse(this.draft) : undefined;
           if (partial) {

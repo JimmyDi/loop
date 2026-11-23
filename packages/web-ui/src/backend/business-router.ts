@@ -15,6 +15,7 @@ import type { VoiceService } from "./voice/voice-service";
 import { voiceRoutes } from "./voice/voice-routes";
 import type { BusinessHandler } from "./http/business-context";
 import { localContext } from "./http/business-context";
+import type { createEchoService } from "./echo/service";
 
 export const createBusinessRouter = (
   registry: SessionRegistry,
@@ -23,13 +24,14 @@ export const createBusinessRouter = (
   mcp?: McpManager,
   skills?: SkillManager,
   voice?: VoiceService,
+  echo?: ReturnType<typeof createEchoService>,
 ) => {
   const voiceRoute = voice && voiceRoutes(voice);
   const routes = [
     mcp && mcpRoutes(mcp),
     skills && skillRoutes(skills, registry),
     webSettings && generalSettingsRoutes(webSettings),
-    providers && providerRoutes(registry, providers),
+    providers && providerRoutes(registry, providers, echo?.registry),
     projectRoutes(registry),
     sessionImageRoutes(registry),
     sessionFileRoutes(registry),
@@ -37,6 +39,8 @@ export const createBusinessRouter = (
   ];
   const handle: BusinessHandler = async (request, context = localContext): Promise<Response> => {
     const url = new URL(request.url);
+    const echoResponse = await echo?.route(request, url);
+    if (echoResponse) return echoResponse;
     const voiceResponse = await voiceRoute?.route(request, url, context);
     if (voiceResponse) return voiceResponse;
     for (const route of routes) {

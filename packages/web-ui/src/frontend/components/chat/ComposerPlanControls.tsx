@@ -35,11 +35,15 @@ export const ComposerPlanControls = ({
       imageCount={imageCount}
       fileCount={fileCount}
       add={add}
-      plan={{
-        active: snapshot.state.planning?.mode === "plan",
-        disabled: blocked || running,
-        change: planning.change,
-      }}
+      plan={
+        snapshot.state.remoteOnly
+          ? undefined
+          : {
+              active: snapshot.state.planning?.mode === "plan",
+              disabled: blocked || running,
+              change: planning.change,
+            }
+      }
     />
     <SessionPermissions
       snapshot={snapshot}
@@ -48,10 +52,12 @@ export const ComposerPlanControls = ({
       error={permission.error}
       select={permission.change}
     />
-    <PlanModeItem
-      active={snapshot.state.planning?.mode === "plan"}
-      disabled={blocked || running}
-      change={planning.change}
-    />
+    {!snapshot.state.remoteOnly && (
+      <PlanModeItem
+        active={snapshot.state.planning?.mode === "plan"}
+        disabled={blocked || running}
+        change={planning.change}
+      />
+    )}
   </>
 );

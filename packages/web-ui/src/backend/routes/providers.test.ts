@@ -7,6 +7,7 @@ import { ProjectStore } from "../projects/project-store";
 import { createLoopBridge } from "../loop";
 import { SessionRegistry } from "../session-registry";
 import { createRouter } from "../router";
+import { providerRoutes } from "./providers";
 
 test("provider API saves without returning credentials and rejects updates during session activity", async () => {
   const root = await mkdtemp(join(import.meta.dirname, ".provider-test-"));
@@ -151,6 +152,42 @@ test("provider collection CRUD validates identity, redacts secrets and applies b
     expect((await request("/example", "DELETE")).status).toBe(404);
   } finally {
     await registry.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("provider changes also wait for the independent Echo registry", async () => {
+  const root = await mkdtemp(join(import.meta.dirname, ".provider-test-"));
+  const settings = new ProviderSettings(join(root, "provider.json"));
+  const registry = new SessionRegistry(
+    new ProjectStore(join(root, "projects.json")),
+    createLoopBridge(root, settings),
+  );
+  const echo = new SessionRegistry(
+    new ProjectStore(join(root, "echo-projects.json")),
+    createLoopBridge(root, settings),
+  );
+  let finish!: () => void;
+  const work = echo.configure(
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+  );
+  try {
+    await Promise.resolve();
+    const request = new Request("http://localhost/api/settings/providers/example", {
+      method: "DELETE",
+    });
+    await expect(
+      providerRoutes(registry, settings, echo)(request, new URL(request.url)),
+    ).rejects.toThrow("provider_busy");
+    expect((await settings.view()).providers).toEqual([]);
+  } finally {
+    finish();
+    await work;
+    await registry.close();
+    await echo.close();
     await rm(root, { recursive: true, force: true });
   }
 });

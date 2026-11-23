@@ -28,7 +28,10 @@ export const createRemoteHandler =
       if (![new URL(origin).host, localHost()].includes(host))
         throw new HttpError(403, "invalid_host");
       assertRemoteOrigin(request, origin);
-      if (["/", "/index.html", "/remote.html"].includes(url.pathname) && !ready())
+      if (
+        ["/", "/index.html", "/remote.html", "/echo", "/settings"].includes(url.pathname) &&
+        !ready()
+      )
         return restartingResponse(request);
       const pairing = await remotePairingRoutes(request, devices);
       let response = pairing;
@@ -63,7 +66,8 @@ export const createRemoteHandler =
       }
       if (!response) {
         const page = new URL(request.url);
-        if (["/", "/index.html"].includes(page.pathname)) page.pathname = "/remote.html";
+        if (["/", "/index.html", "/echo", "/settings"].includes(page.pathname))
+          page.pathname = "/remote.html";
         response = await staticResponse(new Request(page, request), assets);
         if (
           response.headers.get("content-type")?.startsWith("text/html") &&

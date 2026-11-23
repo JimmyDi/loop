@@ -16,6 +16,7 @@ One service provides both frontend and backend; they do not need separate proces
 
 | Feature | Documentation |
 | --- | --- |
+| Agent profiles, group conversations and shared computers | [Echo](docs/echo.md) |
 | Local listening, startup arguments, and shutdown | [Server startup](docs/server.md) |
 | Project registration, persistence, and directory selection | [Projects and directories](docs/projects.md) |
 | Session loading, command exclusion, cancellation, and saving | [Session commands](docs/sessions.md) |

@@ -8,6 +8,7 @@ import { ProviderSettings } from "../providers/provider-settings";
 import { WebSettings } from "../settings/web-settings";
 import { createBusinessRouter } from "../business-router";
 import { VoiceService } from "../voice/voice-service";
+import { createEchoService } from "../echo/service";
 
 export const createBusinessService = () => {
   const agentDir = getAgentDir();
@@ -22,7 +23,8 @@ export const createBusinessService = () => {
     createLoopBridge(agentDir, providers, settings, mcp, skills),
   );
   const voice = new VoiceService(new VoiceResourceManager(agentDir), registry);
-  const handle = createBusinessRouter(registry, providers, settings, mcp, skills, voice);
+  const echo = createEchoService(agentDir, providers);
+  const handle = createBusinessRouter(registry, providers, settings, mcp, skills, voice, echo);
   return {
     handle,
     voice,
@@ -31,6 +33,7 @@ export const createBusinessService = () => {
       await voice.close();
       try {
         await registry.close();
+        await echo.close();
       } finally {
         await mcp.close();
         await skills.close();

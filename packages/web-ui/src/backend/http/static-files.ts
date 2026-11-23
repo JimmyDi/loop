@@ -25,6 +25,8 @@ export const staticResponse = async (request: Request, directory: string): Promi
     const pathname = decodeURIComponent(new URL(request.url).pathname);
     const aliases: Record<string, string> = {
       "/": "index.html",
+      "/echo": "index.html",
+      "/settings": "index.html",
       "/favicon.ico": "loop-icon.ico",
       "/apple-touch-icon.png": "loop-apple-touch-icon.png",
       "/assets/loop-mask-icon.svg": "loop-mask-icon.svg",

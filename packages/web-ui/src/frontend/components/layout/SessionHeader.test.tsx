@@ -43,6 +43,11 @@ test("SessionHeader keeps session navigation without voice controls", () => {
     expect(html).not.toContain("session-header-actions");
     expect(html).not.toContain("Voice input");
     expect(html).not.toContain("Call");
+    snapshot.state.remoteOnly = true;
+    const echo = renderToStaticMarkup(<SessionHeader snapshot={snapshot} />);
+    expect(echo).toContain("Example conversation");
+    expect(echo).not.toContain("Open projects");
+    expect(echo).not.toContain("session-name-button");
   } finally {
     client.clear();
   }

@@ -1,0 +1,11 @@
+.echo-form-dialog form { display: grid; gap: 16px; }
+.echo-form-dialog label { display: grid; gap: 6px; font-size: 13px; }
+.echo-form-dialog input:not([type="checkbox"]), .echo-form-dialog textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; }
+.echo-form-dialog textarea { resize: vertical; }
+.echo-form-dialog fieldset { display: grid; gap: 10px; max-height: 240px; overflow-y: auto; margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+.echo-form-dialog legend { padding: 0 4px; font-size: 13px; }
+.echo-form-dialog .echo-group-member { display: flex; align-items: center; gap: 8px; }
+.echo-form-dialog footer { display: flex; justify-content: flex-end; gap: 8px; }
+.echo-form-dialog footer button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.echo-form-dialog footer button[type="submit"] { border-color: var(--accent); background: var(--accent); color: white; }
+.echo-form-dialog footer button:disabled { opacity: .5; cursor: default; }

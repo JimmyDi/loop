@@ -9,6 +9,75 @@ import { createModelRuntime } from "./model-runtime";
 import type { ModelRuntime } from "./model-runtime";
 import { SessionManager } from "./session-manager";
 import { SettingsManager } from "./settings-manager";
+import type { McpManager } from "./mcp/mcp-manager";
+
+test("remote-only sessions replace local tools and reject local planning capabilities", async () => {
+  const model = createModelRuntime().getModel("anthropic", "claude-opus-4-5")!;
+  const modelRuntime: ModelRuntime = {
+    getModel: () => model,
+    getModels: () => [model],
+    checkModel: async () => {},
+    streamSimple: (_model, context) => {
+      expect(context.tools?.map((tool) => tool.name)).toEqual(["request_user_input", "remote"]);
+      const stream = createAssistantMessageEventStream();
+      const message = {
+        role: "assistant" as const,
+        content: [{ type: "text" as const, text: "Done" }],
+        api: model.api,
+        provider: model.provider,
+        model: model.id,
+        timestamp: 1,
+        stopReason: "stop" as const,
+        usage: {
+          input: 1,
+          output: 1,
+          cacheRead: 0,
+          cacheWrite: 0,
+          totalTokens: 2,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+        },
+      };
+      stream.push({ type: "done", reason: "stop", message });
+      stream.end();
+      return stream;
+    },
+  };
+  const manager = SessionManager.inMemory();
+  const { session } = await createAgentSession({
+    model,
+    modelRuntime,
+    sessionManager: manager,
+    settingsManager: SettingsManager.inMemory(),
+    remoteOnly: true,
+    mcpManager: {
+      tools: () => {
+        throw new Error("Remote session accessed local MCP");
+      },
+      snapshot: () => {
+        throw new Error("Remote session accessed local MCP");
+      },
+    } as unknown as McpManager,
+    customTools: [
+      {
+        name: "remote",
+        description: "Remote tool",
+        parameters: { type: "object", properties: {} },
+        execute: () => [],
+      },
+    ],
+    assistantLabel: "Researcher",
+    noContextFiles: true,
+    telemetry: false,
+  });
+  try {
+    await expect(session.setMode("plan")).rejects.toThrow("remote-only");
+    await session.prompt("Hello");
+    expect(manager.messages.at(-1)).toHaveProperty("loopAssistantLabel", "Researcher");
+  } finally {
+    session.dispose();
+    await session.flushTrace();
+  }
+});
 
 test("new sessions use settings defaults and restored sessions retain their saved permissions", async () => {
   const dir = await mkdtemp(join(tmpdir(), "loop-sdk-"));

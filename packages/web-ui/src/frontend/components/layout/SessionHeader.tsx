@@ -21,26 +21,30 @@ export const SessionHeader = ({
   return (
     <header className="session-header">
       {panel && <span className="session-header-panel-divider" aria-hidden="true" />}
-      <ActionButton
-        className="session-folder ghost"
-        aria-label={t("openSidebar")}
-        onClick={() => toggle(true)}
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
+      {!snapshot?.state.remoteOnly && (
+        <ActionButton
+          className="session-folder ghost"
+          aria-label={t("openSidebar")}
+          onClick={() => toggle(true)}
         >
-          <path d="M3 9h18M3 19V5a2 2 0 0 1 2-2h4l3 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
-        </svg>
-      </ActionButton>
-      {snapshot ? (
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 9h18M3 19V5a2 2 0 0 1 2-2h4l3 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+          </svg>
+        </ActionButton>
+      )}
+      {snapshot?.state.remoteOnly ? (
+        <span className="session-name-placeholder">{snapshot.state.title?.text ?? "Echo"}</span>
+      ) : snapshot ? (
         <SessionName key={snapshot.sessionId} snapshot={snapshot} />
       ) : (
         <span className="session-name-placeholder">{t("newSession")}</span>

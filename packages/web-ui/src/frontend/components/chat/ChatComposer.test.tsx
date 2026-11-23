@@ -66,6 +66,27 @@ const snapshot: SessionSnapshot = {
   },
 };
 
+test("Echo composer excludes project selection and local skills", () => {
+  const client = new QueryClient();
+  const remote = {
+    ...snapshot,
+    workspaceId: null,
+    operation: "idle" as const,
+    state: { ...snapshot.state, remoteOnly: true, isRunning: false },
+  };
+  const html = renderToStaticMarkup(
+    <QueryClientProvider client={client}>
+      <ChatComposer snapshot={remote} connected />
+    </QueryClientProvider>,
+  );
+  expect(html).not.toContain("composer-project-selector");
+  expect(html).not.toContain("composer-skills");
+  expect(html).not.toContain("composer-plan-item");
+  expect(html).not.toContain("voice-input-button");
+  expect(html).not.toContain("voice-call-button");
+  client.clear();
+});
+
 test("ChatComposer renders the session state without unsupported controls", () => {
   const client = new QueryClient();
   const html = renderToStaticMarkup(

@@ -4,8 +4,44 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Added
+
+- Web UI: show Echo Agents and group conversations as message cards with recent
+  text and activity dates, support optional uploaded Agent avatars with a built-in
+  bot avatar, and reuse each Agent's single private conversation.
+- Web UI: add computer deletion in Echo with confirmation and automatic clearing
+  of conversation bindings while retaining sandbox file volumes by default.
+- Web UI: add Echo with persistent Agent profiles, private and group conversations,
+  explicit reply selection, shared remote computers, connection settings and desktop
+  watching. Reuse chat history, streaming, approvals and message rendering without
+  changing Project sessions.
+- coding-agent and SDK: support host-supplied tools and remote-only sessions, plus
+  a computer provider contract and Loop Sandbox HTTP adapter with attributed,
+  generation-fenced operations and query-only recovery.
+
+### Changed
+
+- Web UI: open Echo's desktop side panel by default for a bound desktop computer,
+  while keeping manual close and reopen available.
+- Web UI: move Echo Agent creation, group membership and sandbox connection forms
+  into focused dialogs while keeping conversations visible in the sidebar.
+- Web UI: display Echo desktop watching beside the conversation on wide screens
+  and below the conversation on narrow screens.
+- Web UI: route Home, Echo and Settings through the browser URL and restore the
+  selected page after refresh or browser history navigation.
+
 ### Fixed
 
+- Web UI: allow opening Echo's desktop panel for a stopped computer and show its
+  state until the computer is started.
+- coding-agent: clarify Echo browser and desktop actions, translate legacy desktop
+  key input, and reject unsupported keyboard operations before remote dispatch.
+- Web UI: keep the last Echo desktop frame visible and retry after temporary
+  preview failures instead of replacing it with a blank error panel.
+- Web UI: save Echo connections through the supported API method so the connection
+  form no longer returns Not Found.
+- coding-agent and Web UI: honor Full access for Echo computer operations without
+  displaying an approval dialog for each call.
 - coding-agent: validate workflow-only voice CI changes without attempting to republish existing voice resources, while retaining version checks for resource changes and voice tag pushes.
 
 ## [0.8.0] - 2026-11-21

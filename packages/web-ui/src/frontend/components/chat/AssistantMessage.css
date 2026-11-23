@@ -15,3 +15,4 @@
 .assistant-body > .tool-group:last-child {
   margin-bottom: 0;
 }
+.assistant-agent-name { display: block; font-size: 12px; font-weight: 600; color: var(--ink-muted); margin-bottom: 8px; }

@@ -26,6 +26,8 @@ If a sent message stays in the waiting state, check the model endpoint and serve
 
 ## Features
 
+- Echo Agent profiles, private/group conversations, explicit reply selection and shared remote computers. See [Echo](src/backend/docs/echo.md).
+
 - Project registration, rename/removal, canonical directory deduplication and per-project conversation history.
 - macOS directory picker, browser directory navigation and typed paths.
 - Independent SDK sessions, HTTP commands, SSE snapshots/replay, abort and pending-save recovery.

@@ -3,19 +3,21 @@ import { readFile, writeFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 const desktop = resolve(import.meta.dirname, "..");
+const platformSigning = !process.argv.includes("--no-platform-signing");
 const required = ["LOOP_UPDATER_URL", "LOOP_UPDATER_PUBLIC_KEY", "TAURI_SIGNING_PRIVATE_KEY"];
-required.push(
-  ...(process.platform === "darwin"
-    ? [
-        "APPLE_CERTIFICATE",
-        "APPLE_CERTIFICATE_PASSWORD",
-        "APPLE_SIGNING_IDENTITY",
-        "APPLE_ID",
-        "APPLE_PASSWORD",
-        "APPLE_TEAM_ID",
-      ]
-    : ["WINDOWS_CERTIFICATE", "WINDOWS_CERTIFICATE_PASSWORD"]),
-);
+if (platformSigning)
+  required.push(
+    ...(process.platform === "darwin"
+      ? [
+          "APPLE_CERTIFICATE",
+          "APPLE_CERTIFICATE_PASSWORD",
+          "APPLE_SIGNING_IDENTITY",
+          "APPLE_ID",
+          "APPLE_PASSWORD",
+          "APPLE_TEAM_ID",
+        ]
+      : ["WINDOWS_CERTIFICATE", "WINDOWS_CERTIFICATE_PASSWORD"]),
+  );
 for (const name of required)
   if (!process.env[name]) throw new Error("Release configuration missing " + name);
 const pnpm = process.env.npm_execpath;
@@ -28,7 +30,7 @@ try {
   run(["build"]);
   const path = join(desktop, ".tools/tauri-build.json");
   const config = JSON.parse(await readFile(path, "utf8"));
-  if (process.platform === "darwin") {
+  if (platformSigning && process.platform === "darwin") {
     await writeFile(cert, Buffer.from(process.env.APPLE_CERTIFICATE!, "base64"), { mode: 0o600 });
     const password = crypto.randomUUID();
     execFileSync("security", ["create-keychain", "-p", password, keychain], { stdio: "ignore" });
@@ -80,7 +82,7 @@ try {
       signingIdentity: process.env.APPLE_SIGNING_IDENTITY,
       hardenedRuntime: true,
     };
-  } else {
+  } else if (platformSigning) {
     await writeFile(cert, Buffer.from(process.env.WINDOWS_CERTIFICATE!, "base64"), { mode: 0o600 });
     execFileSync(
       "powershell",
@@ -117,7 +119,7 @@ try {
 } finally {
   await rm(cert, { force: true });
   await rm(cert + ".thumbprint", { force: true });
-  if (process.platform === "darwin") {
+  if (platformSigning && process.platform === "darwin") {
     try {
       execFileSync("security", ["delete-keychain", keychain], { stdio: "ignore" });
     } catch {

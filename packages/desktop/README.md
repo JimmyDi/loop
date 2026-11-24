@@ -60,14 +60,19 @@ Unconfigured builds keep the update button hidden. Production configuration requ
 
 ## CI configuration
 
-Push a vX.Y.Z tag to run the Release workflow. Its existing main-branch ancestry, version, changelog and verification checks apply to both npm and desktop releases. After npm publication and the application GitHub Release succeed, Release calls the reusable Desktop workflow to build signed installers for all three targets from the same commit and publish the desktop update. A failed desktop job can be rerun from that Release run. Configure these repository values before the first release.
+Manually dispatch Desktop to build unsigned test installers for all three targets. Download the artifacts from the workflow run. These builds use macOS ad-hoc signing and Windows unsigned executables, with automatic updates disabled. Test installers can be distributed through a separately labeled GitHub prerelease.
+
+Push a vX.Y.Z tag to run the Release workflow. Its existing main-branch ancestry, version, changelog and verification checks apply to both npm and desktop releases. After npm publication and the application GitHub Release succeed, Release calls the reusable Desktop workflow to build installers for all three targets from the same commit and publish the desktop update. Tag releases currently use macOS ad-hoc signing and unsigned Windows executables. Operating systems may display security prompts. Update artifacts are signed with the Tauri key, and automatic updates are enabled. A failed desktop job can be rerun from that Release run. Configure these repository values before the first release.
 
 - Repository variable LOOP_UPDATER_PUBLIC_KEY contains the Tauri update verification key.
 - Secrets TAURI_SIGNING_PRIVATE_KEY and optional TAURI_SIGNING_PRIVATE_KEY_PASSWORD sign update artifacts.
+
+Optional platform certificate signing is available through scripts/bundle-release.ts by omitting --no-platform-signing and restoring the certificate environment variables in the workflow. It requires the following configuration.
+
 - macOS uses APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY, APPLE_ID, APPLE_PASSWORD and APPLE_TEAM_ID for Developer ID signing and notarization.
 - Windows uses WINDOWS_CERTIFICATE and WINDOWS_CERTIFICATE_PASSWORD for a CI-importable Authenticode certificate.
 
-Keep signing material outside the repository. Preserve the update signing key across releases. Test installers can be generated before production signing configuration is available.
+Keep signing material outside the repository. Preserve the update signing key across releases. Certificate-free tag releases require the Tauri update key and public key. The earlier manually dispatched test installers have automatic updates disabled and require a manual installation to move to an update-enabled release.
 
 ## Verification
 

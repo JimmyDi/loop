@@ -1,6 +1,7 @@
 name: Desktop
 on:
   workflow_call:
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -47,22 +48,19 @@ jobs:
       - name: Validate native code
         working-directory: packages/desktop/src-tauri
         run: cargo test --locked
-      - name: Build signed release installer
+      - name: Build release installer without platform certificates
+        if: github.event_name != 'workflow_dispatch'
         working-directory: packages/desktop
         env:
           LOOP_UPDATER_URL: https://github.com/${{ github.repository }}/releases/download/desktop-stable/stable.json
           LOOP_UPDATER_PUBLIC_KEY: ${{ vars.LOOP_UPDATER_PUBLIC_KEY }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        run: pnpm exec tsx scripts/bundle-release.ts ${{ matrix.bundles }}
+        run: pnpm exec tsx scripts/bundle-release.ts ${{ matrix.bundles }} --no-platform-signing
+      - name: Build unsigned test installer
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: packages/desktop
+        run: pnpm tauri build --config .tools/tauri-build.json --bundles ${{ matrix.bundles }}
       - name: Smoke test native application
         run: pnpm exec tsx packages/desktop/scripts/app-smoke.ts
       - name: Collect installers
@@ -75,6 +73,7 @@ jobs:
           path: packages/desktop/.tools/artifacts/
           if-no-files-found: error
   publish:
+    if: github.event_name != 'workflow_dispatch'
     needs: build
     concurrency:
       group: desktop-stable-publication

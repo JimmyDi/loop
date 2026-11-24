@@ -25,7 +25,9 @@ test.each([
 test("npm publishes the verified artifact before GitHub Release creation", async () => {
   const { jobs, permissions } = await workflow();
   expect(permissions).toEqual({ contents: "read" });
-  expect(Object.keys(jobs)).toEqual(["validate", "verify", "publish", "github-release"]);
+  expect(Object.keys(jobs)).toEqual(["validate", "verify", "publish", "github-release", "desktop"]);
+  expect(jobs.desktop.needs).toBe("github-release");
+  expect(jobs.desktop.uses).toBe("./.github/workflows/desktop.yml");
   expect(jobs.publish.needs).toBe("verify");
   expect(
     jobs.publish.steps.find((step: { uses?: string }) =>

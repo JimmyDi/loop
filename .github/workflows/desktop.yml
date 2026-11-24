@@ -1,19 +1,13 @@
 name: Desktop
 on:
-  pull_request:
-    paths: [packages/**, package.json, pnpm-lock.yaml, pnpm-workspace.yaml, .github/workflows/desktop.yml]
-  workflow_dispatch:
-  workflow_run:
-    workflows: [Release]
-    types: [completed]
+  workflow_call:
 permissions:
   contents: read
 concurrency:
-  group: desktop-${{ github.event.pull_request.number || github.event.workflow_run.head_sha || github.ref }}
+  group: desktop-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   build:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     strategy:
       fail-fast: false
       matrix:
@@ -31,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: pnpm/action-setup@v6.1.1
       - uses: actions/setup-node@v7.1.0
@@ -53,12 +47,7 @@ jobs:
       - name: Validate native code
         working-directory: packages/desktop/src-tauri
         run: cargo test --locked
-      - name: Build test installer
-        if: github.event_name != 'workflow_run'
-        working-directory: packages/desktop
-        run: pnpm tauri build --config .tools/tauri-build.json --bundles ${{ matrix.bundles }}
       - name: Build signed release installer
-        if: github.event_name == 'workflow_run'
         working-directory: packages/desktop
         env:
           LOOP_UPDATER_URL: https://github.com/${{ github.repository }}/releases/download/desktop-stable/stable.json
@@ -86,7 +75,6 @@ jobs:
           path: packages/desktop/.tools/artifacts/
           if-no-files-found: error
   publish:
-    if: github.event_name == 'workflow_run'
     needs: build
     concurrency:
       group: desktop-stable-publication
@@ -97,7 +85,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: pnpm/action-setup@v6.1.1
       - uses: actions/setup-node@v7.1.0
@@ -114,5 +102,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          DESKTOP_COMMIT: ${{ github.event.workflow_run.head_sha }}
+          DESKTOP_COMMIT: ${{ github.sha }}
         run: node --import tsx packages/desktop/scripts/publish.ts

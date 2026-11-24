@@ -8,7 +8,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Web UI: add a wide-screen sidebar toggle in the panel's top-right corner, retaining a compact open button centered beside the folder icon in the conversation header after collapse and animating the sidebar while respecting reduced-motion preferences.
 
-- Desktop: add a private Tauri application sharing Web/CLI configuration and saved sessions through the default data directory or LOOP_DATA_DIR, with a packaged Node runtime, macOS and Windows installer CI, npm-aligned versions, signed update manifests, background update checks, and automatic idle updates with explicit task stopping when sessions are active. An update icon beside Settings reports downloads, installation, task stopping or errors through its tooltip, with confirmation before stopping tasks to update.
+- Desktop: add a private Tauri application sharing Web/CLI configuration and saved sessions through the default data directory or LOOP_DATA_DIR, with a packaged Node runtime, macOS and Windows installer CI called by the vX.Y.Z-tagged Release workflow after npm and application GitHub publication succeed, npm-aligned versions, signed update manifests, background update checks, and automatic idle updates with explicit task stopping when sessions are active. An update icon beside Settings reports downloads, installation, task stopping or errors through its tooltip, with confirmation before stopping tasks to update.
 
 ### Changed
 
@@ -32,6 +32,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 - Web UI and Desktop: give the General settings Permission and Language dropdown controls a shared 182px width and 38px height, with vertically centered content and width constrained to the available space on narrow screens. Match the Language popup to its trigger width with aligned left and right edges.
 
 ### Fixed
+
+- Desktop: accept server startup diagnostics in packaged smoke checks, use a file URL for the Windows development loader, and exercise backend reloads with a real file change in cross-platform CI.
 
 - Web UI and Desktop: align the project options popup's left border with its ellipsis button, clamping the popup within the viewport when space is limited.
 

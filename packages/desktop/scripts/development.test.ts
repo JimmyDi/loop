@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, rm, utimes } from "node:fs/promises";
+import { mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { createInterface } from "node:readline";
@@ -10,6 +11,10 @@ import { expect, test } from "vitest";
 test("desktop development proxies authenticated Vite updates and reloads after backend edits", async () => {
   const directory = await mkdtemp(join(tmpdir(), "loop-desktop-dev-"));
   const desktop = resolve(import.meta.dirname, "..");
+  const backendChange = resolve(
+    desktop,
+    "../web-ui/src/backend/development-smoke-" + randomUUID() + ".ts",
+  );
   const child = spawn(
     process.execPath,
     ["--import", "tsx", "--conditions=loop-source", join(import.meta.dirname, "development.ts")],
@@ -48,6 +53,7 @@ test("desktop development proxies authenticated Vite updates and reloads after b
       redirect: "manual",
     });
     const headers = { cookie: login.headers.get("set-cookie")!.split(";")[0]! };
+    expect((await fetch(url + "/api/workspaces", { headers })).status, diagnostic).toBe(200);
     const html = await (await fetch(url, { headers })).text();
     expect(html).toContain("/@vite/client");
     expect(html).toContain("src/client.ts");
@@ -71,7 +77,7 @@ test("desktop development proxies authenticated Vite updates and reloads after b
         messages.some((message) => message.updates?.some((update) => update.path === css)),
       )
       .toBe(true);
-    await utimes(resolve(desktop, "../web-ui/src/backend/server.ts"), new Date(), new Date());
+    await writeFile(backendChange, "export {};\n");
     await expect
       .poll(() => messages.some((message) => message.type === "full-reload"), { timeout: 20_000 })
       .toBe(true);
@@ -84,6 +90,7 @@ test("desktop development proxies authenticated Vite updates and reloads after b
     socket?.terminate();
     child.kill();
     lines.close();
+    await rm(backendChange, { force: true });
     await rm(directory, { recursive: true, force: true });
   }
 }, 60_000);

@@ -3,6 +3,7 @@ import type { ChildProcess } from "node:child_process";
 import { once } from "node:events";
 import { watch } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 export const startBackend = async (reload: () => void) => {
   let child: ChildProcess;
@@ -46,7 +47,7 @@ export const startBackend = async (reload: () => void) => {
       const current = fork(new URL("./development-worker.ts", import.meta.url), [], {
         execArgv: [
           "--import",
-          resolve(import.meta.dirname, "../node_modules/tsx/dist/loader.mjs"),
+          pathToFileURL(resolve(import.meta.dirname, "../node_modules/tsx/dist/loader.mjs")).href,
           "--conditions=loop-source",
         ],
         stdio: ["ignore", "inherit", "inherit", "ipc"],

@@ -60,7 +60,7 @@ Unconfigured builds keep the update button hidden. Production configuration requ
 
 ## CI configuration
 
-The Desktop workflow builds all three targets for pull requests and manual runs. Successful application Release workflows trigger signed desktop builds from the same source commit. Configure these repository values before the first release.
+Push a vX.Y.Z tag to run the Release workflow. Its existing main-branch ancestry, version, changelog and verification checks apply to both npm and desktop releases. After npm publication and the application GitHub Release succeed, Release calls the reusable Desktop workflow to build signed installers for all three targets from the same commit and publish the desktop update. A failed desktop job can be rerun from that Release run. Configure these repository values before the first release.
 
 - Repository variable LOOP_UPDATER_PUBLIC_KEY contains the Tauri update verification key.
 - Secrets TAURI_SIGNING_PRIVATE_KEY and optional TAURI_SIGNING_PRIVATE_KEY_PASSWORD sign update artifacts.

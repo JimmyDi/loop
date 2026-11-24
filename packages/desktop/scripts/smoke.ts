@@ -59,9 +59,12 @@ const timer = setTimeout(() => child.kill(), 30_000);
 const lines = createInterface({ input: child.stdout });
 const messages = lines[Symbol.asyncIterator]();
 const next = async () => {
-  const value = await messages.next();
-  assert.ok(!value.done, diagnostic);
-  return JSON.parse(value.value);
+  for (;;) {
+    const value = await messages.next();
+    assert.ok(!value.done, diagnostic);
+    if (value.value.startsWith("{")) return JSON.parse(value.value);
+    diagnostic += value.value + "\n";
+  }
 };
 try {
   const ready = await next();

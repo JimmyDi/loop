@@ -29,8 +29,10 @@ export const Hero = () => {
             <span data-pointer-clear>{t("heroDescription")}</span>{" "}
             <span data-pointer-clear>{t("heroProduct")}</span>
           </p>
-          <DesktopDownload />
-          <CopyCommand />
+          <div className={styles.actions}>
+            <CopyCommand />
+            <DesktopDownload />
+          </div>
         </div>
       </div>
       <ProductPreview />

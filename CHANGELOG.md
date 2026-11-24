@@ -6,7 +6,11 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
-- Website: add desktop downloads for macOS Apple Silicon, macOS Intel and Windows x64 on wide screens, hiding the download controls on mobile layouts and resolving the latest published desktop installer on each download with platform requirements and a release-page fallback.
+- Website: add desktop downloads for macOS Apple Silicon, macOS Intel and Windows x64 to the right of the startup command on wide screens, hiding the download controls on mobile layouts and resolving the latest published desktop installer on each download with platform requirements and a release-page fallback.
+
+### Changed
+
+- Website: compact the homepage startup command and desktop download control with narrower widths, reduced button spacing and tighter download menu rows.
 
 ### Fixed
 

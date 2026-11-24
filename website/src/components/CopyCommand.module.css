@@ -1,18 +1,15 @@
 .hero {
-  width: min(520px, 100%);
-  margin-inline: auto;
-}
-
-.hero {
-  margin-top: 24px;
+  width: min(440px, 100%);
+  min-width: 0;
+  flex: 0 1 440px;
 }
 
 .command {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   min-height: 52px;
-  padding: 4px 20px;
+  padding: 4px 14px;
   border: 1px solid var(--command-border);
   border-radius: 12px;
   background: var(--command-bg);
@@ -47,7 +44,7 @@
 
 .command button {
   flex: none;
-  min-width: 64px;
+  min-width: 48px;
   min-height: 44px;
   border: 0;
   border-radius: 6px;

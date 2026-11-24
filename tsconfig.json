@@ -13,5 +13,11 @@
     "customConditions": ["loop-source"]
   },
   "include": ["packages/**/*.ts", "packages/**/*.tsx", "scripts/**/*.ts", "*.ts"],
-  "exclude": ["node_modules", "dist", "packages/*/dist"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "packages/*/dist",
+    "packages/desktop/src-tauri/target",
+    "packages/desktop/.tools"
+  ]
 }

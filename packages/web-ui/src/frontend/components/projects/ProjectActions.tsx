@@ -24,7 +24,7 @@ export const ProjectActions = ({
   const { remove } = useProjects();
   const archive = useProjectArchive(project.id);
   const [point, setPoint] = useState<{ x: number; y: number }>();
-  const menu = useProjectMenu(point);
+  const menu = useProjectMenu(point, "left");
   const { setOpen } = menu;
   useEffect(() => {
     if (!contextPoint) return;

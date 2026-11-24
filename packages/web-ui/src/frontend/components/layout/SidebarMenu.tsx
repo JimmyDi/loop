@@ -48,6 +48,7 @@ export const SidebarMenu = ({
         }}
       >
         <SettingsIcon />
+        <span className="sidebar-menu-label">{t("settings")}</span>
       </ActionButton>
       {menu.page && (
         <div

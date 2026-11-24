@@ -10,7 +10,7 @@ import { UserMessage } from "./UserMessage";
 import { AssistantTurn } from "./AssistantTurn";
 import { PromptDuration } from "./PromptDuration";
 import { CompactionStatus } from "./CompactionStatus";
-import { projectAssistantTurn } from "./timeline-turns";
+import { onlyToolCalls, projectAssistantTurn } from "./timeline-turns";
 import { plansForTimelineEntry } from "./timeline-plans";
 
 const SessionPlans = lazy(() =>
@@ -40,6 +40,7 @@ export const TimelineMessages = ({
     ? turns.findLastIndex((turn) => turn.index + offset < checkpoint.historyMessageCount)
     : -1;
   const rows: VirtualRow[] = [];
+  let resolvedTarget = target;
   turns.slice(start).forEach((turn, visiblePosition) => {
     const position = start + visiblePosition;
     const timing = turnTimings[position];
@@ -77,14 +78,25 @@ export const TimelineMessages = ({
     }
 
     const entries = projectAssistantTurn(turn.messages);
+    let batchKey: string | undefined;
     for (const entry of entries) {
+      const entryKey = key + ":" + (entry.index + offset);
+      if (onlyToolCalls(entry)) {
+        if (batchKey) {
+          if (target?.key === entryKey) resolvedTarget = { ...target, key: batchKey };
+          continue;
+        }
+        batchKey = entryKey;
+      } else {
+        batchKey = undefined;
+      }
       const plans = plansForTimelineEntry(
         entry,
         turn.messages,
         snapshot.state.planning?.plans ?? [],
       );
       rows.push({
-        key: key + ":" + (entry.index + offset),
+        key: entryKey,
         render: () => (
           <Fragment key={key}>
             <AssistantTurn
@@ -102,9 +114,11 @@ export const TimelineMessages = ({
                 <SessionPlans plans={plans} />
               </Suspense>
             )}
-            {position === compactedPosition && entry === entries.at(-1) && (
-              <CompactionStatus key={checkpoint?.id} />
-            )}
+            {position === compactedPosition &&
+              (entry === entries.at(-1) ||
+                entries.slice(entries.indexOf(entry)).every(onlyToolCalls)) && (
+                <CompactionStatus key={checkpoint?.id} />
+              )}
           </Fragment>
         ),
       });
@@ -120,7 +134,7 @@ export const TimelineMessages = ({
       rows={rows}
       viewport={viewport}
       pinned={pinned}
-      target={target}
+      target={resolvedTarget}
       onTarget={onTarget}
     />
   );

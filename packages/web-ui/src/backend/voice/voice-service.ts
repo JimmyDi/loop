@@ -20,6 +20,15 @@ export class VoiceService {
   private readonly revoked = new Set<string>();
   private closed = false;
 
+  get busy(): boolean {
+    return this.starting || !!this.state;
+  }
+
+  stopActive = async (): Promise<void> => {
+    if (this.starting) throw new Error("Voice is starting");
+    if (this.state) await this.end(this.state);
+  };
+
   constructor(
     readonly resources: VoiceResourceManager,
     private readonly registry: SessionRegistry,

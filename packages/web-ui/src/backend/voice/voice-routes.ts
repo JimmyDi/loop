@@ -75,5 +75,5 @@ export const voiceRoutes = (voice: VoiceService) => {
     await voice.stop(match[1]!, context, clientId);
     return new Response(null, { status: 204 });
   };
-  return { route, close: () => installing?.abort() };
+  return { route, busy: () => !!installing || voice.busy, close: () => installing?.abort() };
 };

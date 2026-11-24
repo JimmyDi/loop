@@ -8,7 +8,7 @@ import { useTheme } from "../../state/theme-store";
 import { AppShell } from "../layout/AppShell";
 import { SettingsPanel } from "./SettingsPanel";
 
-test("Settings covers Home outside the mobile drawer and returns without losing workspace state", async () => {
+test("Settings opens from its menu in a dialog and closes without losing workspace state", async () => {
   const window = new Window({ width: 390 });
   const previous = {
     window: globalThis.window,
@@ -50,15 +50,18 @@ test("Settings covers Home outside the mobile drawer and returns without losing 
     expect(view.queryByRole("combobox", { name: "Language" })).toBeNull();
     trigger.focus();
     fireEvent.click(trigger);
-    fireEvent.click(view.getByRole("menuitem", { name: "Settings" }));
-    const panel = await view.findByRole("region", { name: "Settings" });
-    const home = view.container.querySelector<HTMLElement>(".app-shell-home")!;
-    expect(home.hidden).toBe(true);
-    expect(home.hasAttribute("inert")).toBe(true);
+    expect(view.getAllByRole("menuitem")).toHaveLength(2);
+    fireEvent.click(view.getByRole("menuitem", { name: i18n.t("settings") }));
 
-    expect(view.queryByRole("dialog")).toBeNull();
+    const panel = await view.findByRole("dialog", { name: "Settings" });
+    expect(panel.querySelector(".settings-feedback")).toBeNull();
+    expect(view.queryByRole("link", { name: "Feedback" })).toBeNull();
+    const home = view.container.querySelector<HTMLElement>(".app-shell-home")!;
+    expect(home.hidden).toBe(false);
+    expect(home.hasAttribute("inert")).toBe(false);
+
     expect(panel.parentElement?.className).toBe("app-shell-workspace");
-    expect(view.queryByRole("button", { name: "Close" })).toBeNull();
+    expect(view.getByRole("button", { name: "Close" })).toBeTruthy();
     expect(document.activeElement).toBe(view.getByRole("tab", { name: "General" }));
     expect(view.getByRole("tab", { name: "General" }).getAttribute("aria-selected")).toBe("true");
     expect(view.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
@@ -75,7 +78,7 @@ test("Settings covers Home outside the mobile drawer and returns without losing 
     expect(view.queryByRole("button", { name: "Manage" })).toBeNull();
     fireEvent.click(view.getByRole("tab", { name: "Archived chats" }));
     expect(view.getByRole("tabpanel", { name: "Archived chats" })).toBeTruthy();
-    expect(view.queryByRole("dialog")).toBeNull();
+
     expect(view.getByText("No archived chats")).toBeTruthy();
     fireEvent.click(view.getByRole("tab", { name: "General" }));
     expect(view.getByRole("tabpanel", { name: "General" })).toBeTruthy();
@@ -111,7 +114,7 @@ test("Settings covers Home outside the mobile drawer and returns without losing 
     expect(document.activeElement).toBe(general);
     fireEvent.click(view.getByRole("button", { name: "Language English" }));
     await act(async () => fireEvent.click(view.getByRole("option", { name: "中文" })));
-    expect(view.getByRole("region", { name: "设置" })).toBe(panel);
+    expect(view.getByRole("dialog", { name: "设置" })).toBe(panel);
     expect(view.getByRole("heading", { name: "设置", level: 2 })).toBeTruthy();
     expect(view.getByRole("heading", { name: "通用", level: 3 })).toBeTruthy();
     expect(view.getByRole("heading", { name: "通用", level: 4 })).toBeTruthy();
@@ -133,27 +136,34 @@ test("Settings covers Home outside the mobile drawer and returns without losing 
     expect((view.getByRole("radio", { name: "深色" }) as HTMLInputElement).checked).toBe(true);
     expect(useWorkspace.getState().drafts).toEqual({ example: "Unsent draft" });
 
-    fireEvent.keyDown(panel, { key: "Escape" });
+    fireEvent(
+      panel,
+      new window.Event("cancel", { bubbles: false, cancelable: true }) as unknown as Event,
+    );
     expect(home.hidden).toBe(false);
-    expect(view.queryByRole("region", { name: "设置" })).toBeNull();
-    expect(view.queryByRole("dialog")).toBeNull();
+    expect(view.queryByRole("dialog", { name: "设置" })).toBeNull();
+
     expect(view.getByRole("button", { name: "设置" })).toBe(trigger);
     expect(useWorkspace.getState().sidebar).toBe(true);
     expect(document.activeElement).toBe(trigger);
 
     fireEvent.click(trigger);
-    fireEvent.click(view.getByRole("menuitem", { name: "设置" }));
+    expect(view.getAllByRole("menuitem")).toHaveLength(2);
+    fireEvent.click(view.getByRole("menuitem", { name: i18n.t("settings") }));
+
     expect(view.getByRole("tabpanel", { name: "通用" })).toBeTruthy();
-    fireEvent.click(view.getByRole("button", { name: "主页" }));
+    fireEvent.click(view.getByRole("button", { name: "关闭" }));
     expect(home.hidden).toBe(false);
-    expect(view.queryByRole("dialog")).toBeNull();
+
     expect(document.activeElement).toBe(trigger);
 
     fireEvent.click(trigger);
-    fireEvent.click(view.getByRole("menuitem", { name: "设置" }));
+    expect(view.getAllByRole("menuitem")).toHaveLength(2);
+    fireEvent.click(view.getByRole("menuitem", { name: i18n.t("settings") }));
+
     fireEvent.click(view.getByRole("button", { name: "语言 中文" }));
     await act(async () => fireEvent.click(view.getByRole("option", { name: "English" })));
-    expect(view.getByRole("region", { name: "Settings" })).toBeTruthy();
+    expect(view.getByRole("dialog", { name: "Settings" })).toBeTruthy();
     expect(view.getByRole("heading", { name: "General", level: 3 })).toBeTruthy();
     expect(view.getByRole("heading", { name: "General", level: 4 })).toBeTruthy();
     expect(view.getByText("Language for the app UI")).toBeTruthy();
@@ -163,7 +173,7 @@ test("Settings covers Home outside the mobile drawer and returns without losing 
     expect(view.getByRole("group", { name: "Theme" })).toBeTruthy();
     expect((view.getByRole("radio", { name: "Dark" }) as HTMLInputElement).checked).toBe(true);
     expect(useWorkspace.getState().drafts).toEqual({ example: "Unsent draft" });
-    fireEvent.click(view.getByRole("button", { name: "Home" }));
+    fireEvent.click(view.getByRole("button", { name: "Close" }));
     expect(view.getByRole("button", { name: "Settings" })).toBe(trigger);
   } finally {
     await act(async () => {
@@ -237,7 +247,6 @@ test("Integrations Add menus keep their actions and forms within each section", 
     fireEvent.click(view.getByRole("tab", { name: "Skills" }));
     fireEvent.click(view.getByRole("tab", { name: "MCPs" }));
     expect(view.queryByLabelText("Command to launch")).toBeNull();
-    expect(view.queryByRole("dialog")).toBeNull();
   } finally {
     await act(async () => {
       cleanup();

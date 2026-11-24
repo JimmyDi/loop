@@ -4,11 +4,7 @@ import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import type { SessionSummary } from "../../../shared/protocol";
-import {
-  isSidebarSectionAtTop,
-  preserveSidebarScroll,
-  scrollSidebarSection,
-} from "../../lib/scroll-sidebar-section";
+import { preserveSidebarScroll } from "../../lib/scroll-sidebar-section";
 import { SessionList } from "./SessionList";
 import "./SidebarSessionSection.css";
 
@@ -26,19 +22,6 @@ export const SidebarSessionSection = ({
   const { t } = useTranslation();
   const id = useId();
   const [expanded, setExpanded] = useState(true);
-  const activateSection = (heading: HTMLElement) => {
-    if (!expanded) {
-      setExpanded(true);
-      return;
-    }
-    const target =
-      kind === "pinned" ? ".pinned-sessions .session-item" : ".standalone-chats .session-item";
-    if (isSidebarSectionAtTop(heading, target)) {
-      preserveSidebarScroll(heading, () => flushSync(() => setExpanded(false)));
-      return;
-    }
-    scrollSidebarSection(heading, target);
-  };
 
   if (!sessions.length) return children;
   return (
@@ -52,7 +35,11 @@ export const SidebarSessionSection = ({
           className="sidebar-projects-label"
           aria-expanded={expanded}
           aria-controls={id + "-list"}
-          onClick={(event) => activateSection(event.currentTarget.parentElement!)}
+          onClick={(event) =>
+            preserveSidebarScroll(event.currentTarget.parentElement!, () =>
+              flushSync(() => setExpanded((value) => !value)),
+            )
+          }
         >
           {title}
         </button>
@@ -62,7 +49,11 @@ export const SidebarSessionSection = ({
           aria-label={t(kind === "pinned" ? "togglePinned" : "toggleChats")}
           aria-expanded={expanded}
           aria-controls={id + "-list"}
-          onClick={(event) => activateSection(event.currentTarget.parentElement!)}
+          onClick={(event) =>
+            preserveSidebarScroll(event.currentTarget.parentElement!, () =>
+              flushSync(() => setExpanded((value) => !value)),
+            )
+          }
         >
           <svg
             viewBox="0 0 16 16"

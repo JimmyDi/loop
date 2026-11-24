@@ -4,7 +4,56 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Added
+
+- Web UI: add a wide-screen sidebar toggle in the panel's top-right corner, retaining a compact open button centered beside the folder icon in the conversation header after collapse and animating the sidebar while respecting reduced-motion preferences.
+
+- Desktop: add a private Tauri application sharing Web/CLI configuration and saved sessions through the default data directory or LOOP_DATA_DIR, with a packaged Node runtime, macOS and Windows installer CI, npm-aligned versions, signed update manifests, background update checks, and automatic idle updates with explicit task stopping when sessions are active. An update icon beside Settings reports downloads, installation, task stopping or errors through its tooltip, with confirmation before stopping tasks to update.
+
+### Changed
+
+- Web UI and Desktop: share wide-screen sidebar layout, footer Settings, aligned list rows and message/composer widths, compact tool summaries and neutral surfaces. Desktop: shorten the native title-bar fade. Web UI: toggle sidebar sections directly while preserving scroll position and revealed entries, and combine adjacent tool-only messages into expandable summaries without merging across text or plan submissions.
+
+- Web UI and Desktop: remove Home and open a sidebar menu containing Settings and Feedback. On wide screens, the popup matches the Settings button width and aligns with both edges as the sidebar is resized. Settings opens a modal dialog with a close button, Escape dismissal and focus restoration, preserving the underlying conversation and sidebar. Keep Feedback in the sidebar menu.
+
+- Web UI and Desktop: set the default session-list width to 280px with a 240px minimum while restoring saved widths.
+
+- Desktop: add a session-list toggle at the panel's top-right corner while expanded, moving beside macOS window controls with a compact circular background when collapsed. Animate the button position and sidebar collapse and expansion, respecting reduced-motion preferences. Enclose navigation and the session list in one darker panel with 20-pixel rounded corners matching the macOS window’s 28-point outer radius, consistent 8-pixel window-edge spacing, a plain border and a near-white panel background against a white workspace in light mode. Coordinate workspace, composer, hover and selection surfaces, including active navigation buttons, with neutral borders. Remove panel-edge shadows and inner highlights for a flat boundary. Use the same lighter workspace background for all surrounding gaps, including the top, left and bottom edges. Place navigation actions within the sidebar footer.
+
+- Web UI: use a flat rounded sidebar with consistent outer spacing on wide screens. Remove the sidebar brand icon and align the Loop label with sidebar content in the macOS desktop layout.
+
+- Desktop: integrate the session heading into the macOS overlay title bar with a solid header backing fading smoothly into approaching messages below the title bar, retaining inline renaming and vertically aligned native window controls with draggable header space. Respect reduced-transparency preferences.
+
+- Web UI: anchor the new-chat composer at the same bottom position as active conversations, with the welcome content centered above it.
+
+- Desktop: enable Vite frontend hot updates and automatic backend-source restart with page reconnection in desktop development mode, keeping the native window open for frontend and application-backend changes. Limit native restart watching to the Rust project and avoid rewriting unchanged Cargo versions during resource builds. Show an update-icon style preview beside Settings in development with preview-only button feedback.
+
+- Web UI: align the General and Appearance section labels with the muted typography and heading spacing used by Manage Skills.
+- Web UI and Desktop: give the General settings Permission and Language dropdown controls a shared 182px width and 38px height, with vertically centered content and width constrained to the available space on narrow screens. Match the Language popup to its trigger width with aligned left and right edges.
+
 ### Fixed
+
+- Web UI and Desktop: align the project options popup's left border with its ellipsis button, clamping the popup within the viewport when space is limited.
+
+- Desktop: keep the update icon's accent color and transparent background consistent when hovered.
+
+- Web UI and Desktop: align project session titles, inline rename fields, empty placeholders and Show more with the project-name text in the wide-screen sidebar.
+
+- Desktop: start the macOS message scrollbar below the title-bar fade so its thumb stays fully visible and draggable, with a narrow theme-aware track inset from the window edge.
+
+- Desktop: reduce the gap above the sidebar Loop heading by 12px.
+
+- Desktop: hide navigation together with the session list on collapse, remove their background and layout space, and exclude hidden navigation controls from keyboard focus.
+
+- Desktop: keep the title-bar drag region and session-list toggle in the same stacking context so the drag overlay cannot intercept button clicks.
+
+- Web UI and Desktop: resize the session list directly on its visible border without an extra hover or drag border. Preserve the initial pointer offset so dragging starts without a width jump. Keep the desktop panel edge, content and toggle aligned with the pointer by disabling width and position transitions during dragging.
+
+- Desktop: adjust the macOS traffic-light controls to align with the center of the 52-pixel title bar, with matching panel-toggle alignment and inset Home and Settings controls.
+
+- Desktop: use the white-background application icon with transparent margins for consistent sizing alongside other Dock applications.
+
+- Web UI: keep Settings navigation focus outlines inside each item so the scroll container displays the complete ring.
 
 - coding-agent: validate workflow-only voice CI changes without attempting to republish existing voice resources, while retaining version checks for resource changes and voice tag pushes.
 

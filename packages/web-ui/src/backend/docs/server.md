@@ -62,3 +62,7 @@ This is a local single-user service with no public listening, login system or ba
 ## Paged session history
 
 GET /api/sessions/:id and session event snapshots include the latest three user rounds and history metadata (start, total, userStart). Message and timing indexes in events remain absolute. GET /api/sessions/:id/history?before=<message-index>&streamId=<stream-id> returns up to three preceding rounds with start, end, total, userStart and messages. Invalid boundaries return 400 invalid_history_cursor; a replaced server stream returns 409 history_changed. Authenticated remote devices may read this endpoint under the existing device and origin policy. The route pages the live controller history so pending saves and active messages remain consistent; core SessionManager.readHistory separately supports indexed disk reads. Pagination does not replay commands or reduce the model's context.
+
+## Embedded lifecycle
+
+The public startServer options accept authorize(request) for embedded local HTTP and voice WebSocket authentication, and onMaintenance(controller) for a host-managed lifecycle. The controller exposes status(), prepare(stop) and resume(). Preparation excludes new local and remote business requests, checks active sessions, flushes saves, and retains the admission lock until resume() or server shutdown. prepare(false) returns false while work is active. prepare(true) requests cancellation and waits for tasks to settle. Failures release the admission lock.

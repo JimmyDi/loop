@@ -7,6 +7,7 @@ import { applyEvent, applyFrame } from "../../../shared/session-projection";
 import { projectTools } from "../../../shared/tool-projection";
 import "../../i18n/setup";
 import { MessageTimeline } from "./MessageTimeline";
+import { AssistantTurn } from "./AssistantTurn";
 
 const draft: Extract<Message, { role: "assistant" }> = {
   role: "assistant",
@@ -479,6 +480,60 @@ test("prepending history retains assistant DOM and expanded tool groups", async 
     expect(group.open).toBe(true);
   } finally {
     cleanup();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});
+
+test("adjacent tool-only messages share a compact disclosure without hiding intervening text", async () => {
+  const window = new Window();
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  try {
+    const messages = [
+      {
+        index: 1,
+        message: {
+          ...draft,
+          content: [{ type: "toolCall" as const, id: "a", name: "bash", arguments: {} }],
+        },
+      },
+      {
+        index: 3,
+        message: {
+          ...draft,
+          content: [{ type: "toolCall" as const, id: "b", name: "bash", arguments: {} }],
+        },
+      },
+      {
+        index: 5,
+        message: { ...draft, content: [{ type: "text" as const, text: "Result summary" }] },
+      },
+      {
+        index: 6,
+        message: {
+          ...draft,
+          content: [{ type: "toolCall" as const, id: "c", name: "bash", arguments: {} }],
+        },
+      },
+    ];
+    const tools = Object.fromEntries(
+      ["a", "b", "c"].map((id) => [
+        id,
+        { id, name: "bash", args: { command: "pwd" }, status: "success" as const },
+      ]),
+    );
+    const html = renderToStaticMarkup(
+      <AssistantTurn messages={messages} tools={tools} running={false} />,
+    );
+    expect(html.match(/class="tool-group"/g)).toHaveLength(2);
+    expect(html).toContain("Ran 2 commands");
+    expect(html).toContain("Result summary");
+    const followingRow = renderToStaticMarkup(
+      <AssistantTurn messages={messages} tools={tools} running={false} selectedIndex={3} />,
+    );
+    expect(followingRow).toBe("");
+  } finally {
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

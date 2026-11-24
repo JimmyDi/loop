@@ -11,7 +11,9 @@
       "!**/dist/**",
       "!!website/**",
       "!**/docs/assets/**",
-      "!**/.tools/**"
+      "!**/.tools/**",
+      "!**/src-tauri/target/**",
+      "!**/src-tauri/gen/**"
     ]
   },
   "formatter": {

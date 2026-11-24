@@ -1,8 +1,7 @@
-import { lazy, Suspense, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useUnreadSessions } from "../../hooks/useUnreadSessions";
 import { useSidebarWidth } from "../../hooks/useSidebarWidth";
 import { useMobileDrawer } from "../../hooks/useMobileDrawer";
 import { useListEvents } from "../../hooks/useListEvents";
@@ -24,10 +23,16 @@ export const AppShell = () => {
   const { active, sidebar, toggleSidebar } = useWorkspace();
   const resize = useSidebarWidth();
   const settings = useSettings();
-  const unread = useUnreadSessions();
+
   const drawer = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const viewport = useVisualViewport();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  useEffect(() => {
+    const toggle = () => setSidebarCollapsed((value) => !value);
+    window.addEventListener("loop:toggle-desktop-sidebar", toggle);
+    return () => window.removeEventListener("loop:toggle-desktop-sidebar", toggle);
+  }, []);
 
   useMobileDrawer(drawer, sidebar && !settings.section, toggleSidebar, content);
   useListEvents();
@@ -37,18 +42,39 @@ export const AppShell = () => {
       className="app-shell"
       ref={viewport}
       data-sidebar={sidebar}
+      data-sidebar-collapsed={sidebarCollapsed}
       style={{ "--sidebar-width": resize.width + "px" } as CSSProperties}
     >
+      <button
+        type="button"
+        className="web-sidebar-toggle"
+        aria-expanded={!sidebarCollapsed}
+        aria-label={t(sidebarCollapsed ? "openSidebar" : "closeSidebar")}
+        title={t(sidebarCollapsed ? "openSidebar" : "closeSidebar")}
+        onClick={() => setSidebarCollapsed((value) => !value)}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          aria-hidden="true"
+        >
+          <rect x="3" y="4" width="18" height="16" rx="3" />
+          <path d="M9 4v16" />
+        </svg>
+      </button>
       <NavigationBar
+        collapsed={sidebarCollapsed}
         settingsOpen={!!settings.section}
-        unread={unread}
-        onHome={settings.close}
         onSettings={() => settings.open()}
       />
       <div className="app-shell-workspace">
-        <div className="app-shell-home" hidden={!!settings.section} inert={!!settings.section}>
+        <div className="app-shell-home">
           <div className="sidebar-container" ref={drawer}>
-            <Sidebar />
+            <div className="sidebar-content" inert={sidebarCollapsed}>
+              <Sidebar />
+            </div>
           </div>
           {sidebar && !settings.section && (
             <button
@@ -64,16 +90,11 @@ export const AppShell = () => {
             aria-orientation="vertical"
             aria-label={t("resize")}
             aria-valuenow={resize.width}
-            aria-valuemin={260}
+            aria-valuemin={240}
             aria-valuemax={420}
             tabIndex={0}
             onPointerDown={resize.onPointerDown}
-            onPointerMove={(event) =>
-              resize.onPointerMove(
-                event,
-                event.currentTarget.parentElement!.getBoundingClientRect().left,
-              )
-            }
+            onPointerMove={resize.onPointerMove}
             onKeyDown={(event) => {
               if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
                 event.preventDefault();

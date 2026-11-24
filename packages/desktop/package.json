@@ -11,7 +11,8 @@
     "dev": "pnpm build && node --import tsx scripts/dev.ts",
     "bundle": "pnpm build && tauri build --config .tools/tauri-build.json",
     "tauri": "tauri",
-    "typecheck": "tsc --noEmit -p ../../tsconfig.json"
+    "typecheck": "tsc --noEmit -p ../../tsconfig.json",
+    "bundle:release": "node --import tsx scripts/bundle-release.ts"
   },
   "dependencies": {
     "@loop/web-ui": "workspace:*"

@@ -4,6 +4,10 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Added
+
+- Website: add desktop downloads for macOS Apple Silicon, macOS Intel and Windows x64 on wide screens, hiding the download controls on mobile layouts and resolving the latest published desktop installer on each download with platform requirements and a release-page fallback.
+
 ### Fixed
 
 - Desktop: run release bundling through a package script so pnpm supplies its runtime path, and allow manual recovery of desktop publication for an existing npm version from main.

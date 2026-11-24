@@ -4,6 +4,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-24
+
 ### Added
 
 - Web UI: add a wide-screen sidebar toggle in the panel's top-right corner, retaining a compact open button centered beside the folder icon in the conversation header after collapse and animating the sidebar while respecting reduced-motion preferences.

@@ -3,7 +3,6 @@ import "./titlebar";
 
 const chinese = navigator.language.startsWith("zh");
 const label = (zh: string, en: string) => (chinese ? zh : en);
-const preview = import.meta.env.DEV;
 const button = document.createElement("button");
 button.type = "button";
 button.className = "desktop-update action-button icon ghost";
@@ -48,10 +47,6 @@ const stopTasks = async () => {
   }
 };
 button.onclick = () => {
-  if (preview) {
-    window.alert(label("更新按钮样式预览", "Update button style preview"));
-    return;
-  }
   if (pending) return;
   if (phase === "error") {
     window.alert(button.title);
@@ -70,11 +65,6 @@ button.onclick = () => {
   }
 };
 const refresh = async () => {
-  if (preview) {
-    button.hidden = false;
-    setDescription([messages.waiting, label("样式预览", "Style preview")].join(" · "));
-    return;
-  }
   if (pending) return;
   try {
     const response = await fetch("/__desktop/state");
@@ -82,7 +72,9 @@ const refresh = async () => {
     const value = await response.json();
     if (disposed || pending) return;
     phase = value.phase;
-    button.hidden = !messages[phase];
+    button.hidden =
+      !messages[phase] ||
+      (phase === "error" && button.hidden && !(typeof value.version === "string" && value.version));
     button.setAttribute("aria-disabled", String(phase !== "waiting" && phase !== "error"));
     setDescription(
       [
@@ -97,7 +89,6 @@ const refresh = async () => {
   } catch {
     if (disposed || pending) return;
     phase = "error";
-    button.hidden = false;
     button.setAttribute("aria-disabled", "false");
     setDescription(label("更新服务连接失败", "Update service unavailable"));
   }

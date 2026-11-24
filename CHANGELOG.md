@@ -26,12 +26,14 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Web UI: anchor the new-chat composer at the same bottom position as active conversations, with the welcome content centered above it.
 
-- Desktop: enable Vite frontend hot updates and automatic backend-source restart with page reconnection in desktop development mode, keeping the native window open for frontend and application-backend changes. Limit native restart watching to the Rust project and avoid rewriting unchanged Cargo versions during resource builds. Show an update-icon style preview beside Settings in development with preview-only button feedback.
+- Desktop: enable Vite frontend hot updates and automatic backend-source restart with page reconnection in desktop development mode, keeping the native window open for frontend and application-backend changes. Limit native restart watching to the Rust project and avoid rewriting unchanged Cargo versions during resource builds.
 
 - Web UI: align the General and Appearance section labels with the muted typography and heading spacing used by Manage Skills.
 - Web UI and Desktop: give the General settings Permission and Language dropdown controls a shared 182px width and 38px height, with vertically centered content and width constrained to the available space on narrow screens. Match the Language popup to its trigger width with aligned left and right edges.
 
 ### Fixed
+
+- Desktop: remove the forced development update-icon preview and display the icon only after an update is detected, retaining error details for known updates.
 
 - Desktop: accept server startup diagnostics in packaged smoke checks, use a file URL for the Windows development loader, and exercise backend reloads with a real file change in cross-platform CI.
 

@@ -4,6 +4,10 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+### Fixed
+
+- Desktop: run release bundling through a package script so pnpm supplies its runtime path, and allow manual recovery of desktop publication for an existing npm version from main.
+
 ## [0.9.1] - 2026-11-24
 
 ### Added

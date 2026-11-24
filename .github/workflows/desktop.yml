@@ -2,6 +2,11 @@ name: Desktop
 on:
   workflow_call:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Publish the current npm version and desktop update channel
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -28,6 +33,10 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+          fetch-depth: 0
+      - name: Require published builds to come from main
+        if: github.event_name != 'workflow_dispatch' || inputs.publish_release
+        run: git merge-base --is-ancestor HEAD origin/main
       - uses: pnpm/action-setup@v6.1.1
       - uses: actions/setup-node@v7.1.0
         with:
@@ -49,16 +58,16 @@ jobs:
         working-directory: packages/desktop/src-tauri
         run: cargo test --locked
       - name: Build release installer without platform certificates
-        if: github.event_name != 'workflow_dispatch'
+        if: github.event_name != 'workflow_dispatch' || inputs.publish_release
         working-directory: packages/desktop
         env:
           LOOP_UPDATER_URL: https://github.com/${{ github.repository }}/releases/download/desktop-stable/stable.json
           LOOP_UPDATER_PUBLIC_KEY: ${{ vars.LOOP_UPDATER_PUBLIC_KEY }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: pnpm exec tsx scripts/bundle-release.ts ${{ matrix.bundles }} --no-platform-signing
+        run: pnpm bundle:release ${{ matrix.bundles }} --no-platform-signing
       - name: Build unsigned test installer
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && !inputs.publish_release
         working-directory: packages/desktop
         run: pnpm tauri build --config .tools/tauri-build.json --bundles ${{ matrix.bundles }}
       - name: Smoke test native application
@@ -73,7 +82,7 @@ jobs:
           path: packages/desktop/.tools/artifacts/
           if-no-files-found: error
   publish:
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name != 'workflow_dispatch' || inputs.publish_release
     needs: build
     concurrency:
       group: desktop-stable-publication

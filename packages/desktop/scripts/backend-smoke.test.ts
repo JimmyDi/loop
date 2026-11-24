@@ -12,15 +12,17 @@ test("desktop shares npm tag release gates and publishes after all native builds
     await readFile(resolve(root, ".github/workflows/release.yml"), "utf8"),
   );
   expect(Object.keys(workflow.on)).toEqual(["workflow_call", "workflow_dispatch"]);
-  expect(workflow.jobs.publish.if).toBe("github.event_name != 'workflow_dispatch'");
+  expect(workflow.jobs.publish.if).toBe(
+    "github.event_name != 'workflow_dispatch' || inputs.publish_release",
+  );
   const releaseBuild = workflow.jobs.build.steps.find(
     (step: { name?: string }) =>
       step.name === "Build release installer without platform certificates",
   );
-  expect(releaseBuild.if).toBe("github.event_name != 'workflow_dispatch'");
-  expect(releaseBuild.run).toBe(
-    "pnpm exec tsx scripts/bundle-release.ts ${{ matrix.bundles }} --no-platform-signing",
+  expect(releaseBuild.if).toBe(
+    "github.event_name != 'workflow_dispatch' || inputs.publish_release",
   );
+  expect(releaseBuild.run).toBe("pnpm bundle:release ${{ matrix.bundles }} --no-platform-signing");
   expect(Object.keys(releaseBuild.env)).toEqual([
     "LOOP_UPDATER_URL",
     "LOOP_UPDATER_PUBLIC_KEY",
@@ -31,7 +33,25 @@ test("desktop shares npm tag release gates and publishes after all native builds
     workflow.jobs.build.steps.find(
       (step: { name?: string }) => step.name === "Build unsigned test installer",
     ),
-  ).toMatchObject({ if: "github.event_name == 'workflow_dispatch'" });
+  ).toMatchObject({ if: "github.event_name == 'workflow_dispatch' && !inputs.publish_release" });
+  expect(workflow.on.workflow_dispatch.inputs.publish_release).toMatchObject({
+    type: "boolean",
+    default: false,
+  });
+  const desktopPackage = JSON.parse(
+    await readFile(resolve(root, "packages/desktop/package.json"), "utf8"),
+  );
+  expect(desktopPackage.scripts["bundle:release"]).toBe(
+    "node --import tsx scripts/bundle-release.ts",
+  );
+  expect(workflow.jobs.build.steps).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        run: "git merge-base --is-ancestor HEAD origin/main",
+        if: "github.event_name != 'workflow_dispatch' || inputs.publish_release",
+      }),
+    ]),
+  );
   expect(release.on).toEqual({ push: { tags: ["v[0-9]*"] } });
   expect(release.jobs.desktop).toEqual({
     needs: "github-release",

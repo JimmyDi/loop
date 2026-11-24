@@ -11,7 +11,13 @@ test("desktop shares npm tag release gates and publishes after all native builds
   const release = YAML.parse(
     await readFile(resolve(root, ".github/workflows/release.yml"), "utf8"),
   );
-  expect(Object.keys(workflow.on)).toEqual(["workflow_call"]);
+  expect(Object.keys(workflow.on)).toEqual(["workflow_call", "workflow_dispatch"]);
+  expect(workflow.jobs.publish.if).toBe("github.event_name != 'workflow_dispatch'");
+  expect(
+    workflow.jobs.build.steps.find(
+      (step: { name?: string }) => step.name === "Build unsigned test installer",
+    ),
+  ).toMatchObject({ if: "github.event_name == 'workflow_dispatch'" });
   expect(release.on).toEqual({ push: { tags: ["v[0-9]*"] } });
   expect(release.jobs.desktop).toEqual({
     needs: "github-release",

@@ -59,15 +59,42 @@ afterEach(() => {
   vi.resetModules();
 });
 
-test("development mounts one icon in navigation with preview-only feedback", async () => {
-  const { button, navigation, fetch, alert } = await setup(true);
-  expect(navigation.append).toHaveBeenCalledOnce();
+test.each([true, false])(
+  "update visibility follows server state in development=%s",
+  async (development) => {
+    const { button, navigation, fetch, alert } = await setup(development);
+    expect(navigation.append).toHaveBeenCalledOnce();
+    expect(button.hidden).toBe(true);
+    for (const phase of ["idle", "checking", "latest", "disabled", "error"]) {
+      fetch.mockResolvedValue({ ok: true, json: async () => ({ phase }) });
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(button.hidden).toBe(true);
+    }
+    fetch.mockRejectedValue(new Error("Connection failed"));
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(button.hidden).toBe(true);
+    expect(alert).not.toHaveBeenCalled();
+    fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ phase: "waiting", version: "1.0.0" }),
+    });
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(button.hidden).toBe(false);
+    fetch.mockRejectedValue(new Error("Connection failed"));
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(button.hidden).toBe(false);
+    expect(button.title).toBe("Update service unavailable");
+    fetch.mockResolvedValue({ ok: true, json: async () => ({ phase: "latest" }) });
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(button.hidden).toBe(true);
+  },
+);
+
+test("a versioned update error is visible after a page reload", async () => {
+  const { button, fetch } = await setup(false);
+  fetch.mockResolvedValue({ ok: true, json: async () => ({ phase: "error", version: "1.0.0" }) });
+  await vi.advanceTimersByTimeAsync(2000);
   expect(button.hidden).toBe(false);
-  expect(button.title).toContain("Style preview");
-  button.onclick?.();
-  expect(alert).toHaveBeenCalledWith("Update button style preview");
-  await vi.advanceTimersByTimeAsync(4000);
-  expect(fetch).not.toHaveBeenCalled();
 });
 
 test("ready updates require confirmation before stopping tasks and prevent repeated requests", async () => {

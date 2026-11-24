@@ -52,7 +52,7 @@ The desktop shares the core platform capabilities. Windows confined shell execut
 
 The Rust updater checks in the background at startup and every four hours. An update icon button appears to the right of Settings for downloads, installation, task stopping and errors. Its tooltip and accessible label report the current state, version and download progress. Clicking a ready update asks to stop running tasks before installation and restart. Clicking an error shows its details. After downloading and signature verification, an idle application saves sessions and restarts into the installed update. Running sessions, tool execution, user questions and approvals postpone installation. The user can stop tasks through the update button. Natural completion also permits updating. New local and remote business requests are excluded while the backend prepares for installation.
 
-Desktop development displays the update icon beside Settings for style preview. Clicking it shows preview feedback. Packaged builds use the real update state.
+Both development and packaged builds display the icon only after an update is detected. Idle, checking, up-to-date and unconfigured states keep it hidden. Connection or check failures alone keep it hidden. Errors for an already detected update remain accessible through the icon.
 
 The update service uses a dedicated desktop-stable GitHub Release containing stable.json. Versioned desktop-vX.Y.Z releases contain installers, update bundles and signatures. The stable manifest is uploaded after all platform artifacts are published and verified reachable. A matching npm version is required. Releases can resume a draft from the same source commit. Published versions remain immutable and the stable channel rejects version downgrades.
 

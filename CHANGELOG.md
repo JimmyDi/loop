@@ -4,6 +4,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-24
+
 ### Added
 
 - Desktop: provide a manual CI build for unsigned test installers with automatic updates disabled.

@@ -1,7 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 
-export const useProjectMenu = (point?: { x: number; y: number }) => {
+export const useProjectMenu = (
+  point?: { x: number; y: number },
+  align: "left" | "right" = "right",
+) => {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const trigger = useRef<HTMLButtonElement>(null);
@@ -24,13 +27,13 @@ export const useProjectMenu = (point?: { x: number; y: number }) => {
       left: Math.max(
         8,
         Math.min(
-          point?.x ?? anchor.right - menu.offsetWidth,
+          point?.x ?? (align === "left" ? anchor.left : anchor.right - menu.offsetWidth),
           window.innerWidth - menu.offsetWidth - 8,
         ),
       ),
     });
     (menu.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? menu).focus();
-  }, [open, point?.x, point?.y]);
+  }, [open, point?.x, point?.y, align]);
 
   useEffect(() => {
     if (!open) return;

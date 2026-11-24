@@ -57,6 +57,7 @@ jobs:
         run: >-
           pnpm exec vitest run
           packages/agent/src
+          packages/desktop
           packages/web-ui/src/frontend
           packages/web-ui/src/shared
           packages/web-ui/src/backend/http/static-files.test.ts

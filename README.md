@@ -136,3 +136,7 @@ See [Changelog](CHANGELOG.md), [Contributing](CONTRIBUTING.md), [Security](SECUR
 ## License scope
 
 The [MIT License](LICENSE) covers the software and documentation, except for the Loop icon artwork identified in the [brand asset policy](packages/web-ui/src/docs/assets/loop-brand/BRAND-ASSETS.md). That artwork is reserved under the separate policy, including copies in documentation and Loop-Icon-Delivery.zip. This exception does not restrict the software code or grant trademark rights. Bundled fonts remain under their own [SIL Open Font License](packages/web-ui/src/docs/assets/loop-brand/fonts/OFL.txt). Previously granted valid licenses are not revoked by this notice.
+
+## Desktop
+
+See [Loop Desktop](packages/desktop/README.md) for Tauri development, platform installers and automatic updates.

@@ -1,0 +1,18 @@
+.navigation-bar .desktop-update.action-button.icon,
+.navigation-bar .desktop-update.action-button.icon:hover:not(:disabled) {
+  flex-shrink: 0;
+  color: var(--accent);
+  background: transparent;
+}
+.desktop-update[hidden] { display: none; }
+.desktop-update[aria-disabled="true"] { cursor: default; }
+@media (min-width: 768px) and (hover: hover) and (pointer: fine), (min-width: 1025px) {
+  .navigation-bar:has(.desktop-update:not([hidden])) > .sidebar-menu {
+    width: calc(100% - 38px);
+  }
+  .navigation-bar .desktop-update {
+    position: absolute;
+    right: 20px;
+    bottom: 21px;
+  }
+}

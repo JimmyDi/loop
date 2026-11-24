@@ -10,6 +10,7 @@ import { ArchivedChats } from "./ArchivedChats";
 import { RemoteAccessPanel } from "./RemoteAccessPanel";
 import { VoiceSettings } from "./VoiceSettings";
 import { SettingsNavigation } from "./SettingsNavigation";
+import { Modal } from "../ui/Modal";
 import { settingsGroups } from "./settings-sections";
 import type { SettingsSection } from "./settings-sections";
 import "./SettingsPanel.css";
@@ -24,36 +25,22 @@ export const SettingsPanel = ({
   const { t } = useTranslation();
   const id = useId();
   const [section, setSection] = useState<SettingsSection>(initialSection);
-  const panel = useRef<HTMLElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
     panel.current
       ?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
       ?.focus({ preventScroll: true });
-    return () => previous?.focus({ preventScroll: true });
   }, []);
 
   return (
-    <section
-      ref={panel}
+    <Modal
+      title={t("settings")}
+      closeLabel={t("close")}
+      onClose={onClose}
       className="settings-panel"
-      aria-label={t("settings")}
-      onKeyDown={(event) => {
-        if (
-          event.key === "Escape" &&
-          !event.defaultPrevented &&
-          !(event.target as HTMLElement).closest("dialog")
-        ) {
-          event.stopPropagation();
-          onClose();
-        }
-      }}
     >
-      <header className="settings-panel-header">
-        <h2>{t("settings")}</h2>
-      </header>
-      <div className="settings-panel-body">
+      <div className="settings-panel-body" ref={panel}>
         <SettingsNavigation id={id} section={section} onSelect={setSection} />
         {settingsGroups
           .flatMap((group) => [...group.items])
@@ -87,6 +74,6 @@ export const SettingsPanel = ({
             </section>
           ))}
       </div>
-    </section>
+    </Modal>
   );
 };

@@ -1,6 +1,7 @@
 .sidebar-menu {
   position: relative;
 }
+.sidebar-menu-label { display: none; }
 .sidebar-menu-trigger.action-button {
   justify-content: center;
   width: 32px;

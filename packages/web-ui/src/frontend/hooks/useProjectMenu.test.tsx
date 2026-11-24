@@ -52,3 +52,44 @@ test("menu fits the viewport, skips disabled items and dismisses on outside clic
     await window.happyDOM.close();
   }
 });
+
+test("left-aligned project menus anchor to the trigger and preserve context-click positioning", async () => {
+  const window = new Window({ width: 1000, height: 800 });
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  const { renderHook, act, cleanup } = await import("@testing-library/react/pure");
+  try {
+    const trigger = document.createElement("button");
+    const panel = document.createElement("div");
+    document.body.append(trigger, panel);
+    Object.defineProperty(panel, "offsetWidth", { value: 196 });
+    Object.defineProperty(panel, "offsetHeight", { value: 100 });
+    trigger.getBoundingClientRect = () => ({
+      top: 100,
+      bottom: 124,
+      right: 224,
+      left: 200,
+      width: 24,
+      height: 24,
+      x: 200,
+      y: 100,
+      toJSON: () => ({}),
+    });
+    const { result, rerender } = renderHook(
+      ({ point }: { point?: { x: number; y: number } }) => useProjectMenu(point, "left"),
+      { initialProps: {} },
+    );
+    result.current.trigger.current = trigger;
+    result.current.panel.current = panel;
+    await act(async () => result.current.setOpen(true));
+    expect(result.current.position).toEqual({ top: 130, left: 200 });
+    rerender({ point: { x: 300, y: 400 } });
+    expect(result.current.position).toEqual({ top: 400, left: 300 });
+    rerender({ point: { x: 990, y: 790 } });
+    expect(result.current.position).toEqual({ top: 692, left: 796 });
+  } finally {
+    cleanup();
+    Object.assign(globalThis, previous);
+    await window.happyDOM.close();
+  }
+});

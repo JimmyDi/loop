@@ -7,18 +7,13 @@ import { useProjectSessions } from "../../hooks/useProjectSessions";
 import { SidebarSessionSection } from "../projects/SidebarSessionSection";
 import { useProjects } from "../../hooks/useProjects";
 import { useSidebarClipping } from "../../hooks/useSidebarClipping";
-import {
-  isSidebarSectionAtTop,
-  preserveSidebarScroll,
-  scrollSidebarSection,
-} from "../../lib/scroll-sidebar-section";
+import { preserveSidebarScroll } from "../../lib/scroll-sidebar-section";
 import { useWorkspace } from "../../state/workspace-store";
 import { AddProjectDialog } from "../projects/AddProjectDialog";
 import { ProjectItem } from "../projects/ProjectItem";
 import { PinnedSessions } from "../projects/PinnedSessions";
 import { ActionButton } from "../ui/ActionButton";
 import { ErrorNotice } from "../ui/ErrorNotice";
-import { LoopIcon } from "../ui/LoopIcon";
 import { NewTaskButton } from "./NewTaskButton";
 import "./Sidebar.css";
 
@@ -35,15 +30,7 @@ export const Sidebar = () => {
   const scroll = useSidebarClipping();
   const toggle = useWorkspace((state) => state.toggleSidebar);
   const activateProjects = (heading: HTMLElement) => {
-    if (!projectsExpanded) {
-      setProjectsExpanded(true);
-      return;
-    }
-    if (isSidebarSectionAtTop(heading, ".sidebar-projects .project-item")) {
-      preserveSidebarScroll(heading, () => flushSync(() => setProjectsExpanded(false)));
-      return;
-    }
-    scrollSidebarSection(heading, ".sidebar-projects .project-item");
+    preserveSidebarScroll(heading, () => flushSync(() => setProjectsExpanded((value) => !value)));
   };
 
   useEffect(() => {
@@ -62,7 +49,6 @@ export const Sidebar = () => {
   return (
     <aside className="sidebar" aria-label={t("projects")}>
       <div className="sidebar-brand">
-        <LoopIcon />
         <strong>Loop</strong>
         <ActionButton
           className="sidebar-close ghost"

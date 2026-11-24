@@ -45,5 +45,8 @@ export const createBusinessRouter = (
     }
     return Response.json({ code: "not_found" }, { status: 404 });
   };
-  return Object.assign(handle, { closeVoiceRoutes: () => voiceRoute?.close() });
+  return Object.assign(handle, {
+    voiceBusy: () => voiceRoute?.busy() ?? false,
+    closeVoiceRoutes: () => voiceRoute?.close(),
+  });
 };

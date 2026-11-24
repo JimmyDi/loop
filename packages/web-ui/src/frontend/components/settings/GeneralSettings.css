@@ -1,12 +1,14 @@
 @import "./SettingsSection.css";
 
-.general-settings-title {
-  margin-bottom: 28px;
+.settings-section-title.general-settings-title {
+  margin-bottom: 12px;
 }
 .general-settings-section h4 {
   margin: 0 0 18px;
-  font-size: 14px;
+  color: var(--ink-muted);
+  font-size: 13px;
   font-weight: 400;
+  line-height: 1.5;
 }
 .general-settings-row {
   display: flex;
@@ -30,4 +32,17 @@
   color: var(--ink-muted);
   font-size: 12px;
   line-height: 1.4;
+}
+.general-settings-section :is(.default-permission-select, .language-select) {
+  flex: 0 1 182px;
+  width: 182px;
+  min-width: 0;
+  max-width: 100%;
+}
+.general-settings-section :is(.default-permission-trigger, .language-select-trigger).action-button {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  min-height: 38px;
+  line-height: 20px;
 }

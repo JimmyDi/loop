@@ -3,9 +3,10 @@ import { memo } from "react";
 import type { ToolView, PromptTiming } from "../../../shared/protocol";
 import { assistantTextPhase } from "../../../shared/assistant-text-phase";
 import { AssistantMessage } from "./AssistantMessage";
-import { projectAssistantTurn } from "./timeline-turns";
+import { onlyToolCalls, projectAssistantTurn } from "./timeline-turns";
 import type { TurnMessage } from "./timeline-turns";
 import { ToolCard } from "./ToolCard";
+import { ToolGroup } from "./ToolGroup";
 import { PromptDuration } from "./PromptDuration";
 
 const AssistantTurnView = ({
@@ -42,6 +43,14 @@ const AssistantTurnView = ({
       ? last
       : undefined;
   const completed = timing?.finishedAt !== undefined ? timing : undefined;
+  let lastVisible = entries.length - 1;
+  while (
+    lastVisible > 0 &&
+    onlyToolCalls(entries[lastVisible]!) &&
+    onlyToolCalls(entries[lastVisible - 1]!)
+  ) {
+    lastVisible--;
+  }
 
   return (
     <>
@@ -51,6 +60,38 @@ const AssistantTurnView = ({
         .filter((entry) => selectedIndex === undefined || entry.index === selectedIndex)
         .map((entry) => {
           const { index, message } = entry;
+          const position = entries.indexOf(entry);
+          if (onlyToolCalls(entry)) {
+            if (position > 0 && onlyToolCalls(entries[position - 1]!)) return null;
+            const batch: TurnMessage[] = [];
+            for (const candidate of entries.slice(position)) {
+              if (!onlyToolCalls(candidate)) break;
+              batch.push(candidate);
+            }
+            const calls = batch.flatMap(({ message }) =>
+              message.role === "assistant"
+                ? message.content.flatMap((part) =>
+                    part.type === "toolCall"
+                      ? [
+                          tools[part.id] ?? {
+                            id: part.id,
+                            name: part.name,
+                            args: part.arguments,
+                            status: "waiting" as const,
+                          },
+                        ]
+                      : [],
+                  )
+                : [],
+            );
+            return (
+              <ToolGroup
+                key={index + offset}
+                tools={calls}
+                generating={batch.some((item) => item.index === draftIndex)}
+              />
+            );
+          }
           if (message.role === "toolResult")
             return tools[message.toolCallId] ? (
               <ToolCard key={index + offset} tool={tools[message.toolCallId]!} />
@@ -69,7 +110,7 @@ const AssistantTurnView = ({
             />
           );
         })}
-      {(selectedIndex === undefined || selectedIndex === entries.at(-1)?.index) &&
+      {(selectedIndex === undefined || selectedIndex === entries[lastVisible]?.index) &&
         completed &&
         !completed.stopped &&
         !final && <PromptDuration timing={completed} />}

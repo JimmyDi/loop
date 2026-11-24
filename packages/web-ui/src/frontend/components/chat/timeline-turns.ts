@@ -5,6 +5,12 @@ export type TurnMessage = {
   message: Extract<Message, { role: "assistant" | "toolResult" }>;
 };
 
+export const onlyToolCalls = ({ message }: TurnMessage) =>
+  message.role === "assistant" &&
+  !message.errorMessage &&
+  message.content.length > 0 &&
+  message.content.every((part) => part.type === "toolCall" && part.name !== "submit_plan");
+
 export type TimelineTurn =
   | { type: "user"; index: number; message: Extract<Message, { role: "user" }> }
   | {

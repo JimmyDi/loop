@@ -96,14 +96,18 @@ test("General saves defaults after confirmation, preserves them on failure, and 
     expect(within(confirmation).getByText(/New Web sessions in every project/)).toBeTruthy();
     expect(requests).toHaveLength(1);
     fireEvent.click(within(confirmation).getByRole("button", { name: "Cancel" }));
-    expect(ui.queryAllByRole("dialog")).toHaveLength(0);
+    expect(ui.queryAllByRole("dialog", { name: "Use full access for new sessions?" })).toHaveLength(
+      0,
+    );
     expect(document.activeElement).toBe(trigger());
     confirmation = openFull();
     fireEvent(
       confirmation,
       createEvent("cancel", confirmation, { bubbles: false, cancelable: true }),
     );
-    expect(ui.queryAllByRole("dialog")).toHaveLength(0);
+    expect(ui.queryAllByRole("dialog", { name: "Use full access for new sessions?" })).toHaveLength(
+      0,
+    );
     expect(closed).toBe(0);
     expect(requests).toHaveLength(1);
     confirmation = openFull();
@@ -117,7 +121,9 @@ test("General saves defaults after confirmation, preserves them on failure, and 
       confirmation,
       createEvent("cancel", confirmation, { bubbles: false, cancelable: true }),
     );
-    expect(ui.getAllByRole("dialog")).toHaveLength(1);
+    expect(ui.getAllByRole("dialog", { name: "Use full access for new sessions?" })).toHaveLength(
+      1,
+    );
     await act(async () => {
       completeSave(
         Response.json({ code: "save_failed", message: "Cannot save settings" }, { status: 500 }),
@@ -127,14 +133,20 @@ test("General saves defaults after confirmation, preserves them on failure, and 
       expect(within(confirmation).getByRole("alert").textContent).toContain("Cannot save settings"),
     );
     expect(trigger().textContent).toContain("Workspace write");
-    expect(ui.getAllByRole("dialog")).toHaveLength(1);
+    expect(ui.getAllByRole("dialog", { name: "Use full access for new sessions?" })).toHaveLength(
+      1,
+    );
     fireEvent.click(within(confirmation).getByRole("button", { name: "Enable full access" }));
     await waitFor(() => expect(requests).toHaveLength(3));
     savedPreset = "danger-full-access";
     await act(async () => {
       completeSave(Response.json({ permissionPreset: savedPreset }));
     });
-    await waitFor(() => expect(ui.queryAllByRole("dialog")).toHaveLength(0));
+    await waitFor(() =>
+      expect(
+        ui.queryAllByRole("dialog", { name: "Use full access for new sessions?" }),
+      ).toHaveLength(0),
+    );
     expect(trigger().textContent).toContain("Full access");
     expect(ui.queryByRole("alert")).toBeNull();
     ui.rerender(settings("reopened"));
@@ -142,7 +154,9 @@ test("General saves defaults after confirmation, preserves them on failure, and 
     fireEvent.click(trigger());
     fireEvent.click(ui.getByRole("menuitemradio", { name: "Read only" }));
     await waitFor(() => expect(requests).toHaveLength(4));
-    expect(ui.queryAllByRole("dialog")).toHaveLength(0);
+    expect(ui.queryAllByRole("dialog", { name: "Use full access for new sessions?" })).toHaveLength(
+      0,
+    );
     savedPreset = "read-only";
     await act(async () => {
       completeSave(Response.json({ permissionPreset: savedPreset }));

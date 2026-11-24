@@ -4,24 +4,10 @@ import { expect, test } from "vitest";
 import "../../i18n/setup";
 import { NavigationBar } from "./NavigationBar";
 
-test("navigation exposes Home and the Settings menu with the active view", () => {
-  const render = (settingsOpen: boolean) =>
-    renderToStaticMarkup(
-      <NavigationBar settingsOpen={settingsOpen} onHome={() => {}} onSettings={() => {}} />,
-    );
-  expect(render(false)).toContain('aria-current="page"');
-  expect(render(false)).toContain('aria-label="Home"');
-  expect(render(false)).toContain('aria-label="Settings"');
-  expect(render(true)).not.toContain('aria-current="page"');
-  expect(render(true)).toContain('data-active="true"');
-});
-
-test("Home shows an accessible blue-dot marker only when chats are unread", () => {
-  const render = (unread: boolean) =>
-    renderToStaticMarkup(
-      <NavigationBar settingsOpen={true} unread={unread} onHome={() => {}} onSettings={() => {}} />,
-    );
-  expect(render(true)).toContain("navigation-home-unread");
-  expect(render(true)).toContain('aria-label="Unread"');
-  expect(render(false)).not.toContain("navigation-home-unread");
+test("navigation exposes the Settings menu trigger without Home", () => {
+  const html = renderToStaticMarkup(<NavigationBar settingsOpen={true} onSettings={() => {}} />);
+  expect(html).toContain('aria-haspopup="menu"');
+  expect(html).toContain('aria-label="Settings"');
+  expect(html).toContain('data-active="true"');
+  expect(html).not.toContain('aria-label="Home"');
 });

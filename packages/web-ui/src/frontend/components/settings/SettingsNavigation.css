@@ -30,6 +30,9 @@
 .settings-navigation-item.action-button[aria-selected="true"] {
   background: var(--surface-selected);
 }
+.settings-navigation-item.action-button:focus-visible {
+  outline-offset: -2px;
+}
 .settings-navigation-item svg {
   width: 16px;
   height: 16px;

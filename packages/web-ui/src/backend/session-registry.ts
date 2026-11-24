@@ -20,6 +20,10 @@ export class SessionRegistry {
   private configuring = false;
   private operations = new Set<Promise<unknown>>();
 
+  activeSessions(): Iterable<SessionController> {
+    return this.instances.values();
+  }
+
   constructor(
     readonly projects: ProjectStore,
     readonly loop: LoopBridge,

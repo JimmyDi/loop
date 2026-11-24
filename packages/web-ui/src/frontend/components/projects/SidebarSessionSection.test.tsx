@@ -44,13 +44,6 @@ test.each(["chats", "pinned"] as const)("%s shares paging and folding", async (k
     heading.getBoundingClientRect = () => new window.DOMRect(0, 104, 260, 32);
     first.getBoundingClientRect = () => new window.DOMRect(0, 212 - scroll.scrollTop, 260, 32);
     fireEvent.click(ui.getByRole("button", { name: "Section" }));
-    expect(scroll.scrollTop).toBe(76);
-    expect(ui.container.querySelectorAll(".session-item")).toHaveLength(17);
-    scroll.scrollTop = 120;
-    fireEvent.click(ui.getByRole("button", { name: /Expand or collapse/ }));
-    expect(scroll.scrollTop).toBe(76);
-    expect(ui.container.querySelectorAll(".session-item")).toHaveLength(17);
-    fireEvent.click(ui.getByRole("button", { name: /Expand or collapse/ }));
     expect(ui.queryByRole("button", { name: "Chat 0" })).toBeNull();
     fireEvent.click(ui.getByRole("button", { name: "Section" }));
     expect(ui.container.querySelectorAll(".session-item")).toHaveLength(17);

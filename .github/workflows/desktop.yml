@@ -1,0 +1,106 @@
+name: Desktop
+on:
+  workflow_call:
+permissions:
+  contents: read
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            target: darwin-aarch64
+            bundles: app,dmg
+          - os: macos-15-intel
+            target: darwin-x86_64
+            bundles: app,dmg
+          - os: windows-2022
+            target: windows-x86_64
+            bundles: nsis
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6.1.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: packages/desktop/src-tauri -> target
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm check
+      - run: pnpm exec vitest run packages/desktop packages/web-ui/src/backend/server-maintenance.test.ts
+      - run: pnpm desktop:build
+      - run: pnpm exec tsx packages/desktop/scripts/smoke.ts
+      - run: pnpm build
+      - run: pnpm exec tsx packages/desktop/scripts/verify-npm.ts
+      - name: Validate native code
+        working-directory: packages/desktop/src-tauri
+        run: cargo test --locked
+      - name: Build signed release installer
+        working-directory: packages/desktop
+        env:
+          LOOP_UPDATER_URL: https://github.com/${{ github.repository }}/releases/download/desktop-stable/stable.json
+          LOOP_UPDATER_PUBLIC_KEY: ${{ vars.LOOP_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: pnpm exec tsx scripts/bundle-release.ts ${{ matrix.bundles }}
+      - name: Smoke test native application
+        run: pnpm exec tsx packages/desktop/scripts/app-smoke.ts
+      - name: Collect installers
+        env:
+          DESKTOP_TARGET: ${{ matrix.target }}
+        run: node --import tsx packages/desktop/scripts/collect.ts
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: desktop-${{ matrix.target }}
+          path: packages/desktop/.tools/artifacts/
+          if-no-files-found: error
+  publish:
+    needs: build
+    concurrency:
+      group: desktop-stable-publication
+      cancel-in-progress: false
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6.1.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: packages/desktop/.tools/artifacts
+      - name: Publish complete desktop update
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          DESKTOP_COMMIT: ${{ github.sha }}
+        run: node --import tsx packages/desktop/scripts/publish.ts

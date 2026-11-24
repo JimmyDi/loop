@@ -22,7 +22,7 @@
     "sync": "pnpm install --frozen-lockfile",
     "dev": "tsx --conditions=loop-source packages/web-ui/dev.ts",
     "coding-agent": "node --conditions=loop-source --import tsx bin.ts",
-    "build": "pnpm --filter \"./packages/*\" build && tsdown && node scripts/copy-web.mjs && pnpm check:distribution",
+    "build": "pnpm --filter @loop/web-ui... build && tsdown && node scripts/copy-web.mjs && pnpm check:distribution",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "check": "biome check . && pnpm check:architecture",
@@ -31,7 +31,9 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "prepack": "pnpm build",
-    "verify:package": "node --import tsx scripts/verify-package.mjs"
+    "verify:package": "node --import tsx scripts/verify-package.mjs",
+    "desktop:build": "pnpm --filter @loop/desktop build",
+    "desktop:dev": "pnpm --filter @loop/desktop dev"
   },
   "engines": {
     "node": ">=24.0.0"

@@ -7,29 +7,25 @@
   display: flex;
   flex-direction: column;
   padding: 16px 8px 8px;
-  background: var(--surface-sidebar);
-  border-right: 1px solid var(--line);
+  background: linear-gradient(to right, var(--surface-sidebar) calc(100% - 24px), var(--surface));
   border-left: 1px solid var(--line);
   border-radius: 16px 0 0 16px;
 }
 @supports (backdrop-filter: blur(24px)) or (-webkit-backdrop-filter: blur(24px)) {
   .sidebar {
     background:
+      linear-gradient(to right, transparent calc(100% - 24px), var(--surface)),
       linear-gradient(145deg, light-dark(#ffffff80, #ffffff0a), transparent 65%),
       light-dark(#edf0f4b8, #1e2024bf);
     -webkit-backdrop-filter: blur(24px) saturate(160%);
     backdrop-filter: blur(24px) saturate(160%);
-    border-right-color: color-mix(in srgb, var(--line) 65%, transparent);
-    box-shadow: inset -1px 0 0 light-dark(#ffffff8c, #ffffff0d);
   }
 }
 @media (prefers-reduced-transparency: reduce) {
   .sidebar {
-    background: var(--surface-sidebar);
+    background: linear-gradient(to right, var(--surface-sidebar) calc(100% - 24px), var(--surface));
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    border-right-color: var(--line);
-    box-shadow: none;
   }
 }
 .sidebar-brand {

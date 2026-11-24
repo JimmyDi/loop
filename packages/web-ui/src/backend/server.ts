@@ -20,8 +20,16 @@ import { VoiceService } from "./voice/voice-service";
 import { attachVoiceUpgrade } from "./http/voice-upgrade";
 import { assertLocalRequest } from "./http/local-request";
 import { localContext } from "./http/business-context";
+import { MaintenanceCoordinator } from "./server-maintenance";
+import type { ServerMaintenance } from "./server-maintenance";
+import type { BusinessHandler } from "./http/business-context";
 
-export type ServerOptions = { development?: boolean; assetsDir?: string };
+export type ServerOptions = {
+  development?: boolean;
+  assetsDir?: string;
+  onMaintenance?: (maintenance: ServerMaintenance) => void;
+  authorize?: (request: Request) => boolean;
+};
 
 export const startServer = async (port = 3080, options: ServerOptions = {}) => {
   const agentDir = getAgentDir();
@@ -44,7 +52,16 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
     fileURLToPath(new URL(options.development ? "../../dist/web/" : "./web/", import.meta.url));
   const voice = new VoiceService(new VoiceResourceManager(agentDir), registry);
   const unsubscribeInvalidation = devices.subscribeInvalidation(voice.revoke);
-  const business = createBusinessRouter(registry, providers, settings, mcp, skills, voice);
+  const routes = createBusinessRouter(registry, providers, settings, mcp, skills, voice);
+  const maintenance = new MaintenanceCoordinator(
+    () => registry.activeSessions(),
+    routes.voiceBusy,
+    voice.stopActive,
+  );
+  const handle: BusinessHandler = options.onMaintenance
+    ? (request, context) => maintenance.request(() => routes(request, context))
+    : routes;
+  const business = Object.assign(handle, { closeVoiceRoutes: routes.closeVoiceRoutes });
   const remoteAccess = await createRemoteAccess(agentDir, (port) =>
     startRemoteIngress(devices, business, assetsDir, port, undefined, voice.connect),
   );
@@ -60,15 +77,18 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
     business,
   );
   const server = createHttpServer((request) =>
-    new URL(request.url).pathname.startsWith("/api/")
-      ? route(request)
-      : options.development
-        ? developmentResponse(request, assetsDir)
-        : staticResponse(request, assetsDir),
+    options.authorize && !options.authorize(request)
+      ? Promise.resolve(new Response(null, { status: 401 }))
+      : new URL(request.url).pathname.startsWith("/api/")
+        ? route(request)
+        : options.development
+          ? developmentResponse(request, assetsDir)
+          : staticResponse(request, assetsDir),
   );
   const closeVoice = attachVoiceUpgrade(
     server,
     (request) => {
+      if (options.authorize && !options.authorize(request)) throw new Error("unauthorized");
       assertLocalRequest(request);
       if (request.headers.get("origin") !== new URL(request.url).origin)
         throw new Error("invalid_origin");
@@ -84,6 +104,7 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
       frontend = await createDevelopmentFrontend(server);
     }
     const url = await listen(server, port);
+    options.onMaintenance?.(maintenance);
     return {
       url: url.href,
       async close() {

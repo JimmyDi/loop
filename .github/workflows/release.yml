@@ -86,3 +86,9 @@ jobs:
             exit 1
           fi
           gh release create "$RELEASE_TAG" loop.tgz SHA256SUMS --verify-tag --title "$title" --notes-file release-notes.md --latest
+  desktop:
+    needs: github-release
+    permissions:
+      contents: write
+    uses: ./.github/workflows/desktop.yml
+    secrets: inherit

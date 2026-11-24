@@ -22,6 +22,7 @@ test("Sidebar exposes its accessible content and state", () => {
   expect(html.indexOf("sidebar-new-task")).toBeLessThan(html.indexOf("sidebar-scroll"));
   expect(html.slice(html.indexOf("sidebar-scroll"))).not.toContain("sidebar-new-task");
   expect(html).toContain("Loop");
+  expect(html.split('class="sidebar-brand"')[1]?.split("</div>")[0]).not.toContain("<img");
   expect(html).not.toContain("More");
 
   expect(html).not.toContain("Sign in");

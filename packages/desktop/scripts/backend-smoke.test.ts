@@ -13,6 +13,20 @@ test("desktop shares npm tag release gates and publishes after all native builds
   );
   expect(Object.keys(workflow.on)).toEqual(["workflow_call", "workflow_dispatch"]);
   expect(workflow.jobs.publish.if).toBe("github.event_name != 'workflow_dispatch'");
+  const releaseBuild = workflow.jobs.build.steps.find(
+    (step: { name?: string }) =>
+      step.name === "Build release installer without platform certificates",
+  );
+  expect(releaseBuild.if).toBe("github.event_name != 'workflow_dispatch'");
+  expect(releaseBuild.run).toBe(
+    "pnpm exec tsx scripts/bundle-release.ts ${{ matrix.bundles }} --no-platform-signing",
+  );
+  expect(Object.keys(releaseBuild.env)).toEqual([
+    "LOOP_UPDATER_URL",
+    "LOOP_UPDATER_PUBLIC_KEY",
+    "TAURI_SIGNING_PRIVATE_KEY",
+    "TAURI_SIGNING_PRIVATE_KEY_PASSWORD",
+  ]);
   expect(
     workflow.jobs.build.steps.find(
       (step: { name?: string }) => step.name === "Build unsigned test installer",

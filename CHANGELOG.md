@@ -8,6 +8,10 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Desktop: provide a manual CI build for unsigned test installers with automatic updates disabled.
 
+### Changed
+
+- Desktop: publish macOS ad-hoc and Windows unsigned installers through the npm-aligned tag release workflow without platform certificates, retaining signed update artifacts and automatic updates.
+
 ## [0.9.0] - 2026-11-24
 
 ### Added

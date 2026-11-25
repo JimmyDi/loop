@@ -22,6 +22,12 @@ public commit using the checked-in source lock: each file has a byte count, Git
 blob SHA-1 and SHA-256. This locally recorded lock pins the reviewed public
 source; it is not an upstream signature. Build data and downloads stay in .tools.
 Only the necessary source directories are fetched; no Git executable is invoked.
+Source downloads retry network failures, HTTP 408, HTTP 429 and server errors up to
+four attempts with exponential backoff. Retry-After can extend each delay up to
+60 seconds. Permanent HTTP errors and size or digest mismatches fail immediately.
+Failures identify the source path and revision and retain the original error cause.
+A failed download cancels the other workers and waits for them to settle before
+returning. Verified cached files remain available for the next build.
 Optional LOOP_VOICE_CMAKE and LOOP_VOICE_NINJA select existing developer tools.
 
 Compiler file, macro and debug prefix maps keep build roots out of diagnostics.

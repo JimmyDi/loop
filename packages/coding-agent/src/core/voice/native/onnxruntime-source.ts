@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { downloadSourceFile } from "./source-file-download";
 import type { SourceLock } from "./source-lock-types";
 
 export const downloadOnnxruntimeSource = async (
@@ -27,16 +28,14 @@ export const downloadOnnxruntimeSource = async (
     )
   )
     throw new Error("Invalid ORT source lock path or metadata");
+  const controller = new AbortController();
   let next = 0;
   const sha256 = (data: Uint8Array) => createHash("sha256").update(data).digest("hex");
   const worker = async () => {
     while (next < lock.files.length) {
-      const [path, bytes, blob, digest] = lock.files[next++]!;
-      if (
-        !/^[a-zA-Z0-9_.@+-]+(?:\/[a-zA-Z0-9_.@+-]+)*$/.test(path) ||
-        path.split("/").includes("..")
-      )
-        throw new Error("Invalid ORT source lock path");
+      controller.signal.throwIfAborted();
+      const file = lock.files[next++]!;
+      const [path, bytes, , digest] = file;
       const target = join(directory, path);
       let data: Buffer | undefined;
       try {
@@ -45,32 +44,20 @@ export const downloadOnnxruntimeSource = async (
         if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
       }
       if (data?.length === bytes && sha256(data) === digest) continue;
-      let valid = false;
-      for (let attempt = 0; attempt < 4; attempt++) {
-        try {
-          const response = await fetch(
-            "https://raw.githubusercontent.com/microsoft/onnxruntime/" + lock.revision + "/" + path,
-            { signal: AbortSignal.timeout(60_000) },
-          );
-          if (!response.ok) continue;
-          data = Buffer.from(await response.arrayBuffer());
-          if (
-            data.length !== bytes ||
-            sha256(data) !== digest ||
-            createHash("sha1")
-              .update("blob " + data.length + "\0")
-              .update(data)
-              .digest("hex") !== blob
-          )
-            continue;
-          await mkdir(dirname(target), { recursive: true });
-          await writeFile(target, data);
-          valid = true;
-          break;
-        } catch {}
-      }
-      if (!valid) throw new Error("ORT source download or integrity check failed");
+      data = await downloadSourceFile(lock.revision, file, controller.signal);
+      controller.signal.throwIfAborted();
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, data);
     }
   };
-  await Promise.all(Array.from({ length: 8 }, () => worker()));
+  const workers = Array.from({ length: 8 }, async () => {
+    try {
+      await worker();
+    } catch (error) {
+      controller.abort(error);
+      throw error;
+    }
+  });
+  await Promise.allSettled(workers);
+  controller.signal.throwIfAborted();
 };

@@ -65,7 +65,9 @@ test.each(["size", "sha256", "git-blob-sha1"] as const)(
       "fetch",
       vi.fn(async () => new Response(data)),
     );
-    await expect(downloadOnnxruntimeSource(directory, lock)).rejects.toThrow("integrity");
+    await expect(downloadOnnxruntimeSource(directory, lock)).rejects.toMatchObject({
+      cause: { message: "Source integrity mismatch (" + mismatch + ")" },
+    });
     await expect(stat(join(directory, file[0]))).rejects.toMatchObject({ code: "ENOENT" });
   },
 );
@@ -95,3 +97,44 @@ test.each(["version", "revision", "duplicate-path"] as const)(
     expect(fetcher).not.toHaveBeenCalled();
   },
 );
+
+test("settles in-flight workers before rejecting and stops scheduling remaining files", async () => {
+  const { directory, lock } = await fixture();
+  lock.files = Array.from(
+    { length: 10 },
+    (_, index) =>
+      ["include/source-" + index + ".h", ...lock.files[0]!.slice(1)] as SourceLock["files"][number],
+  );
+  let started = 0;
+  let cancelled = 0;
+  let releaseFailure: () => void = () => {};
+  const allStarted = new Promise<void>((resolve) => {
+    releaseFailure = resolve;
+  });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, options: RequestInit) => {
+      started++;
+      if (started === 8) releaseFailure();
+      if (url.endsWith("source-0.h")) {
+        await allStarted;
+        return new Response("missing", { status: 404 });
+      }
+      return new Promise<Response>((_resolve, reject) => {
+        options.signal!.addEventListener(
+          "abort",
+          () => {
+            cancelled++;
+            reject(options.signal!.reason);
+          },
+          { once: true },
+        );
+      });
+    }),
+  );
+  await expect(downloadOnnxruntimeSource(directory, lock)).rejects.toMatchObject({
+    cause: { message: "HTTP 404" },
+  });
+  expect(started).toBe(8);
+  expect(cancelled).toBe(7);
+});

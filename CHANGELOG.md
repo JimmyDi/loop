@@ -14,6 +14,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- coding-agent: retry transient native voice source download failures with backoff, report failing files and original causes, and cancel outstanding downloads before a failed build returns.
+
 - Desktop: run release bundling through a package script so pnpm supplies its runtime path, and allow manual recovery of desktop publication for an existing npm version from main.
 
 ## [0.9.1] - 2026-11-24

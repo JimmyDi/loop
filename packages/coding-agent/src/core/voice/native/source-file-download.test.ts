@@ -33,6 +33,10 @@ test("retries network failures with exponential backoff and preserves the verifi
   expect(await downloadSourceFile(revision, file, signal)).toEqual(data);
   expect(delay).toHaveBeenCalledWith(1_000, undefined, { signal });
   expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher).toHaveBeenCalledWith(
+    "https://raw.githubusercontent.com/intel/onnxruntime/" + revision + "/include/runtime.h",
+    expect.objectContaining({ signal: expect.any(AbortSignal) }),
+  );
 });
 
 test.each([408, 429, 500, 503])("retries HTTP %i with Retry-After", async (status) => {
@@ -105,3 +109,20 @@ test("cancellation during backoff prevents further requests", async () => {
   await expect(downloadSourceFile(revision, file, controller.signal)).rejects.toThrow("Stopped");
   expect(fetcher).toHaveBeenCalledOnce();
 });
+
+test.each(["size", "sha256", "git-blob-sha1"] as const)(
+  "rejects mirror content that differs from the pinned %s",
+  async (mismatch) => {
+    const locked: SourceLockFile = [...file];
+    if (mismatch === "size") locked[1]++;
+    else if (mismatch === "sha256") locked[3] = "0".repeat(64);
+    else locked[2] = "0".repeat(40);
+    const fetcher = vi.fn().mockResolvedValue(new Response(data));
+    vi.stubGlobal("fetch", fetcher);
+    await expect(
+      downloadSourceFile(revision, locked, new AbortController().signal),
+    ).rejects.toMatchObject({ cause: { message: "Source integrity mismatch (" + mismatch + ")" } });
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect(delay).not.toHaveBeenCalled();
+  },
+);

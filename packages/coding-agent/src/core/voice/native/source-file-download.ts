@@ -16,7 +16,8 @@ export const downloadSourceFile = async (
   signal: AbortSignal,
 ): Promise<Buffer> => {
   const [path, bytes, blob, digest] = file;
-  const url = "https://raw.githubusercontent.com/microsoft/onnxruntime/" + revision + "/" + path;
+  // Intel retains the pinned upstream commit. Every file must match the reviewed source lock.
+  const url = "https://raw.githubusercontent.com/intel/onnxruntime/" + revision + "/" + path;
   let failure: unknown;
   for (let attempt = 0; attempt < 4; attempt++) {
     signal.throwIfAborted();

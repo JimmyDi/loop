@@ -48,6 +48,8 @@ node --import tsx packages/coding-agent/src/core/voice/native/prepare-models.ts 
 node --import tsx packages/coding-agent/src/core/voice/native/import-local.ts .tools/voice/native .tools/voice/model-assets/models
 ```
 
+The ONNX Runtime source downloader uses Intel’s retained copy of the pinned upstream commit and verifies every file against the checked-in byte count, Git blob SHA-1 and SHA-256.
+
 The source build currently supports macOS ARM64 and needs a C++17 compiler, CMake, a build tool, Python 3.10 or newer and archive tools. These are development requirements; end users download the prepared native package. `prepare-models.ts` prepares ASR/VAD and TTS, including component archives and metadata for review; those archives are not automatically registered as downloadable releases. Imported voice resources live under Loop's configured data root rather than the workspace. See the [native resource guide](../core/voice/native/README.md) for release preparation, lock recovery and retained license notices. Catalog preparation defaults to macOS ARM64 for the first release and accepts an explicit platform set for later releases. Real runtime validation currently covers macOS ARM64; the other four platform bundles and their linked dependency notices still require their CI runs and release review.
 
 ## API and events

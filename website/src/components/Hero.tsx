@@ -1,6 +1,7 @@
 import { useRef } from "react";
 
 import { useLanguage } from "../i18n/useLanguage";
+import { DesktopDownload } from "./DesktopDownload";
 import { CopyCommand } from "./CopyCommand";
 import { HeroBackground } from "./HeroBackground";
 import { HeroPointer } from "./HeroPointer";
@@ -28,7 +29,10 @@ export const Hero = () => {
             <span data-pointer-clear>{t("heroDescription")}</span>{" "}
             <span data-pointer-clear>{t("heroProduct")}</span>
           </p>
-          <CopyCommand />
+          <div className={styles.actions}>
+            <CopyCommand />
+            <DesktopDownload />
+          </div>
         </div>
       </div>
       <ProductPreview />

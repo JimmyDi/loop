@@ -17,10 +17,12 @@ node --conditions=loop-source --import tsx packages/coding-agent/src/core/voice/
 ```
 
 The source builder uses the pinned sherpa-onnx 2.0.0 commit and verifies every
-linked dependency archive. ONNX Runtime 1.28.2 source is fetched from a fixed
-public commit using the checked-in source lock: each file has a byte count, Git
-blob SHA-1 and SHA-256. This locally recorded lock pins the reviewed public
-source; it is not an upstream signature. Build data and downloads stay in .tools.
+linked dependency archive. ONNX Runtime 1.28.2 source is fetched from the fixed
+upstream commit retained in [Intel's ONNX Runtime repository](https://github.com/intel/onnxruntime/commit/33ca9628233dc8f002435e868d4c2e9f82766ca1).
+The Microsoft repository currently returns HTTP 404. The checked-in source lock
+requires the original byte count, Git blob SHA-1 and SHA-256 for every fetched
+file. These checks authenticate the retained copy against the reviewed source.
+Build data and downloads stay in .tools.
 Only the necessary source directories are fetched; no Git executable is invoked.
 Source downloads retry network failures, HTTP 408, HTTP 429 and server errors up to
 four attempts with exponential backoff. Retry-After can extend each delay up to

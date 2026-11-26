@@ -72,10 +72,10 @@ export const renderContent = (markdown: string, source: string, release: Release
 export const contentPlugin = (): Plugin => ({
   name: "released-documentation",
   resolveId(id) {
-    if (id === "virtual:release-content") return "\0" + id;
+    if (["virtual:release-content", "virtual:docs-search"].includes(id)) return "\0" + id;
   },
   async load(id) {
-    if (id !== "\0virtual:release-content") return;
+    if (!["\0virtual:release-content", "\0virtual:docs-search"].includes(id)) return;
     const root = resolve(import.meta.dirname, "../..");
     const confirmed = process.env.LOOP_PUBLISHED_VERSIONS;
     if (process.env.CI && !confirmed) throw new Error("CI needs npm-confirmed published versions.");
@@ -97,6 +97,20 @@ export const contentPlugin = (): Plugin => ({
     );
     if (!releases[0]?.pages.length)
       throw new Error("Latest npm release needs a documentation snapshot before deployment.");
+    if (id === "\0virtual:docs-search") {
+      const search = Object.fromEntries(
+        releases.map((release) => [
+          release.version,
+          Object.fromEntries(
+            release.pages.map((page) => [
+              page.slug,
+              page.markdown.replace(/[^\p{L}\p{N} ]/gu, " ").toLowerCase(),
+            ]),
+          ),
+        ]),
+      );
+      return "export default " + JSON.stringify(search).replaceAll("<", "\\u003c") + ";";
+    }
     const data = releases.map((release) => ({
       version: release.version,
       date: release.date,
@@ -108,7 +122,6 @@ export const contentPlugin = (): Plugin => ({
         title: page.title,
         group: page.group,
         ...renderContent(page.markdown, page.source, release),
-        search: page.markdown.replace(/[^\p{L}\p{N} ]/gu, " ").toLowerCase(),
       })),
     }));
     // Full articles are already in the static page; browsers need only navigation/search data.

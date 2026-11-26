@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import releases from "virtual:release-content";
 
@@ -6,12 +6,12 @@ import { DocsNavigation } from "./DocsNavigation";
 
 afterEach(cleanup);
 
-test("search filters the selected release and reports empty results", () => {
+test("search filters the selected release and reports empty results", async () => {
   render(<DocsNavigation version={releases[0].version} slug="getting-started" />);
   expect(screen.queryByRole("combobox")).toBeNull();
   const search = screen.getByRole("searchbox");
   fireEvent.change(search, { target: { value: "nonexistent-synthetic-topic" } });
-  expect(screen.queryAllByRole("link")).toHaveLength(0);
+  await waitFor(() => expect(screen.queryAllByRole("link")).toHaveLength(0));
   expect(screen.getByRole("status")).toBeTruthy();
   fireEvent.change(search, { target: { value: "" } });
   expect(screen.getAllByRole("link").length).toBeGreaterThan(10);

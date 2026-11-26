@@ -4,7 +4,6 @@ declare module "virtual:release-content" {
     title: string;
     group: string;
     html: string;
-    search: string;
     headings: { id: string; title: string }[];
   };
   type Release = {
@@ -18,4 +17,9 @@ declare module "virtual:release-content" {
   };
   const releases: Release[];
   export default releases;
+}
+
+declare module "virtual:docs-search" {
+  const search: Record<string, Record<string, string>>;
+  export default search;
 }

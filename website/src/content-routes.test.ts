@@ -13,3 +13,12 @@ test("latest docs resolve to a published snapshot and nested routes retain their
   expect(contentRoutes()).toContain("changelog/0.3.1/");
   expect(contentRoutes()).not.toContain("changelog/Unreleased/");
 });
+
+test("keeps full-text search out of route data and loads it separately", async () => {
+  for (const release of releases) {
+    for (const page of release.pages) expect(page).not.toHaveProperty("search");
+  }
+  const { default: search } = await import("virtual:docs-search");
+  expect(Object.keys(search[releases[0].version])).toHaveLength(releases[0].pages.length);
+  expect(search[releases[0].version]["web/voice"]).toContain("voice");
+});

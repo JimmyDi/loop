@@ -7,6 +7,14 @@ supports browser Back/Forward. Changelog retains release history. They consume
 release snapshots through build tooling without importing application packages or calling
 model/application APIs. See [release content lifecycle](../docs/releases.md).
 
+Full-text documentation search uses a separate JavaScript chunk. Only documentation pages
+schedule it in the background after the window load event and an idle callback (a one-second
+delay on browsers without idle callbacks). Focusing or typing in search loads it immediately.
+The document and navigation remain visible during loading or failure; search shows its status
+and offers a retry after failure. The homepage does not request the search index. Product
+screenshots below the hero retain native lazy loading and demos request upcoming frames only
+while visible and playing.
+
 ## Development
 
 Use Node.js 24+ and pnpm 11. Install from the repository root:

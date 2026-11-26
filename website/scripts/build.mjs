@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { build } from "vite";
 
 import { publicOrigin, routeHead } from "./blog-head.mjs";
+import { inlineHomepageStyles } from "./homepage-styles.mjs";
 
 const args = process.argv.slice(2);
 const baseArgument = args.find((argument) => argument.startsWith("--base="));
@@ -43,6 +44,7 @@ try {
   );
   const path = "dist/index.html";
   const html = await readFile(path, "utf8");
+  const homepage = await inlineHomepageStyles(html, new URL("../dist/", import.meta.url), base);
   for (const route of routes()) {
     const language = route.startsWith("en/blog/") ? "en" : "zh";
     const depth = route.split("/").filter(Boolean).length;
@@ -52,7 +54,7 @@ try {
     await mkdir(dirname(target), { recursive: true });
     await writeFile(
       target,
-      routeHead(html, route, metadata(route, language), blogPosts, origin, base)
+      routeHead(route ? html : homepage, route, metadata(route, language), blogPosts, origin, base)
         .replace(
           '<html lang="zh-CN">',
           '<html lang="' + (language === "en" ? "en" : "zh-CN") + '">',
@@ -60,7 +62,9 @@ try {
         .replace("<head>", '<head><base href="' + routeBase + '">')
         .replace(
           "<!--language-guard-->",
-          '<style>html[data-language-pending] #root{visibility:hidden}</style><script>document.documentElement.dataset.languagePending="true";</script>',
+          "<style>html[data-language-pending] #root{visibility:hidden}</style><script>" +
+            (route ? "" : "if(!/^zh(?:-|$)/i.test(navigator.languages[0] || navigator.language))") +
+            'document.documentElement.dataset.languagePending="true";</script>',
         )
         .replace('<div id="root">', '<div id="root" data-rendered-language="' + language + '">')
         .replace("<!--app-html-->", render(routeBase, language, route))

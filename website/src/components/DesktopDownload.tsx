@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 
-import { desktopReleasesUrl, latestDesktopDownload } from "../desktop-download";
+import { desktopReleasesUrl } from "../desktop-releases-url";
 import type { DesktopTarget } from "../desktop-download";
 import { useLanguage } from "../i18n/useLanguage";
 import styles from "./DesktopDownload.module.css";
@@ -35,6 +35,8 @@ export const DesktopDownload = () => {
     setLoading(true);
     setError(false);
     try {
+      const { latestDesktopDownload } = await import("../desktop-download");
+      if (controller.signal.aborted) return;
       const url = await latestDesktopDownload(target, controller.signal);
       if (!controller.signal.aborted) window.location.assign(url);
     } catch {

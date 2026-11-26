@@ -19,6 +19,10 @@ it("renders native theme-aware screenshots and switches language without playbac
   expect(container.querySelector("source")?.getAttribute("srcset")).toContain(
     "storefront-filters-zh-dark.webp",
   );
+  expect(container.querySelector("source")?.getAttribute("srcset")).toContain(
+    "zh-dark-960.webp 960w",
+  );
+  expect(screen.getByRole("img").getAttribute("srcset")).toContain("zh-light-480.webp 480w");
   rerender(<ProductScreenshot language="en" label="Storefront filters" />);
   expect(screen.getByRole("img").getAttribute("src")).toContain("storefront-filters-en-light.webp");
   expect(container.querySelector("video, canvas, button")).toBeNull();
@@ -35,6 +39,11 @@ it("ships bounded independent screenshots for both languages and themes", () => 
       const image = readFileSync(path);
       expect(image.subarray(8, 12).toString()).toBe("WEBP");
       expect(image.length).toBeLessThan(250_000);
+      for (const width of [480, 960]) {
+        const variant = readFileSync(path.replace(".webp", "-" + width + ".webp"));
+        expect(variant.subarray(8, 12).toString()).toBe("WEBP");
+        expect(variant.length).toBeLessThan(image.length);
+      }
     }
   }
 });

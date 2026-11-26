@@ -9,3 +9,5 @@ Capture-only layout fits the product controls into the published canvas; screens
 The missing sidebar icon was restored in all four language/theme variants using Loop's
 existing matching theme PNG, scaled to the frontend's 28px icon size in the original slot.
 Pixels outside that slot remain unchanged; files retain no capture metadata.
+
+The homepage also serves 480px and 960px wide WebP derivatives resized from each matching 1440px capture.

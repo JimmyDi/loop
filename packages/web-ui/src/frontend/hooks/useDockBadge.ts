@@ -13,8 +13,8 @@ type DesktopWindow = Window & {
 };
 
 export const useDockBadge = (): void => {
-  const desktop = window as DesktopWindow;
-  const native = desktop.__LOOP_MACOS_TITLEBAR__ ? desktop.__TAURI_INTERNALS__ : undefined;
+  const desktop = typeof window === "undefined" ? undefined : (window as DesktopWindow);
+  const native = desktop?.__LOOP_MACOS_TITLEBAR__ ? desktop.__TAURI_INTERNALS__ : undefined;
   const { projects } = useProjects(Boolean(native));
   const workspaceIds = native
     ? [

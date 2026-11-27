@@ -176,6 +176,11 @@ test("pin actions move sessions above Projects without selecting them and work w
   client.setQueryData(["sessions", "p"], sessions);
   let requests = 0;
   globalThis.fetch = (async (url, init) => {
+    if (String(url) === "/api/sessions/s1/unread" && init?.method === "PUT") {
+      expect(JSON.parse(String(init.body))).toEqual({ workspaceId: "p" });
+      sessions = sessions.map((item) => (item.id === "s1" ? { ...item, unread: true } : item));
+      return Response.json({ unread: true });
+    }
     if (init?.method === "PUT") {
       requests++;
       const body = JSON.parse(String(init.body));
@@ -218,6 +223,12 @@ test("pin actions move sessions above Projects without selecting them and work w
     fireEvent.click(ui.getByRole("button", { name: "Expand or collapse projects" }));
     expect(ui.queryByRole("button", { name: project.name })).toBeNull();
     expect(pinned.getByRole("button", { name: "Chat 0" })).toBeTruthy();
+    fireEvent.contextMenu(pinned.getByTitle("Chat 1"));
+    fireEvent.click(ui.getByRole("menuitem", { name: "Mark as unread" }));
+    await waitFor(() =>
+      expect(within(pinned.getByTitle("Chat 1")).getByRole("img", { name: "Unread" })).toBeTruthy(),
+    );
+    expect(useWorkspace.getState().active?.id).toBe("other");
     // Shared project queries supply live titles while the Projects section is collapsed.
     await act(async () => {
       client.setQueryData(
@@ -236,7 +247,7 @@ test("pin actions move sessions above Projects without selecting them and work w
       await sleep(30);
     });
     expect(useWorkspace.getState().active?.id).toBe("other");
-    fireEvent.contextMenu(pinned.getByRole("button", { name: "Chat 1" }));
+    fireEvent.contextMenu(pinned.getByTitle("Chat 1"));
     fireEvent.click(ui.getByRole("menuitem", { name: "Unpin" }));
     await act(async () => {
       await sleep(30);

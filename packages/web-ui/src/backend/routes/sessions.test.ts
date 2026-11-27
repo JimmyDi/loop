@@ -189,7 +189,7 @@ test("HTTP permissions persist per session and an exact file write waits for a l
   }
 });
 
-test("HTTP unread headers survive restart and reject stale receipts across browsers", async () => {
+test("HTTP read and unread changes survive restart and reject stale receipts across browsers", async () => {
   const root = await mkdtemp(join(import.meta.dirname, ".read-http-"));
   const projects = new ProjectStore(join(root, "projects.json"));
   const project = await projects.add(root, "Example");
@@ -262,6 +262,14 @@ test("HTTP unread headers survive restart and reject stale receipts across brows
         body: JSON.stringify({ workspaceId: project.id, messageCount }),
       }),
     );
+  const markUnread = (sessionId = id) =>
+    route(
+      new Request("http://localhost/api/sessions/" + sessionId + "/unread", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceId: project.id }),
+      }),
+    );
   const list = async () =>
     (await route(new Request("http://localhost/api/sessions?workspaceId=" + project.id))).json();
   const run = async (requestId: string) => {
@@ -274,6 +282,7 @@ test("HTTP unread headers survive restart and reject stale receipts across brows
   };
   try {
     expect(controller.snapshot.state.unread).toBe(false);
+    expect(await (await markUnread()).json()).toEqual({ unread: false });
     await run("first");
     expect((await list())[0]).toMatchObject({ unread: true, messageCount: 2 });
     const file = controller.session.sessionManager.sessionFile!;
@@ -305,11 +314,32 @@ test("HTTP unread headers survive restart and reject stale receipts across brows
     await registry.archive(project.id, [id], true);
     expect((await registry.list(project.id))[0]).toMatchObject({ unread: false, archived: true });
     await registry.archive(project.id, [id], false);
+    expect((await markUnread("unknown")).status).toBe(404);
+    const beforeMarking = modelCalls;
+    const savedBeforeMarking = await readFile(file, "utf8");
+    firstBrowser.length = 0;
+    secondBrowser.length = 0;
+    expect(await (await markUnread()).json()).toEqual({ unread: true });
+    expect(await (await markUnread()).json()).toEqual({ unread: true });
+    expect(modelCalls).toBe(beforeMarking);
+    expect(controller.snapshot.state.unread).toBe(true);
+    expect(firstBrowser).toEqual(secondBrowser);
+    expect(secondBrowser.at(-1)).toMatchObject({
+      type: "sessions.changed",
+      workspaceId: project.id,
+    });
+    const marked = await readFile(file, "utf8");
+    expect(JSON.parse(marked).header).toEqual({
+      ...JSON.parse(savedBeforeMarking).header,
+      unread: true,
+    });
+    expect(marked.split("\n").slice(1)).toEqual(savedBeforeMarking.split("\n").slice(1));
     await registry.close();
     registry = makeRegistry();
     route = createRouter(registry);
-    expect((await list())[0].unread).toBe(false);
-    expect((await registry.get(id)).snapshot.state.unread).toBe(false);
+    expect((await list())[0].unread).toBe(true);
+    expect((await registry.get(id)).snapshot.state.unread).toBe(true);
+    expect(await (await read(2)).json()).toEqual({ read: true });
     await run("second");
     expect(await (await read(2)).json()).toEqual({ read: false });
     expect((await list())[0]).toMatchObject({ unread: true, messageCount: 4 });

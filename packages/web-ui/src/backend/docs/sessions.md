@@ -24,6 +24,7 @@ Session lists include only the supported storage format. Files with other format
 | POST /api/sessions/:id/title | Regenerate from saved user text; return the snapshot on completion |
 | PUT /api/sessions/:id/permission | Persist a supported session preset while idle |
 | PUT /api/sessions/:id/read | Accept workspaceId and a nonnegative safe-integer messageCount; clear header unread only when the viewed count matches nonempty saved history and return { read: boolean } |
+| PUT /api/sessions/:id/unread | Accept workspaceId; mark nonempty saved history unread and return { unread: boolean } |
 | PUT /api/sessions/:id/pin | Accept workspaceId and boolean pinned; persist header pinnedAt and return { pinnedAt: string or null } |
 | POST /api/sessions/:id/approvals/:requestId | Answer with allowed-once, rejected, or allowed-session for eligible MCP requests |
 
@@ -42,6 +43,8 @@ List summaries include isWaitingForApproval, derived from the live session’s p
 List summaries and session state expose unread from the session header. New completed output sets it to true in the same history commit; reading the latest output sets it to false. Empty drafts start false, and missing fields default to false. No separate read-receipt file or browser storage is used.
 
 PUT /api/sessions/:id/read checks membership in the supplied project or independent scope and uses its shared session instance without making a model call. SessionManager.markRead compares the viewed messageCount with the current saved history inside the session's write queue. A mismatched count or empty history returns { read: false } without clearing unread; a matching count returns { read: true } after persistence, including duplicate receipts. Negative or noninteger counts return 400; missing sessions return 404; pending history saves must be flushed before marking read. Read writes atomically replace the existing JSONL snapshot, preserving messages, activity timestamps and other metadata. Concurrent history saves retain newer unread output. Successful reads publish session.state and sessions.changed for the active conversation and background lists. Failed writes retain unread and the frontend retries while completed content remains visible. Archived and unloaded lists read the same header, and server restarts restore it. Independent server processes do not coordinate writes or notifications.
+
+PUT /api/sessions/:id/unread validates workspace membership and serializes the unread change with history writes. It marks nonempty saved history unread through SessionManager.markUnread(), preserving history and timestamps. Success publishes session.state and sessions.changed. Empty history returns { unread: false }.
 
 New Web sessions use SessionManager.draft: a stable in-process ID and target history path, with model/title changes kept in memory until a commit contains a user message. Attachment-only user messages qualify. Invalid submissions or model preflight failures leave the draft unlisted. The normal end-of-run commit persists the first history, including cancellation or model errors after the user message was added; failed saves remain recoverable through flush. Unsent draft handles can be reopened within the server process, but do not survive a server restart. The API does not automatically delete older empty history files.
 

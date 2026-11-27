@@ -6,6 +6,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
+- Web and Desktop: mark read chats as unread from the sidebar context menu. The coding-agent SDK also supports marking saved sessions unread.
+
 - Coding-agent, Web and Desktop: schedule project prompts with one-time, fixed-interval, calendar and time-zone-aware recurrence. Automation supports previewing upcoming runs, testing, editing, pausing and deleting tasks, and choosing a permission preset. Run history is grouped by date, loads on demand, and supports opening, archiving, restoring and deleting run records. Schedules use local files, recover after restart, and are also available through the CLI and SDK.
 
 - Desktop: show the number of unread local chats on the macOS Dock icon and hide the badge when all chats are read.

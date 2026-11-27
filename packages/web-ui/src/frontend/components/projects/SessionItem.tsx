@@ -10,6 +10,7 @@ import { useProjectMenu } from "../../hooks/useProjectMenu";
 import { useSessionActions } from "../../hooks/useSessionActions";
 import { ErrorNotice } from "../ui/ErrorNotice";
 import { ActionButton } from "../ui/ActionButton";
+import type { SessionMenuAction } from "./SessionContextMenu";
 import { SessionContextMenu } from "./SessionContextMenu";
 import { SessionDeleteDialog } from "./SessionDeleteDialog";
 import { SessionRenameInput } from "./SessionRenameInput";
@@ -27,7 +28,6 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
   const restoreFocus = useRef(false);
   const menu = useProjectMenu(point);
   const action = useSessionActions(session);
-  const togglePin = () => void action.setPinned(!pinned);
   const snapshot = view?.connected ? view.snapshot : undefined;
   const generating = snapshot ? snapshot.operation === "prompt" : session.isGenerating === true;
   const answering = snapshot
@@ -39,8 +39,7 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
       ? (snapshot.state.pendingApprovals?.some((request) => request.sessionId === session.id) ??
         false)
       : session.isWaitingForApproval === true);
-  const unread =
-    !waiting && !generating && (snapshot ? snapshot.state.unread : session.unread) === true;
+  const unread = (snapshot ? snapshot.state.unread : session.unread) === true;
   const busy =
     action.pending ||
     waiting ||
@@ -53,11 +52,12 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
       menu.trigger.current?.focus();
     }
   }, [editing, menu.trigger]);
-  const choose = (next: "rename" | "pin" | "reveal" | "archive" | "delete") => {
+  const choose = (next: SessionMenuAction) => {
     menu.close();
     action.clearError();
     if (next === "rename") setEditing(true);
-    else if (next === "pin") togglePin();
+    else if (next === "pin") void action.setPinned(!pinned);
+    else if (next === "unread") void action.markUnread();
     else if (next === "reveal") void action.reveal();
     else if (next === "delete") setDeleting(true);
     else void action.change("archive");
@@ -132,7 +132,7 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
                 waiting={waiting}
                 generating={generating}
               />
-              {unread && (
+              {!waiting && !generating && unread && (
                 <span
                   className="session-list-unread"
                   role="img"
@@ -147,7 +147,7 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
               title={t(pinned ? "unpinSession" : "pinSession")}
               aria-pressed={pinned}
               disabled={action.pending}
-              onClick={togglePin}
+              onClick={() => void action.setPinned(!pinned)}
             >
               <SessionPinIcon pinned={pinned} />
             </ActionButton>
@@ -175,6 +175,7 @@ export const SessionItem = ({ session }: { session: SessionSummary }) => {
           disabled={busy}
           pinned={pinned}
           pinDisabled={action.pending}
+          unread={unread}
           onChoose={choose}
         />
       )}

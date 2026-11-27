@@ -100,7 +100,7 @@ test("remote routes expose existing chat commands while configuration and unknow
   ]) {
     expect(allowsRemoteBusiness("/api/sessions/example/" + action, "POST")).toBe(true);
   }
-  for (const action of ["model", "title", "permission", "read", "pin"]) {
+  for (const action of ["model", "title", "permission", "read", "unread", "pin"]) {
     expect(allowsRemoteBusiness("/api/sessions/example/" + action, "PUT")).toBe(true);
   }
   for (const path of [

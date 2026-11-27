@@ -6,6 +6,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
+- Desktop: show the number of unread local chats on the macOS Dock icon and hide the badge when all chats are read.
+
 - Website: add desktop downloads for macOS Apple Silicon, macOS Intel and Windows x64 to the right of the startup command on wide screens, hiding the download controls on mobile layouts and resolving the latest published desktop installer on each download with platform requirements and a release-page fallback.
 
 ### Changed

@@ -12,6 +12,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Changed
 
+- coding-agent and Web UI: update the built-in model catalog to pi-ai 1.6.1, which removes the legacy OpenAI GPT-4 entry.
+
 - Website: compact the homepage startup command and desktop download control with narrower widths, reduced button spacing and tighter download menu rows.
 
 ### Fixed

@@ -133,16 +133,19 @@ export class SessionController {
     await this.active;
   }
 
-  async markRead(messageCount: number): Promise<boolean> {
-    const read = await this.session.sessionManager.markRead(messageCount);
-    if (read) {
-      this.snapshot = {
-        ...this.snapshot,
-        state: { ...this.snapshot.state, unread: this.session.sessionManager.unread },
-      };
-      this.events.publish({ type: "session.state", snapshot: this.snapshot });
-    }
-    return read;
+  async updateReadState(receipt: number | "unread"): Promise<boolean> {
+    if (receipt !== "unread" && this.session.state.hasPendingSave)
+      throw new HttpError(409, "pending_save");
+    const manager = this.session.sessionManager;
+    const accepted =
+      receipt === "unread" ? await manager.markUnread() : await manager.markRead(receipt);
+    if (!accepted) return false;
+    this.snapshot = {
+      ...this.snapshot,
+      state: { ...this.snapshot.state, unread: manager.unread },
+    };
+    this.events.publish({ type: "session.state", snapshot: this.snapshot });
+    return true;
   }
 
   async command(

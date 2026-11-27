@@ -31,6 +31,25 @@ export const useSessionActions = (session: SessionSummary) => {
       }
     });
   };
+  const markUnread = () =>
+    action.run(async () => {
+      const { active } = useWorkspace.getState();
+      const current = active?.id === session.id ? active : undefined;
+      if (current) useWorkspace.setState({ readReceiptPausedFor: current });
+      let unread = false;
+      try {
+        ({ unread } = await command<{ unread: boolean }>(
+          "/sessions/" + encodeURIComponent(session.id) + "/unread",
+          { workspaceId: session.workspaceId },
+          "PUT",
+        ));
+      } finally {
+        if (!unread && current && useWorkspace.getState().readReceiptPausedFor === current) {
+          useWorkspace.setState({ readReceiptPausedFor: undefined });
+        }
+        await query.invalidateQueries({ queryKey: ["sessions", session.workspaceId] });
+      }
+    });
   const change = async (kind: "archive" | "delete"): Promise<boolean> => {
     let saved = false;
     await action.run(async () => {
@@ -74,6 +93,7 @@ export const useSessionActions = (session: SessionSummary) => {
     reveal,
     change,
     setPinned,
+    markUnread,
     pending: action.pending,
     error: action.error,
     clearError: action.clearError,

@@ -8,6 +8,12 @@
 - Evaluate maturity by single-agent reliability, safety, recoverability, and usability, not by multi-agent support.
 - Do not add personal data, credentials, private endpoints, private repository details, real task data, logs, caches, screenshots, or machine-specific absolute paths.
 
+## Agent worktrees
+
+- Before editing or running commands that write to the checkout, establish the working directory. Reuse an isolated worktree already assigned to this task. For a CLI session started with the repository's [agent launcher](docs/agent-worktrees.md), use the directory selected by the launcher.
+- When a GUI or editor starts a session directly in a shared checkout, use its native worktree mode or create an isolated worktree from the current committed `HEAD` before the first write. Keep file operations, commands, and validation rooted in the assigned worktree. Read-only tasks can stay in the shared checkout.
+- If existing uncommitted changes belong to the requested task, use the task's assigned worktree or ask which changes to carry over. Avoid copying another task's changes or altering its checkout. Preserve the existing Git authorization rules for unrelated operations.
+
 ## Runtime and dependencies
 
 - Use Node.js 24 or newer for runtime and pnpm for workspace dependencies and scripts.

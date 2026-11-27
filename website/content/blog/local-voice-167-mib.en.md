@@ -1,4 +1,5 @@
 ---
+
 title: "Local speech recognition: 167 MiB of downloads and the engineering trade-offs"
 summary: "How local voice connects to Loop: model downloads, resource management, submission behavior, and the privacy boundaries of local inference."
 author: Di
@@ -19,7 +20,7 @@ This article explains that boundary, the resource pipeline, and why voice input 
 
 ![Loop voice input: recording in progress with two queued follow-up messages](./voice-input-en-light.webp)
 
-*Above: click Voice input to record. After stopping and completing transcription, text is appended to an editable draft for manual submission. The two items above it are queued follow-ups.*
+_Above: click Voice input to record. After stopping and completing transcription, text is appended to an editable draft for manual submission. The two items above it are queued follow-ups._
 
 ## 1. Requirements for a voice integration
 
@@ -75,12 +76,12 @@ These resources need to work together. A downloaded model alone is not a usable 
 
 ### 3.1 More than a model file
 
-| Stage | What it does |
-|---|---|
-| **VAD** | Detects whether speech is present and when it stops |
-| **ASR** | Turns audio into text |
-| **TTS** | Reads the reply back |
-| **Platform engine** | The native runtime per platform |
+| Stage                   | What it does                                         |
+| ----------------------- | ---------------------------------------------------- |
+| **VAD**                 | Detects whether speech is present and when it stops  |
+| **ASR**                 | Turns audio into text                                |
+| **TTS**                 | Reads the reply back                                 |
+| **Platform engine**     | The native runtime per platform                      |
 | **Resource management** | Versioning, verification, install, repair, uninstall |
 
 **Each one costs disk space and code.**
@@ -89,15 +90,15 @@ These resources need to work together. A downloaded model alone is not a usable 
 
 ![Resource pipeline: build, store, use](./pipeline-flow-en.png)
 
-*Above: build per platform, store versioned resources, then download, verify, and activate after the user requests installation. Installation also depends on compatible resources being available.*
+_Above: build per platform, store versioned resources, then download, verify, and activate after the user requests installation. Installation also depends on compatible resources being available._
 
 ### 3.3 Download size is not installed size
 
-| Component | Compressed download | Expanded size |
-|---|---|---|
-| ASR + VAD models | About **167.3 MiB** | About **189.3 MiB** |
+| Component                     | Compressed download      | Expanded size            |
+| ----------------------------- | ------------------------ | ------------------------ |
+| ASR + VAD models              | About **167.3 MiB**      | About **189.3 MiB**      |
 | Optional bilingual TTS models | About **123.8 MiB more** | About **168.0 MiB more** |
-| Platform engine | Additional | Additional |
+| Platform engine               | Additional               | Additional               |
 
 These measurements describe the currently prepared pinned model assets, not permanent values for every version or platform. **The 167 MiB in the title is the ASR/VAD archive download, not the complete installed footprint.** Installation needs space for archives and staged files. Updates retain the previous activation until a replacement succeeds.
 
@@ -149,12 +150,12 @@ Audio flows through bounded processing buffers. Loop does not save it as a recor
 
 Local speech has several constraints that affect suitability.
 
-| Scenario | Recommendation |
-|---|---|
-| Voice input is only needed for a quick trial | Compatible resources still need installing |
-| The platform is unsupported | The capability is simply unavailable; there is no fallback |
-| Particular accents, noise, or terminology matter | Test with those inputs; no accuracy ranking is provided |
-| Phone use | Requires a secure context, microphone permission, a foreground page, and a host connection |
+| Scenario                                         | Recommendation                                                                             |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| Voice input is only needed for a quick trial     | Compatible resources still need installing                                                 |
+| The platform is unsupported                      | The capability is simply unavailable; there is no fallback                                 |
+| Particular accents, noise, or terminology matter | Test with those inputs; no accuracy ranking is provided                                    |
+| Phone use                                        | Requires a secure context, microphone permission, a foreground page, and a host connection |
 
 ## 6. Is the trade worth it?
 

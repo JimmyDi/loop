@@ -19,6 +19,7 @@ export const parseBlogSource = (
   if (!match || !frontmatter) throw new Error("Invalid blog filename or frontmatter: " + filename);
   const metadata: Record<string, string | boolean> = {};
   for (const line of frontmatter[1].split(/\r?\n/)) {
+    if (!line.trim()) continue;
     const field = line.match(/^([a-zA-Z]+):\s*(.+)$/);
     if (!field || field[1] in metadata)
       throw new Error("Invalid or duplicate blog field: " + filename);

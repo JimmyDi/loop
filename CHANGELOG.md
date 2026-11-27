@@ -14,6 +14,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Website: accept blank lines in blog frontmatter so articles still build after formatting with Biome 2.6.9.
+
 - coding-agent: restore native voice source downloads using the pinned upstream commit retained by Intel with the existing per-file integrity checks, retry transient failures with backoff, report failing files and original causes, and cancel outstanding downloads before a failed build returns.
 
 - Website: render the homepage with inline styles and responsive product screenshots, and load the pointer trail and desktop installer lookup on interaction. Defer the full documentation search index to a separate chunk, loading it after the documentation page finishes loading and becomes idle or when search is used, with loading feedback and retry support.

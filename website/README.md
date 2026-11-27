@@ -93,12 +93,12 @@ become website content. The site does not run displayed code examples.
 
 All product media captures the real frontend with fictional engineering data. Capture tools remain separate from website source, dependencies, development and builds. Asset notices document the scenes, provenance and update requirements.
 
-| Media | Frames per language/theme | Dimensions | Notice |
-| --- | --- | --- | --- |
-| Hero product preview | 1 | 1440 × 800 | [Product](public/product/NOTICE.md) |
-| Provider configuration and model/effort selection | 5 | 1000 × 660 | [Providers](public/provider-demo/NOTICE.md) |
-| Queues, steering, Stop/Resume and context compaction | 9 | 1056 × 696 | [Workflow](public/workflow-demo/NOTICE.md) |
-| STDIO/HTTP MCP and project Skills | 4 | 1020 × 684 | [MCP and Skills](public/integration-demo/NOTICE.md) |
+| Media                                                | Frames per language/theme | Dimensions | Notice                                              |
+| ---------------------------------------------------- | ------------------------- | ---------- | --------------------------------------------------- |
+| Hero product preview                                 | 1                         | 1440 × 800 | [Product](public/product/NOTICE.md)                 |
+| Provider configuration and model/effort selection    | 5                         | 1000 × 660 | [Providers](public/provider-demo/NOTICE.md)         |
+| Queues, steering, Stop/Resume and context compaction | 9                         | 1056 × 696 | [Workflow](public/workflow-demo/NOTICE.md)          |
+| STDIO/HTTP MCP and project Skills                    | 4                         | 1020 × 684 | [MCP and Skills](public/integration-demo/NOTICE.md) |
 
 Every scene has Chinese/English and native Light/Dark variants. Captures exclude scrollbars, surrounding backing margins and metadata. Animation previews fill their containers without additional borders or letterboxing; proportional corner clipping removes residual captured backgrounds at every display size. Preserve scene names, dimensions and paired variants when replacing assets, with each file below 250 KB.
 
@@ -128,7 +128,6 @@ import website code. Application builds and published package contents exclude w
 
 [The build script](scripts/build.mjs) runs client and temporary server builds, renders [prerender.tsx](src/prerender.tsx) into the HTML template, and removes temporary output in a finally block. Only client assets and static HTML remain in `dist`; no server is deployed.
 
-
 ## Blog
 
 The blog lives at `/blog/` and shares the website language switch and theme colors for the page, cards, search field and illustrations. The index has no introductory copy or article count; search sits beside the archive heading below the cards. It uses up to
@@ -155,7 +154,7 @@ Author paired Markdown files in `content/blog/<slug>.zh.md` and `<slug>.en.md`. 
 starts with a flat frontmatter block containing `title`, `summary`, `author`, `category`,
 `publishedAt` and an explicit boolean `draft`. The category is `engineering`, `product` or
 `guides`; dates use `YYYY-MM-DD`. `updatedAt` is optional and cannot precede publication.
-Use plain single-line strings or JSON double-quoted strings. Nested YAML is unsupported.
+Use plain single-line strings or JSON double-quoted strings. Blank lines are allowed. Nested YAML is unsupported.
 
 Public pairs need matching author, category and dates, with both `draft: false`. Incomplete
 draft pairs are excluded; incomplete public pairs fail the build. Publishing is controlled
@@ -184,7 +183,6 @@ use an explicit root-relative base for a public deployment. All articles include
 description, article dates and BlogPosting structured data. Chinese blog routes use blog/ and English routes use en/blog/, including article pages. Each URL renders its own language, self-canonical and reciprocal zh-CN/en/x-default hreflang links. Explicit blog URLs take precedence over browser language; the shared language switch updates the blog URL. RSS is not implemented. The output includes `404.html`; configure the static host to serve it with a
 404 status for missing paths rather than rewrite them to the homepage. GitHub Pages serves the generated 404.html; its asset base is the deployment root and it carries noindex. The custom-domain deployment serves robots.txt and sitemap.xml at the domain root. Development and
 Vite preview fallback routing do not establish production HTTP status behavior.
-
 
 The latest two-column list card uses the expanded article component: category/date strip, title, summary, author/reading time and illustration. Other grid cards use its compact form without the illustration. Expanded cards stack the illustration below the text on phones.
 

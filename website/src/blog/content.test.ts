@@ -28,6 +28,8 @@ it("validates explicit publication, dates, metadata and language pairs", async (
   expect(() => parseBlogSource(source().replace("draft: false\n", ""), "post.en.md", ".")).toThrow(
     "explicit",
   );
+  const formatted = source("\n").replace("---\n", "---\n\n");
+  expect(parseBlogSource(formatted, "post.en.md", ".").title).toBe("A title");
   const path = await mkdtemp(join(tmpdir(), "loop-blog-"));
   directories.push(path);
   await writeFile(join(path, "post.zh.md"), source());

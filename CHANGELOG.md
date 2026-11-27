@@ -14,6 +14,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Website: add desktop downloads for macOS Apple Silicon, macOS Intel and Windows x64 to the right of the startup command on wide screens, hiding the download controls on mobile layouts and resolving the latest published desktop installer on each download with platform requirements and a release-page fallback.
 
+- Development workflow: add a coding-agent launcher that isolates concurrent or dirty checkouts in Git worktrees, with startup checks for Codex and Claude Code.
+
 ### Changed
 
 - Web and Desktop: share active scheduled chat lookups across project lists and forward chat reads only for the active scheduled session.

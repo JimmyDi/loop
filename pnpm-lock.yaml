@@ -25,6 +25,12 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.32.0
         version: 1.32.2(supports-color@7.2.0)(zod@4.6.7)
+      cron-parser:
+        specifier: ^5.10.6
+        version: 5.10.6
+      rrule-temporal:
+        specifier: 2.3.0
+        version: 2.3.0
       tar-stream:
         specifier: ^3.2.2
         version: 3.2.2
@@ -110,6 +116,12 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.32.0
         version: 1.32.2(supports-color@7.2.0)(zod@4.6.7)
+      cron-parser:
+        specifier: ^5.10.6
+        version: 5.10.6
+      rrule-temporal:
+        specifier: 2.3.0
+        version: 2.3.0
       tar-stream:
         specifier: ^3.2.2
         version: 3.2.2
@@ -1725,6 +1737,10 @@ packages:
   cose-base@2.2.0:
     resolution: {integrity: sha512-AzlgcsCbUMymkADOJtQm3wO9S3ltPfYOFD5033keQn9NJzIbtnZj+UdBJe7DYml/8TdbtHJW3j58SOnKhWY/5g==}
 
+  cron-parser@5.10.6:
+    resolution: {integrity: sha512-kpoxgQyveO1l29nw+FWdvmotyV7eOSzGHQpxiXOEZIDOjqO1iR6kfgJ0PVHTuV26uBemKq3ppzma7dHFAG7viw==}
+    engines: {node: '>=18'}
+
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
@@ -2446,6 +2462,10 @@ packages:
     resolution: {integrity: sha512-U4N8FgzmWxc8k1VH8Kr6lQg18U7Fjvby6wXHVRX/ZZ7IwWbRMgrRbP0Wrb5q5NVinryp4SQampHKdvtecItxUg==}
     engines: {node: 20 || >=22}
 
+  luxon@3.7.2:
+    resolution: {integrity: sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==}
+    engines: {node: '>=12'}
+
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
     hasBin: true
@@ -2808,6 +2828,9 @@ packages:
     resolution: {integrity: sha512-nLTrUKm2UyiL7rlhapu/Zl45FwNgkZGaCpZbIHajDYgwlJCOzLSk+cIPAnsEqV955GjILJnKbdQC1nVPz+gAYQ==}
     engines: {node: '>= 18'}
 
+  rrule-temporal@2.3.0:
+    resolution: {integrity: sha512-5V5n6ZtD/0eRbMdOeiOqJ3GlIEy/qSWVq0d0zxjgZoD1HcujPT1TMeklwxsPokBnHdxTSlfgWYf7lefrwNKlaA==}
+
   run-parallel@1.2.0:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}
 
@@ -2919,6 +2942,9 @@ packages:
 
   teex@1.0.1:
     resolution: {integrity: sha512-eYE6iEI62Ni1H8oIa7KlDU6uQBtqr4Eajni3wX7rpfXD8ysFx8z0+dri+KWEPWpBsxXfxu58x/0jvTVT1ekOSg==}
+
+  temporal-spec@1.0.1:
+    resolution: {integrity: sha512-wxVoanmDeavXie1vu2JaQ3WIc3JZnWAOYFBsJyATaVsXsycKYUflGsyBmrRSnoCpZJpwPyr38VpgSUlQ8CbFxg==}
 
   text-decoder@1.2.7:
     resolution: {integrity: sha512-vlLytXkeP4xvEq2otHeJfSQIRyWxo/oZGEbXrtEEF9Hnmrdly59sUbzZ/QgyWuLYHctCHxFF4tRQZNQ9k60ExQ==}
@@ -4533,6 +4559,10 @@ snapshots:
     dependencies:
       layout-base: 2.0.1
 
+  cron-parser@5.10.6:
+    dependencies:
+      luxon: 3.7.2
+
   cross-spawn@7.0.6:
     dependencies:
       path-key: 3.1.1
@@ -5320,6 +5350,8 @@ snapshots:
 
   lru-cache@11.5.3: {}
 
+  luxon@3.7.2: {}
+
   lz-string@1.5.0: {}
 
   magic-string@0.30.21:
@@ -5661,6 +5693,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  rrule-temporal@2.3.0:
+    dependencies:
+      temporal-spec: 1.0.1
+
   run-parallel@1.2.0:
     dependencies:
       queue-microtask: 1.2.3
@@ -5805,6 +5841,8 @@ snapshots:
     transitivePeerDependencies:
       - bare-abort-controller
       - react-native-b4a
+
+  temporal-spec@1.0.1: {}
 
   text-decoder@1.2.7:
     dependencies:

@@ -65,6 +65,7 @@ export function parseArgs(args: string[]) {
 
 export const HELP = [
   "Loop coding assistant",
+  "loop schedules --help       Manage local scheduled tasks",
   "loop [-p] [options] [prompt]",
   "--print/-p                  Print final answer and exit",
   "--plan                      Start in Plan mode",

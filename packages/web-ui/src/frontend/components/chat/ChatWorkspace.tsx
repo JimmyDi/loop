@@ -35,9 +35,9 @@ export const ChatWorkspace = ({ id }: { id?: string }) => {
   const view = useSessions((state) => (id ? state.views[id] : undefined));
   const query = useQuery({
     queryKey: ["session", id ?? "new"],
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       id
-        ? api<SessionSnapshot>("/sessions/" + id)
+        ? api<SessionSnapshot>("/sessions/" + id, { signal })
         : command<SessionSnapshot>("/sessions", { workspaceId: null }),
     staleTime: Infinity,
     retry: false,
@@ -121,7 +121,11 @@ export const ChatWorkspace = ({ id }: { id?: string }) => {
                 <ActionButton onClick={() => void query.refetch()}>{t("retry")}</ActionButton>
               </div>
             )}
-            {!snapshot && !query.error && <p className="workspace-loading">{t("loading")}</p>}
+            {!snapshot && !query.error && (
+              <div className="workspace-loading" role="status" aria-label={t("loading")}>
+                <span className="workspace-loading-spinner" aria-hidden="true" />
+              </div>
+            )}
             {snapshot && (
               <div className="chat-workspace-body" data-empty={empty}>
                 {empty ? (

@@ -11,6 +11,7 @@ export const useListEvents = (): void => {
     const projects = new Set<string | null>();
     let reset = false;
     let projectList = false;
+    let schedules = false;
     let cursor: Cursor | undefined;
     let disposed = false;
     let refreshing = false;
@@ -21,12 +22,16 @@ export const useListEvents = (): void => {
     const refresh = async () => {
       timer = undefined;
       refreshing = true;
-      const keys: (string | null)[][] = [["archived-chats"]];
+      const keys: (string | null)[][] = [];
+      if (reset || projects.size) keys.push(["archived-chats"]);
+      if (reset || schedules)
+        keys.push(["schedules"], ["schedule-runs"], ["schedule-run-progress"]);
       if (reset || projectList) keys.push(["projects"]);
       if (reset) keys.push(["sessions"]);
       else for (const id of projects) keys.push(["sessions", id]);
       reset = false;
       projectList = false;
+      schedules = false;
       projects.clear();
       try {
         // Cancel even first loads so an older in-flight response cannot swallow a notification.
@@ -35,7 +40,7 @@ export const useListEvents = (): void => {
           await Promise.all(keys.map((queryKey) => query.invalidateQueries({ queryKey })));
       } finally {
         refreshing = false;
-        if (reset || projectList || projects.size) schedule();
+        if (reset || projectList || schedules || projects.size) schedule();
       }
     };
     const source = recoveringEvents({
@@ -49,8 +54,10 @@ export const useListEvents = (): void => {
             typeof frame.streamId !== "string" ||
             !Number.isSafeInteger(frame.seq) ||
             frame.seq < 0 ||
-            !["lists.reset", "sessions.changed", "projects.changed"].includes(frame.type) ||
-            (frame.type !== "lists.reset" &&
+            !["lists.reset", "sessions.changed", "projects.changed", "schedules.changed"].includes(
+              frame.type,
+            ) ||
+            ((frame.type === "sessions.changed" || frame.type === "projects.changed") &&
               typeof frame.workspaceId !== "string" &&
               frame.workspaceId !== null)
           )
@@ -60,7 +67,8 @@ export const useListEvents = (): void => {
             if (cursor?.streamId === frame.streamId && frame.seq <= cursor.seq) return;
             if (!cursor || cursor.streamId !== frame.streamId || frame.seq !== cursor.seq + 1)
               reset = true;
-            projects.add(frame.workspaceId);
+            if (frame.type === "schedules.changed") schedules = true;
+            else projects.add(frame.workspaceId);
             if (frame.type === "projects.changed") projectList = true;
           }
           cursor = { streamId: frame.streamId, seq: frame.seq };

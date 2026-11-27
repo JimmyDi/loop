@@ -6,12 +6,15 @@ import type { useProjectMenu } from "../../hooks/useProjectMenu";
 import { SessionPinIcon } from "./SessionPinIcon";
 import "./SessionContextMenu.css";
 
+export type SessionMenuAction = "rename" | "pin" | "unread" | "reveal" | "archive" | "delete";
+
 export const SessionContextMenu = ({
   menu,
   title,
   disabled,
   pinned = false,
   pinDisabled = false,
+  unread = false,
   onChoose,
 }: {
   menu: ReturnType<typeof useProjectMenu>;
@@ -19,7 +22,8 @@ export const SessionContextMenu = ({
   disabled: boolean;
   pinned?: boolean;
   pinDisabled?: boolean;
-  onChoose(action: "rename" | "pin" | "reveal" | "archive" | "delete"): void;
+  unread?: boolean;
+  onChoose(action: SessionMenuAction): void;
 }) => {
   const { t } = useTranslation();
   return createPortal(
@@ -41,6 +45,7 @@ export const SessionContextMenu = ({
         [
           ["rename", "rename", "M16 3a2.1 2.1 0 0 1 3 3L8 17l-5 1 1-5L16 3Zm-2 2 3 3"],
           ["pin", pinned ? "unpinSession" : "pinSession", ""],
+          ["unread", "markAsUnread", "M3 5h18v14H3zM3 6l9 7 9-7"],
           [
             "reveal",
             "revealSession",
@@ -54,14 +59,20 @@ export const SessionContextMenu = ({
           ["delete", "permanentlyDelete", "M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7m4-7v7"],
         ] as const
       )
-        .filter(([action]) => !isRemoteClient() || action === "rename" || action === "pin")
+        .filter(([action]) => !isRemoteClient() || ["rename", "pin", "unread"].includes(action))
         .map(([action, label, path]) => (
           <button
             key={action}
             type="button"
             role="menuitem"
             tabIndex={-1}
-            disabled={action === "pin" || action === "reveal" ? pinDisabled : disabled}
+            disabled={
+              action === "pin" || action === "reveal"
+                ? pinDisabled
+                : action === "unread"
+                  ? pinDisabled || unread
+                  : disabled
+            }
             onClick={() => onChoose(action)}
           >
             {action === "pin" ? (

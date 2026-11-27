@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 
+import { scheduleCommand } from "./cli/schedules";
 import { HELP, parseArgs } from "./cli/args";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, getAgentDir, getSessionDir, VERSION } from "./config";
 import { createAgentSessionRuntime } from "./core/agent-session-runtime";
@@ -12,6 +13,7 @@ import { recoverPendingSave } from "./modes/save-recovery";
 import { runInteractiveMode, runPrintMode } from "./modes";
 
 export async function main(args = process.argv.slice(2)): Promise<number> {
+  if (args[0] === "schedules") return scheduleCommand(args.slice(1));
   const { flags, prompt } = parseArgs(args);
   const permissionPreset = flags.get("--permission-preset");
 

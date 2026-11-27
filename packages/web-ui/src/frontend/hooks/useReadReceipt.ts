@@ -3,6 +3,7 @@ import type { RefObject } from "react";
 
 import type { SessionSnapshot } from "../../shared/protocol";
 import { command } from "../lib/api";
+import { useWorkspace } from "../state/workspace-store";
 
 /** A selected chat is read only once its completed content reaches the visible viewport. */
 export const useReadReceipt = (
@@ -13,12 +14,16 @@ export const useReadReceipt = (
 ): void => {
   const messageCount = snapshot.history?.total ?? snapshot.state.messages.length;
   const unread = snapshot.state.unread === true;
+  const paused = useWorkspace(
+    (state) =>
+      state.active?.id === snapshot.sessionId && state.readReceiptPausedFor === state.active,
+  );
   const settled = connected && snapshot.operation === "idle" && !snapshot.state.hasPendingSave;
 
   useEffect(() => {
     const element = viewport.current;
     const marker = end.current;
-    if (!settled || !unread || !messageCount || !element || !marker) return;
+    if (paused || !settled || !unread || !messageCount || !element || !marker) return;
     const document = element.ownerDocument;
     const window = document.defaultView;
     let disposed = false;
@@ -75,5 +80,14 @@ export const useReadReceipt = (
       window?.removeEventListener("resize", check);
       observer?.disconnect();
     };
-  }, [snapshot.sessionId, snapshot.workspaceId, messageCount, unread, settled, viewport, end]);
+  }, [
+    snapshot.sessionId,
+    snapshot.workspaceId,
+    messageCount,
+    unread,
+    paused,
+    settled,
+    viewport,
+    end,
+  ]);
 };

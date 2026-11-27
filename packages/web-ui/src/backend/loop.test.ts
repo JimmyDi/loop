@@ -382,7 +382,9 @@ test("standalone history restores without registered projects and shares pin/rea
       userMessageCount: 1,
       pinnedAt: expect.any(String),
     });
-    expect(await restored.markRead(null, id, 1)).toBe(true);
+    expect(await restored.updateReadState(null, id, "unread")).toBe(true);
+    expect((await restored.list(null))[0]?.unread).toBe(true);
+    expect(await restored.updateReadState(null, id, 1)).toBe(true);
     await restored.archive(null, [id], true);
     expect((await restored.list(null))[0]?.archived).toBe(true);
     await restored.archive(null, [id], false);

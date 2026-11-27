@@ -1,0 +1,7 @@
+.schedule-select { position:relative; min-width:0; }
+.schedule-select-trigger { width:100%; padding:5px 26px 5px 5px; border:0; background:transparent; color:var(--ink-muted); text-align:end; font:inherit; cursor:pointer; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.schedule-select-trigger::after { content:""; position:absolute; inset-inline-end:8px; top:50%; width:5px; height:5px; border:solid currentColor; border-width:0 1.5px 1.5px 0; transform:translateY(-70%) rotate(45deg); }
+.schedule-select-list { position:absolute; z-index:10; inset-block-start:calc(100% + 4px); inset-inline-end:0; display:grid; width:max-content; min-width:min(11rem,75vw); max-width:min(18rem,75vw); max-height:min(16rem,40dvh); overflow:auto; overscroll-behavior:contain; box-sizing:border-box; padding:4px; border:1px solid var(--line); border-radius:12px; background:var(--surface-raised); box-shadow:0 6px 20px var(--shadow); }
+.schedule-select-list button { position:relative; padding:6px 28px 6px 10px; border:0; border-radius:7px; background:transparent; color:var(--ink); font:inherit; text-align:start; cursor:pointer; overflow-wrap:anywhere; }
+.schedule-select-list button:hover, .schedule-select-list button:focus { background:var(--surface-hover); }
+.schedule-select-list [aria-selected="true"]::after { content:"✓"; position:absolute; inset-inline-end:9px; }

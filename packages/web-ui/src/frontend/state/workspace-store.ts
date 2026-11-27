@@ -8,6 +8,8 @@ type SessionSelection = { id: string; workspaceId: string | null };
 
 type WorkspaceState = {
   active?: SessionSelection;
+  /** The current selection object changes whenever the user opens a chat. */
+  readReceiptPausedFor?: SessionSelection;
   drafts: Record<string, string>;
   images: Record<string, PromptImage[]>;
   files: Record<string, PromptFile[]>;
@@ -16,6 +18,8 @@ type WorkspaceState = {
   removeSkill(id: string, skillId?: string): void;
   attachFiles(id: string, files: PromptFile[]): void;
   attach(id: string, images: PromptImage[]): void;
+  automation: boolean;
+  showAutomation(open: boolean): void;
   sidebar: boolean;
   open(session: SessionSelection): void;
   draft(id: string, text: string): void;
@@ -96,10 +100,14 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
     })),
   expanded: readPreference<Record<string, boolean>>("expanded", {}),
   expand: (id, expanded) => set((state) => ({ expanded: { ...state.expanded, [id]: expanded } })),
+  automation: false,
+  showAutomation: (automation) => set({ automation, sidebar: false }),
   sidebar: false,
   open: (session) =>
     set((state) => ({
+      automation: false,
       active: { id: session.id, workspaceId: session.workspaceId },
+      readReceiptPausedFor: undefined,
       sidebar: false,
       draftProjects: { ...state.draftProjects, [session.id]: session.workspaceId },
     })),

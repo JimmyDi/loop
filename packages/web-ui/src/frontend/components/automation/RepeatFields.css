@@ -1,0 +1,35 @@
+.repeat-fields {
+  --repeat-stepper-gap: 4px;
+  --repeat-number-width: calc(8ch + var(--repeat-stepper-gap));
+}
+
+.repeat-fields input[type="number"]::-webkit-inner-spin-button {
+  margin-inline-start: var(--repeat-stepper-gap);
+}
+
+.repeat-fields > label > input:is([type="time"], [type="datetime-local"], [type="number"], [name="cron"]) {
+  justify-self: end;
+  width: auto;
+  max-width: 100%;
+  text-align: end;
+}
+
+.repeat-fields input[type="datetime-local"] {
+  -webkit-text-fill-color: var(--ink-muted);
+}
+
+.repeat-fields input[type="datetime-local"]::-webkit-datetime-edit {
+  color: var(--ink-muted);
+  opacity: 1;
+}
+
+.repeat-fields input[type="datetime-local"]::-webkit-date-and-time-value {
+  color: var(--ink-muted);
+  opacity: 1;
+}
+
+.repeat-fields > label > input[type="number"] { width: var(--repeat-number-width); }
+.repeat-fields > label > input[name="cron"] { width: 12ch; text-align: start; }
+@supports (field-sizing: content) {
+  .repeat-fields > label > input[name="cron"] { field-sizing: content; width: auto; min-width: min(5ch, 100%); }
+}

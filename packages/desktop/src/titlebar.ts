@@ -7,7 +7,7 @@ const native = window as Window & {
 
 const drag = (event: MouseEvent) => {
   if (event.button !== 0 || event.detail !== 1 || !(event.target instanceof Element)) return;
-  if (!event.target.closest(".session-header, .desktop-titlebar-drag")) return;
+  if (!event.target.closest(".session-header, .automation-toolbar, .desktop-titlebar-drag")) return;
   if (
     event.target.closest("button, input, a, select, textarea, [role=tab], [contenteditable=true]")
   )

@@ -65,11 +65,16 @@ test("business worker restarts behind the same proxy without retrying commands",
     expect((await backend.handle(voiceRequest(), revokedContext)).status).toBe(401);
     restartingPage = true;
     backend.restart();
-    await vi.waitFor(() => expect(backend.ready()).toBe(false));
-    await backend.revokeVoice(revokedPrincipal);
-    const during = await backend.handle(
-      new Request("http://localhost/api/sessions", { method: "POST", body: "{}" }),
-    );
+    const [during] = await vi.waitFor(() => {
+      expect(backend.ready()).toBe(false);
+      // Dispatch before yielding so the proxy observes the same restart state.
+      return Promise.all([
+        backend.handle(
+          new Request("http://localhost/api/sessions", { method: "POST", body: "{}" }),
+        ),
+        backend.revokeVoice(revokedPrincipal),
+      ]);
+    });
     expect(during.status).toBe(503);
     expect(await during.json()).toEqual({ code: "backend_restarting" });
     const page = await remote("/");

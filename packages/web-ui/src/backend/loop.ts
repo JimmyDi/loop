@@ -10,6 +10,7 @@ import {
 } from "@loop/coding-agent";
 import type { AgentSession, ModelRuntime, McpManager, SkillManager } from "@loop/coding-agent";
 
+import type { PermissionPreset } from "../shared/protocol";
 import type { ModelChoice, ModelSelection, Project, SessionSummary } from "../shared/protocol";
 import { ProviderSettings } from "./providers/provider-settings";
 import { WebSettings } from "./settings/web-settings";
@@ -63,7 +64,7 @@ export type LoopBridge = {
   list(project: Project): Promise<SessionSummary[]>;
   archive(project: Project, ids: string[], archived: boolean): Promise<void>;
   deleteSessions(project: Project, ids: string[], archivedOnly: boolean): Promise<void>;
-  load(project: Project, id?: string): Promise<SessionPort>;
+  load(project: Project, id?: string, permission?: PermissionPreset): Promise<SessionPort>;
   setModel(session: SessionPort, choice: ModelSelection): Promise<void>;
 };
 
@@ -144,7 +145,7 @@ export const createLoopBridge = (
         }),
       );
     },
-    load: async (project, id) => {
+    load: async (project, id, permission) => {
       const records = id ? await listFor(project) : [];
       const record = records.find((item) => item.id === id);
 
@@ -172,7 +173,9 @@ export const createLoopBridge = (
         effort: record ? undefined : providers.defaultEffort(),
         permissionPreset: record
           ? undefined
-          : ((await settings.read()).permissionPreset ?? settingsManager.defaultPermissionPreset),
+          : (permission ??
+            (await settings.read()).permissionPreset ??
+            settingsManager.defaultPermissionPreset),
         title: { mode: "first-prompt" },
       });
 

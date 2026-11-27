@@ -212,6 +212,8 @@ export class SessionManager {
         manager = await SessionManager.open(path, false);
       } catch (error) {
         if (
+          ((error as NodeJS.ErrnoException).code === "ENOENT" &&
+            (error as NodeJS.ErrnoException).path === path) ||
           error instanceof UnsupportedSessionFormatError ||
           (error instanceof Error && error.message === "Unsupported session format or version")
         )
@@ -294,6 +296,19 @@ export class SessionManager {
         !this.pending.messages.slice(messageCount).some((message) => message.role !== "user")
       )
         this.pending.header.unread = false;
+      return true;
+    });
+  }
+
+  /** Mark nonempty saved history unread without changing its activity timestamp. */
+  markUnread(): Promise<boolean> {
+    return this.serialize(async () => {
+      if (!this.data.messages.length) return false;
+      if (this.data.header.unread) return true;
+      const next = { ...this.data, header: { ...this.data.header, unread: true } };
+      await this.write(next);
+      this.data = next;
+      if (this.pending) this.pending.header.unread = true;
       return true;
     });
   }

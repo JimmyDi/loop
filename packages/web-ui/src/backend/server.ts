@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getAgentDir, McpManager, SkillManager, VoiceResourceManager } from "@loop/coding-agent";
 
+import { createSchedules } from "./schedules";
 import { createLoopBridge } from "./loop";
 import { ProjectStore } from "./projects/project-store";
 import { createRouter } from "./router";
@@ -52,11 +53,14 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
     fileURLToPath(new URL(options.development ? "../../dist/web/" : "./web/", import.meta.url));
   const voice = new VoiceService(new VoiceResourceManager(agentDir), registry);
   const unsubscribeInvalidation = devices.subscribeInvalidation(voice.revoke);
-  const routes = createBusinessRouter(registry, providers, settings, mcp, skills, voice);
+  const schedules = createSchedules(agentDir, registry, (): boolean => maintenance.accepting);
+  const routes = createBusinessRouter(registry, providers, settings, mcp, skills, voice, schedules);
   const maintenance = new MaintenanceCoordinator(
     () => registry.activeSessions(),
-    routes.voiceBusy,
-    voice.stopActive,
+    () => routes.voiceBusy() || schedules.busy,
+    async () => {
+      await Promise.all([voice.stopActive(), schedules.stopRun()]);
+    },
   );
   const handle: BusinessHandler = options.onMaintenance
     ? (request, context) => maintenance.request(() => routes(request, context))
@@ -104,10 +108,12 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
       frontend = await createDevelopmentFrontend(server);
     }
     const url = await listen(server, port);
+    await schedules.start();
     options.onMaintenance?.(maintenance);
     return {
       url: url.href,
       async close() {
+        await schedules.close();
         closeVoice();
         unsubscribeInvalidation();
         business.closeVoiceRoutes();
@@ -127,6 +133,7 @@ export const startServer = async (port = 3080, options: ServerOptions = {}) => {
       },
     };
   } catch (error) {
+    await schedules.close();
     closeVoice();
     unsubscribeInvalidation();
     business.closeVoiceRoutes();

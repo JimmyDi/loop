@@ -1,3 +1,4 @@
+import type { createSchedules } from "./schedules";
 import type { McpManager, SkillManager } from "@loop/coding-agent";
 
 import { mcpRoutes } from "./routes/mcp";
@@ -23,6 +24,7 @@ export const createBusinessRouter = (
   mcp?: McpManager,
   skills?: SkillManager,
   voice?: VoiceService,
+  schedules?: ReturnType<typeof createSchedules>,
 ) => {
   const voiceRoute = voice && voiceRoutes(voice);
   const routes = [
@@ -37,6 +39,10 @@ export const createBusinessRouter = (
   ];
   const handle: BusinessHandler = async (request, context = localContext): Promise<Response> => {
     const url = new URL(request.url);
+    if (!context.remote) {
+      const response = await schedules?.route(request, url);
+      if (response) return response;
+    }
     const voiceResponse = await voiceRoute?.route(request, url, context);
     if (voiceResponse) return voiceResponse;
     for (const route of routes) {

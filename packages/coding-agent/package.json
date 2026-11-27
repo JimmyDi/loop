@@ -33,6 +33,8 @@
     "@loop/agent": "workspace:*",
     "@loop/telemetry": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.32.0",
+    "cron-parser": "^5.10.6",
+    "rrule-temporal": "2.3.0",
     "tar-stream": "^3.2.2",
     "which": "^6.0.0",
     "yaml": "^2.9.1"

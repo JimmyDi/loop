@@ -8,6 +8,12 @@ import { RemoteDevices } from "../remote-access/remote-devices";
 import { startRemoteIngress } from "../remote-access/remote-ingress";
 import { deviceCookie } from "../remote-access/device-credentials";
 
+// This test requests a restart explicitly. Other tests may change files under the watched roots.
+vi.mock("node:fs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("node:fs")>()),
+  watch: () => ({ close() {} }),
+}));
+
 test("business worker restarts behind the same proxy without retrying commands", async () => {
   const directory = await mkdtemp(join(import.meta.dirname, ".worker-test-"));
   vi.stubEnv("LOOP_DATA_DIR", directory);

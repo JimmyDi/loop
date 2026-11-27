@@ -4,9 +4,31 @@ import { execFileSync } from "node:child_process";
 import { build as bundle } from "tsdown";
 import { build as vite } from "vite";
 
+import { ensureDesktopIcons } from "./desktop-icons";
+
 const root = resolve(import.meta.dirname, "../../..");
 const desktop = join(root, "packages/desktop");
 const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
+const updaterUrl = process.env.LOOP_UPDATER_URL;
+const updaterKey = process.env.LOOP_UPDATER_PUBLIC_KEY;
+if (!!updaterUrl !== !!updaterKey)
+  throw new Error("Configure both updater URL and verification key");
+if (updaterUrl && !updaterUrl.startsWith("https://")) throw new Error("The updater requires HTTPS");
+const config = {
+  version: manifest.version,
+  ...(updaterUrl && updaterKey
+    ? {
+        bundle: { createUpdaterArtifacts: true },
+        plugins: {
+          updater: {
+            endpoints: [updaterUrl],
+            pubkey: updaterKey,
+            windows: { installMode: "passive" },
+          },
+        },
+      }
+    : {}),
+};
 const packageFile = join(desktop, "package.json");
 const packageJson = JSON.parse(await readFile(packageFile, "utf8"));
 if (packageJson.version !== manifest.version) {
@@ -15,22 +37,18 @@ if (packageJson.version !== manifest.version) {
 }
 const pnpm = process.env.npm_execpath;
 if (!pnpm) throw new Error("Run desktop builds with pnpm");
-const run = (args: string[], cwd = root) =>
-  execFileSync(process.execPath, [pnpm, ...args], { cwd, stdio: "inherit" });
-run(["--filter", "@loop/coding-agent...", "build"]);
-run(["--filter", "@loop/web-ui", "exec", "tsdown"]);
 const output = join(desktop, "dist");
 await rm(output, { recursive: true, force: true });
-await mkdir(output, { recursive: true });
 await bundle({
   config: false,
   entry: [join(desktop, "src/backend.ts")],
   outDir: output,
-  clean: true,
+  clean: false,
   platform: "node",
   target: "node24",
   format: "esm",
   fixedExtension: false,
+  inputOptions: { resolve: { conditionNames: ["loop-source"] } },
   deps: {
     alwaysBundle: [/^@loop\//],
     neverBundle: [...Object.keys(manifest.dependencies), "vite"],
@@ -158,29 +176,7 @@ if (updatedLock !== lockSource) await writeFile(lockfile, updatedLock);
 await mkdir(runtime);
 await cp(process.execPath, join(runtime, process.platform === "win32" ? "node.exe" : "node"));
 if (process.platform !== "win32") await chmod(join(runtime, "node"), 0o755);
-const config = {
-  version: manifest.version,
-  ...(process.env.LOOP_UPDATER_URL && process.env.LOOP_UPDATER_PUBLIC_KEY
-    ? {
-        bundle: { createUpdaterArtifacts: true },
-        plugins: {
-          updater: {
-            endpoints: [process.env.LOOP_UPDATER_URL],
-            pubkey: process.env.LOOP_UPDATER_PUBLIC_KEY,
-            windows: { installMode: "passive" },
-          },
-        },
-      }
-    : {}),
-};
-if (!!process.env.LOOP_UPDATER_URL !== !!process.env.LOOP_UPDATER_PUBLIC_KEY)
-  throw new Error("Configure both updater URL and verification key");
-if (process.env.LOOP_UPDATER_URL && !process.env.LOOP_UPDATER_URL.startsWith("https://"))
-  throw new Error("The updater requires HTTPS");
 await mkdir(join(desktop, ".tools"), { recursive: true });
 await writeFile(join(desktop, ".tools/tauri-build.json"), JSON.stringify(config, null, 2));
-run(
-  ["exec", "tauri", "icon", join(desktop, "assets/icon.png"), "--output", "src-tauri/icons"],
-  desktop,
-);
+await ensureDesktopIcons(desktop, pnpm);
 console.log("Desktop resources built for " + process.platform + "-" + process.arch);

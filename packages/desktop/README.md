@@ -18,13 +18,13 @@ Desktop installers currently cover these two macOS architectures and Windows x64
 
 ## Development
 
-Install Node 24+, pnpm, Rust 1.90+ and the platform prerequisites for Tauri 2. Run pnpm install --frozen-lockfile, pnpm desktop:build and pnpm desktop:dev from the workspace root. Build a local installer with pnpm --filter @loop/desktop bundle.
+Install Node 24+, pnpm, Rust 1.90+ and the platform prerequisites for Tauri 2. Run `pnpm install --frozen-lockfile` and `pnpm desktop:dev` from the workspace root. Run `pnpm desktop:build` to prepare packaged resources for smoke tests, or `pnpm --filter @loop/desktop bundle` to build a local installer.
 
 Resources are written to this package's dist directory. Installers are written to src-tauri/target/release/bundle. The root npm build selects its workspace dependencies explicitly and excludes desktop resources and dependencies.
 
-Native icons are generated from assets/icon.png, using the white-background Loop artwork. Its 1024-pixel transparent canvas contains centered 824-pixel artwork with 100-pixel margins for balanced Dock sizing.
+Desktop generates only the PNG, ICNS, and ICO files listed in its Tauri config from assets/icon.png when they are missing or older than the source. The source uses the white-background Loop artwork. Its 1024-pixel transparent canvas contains centered 824-pixel artwork with 100-pixel margins for balanced Dock sizing.
 
-The desktop:dev command serves frontend source through Vite with React Fast Refresh and CSS hot updates. Desktop update-control source also supports hot updates. Changes to backend, shared protocol or core source restart the development backend and reload the window. Backend restarts stop running tasks. Rust edits use Tauri's native recompilation and restart. Development updates are disabled.
+The desktop:dev command runs the backend source with the same Node installation as pnpm and serves the local frontend source through Vite with React Fast Refresh and CSS hot updates. It builds the Web static frontend at startup for phone access. To refresh those static assets after editing the frontend, run `pnpm --filter @loop/web-ui build:frontend` from the workspace root. Desktop update-control source also supports hot updates. Changes to backend, shared protocol or core source restart the development backend and reload the window. Backend restarts stop running tasks. Rust edits use Tauri's native recompilation and restart. Development updates are disabled.
 
 Frontend and application-backend edits keep the native window open. Restart desktop:dev after editing the desktop development launcher, supervisor or gateway. Tauri watches the native Rust project. Resource builds write Cargo version files only when the version changes.
 

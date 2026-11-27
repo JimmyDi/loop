@@ -49,7 +49,6 @@ const gateway = await createGateway({
   frontend: vite.resolvedUrls!.local[0]!,
   port,
   token,
-  assets: join(desktop, "dist/web"),
   state: () => ({ phase: "disabled" }),
   action: () => {},
 });

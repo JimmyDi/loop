@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 let maintenance: ServerMaintenance;
 let closing = false;
 const backend = await startServer(0, {
-  assetsDir: resolve(import.meta.dirname, "../dist/web"),
+  assetsDir: resolve(import.meta.dirname, "../../web-ui/dist/web"),
   authorize: (request) => request.headers.get("x-loop-desktop") === process.env.LOOP_DESKTOP_TOKEN,
   onMaintenance: (value) => {
     maintenance = value;

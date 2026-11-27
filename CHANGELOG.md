@@ -14,6 +14,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Website: compact the homepage startup command and desktop download control with narrower widths, reduced button spacing and tighter download menu rows.
 
+- Desktop: start development with the workspace Node runtime and Web assets for phone access, skip production packaging during startup, build the packaged backend directly from workspace sources, and generate only the native icons used by Desktop.
+
 ### Fixed
 
 - coding-agent: restore native voice source downloads using the pinned upstream commit retained by Intel with the existing per-file integrity checks, retry transient failures with backoff, report failing files and original causes, and cancel outstanding downloads before a failed build returns.

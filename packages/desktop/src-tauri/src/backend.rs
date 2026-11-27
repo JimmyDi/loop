@@ -34,12 +34,18 @@ impl Backend {
     ) -> Result<Arc<Self>, String> {
         std::fs::create_dir_all(&data).map_err(|e| e.to_string())?;
         let token = uuid::Uuid::new_v4().to_string() + &uuid::Uuid::new_v4().to_string();
-        let executable =
+        let development_node = if cfg!(debug_assertions) {
+            std::env::var_os("LOOP_DESKTOP_DEV_NODE")
+        } else {
+            None
+        };
+        let development = development_node.is_some();
+        let executable = development_node.map(PathBuf::from).unwrap_or_else(|| {
             resources
                 .join("runtime")
-                .join(if cfg!(windows) { "node.exe" } else { "node" });
+                .join(if cfg!(windows) { "node.exe" } else { "node" })
+        });
         let mut command = Command::new(executable);
-        let development = cfg!(debug_assertions) && std::env::var_os("LOOP_DESKTOP_DEV").is_some();
         if development {
             let package = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
             command

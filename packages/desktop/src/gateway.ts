@@ -11,7 +11,7 @@ export const createGateway = async (options: {
   frontend?: string;
   token: string;
   port: number;
-  assets: string;
+  assets?: string;
   state: () => UpdateState;
   action: (action: "stop") => void;
 }) => {
@@ -73,6 +73,7 @@ export const createGateway = async (options: {
           options.action("stop");
           response.writeHead(202).end();
         } else if (
+          options.assets &&
           ["/__desktop/client.js", "/__desktop/client.css"].includes(url.pathname) &&
           incoming.method === "GET"
         ) {

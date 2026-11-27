@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import { Window } from "happy-dom";
 
 import type { SessionSnapshot } from "../../shared/protocol";
+import { useWorkspace } from "../state/workspace-store";
 import { useReadReceipt } from "./useReadReceipt";
 
 test("completion is read only at the visible tail of a focused chat, including return from the background", async () => {
@@ -12,6 +13,7 @@ test("completion is read only at the visible tail of a focused chat, including r
     fetch: globalThis.fetch,
   };
   Object.assign(globalThis, { window, document: window.document });
+  const workspace = useWorkspace.getState();
   const calls: unknown[] = [];
   let fail = false;
   globalThis.fetch = (async (_url, init) => {
@@ -118,6 +120,19 @@ test("completion is read only at the visible tail of a focused chat, including r
     });
     expect(calls).toHaveLength(1);
 
+    const active = { id: settled.sessionId, workspaceId: settled.workspaceId };
+    act(() => useWorkspace.setState({ active, readReceiptPausedFor: active }));
+    hook.rerender({ snapshot: settled, connected: true });
+    await act(async () => {
+      element.dispatchEvent(new window.Event("scroll"));
+    });
+    expect(calls).toHaveLength(1);
+    await act(async () => {
+      useWorkspace.getState().open(active);
+    });
+    expect(calls).toHaveLength(2);
+    calls.pop();
+
     const next = {
       ...settled,
       state: {
@@ -168,6 +183,7 @@ test("completion is read only at the visible tail of a focused chat, including r
     expect(calls).toHaveLength(2);
   } finally {
     cleanup();
+    useWorkspace.setState(workspace, true);
     Object.assign(globalThis, previous);
     await window.happyDOM.close();
   }

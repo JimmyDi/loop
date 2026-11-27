@@ -40,7 +40,7 @@ export const sessionRoutes =
       }
     }
     const match = url.pathname.match(
-      /^\/api\/sessions\/([^/]+)(?:\/(navigation|reveal|history|prompt|queue|resume|abort|flush|compact|model|events|title|permission|mode|execute-plan|skip-plan|approvals|user-input|read|pin)(?:\/([^/]+))?)?$/,
+      /^\/api\/sessions\/([^/]+)(?:\/(navigation|reveal|history|prompt|queue|resume|abort|flush|compact|model|events|title|permission|mode|execute-plan|skip-plan|approvals|user-input|read|unread|pin)(?:\/([^/]+))?)?$/,
     );
     if (!match) return;
     const [, id, action, requestId] = match;
@@ -52,12 +52,20 @@ export const sessionRoutes =
       const pinnedAt = await registry.setPinned(sessionWorkspace(body), id!, body.pinned);
       return Response.json({ pinnedAt: pinnedAt ?? null });
     }
-    if (action === "read") {
+    if (action === "read" || action === "unread") {
       if (method !== "PUT") throw new HttpError(405, "method_not_allowed");
       const body = await readBody(request);
-      if (typeof body.messageCount !== "number")
+      if (action === "unread") {
+        const unread = await registry.updateReadState(sessionWorkspace(body), id!, "unread");
+        return Response.json({ unread });
+      }
+      if (
+        typeof body.messageCount !== "number" ||
+        !Number.isSafeInteger(body.messageCount) ||
+        body.messageCount < 0
+      )
         throw new HttpError(400, "invalid_read_message_count");
-      const read = await registry.markRead(sessionWorkspace(body), id!, body.messageCount);
+      const read = await registry.updateReadState(sessionWorkspace(body), id!, body.messageCount);
       return Response.json({ read });
     }
     const body =

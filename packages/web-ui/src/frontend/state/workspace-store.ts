@@ -8,6 +8,8 @@ type SessionSelection = { id: string; workspaceId: string | null };
 
 type WorkspaceState = {
   active?: SessionSelection;
+  /** The current selection object changes whenever the user opens a chat. */
+  readReceiptPausedFor?: SessionSelection;
   drafts: Record<string, string>;
   images: Record<string, PromptImage[]>;
   files: Record<string, PromptFile[]>;
@@ -105,6 +107,7 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
     set((state) => ({
       automation: false,
       active: { id: session.id, workspaceId: session.workspaceId },
+      readReceiptPausedFor: undefined,
       sidebar: false,
       draftProjects: { ...state.draftProjects, [session.id]: session.workspaceId },
     })),

@@ -31,21 +31,20 @@ export class SessionRegistry {
   ) {}
 
   async list(workspaceId: string | null): Promise<SessionSummary[]> {
-    const project = await this.project(workspaceId);
-    const records = await this.loop.list(project);
-
+    const records = await this.loop.list(await this.project(workspaceId));
     for (const record of records) this.owners.set(record.id, workspaceId);
-
     return sessionSummaries(records, this.instances.values(), workspaceId);
   }
-  markRead(workspaceId: string | null, id: string, messageCount: number): Promise<boolean> {
+
+  updateReadState(
+    workspaceId: string | null,
+    id: string,
+    receipt: number | "unread",
+  ): Promise<boolean> {
     return this.withProject(workspaceId, async () => {
-      if (!Number.isSafeInteger(messageCount) || messageCount < 0)
-        throw new HttpError(400, "invalid_read_message_count");
       const controller = await this.get(id);
       if (controller.workspaceId !== workspaceId) throw new HttpError(404, "session_not_found");
-      if (controller.session.state.hasPendingSave) throw new HttpError(409, "pending_save");
-      return controller.markRead(messageCount);
+      return controller.updateReadState(receipt);
     });
   }
 

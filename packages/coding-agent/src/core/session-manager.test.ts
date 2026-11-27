@@ -466,7 +466,7 @@ test("unread belongs to the header and stale receipts cannot clear newer complet
   }
 });
 
-test("read writes serialize with commits and failed saves retain unread for retry", async () => {
+test("read and unread writes serialize with commits and preserve state when saving fails", async () => {
   const root = await mkdtemp(join(import.meta.dirname, ".unread-race-"));
   const storage = join(root, "history");
   const user = { role: "user" as const, content: "Example", timestamp: 0 };
@@ -502,6 +502,12 @@ test("read writes serialize with commits and failed saves retain unread for retr
     await Promise.all([readingLatest, manager.commit(manager.messages)]);
     expect(manager.unread).toBe(false);
     expect((await SessionManager.open(manager.sessionFile!)).unread).toBe(false);
+    const marking = manager.markUnread();
+    await Promise.resolve();
+    await Promise.all([marking, manager.commit([...manager.messages, user])]);
+    expect(manager.unread).toBe(true);
+    expect((await SessionManager.open(manager.sessionFile!)).unread).toBe(true);
+    expect(await manager.markRead(5)).toBe(true);
     await rm(storage, { recursive: true });
     await writeFile(storage, "Block writes");
     await expect(manager.commit([user, reply, user, reply, user, reply])).rejects.toThrow();

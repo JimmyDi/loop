@@ -24,6 +24,7 @@ SDK consumers supply one of these managers to `createAgentSession({ sessionManag
 | `SessionManager.continueRecent(cwd, sessionDir?)` | Resume most recent or create. |
 | `SessionManager.list(cwd, sessionDir?)` | List supported session metadata for the canonical workspace, newest first; unsupported formats are excluded without changing files. |
 | `manager.markRead(messageCount)` | Persist unread: false only when the viewed message count matches saved history; return false for stale counts. |
+| `manager.markUnread()` | Persist unread: true for nonempty saved history; return false for empty history. |
 | manager.setPinned(pinned) | Persist optional header pinnedAt, preserving history and activity; return its timestamp or undefined after unpinning. |
 | manager.setBookmark(messageIndex, bookmarked) | Persist an explicit bookmark state for a saved user message and return sorted bookmark indexes; preserve messages and activity timestamps. |
 
@@ -37,7 +38,7 @@ Read `session.state.messages` after finalization for user, assistant, and matchi
 
 The manager commits one full snapshot at the end of each prompt, including model errors and cancellation. New storage appends message bytes, then atomically publishes metadata describing the committed range. Metadata-only saves leave messages and indexes unchanged. Legacy JSONL sessions migrate on explicit open; see [session storage](session-format.md). A `message_end` event does not mean that snapshot has been persisted.
 
-New completed output also sets header unread to true; runs without output and repeated saves preserve it. Read session.state.unread or manager.unread for the current flag, and use manager.markRead(messageCount) after viewing completed output. It preserves timestamps and rejects pending saves; hosts can publish their own UI notifications after success. See [session format](session-format.md) for stale-receipt handling.
+New completed output also sets header unread to true; runs without output and repeated saves preserve it. Read session.state.unread or manager.unread for the current flag, and use manager.markRead(messageCount) after viewing completed output. Use manager.markUnread() to manually flag saved history. Both methods preserve timestamps. markRead rejects pending saves. Hosts can publish their own UI notifications after success. See [session format](session-format.md) for stale-receipt handling.
 
 [Runtime metadata](runtime-context.md) is committed separately from originals. Explicit Skill instructions expand only in model user input; current permissions update the system prompt and its section checkpoints. Legacy snapshots remain unchanged. Manual [compaction](compaction.md) preserves originals and changes only subsequent model input. Title inputs, counts and history indexes remain stable.
 

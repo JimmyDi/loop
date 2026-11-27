@@ -25,6 +25,7 @@ export const projectsZh = {
   unpinChat: "取消置顶 {{name}}",
   showMoreSessions: "显示更多",
   showMoreProjects: "显示更多项目",
+  markAsUnread: "标记为未读",
   unread: "未读",
   projectOptions: "{{name}} 的选项",
   sessionOptions: "{{name}} 的选项",

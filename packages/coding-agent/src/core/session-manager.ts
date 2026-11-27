@@ -300,6 +300,19 @@ export class SessionManager {
     });
   }
 
+  /** Mark nonempty saved history unread without changing its activity timestamp. */
+  markUnread(): Promise<boolean> {
+    return this.serialize(async () => {
+      if (!this.data.messages.length) return false;
+      if (this.data.header.unread) return true;
+      const next = { ...this.data, header: { ...this.data.header, unread: true } };
+      await this.write(next);
+      this.data = next;
+      if (this.pending) this.pending.header.unread = true;
+      return true;
+    });
+  }
+
   /** Persist pin metadata without changing conversation activity or pending history. */
   setPinned(pinned: boolean): Promise<string | undefined> {
     if (typeof pinned !== "boolean") return Promise.reject(new Error("Invalid pinned state"));

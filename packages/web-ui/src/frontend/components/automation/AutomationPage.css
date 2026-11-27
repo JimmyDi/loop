@@ -1,0 +1,19 @@
+.automation-page { display: flex; flex: 1; flex-direction: column; min-height: 0; overflow: hidden; color: var(--ink); }
+.automation-toolbar { box-sizing: border-box; display: flex; flex: none; align-items: center; flex-wrap: wrap; gap: 8px; min-height: var(--desktop-titlebar-height, 44px); padding: 4px 12px; border-bottom: 1px solid var(--line); background: var(--surface-header); }
+.automation-content { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding: 16px clamp(12px, 2vw, 24px) 12px; overflow: auto; }
+.automation-switch { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--surface-hover); }
+.automation-switch button, .automation-back { border: 0; background: transparent; color: inherit; font: inherit; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+.automation-switch [aria-pressed="true"] { background: var(--surface-raised); box-shadow: 0 1px 3px var(--shadow); font-weight: 600; }
+.automation-action.action-button { gap: 8px; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.automation-action svg { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--ink-muted); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.automation-empty { flex: 1; display: grid; grid-template-rows: minmax(0, 1fr) 44px auto minmax(3rem, 1fr); justify-items: center; align-content: center; row-gap: 8px; color: var(--ink-muted); text-align: center; }
+.automation-empty p { grid-row: 3; margin: 0; }
+.automation-empty > svg { grid-row: 2; width: 44px; height: 44px; fill: none; stroke: currentColor; stroke-width: 1.7; opacity: .55; }
+.automation-empty .automation-add { grid-row: 4; align-self: start; }
+.automation-list { list-style: none; margin: 0; padding: 0; }
+.automation-back { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; }
+.automation-back:hover { background: var(--surface-hover); color: var(--ink); }
+.automation-toolbar > .automation-add { margin-inline-start: auto; }
+.app-shell[data-sidebar-collapsed="true"] .automation-toolbar { padding-inline-start: 44px; }
+.schedule-list-heading { margin: 0 6px 8px; color: var(--ink-muted); font-size: 12px; font-weight: 600; }
+.automation-back svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }

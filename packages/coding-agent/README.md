@@ -23,6 +23,7 @@ The CLI is interactive by default. The SDK sample performs one request workflow 
 | Feature | Documentation |
 | --- | --- |
 | Investigate, review and confirm implementation plans | [Plan mode](src/docs/plan-mode.md) |
+| Schedule project prompts and inspect runs | [Scheduled tasks](src/docs/schedules.md) |
 | Embed Loop and call the public API | [SDK](src/docs/sdk.md) |
 | Interactive commands and Print mode | [CLI](src/docs/cli.md) |
 | Model selection, credentials, custom URLs | [Models](src/docs/models.md) |

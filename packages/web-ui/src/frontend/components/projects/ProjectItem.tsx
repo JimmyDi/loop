@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Project } from "../../../shared/protocol";
+import type { PendingScheduleSession } from "../../hooks/useManualScheduleSessions";
 import { useProjectSessions } from "../../hooks/useProjectSessions";
 import { isRemoteClient } from "../../lib/remote-session";
 import { useWorkspace } from "../../state/workspace-store";
@@ -11,7 +12,13 @@ import { ProjectActions } from "./ProjectActions";
 import { SessionList } from "./SessionList";
 import "./ProjectItem.css";
 
-export const ProjectItem = ({ project }: { project: Project }) => {
+export const ProjectItem = ({
+  project,
+  pending,
+}: {
+  project: Project;
+  pending?: PendingScheduleSession[];
+}) => {
   const { t } = useTranslation();
   const [contextPoint, setContextPoint] = useState<{ x: number; y: number }>();
   const expanded = useWorkspace((state) => state.expanded[project.id] ?? true);
@@ -90,7 +97,7 @@ export const ProjectItem = ({ project }: { project: Project }) => {
         {project.accessible === false ? (
           <p>{t("unavailable")}</p>
         ) : (
-          <SessionList sessions={sessions.data ?? []} />
+          <SessionList sessions={sessions.data ?? []} pending={pending} />
         )}
         <ErrorNotice error={sessions.error} />
       </div>

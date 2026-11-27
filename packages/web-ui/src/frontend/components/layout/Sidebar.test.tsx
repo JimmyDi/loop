@@ -18,7 +18,9 @@ test("Sidebar exposes its accessible content and state", () => {
   );
 
   expect(html).toContain("Projects");
-  expect(html).toContain("New task");
+  expect(html).toContain("Automation");
+  expect(html.indexOf("Automation")).toBeGreaterThan(html.indexOf("New task"));
+  expect(html.indexOf("Automation")).toBeLessThan(html.indexOf("sidebar-scroll"));
   expect(html.indexOf("sidebar-new-task")).toBeLessThan(html.indexOf("sidebar-scroll"));
   expect(html.slice(html.indexOf("sidebar-scroll"))).not.toContain("sidebar-new-task");
   expect(html).toContain("Loop");

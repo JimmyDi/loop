@@ -6,13 +6,23 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
+- Coding-agent, Web and Desktop: schedule project prompts with one-time, fixed-interval, calendar and time-zone-aware recurrence. Automation supports previewing upcoming runs, testing, editing, pausing and deleting tasks, and choosing a permission preset. Run history is grouped by date, loads on demand, and supports opening, archiving, restoring and deleting run records. Schedules use local files, recover after restart, and are also available through the CLI and SDK.
+
 - Website: add desktop downloads for macOS Apple Silicon, macOS Intel and Windows x64 to the right of the startup command on wide screens, hiding the download controls on mobile layouts and resolving the latest published desktop installer on each download with platform requirements and a release-page fallback.
 
 ### Changed
 
+- Web and Desktop: share active scheduled chat lookups across project lists and forward chat reads only for the active scheduled session.
+
 - Website: compact the homepage startup command and desktop download control with narrower widths, reduced button spacing and tighter download menu rows.
 
 ### Fixed
+
+- Web and Desktop: stream scheduled chat replies live across local hosts, show a spinner while the chat opens or generates, and show the unread dot after generation ends.
+
+- Web and Desktop: refresh Automation tasks and run history as soon as schedule changes are saved, so completed runs clear the running icon and restore the run action.
+
+- Web and Desktop: pause, resume, cancel and delete scheduled tasks when another local host owns the scheduler, including requests with an empty body.
 
 - coding-agent: restore native voice source downloads using the pinned upstream commit retained by Intel with the existing per-file integrity checks, retry transient failures with backoff, report failing files and original causes, and cancel outstanding downloads before a failed build returns.
 

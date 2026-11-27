@@ -156,3 +156,5 @@
 
 .sidebar-scroll:has(.standalone-chats) { scroll-padding-top: calc(2 * var(--sidebar-heading-offset)); }
 .sidebar-scroll:has(.pinned-sessions):has(.standalone-chats) { scroll-padding-top: calc(3 * var(--sidebar-heading-offset)); }
+
+.sidebar-new-task.sidebar-automation { padding-top: 0; }

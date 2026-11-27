@@ -212,6 +212,8 @@ export class SessionManager {
         manager = await SessionManager.open(path, false);
       } catch (error) {
         if (
+          ((error as NodeJS.ErrnoException).code === "ENOENT" &&
+            (error as NodeJS.ErrnoException).path === path) ||
           error instanceof UnsupportedSessionFormatError ||
           (error instanceof Error && error.message === "Unsupported session format or version")
         )

@@ -1,0 +1,37 @@
+.schedule-form { --schedule-row-min-height: 44px; flex: 1; min-height: 0; overflow: auto; padding: 24px clamp(12px, 2vw, 24px); }
+.schedule-editor-fields { display: grid; gap: 14px; width: min(100%, 46rem); margin-inline: auto; min-width: 0; }
+.schedule-breadcrumb, .schedule-editor-actions, .schedule-breadcrumb button { display: flex; align-items: center; gap: 8px; }
+.schedule-breadcrumb h1 { margin: 0; font-size: 1rem; }
+.schedule-breadcrumb button { cursor: pointer; color: inherit; font: inherit; background: transparent; }
+.schedule-breadcrumb button { padding: 6px 0; border: 0; color: var(--ink-muted); }
+.schedule-breadcrumb button:hover { color: var(--ink); }
+.schedule-editor-actions { margin-inline-start: auto; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+.schedule-breadcrumb svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.schedule-form .schedule-instructions, .schedule-fields { border: 1px solid var(--line); border-radius: 14px; }
+.schedule-form .schedule-instructions { box-sizing: border-box; width: 100%; min-height: 104px; max-height: 320px; padding: 14px; resize: vertical; overflow-y: auto; background: transparent; color: var(--ink); font: inherit; }
+.schedule-fields { padding-inline: 14px; --field-columns: minmax(0, 2fr) minmax(0, 3fr); }
+.schedule-fields > label { display: grid; grid-template-columns: var(--field-columns); gap: 12px; align-items: center; min-height: var(--schedule-row-min-height); font-size: 14px; }
+.schedule-fields > label + label { border-top: 1px solid var(--line); }
+.schedule-fields > label > input { box-sizing: border-box; min-width: 0; width: 100%; padding: 5px; border: 0; border-radius: 5px; background: var(--surface-raised); color: var(--ink-muted); font: inherit; text-align: start; }
+.schedule-fields > label > input[name="name"] { max-width: 16rem; justify-self: end; }
+.schedule-fields .repeat-choices summary { position: relative; }
+.schedule-fields .repeat-choices summary::after {
+  content: ""; position: absolute; inset-inline-end: 8px; top: 50%; width: 5px; height: 5px;
+  border: solid var(--ink-muted); border-width: 0 1.5px 1.5px 0;
+  transform: translateY(-70%) rotate(45deg); pointer-events: none;
+}
+.schedule-form summary { padding: 6px 2px; cursor: pointer; color: var(--ink-muted); font-size: 14px; }
+.schedule-form details[open] summary { margin-bottom: 7px; }
+.schedule-form p { margin: 0; color: var(--ink-muted); font-size: 13px; }
+.schedule-editor-fields > section { display: grid; gap: 6px; min-width: 0; }
+.schedule-editor-fields > section > h2 {
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: start;
+}
+.schedule-breadcrumb { min-width: 0; max-width: 100%; }
+.schedule-breadcrumb h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -14,13 +14,17 @@ import { useSettings } from "../../state/settings-store";
 import { PwaStatus } from "../pwa/PwaStatus";
 import "./AppShell.css";
 
+const AutomationPage = lazy(() =>
+  import("../automation/AutomationPage").then((module) => ({ default: module.AutomationPage })),
+);
+
 const SettingsPanel = lazy(() =>
   import("../settings/SettingsPanel").then((module) => ({ default: module.SettingsPanel })),
 );
 
 export const AppShell = () => {
   const { t } = useTranslation();
-  const { active, sidebar, toggleSidebar } = useWorkspace();
+  const { active, automation, sidebar, toggleSidebar } = useWorkspace();
   const resize = useSidebarWidth();
   const settings = useSettings();
 
@@ -104,7 +108,13 @@ export const AppShell = () => {
           />
           <div className="app-shell-content" ref={content}>
             <PwaStatus />
-            <ChatWorkspace id={active?.id} />
+            {automation ? (
+              <Suspense fallback={<p role="status">{t("loading")}</p>}>
+                <AutomationPage />
+              </Suspense>
+            ) : (
+              <ChatWorkspace id={active?.id} />
+            )}
           </div>
         </div>
         {settings.section && (

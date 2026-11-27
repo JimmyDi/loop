@@ -1,6 +1,6 @@
-export type DesktopTarget = "darwin-aarch64" | "darwin-x86_64" | "windows-x86_64";
+import { desktopReleasesUrl } from "./desktop-releases-url";
 
-export const desktopReleasesUrl = "https://github.com/JimmyDi/loop/releases";
+export type DesktopTarget = "darwin-aarch64" | "darwin-x86_64" | "windows-x86_64";
 
 const api = "https://api.github.com/repos/JimmyDi/loop/releases";
 

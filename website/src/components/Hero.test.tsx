@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { initializeHeroPointer } from "../hero-pointer";
@@ -22,12 +22,14 @@ it("preserves the main heading and startup command without the source link", () 
   expect(container.querySelector("h1")?.previousElementSibling).toBeNull();
 });
 
-it("extends the pointer host through the preview while protecting the product content", () => {
+it("extends the pointer host through the preview while protecting the product content", async () => {
   const { container } = render(<Hero />);
   const section = container.querySelector("section")!;
   const canvas = section.querySelector("canvas");
   const preview = screen.getByLabelText(translations.zh.previewLabel);
-  expect(initializeHeroPointer).toHaveBeenCalledWith(section, canvas);
+  expect(initializeHeroPointer).not.toHaveBeenCalled();
+  fireEvent.pointerMove(preview, { pointerType: "mouse" });
+  await waitFor(() => expect(initializeHeroPointer).toHaveBeenCalledWith(section, canvas));
   expect(section.contains(preview)).toBe(true);
   expect(preview.hasAttribute("data-pointer-clear")).toBe(true);
 });

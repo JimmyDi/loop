@@ -14,6 +14,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Web and Desktop: share active scheduled chat lookups across project lists and forward chat reads only for the active scheduled session.
 
+- coding-agent and Web UI: update the built-in model catalog to pi-ai 1.6.1, which removes the legacy OpenAI GPT-4 entry.
+
 - Website: compact the homepage startup command and desktop download control with narrower widths, reduced button spacing and tighter download menu rows.
 
 ### Fixed
@@ -26,7 +28,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - coding-agent: restore native voice source downloads using the pinned upstream commit retained by Intel with the existing per-file integrity checks, retry transient failures with backoff, report failing files and original causes, and cancel outstanding downloads before a failed build returns.
 
-- Website: defer the full documentation search index to a separate chunk, loading it after the documentation page finishes loading and becomes idle or when search is used, with loading feedback and retry support.
+- Website: render the homepage with inline styles and responsive product screenshots, and load the pointer trail and desktop installer lookup on interaction. Defer the full documentation search index to a separate chunk, loading it after the documentation page finishes loading and becomes idle or when search is used, with loading feedback and retry support.
 - Desktop: run release bundling through a package script so pnpm supplies its runtime path, and allow manual recovery of desktop publication for an existing npm version from main.
 
 ## [0.9.1] - 2026-11-24

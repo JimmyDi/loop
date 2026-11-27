@@ -105,18 +105,16 @@ test("discovery isolates saved keys by endpoint and protocol, handles catalogs a
     const beforeCatalog = requests.length;
     const catalog = await discoverModels({ ...draft, id: "openai", apiKey: undefined }, store);
     expect(catalog.length).toBeGreaterThan(1);
-    expect(catalog.find((model) => model.id === "gpt-4")).toMatchObject({
-      name: "GPT-4",
-      contextWindow: 8192,
-    });
-    expect(requests).toHaveLength(beforeCatalog);
     for (const provider of getProviderCatalog()) {
       const models = await discoverModels({ id: provider.id }, store);
-      expect(models).toHaveLength(provider.models.length);
+      expect(models).toMatchObject(
+        provider.models.map(({ id, name, contextWindow }) => ({ id, name, contextWindow })),
+      );
       expect(validateProviderConfig({ ...config, id: provider.id, models }).models).toHaveLength(
         models.length,
       );
     }
+    expect(requests).toHaveLength(beforeCatalog);
     expect((await store.all())[0]?.apiKey).toBe("saved-test-key");
   } finally {
     await server.stop(true);

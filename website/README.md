@@ -15,6 +15,12 @@ and offers a retry after failure. The homepage does not request the search index
 screenshots below the hero retain native lazy loading and demos request upcoming frames only
 while visible and playing.
 
+The production homepage embeds its compiled styles in the static HTML so the header, title and
+startup command can paint on the first response. The Chinese homepage can paint as it is parsed;
+the English template is selected before revealing English content. The hero picture selects a
+480, 960 or 1440 pixel WebP for the current layout, screen density, language and theme. Mouse
+trail code loads on mouse movement and installer lookup code loads on installer selection.
+
 ## Development
 
 Use Node.js 24+ and pnpm 11. Install from the repository root:

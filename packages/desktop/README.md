@@ -40,6 +40,8 @@ Wide-screen layout and surface styles are shared with the Web frontend. The 52-p
 
 The shell starts the packaged Node executable, waits for readiness, and opens the existing Web UI through a loopback gateway. A per-launch HttpOnly cookie authenticates the desktop window. The backend requires an additional per-launch secret. Remote access retains its existing device authorization.
 
+The macOS Dock icon shows the unread count across unarchived chats in local projects and outside projects while Loop runs. The count follows session updates and clears when no unread chats remain.
+
 The macOS message scrollbar starts below the 68-pixel title-bar fade. Its narrow thumb uses theme-aware colors and an inset from the window edge, keeping the full thumb visible and available for dragging.
 
 Desktop uses the same data-root resolution as Web and CLI. LOOP_DATA_DIR overrides the default ~/.loop directory. Existing provider configuration, projects, settings and saved sessions are available through the shared backend contracts. The desktop-specific loopback port and window state live in the platform application-data directory. A persisted loopback port preserves desktop browser preferences, selected sessions and text drafts across restarts. Port conflicts fail startup. Image attachments held only in frontend memory should be sent before restarting.

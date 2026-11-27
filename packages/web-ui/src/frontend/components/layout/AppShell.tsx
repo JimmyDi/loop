@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { useSidebarWidth } from "../../hooks/useSidebarWidth";
 import { useMobileDrawer } from "../../hooks/useMobileDrawer";
+import { useDockBadge } from "../../hooks/useDockBadge";
 import { useListEvents } from "../../hooks/useListEvents";
 import { useVisualViewport } from "../../hooks/useVisualViewport";
 import { useWorkspace } from "../../state/workspace-store";
@@ -36,6 +37,7 @@ export const AppShell = () => {
 
   useMobileDrawer(drawer, sidebar && !settings.section, toggleSidebar, content);
   useListEvents();
+  useDockBadge();
 
   return (
     <div

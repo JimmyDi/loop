@@ -62,11 +62,11 @@ fn main() {
             #[cfg(target_os = "macos")]
             app.add_capability(
                 json!({
-                    "identifier": "desktop-titlebar",
+                    "identifier": "desktop-window",
                     "windows": ["main"],
                     "local": false,
                     "remote": { "urls": [format!("{}/*", origin.ascii_serialization())] },
-                    "permissions": ["core:window:allow-start-dragging"]
+                    "permissions": ["core:window:allow-start-dragging", "core:window:allow-set-badge-count"]
                 })
                 .to_string(),
             )?;

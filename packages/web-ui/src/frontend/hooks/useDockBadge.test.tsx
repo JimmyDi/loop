@@ -1,13 +1,20 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Window } from "happy-dom";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import type { SessionSnapshot, SessionSummary } from "../../shared/protocol";
 import { useSessions } from "../state/session-store";
-import { useUnreadSessions } from "./useUnreadSessions";
+import { useDockBadge } from "./useDockBadge";
 
-test("unread aggregates all accessible lists and follows live state and cache refreshes", async () => {
+test("Dock badge counts all accessible chats and clears after live reads and list refreshes", async () => {
   const window = new Window();
+  const invoke = vi.fn(async () => {});
+  Object.assign(window, {
+    __LOOP_MACOS_TITLEBAR__: true,
+    __TAURI_INTERNALS__: { invoke },
+  });
+  const expectBadge = (value: number | null) =>
+    expect(invoke).toHaveBeenLastCalledWith("plugin:window|set_badge_count", { value });
   const previous = { window: globalThis.window, document: globalThis.document };
   const state = useSessions.getState();
   Object.assign(globalThis, { window, document: window.document });
@@ -49,21 +56,21 @@ test("unread aggregates all accessible lists and follows live state and cache re
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     );
     let renders = 0;
-    const { result } = renderHook(
+    renderHook(
       () => {
         renders++;
-        return useUnreadSessions();
+        useDockBadge();
       },
       { wrapper },
     );
-    await waitFor(() => expect(result.current).toBe(false));
+    await waitFor(() => expectBadge(null));
     await act(async () => {
       client.setQueryData(
         ["sessions", "project"],
-        chats.map((chat, i) => ({ ...chat, unread: i === 7 })),
+        chats.map((chat, i) => ({ ...chat, unread: i >= 6 })),
       );
     });
-    await waitFor(() => expect(result.current).toBe(true));
+    await waitFor(() => expectBadge(2));
     act(() => {
       useSessions.setState({
         views: {
@@ -71,7 +78,7 @@ test("unread aggregates all accessible lists and follows live state and cache re
         },
       });
     });
-    await waitFor(() => expect(result.current).toBe(false));
+    await waitFor(() => expectBadge(1));
     const settledRenders = renders;
     act(() => {
       useSessions.setState({
@@ -86,15 +93,16 @@ test("unread aggregates all accessible lists and follows live state and cache re
       });
     });
     expect(renders).toBe(settledRenders);
+    expect(invoke).toHaveBeenCalledTimes(3);
     act(() => useSessions.setState({ views: {} }));
-    await waitFor(() => expect(result.current).toBe(true));
+    await waitFor(() => expectBadge(2));
     await act(async () => {
       client.setQueryData(["sessions", "project"], chats);
       client.setQueryData(["sessions", null], [{ ...session("global", null), unread: true }]);
     });
-    await waitFor(() => expect(result.current).toBe(true));
+    await waitFor(() => expectBadge(1));
     await act(async () => client.setQueryData(["sessions", null], [session("global", null)]));
-    await waitFor(() => expect(result.current).toBe(false));
+    await waitFor(() => expectBadge(null));
   } finally {
     cleanup();
     client.clear();

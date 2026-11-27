@@ -8,9 +8,13 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Development workflow: add a coding-agent launcher that isolates concurrent or dirty checkouts in Git worktrees, with startup checks for Codex and Claude Code.
 
+- Desktop: show the number of unread local chats on the macOS Dock icon and hide the badge when all chats are read.
+
 - Website: add desktop downloads for macOS Apple Silicon, macOS Intel and Windows x64 to the right of the startup command on wide screens, hiding the download controls on mobile layouts and resolving the latest published desktop installer on each download with platform requirements and a release-page fallback.
 
 ### Changed
+
+- coding-agent and Web UI: update the built-in model catalog to pi-ai 1.6.1, which removes the legacy OpenAI GPT-4 entry.
 
 - Website: compact the homepage startup command and desktop download control with narrower widths, reduced button spacing and tighter download menu rows.
 

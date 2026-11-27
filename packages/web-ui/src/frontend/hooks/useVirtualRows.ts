@@ -1,14 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 
-const ESTIMATE = 160;
-const OVERSCAN = 800;
-
 export const useVirtualRows = (
   keys: readonly string[],
   viewport: RefObject<HTMLDivElement | null>,
   pinned: readonly number[],
   list: RefObject<HTMLDivElement | null>,
+  { estimate = 160, overscan = 800 } = {},
 ) => {
   const indicesByKey = useMemo(() => new Map(keys.map((key, index) => [key, index])), [keys]);
   const heights = useRef(new Map<string, number>());
@@ -18,9 +16,9 @@ export const useVirtualRows = (
 
   const offsets = useMemo(() => {
     const offsets = [0];
-    for (const key of keys) offsets.push(offsets.at(-1)! + (heights.current.get(key) ?? ESTIMATE));
+    for (const key of keys) offsets.push(offsets.at(-1)! + (heights.current.get(key) ?? estimate));
     return offsets;
-  }, [keys, revision]);
+  }, [keys, revision, estimate]);
   const sync = () => {
     const element = viewport.current;
     const content = list.current;
@@ -41,8 +39,8 @@ export const useVirtualRows = (
       const index = indicesByKey.get(node.dataset.rowKey!) ?? -1;
       const rect = node.getBoundingClientRect();
       if (index < 0 || rect.height <= 0) continue;
-      const height = Math.max(40, rect.height);
-      const old = heights.current.get(node.dataset.rowKey!) ?? ESTIMATE;
+      const height = rect.height;
+      const old = heights.current.get(node.dataset.rowKey!) ?? estimate;
       if (Math.abs(height - old) < 0.5) continue;
       heights.current.set(node.dataset.rowKey!, height);
       if (
@@ -103,12 +101,12 @@ export const useVirtualRows = (
   let high = keys.length;
   while (low < high) {
     const middle = (low + high) >>> 1;
-    if (offsets[middle + 1]! <= top - OVERSCAN) low = middle + 1;
+    if (offsets[middle + 1]! <= top - overscan) low = middle + 1;
     else high = middle;
   }
   for (
     let index = low;
-    index < keys.length && offsets[index]! < top + position.height + OVERSCAN;
+    index < keys.length && offsets[index]! < top + position.height + overscan;
     index++
   )
     selected.add(index);

@@ -2,6 +2,8 @@
 
 Browser application over the public coding-agent SDK. All implementation, styles, tests and local validation configuration live in this directory.
 
+Manage [scheduled project prompts](../coding-agent/src/docs/schedules.md) from **Automation** below **New task** in the sidebar.
+
 ## Startup
 
 Web is a private pnpm workspace package. Frontend and backend share its package.json and the root pnpm-lock.yaml. Install from the repository root with pnpm install.

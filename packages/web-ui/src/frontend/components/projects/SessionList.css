@@ -22,3 +22,8 @@
   border-radius: 10px;
   color: var(--ink-muted);
 }
+
+.session-item-open.session-pending {
+  cursor: default;
+  color: var(--ink);
+}

@@ -1,0 +1,29 @@
+.schedule-preview-card {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.schedule-preview-card ol { margin: 0; padding: 0; list-style: none; }
+.schedule-preview-card li + li,
+.schedule-preview-card .schedule-preview-more { box-shadow: inset 0 1px var(--line); }
+.schedule-preview-card time,
+.schedule-preview-card .schedule-preview-more {
+  box-sizing: border-box;
+  display: flex;
+  min-height: var(--schedule-row-min-height, 44px);
+  align-items: center;
+  align-content: center;
+  padding-block: 8px;
+  line-height: 18px;
+}
+.schedule-preview-card time {
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  color: var(--ink-muted);
+}
+.schedule-preview-card strong { color: var(--ink); font-weight: 600; }

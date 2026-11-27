@@ -94,6 +94,7 @@ export type Cursor = { streamId: string; seq: number };
 
 export type ListChange =
   | { type: "lists.reset" }
+  | { type: "schedules.changed" }
   | { type: "sessions.changed" | "projects.changed"; workspaceId: string | null };
 
 export type ListFrame = ListChange & Cursor;

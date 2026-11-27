@@ -12,19 +12,26 @@ export const VirtualList = ({
   pinned = [],
   target,
   onTarget,
+  estimate,
+  overscan,
 }: {
   rows: readonly VirtualRow[];
   viewport: RefObject<HTMLDivElement | null>;
   pinned?: readonly number[];
   target?: { key: string; request: number };
   onTarget?: () => void;
+  estimate?: number;
+  overscan?: number;
 }) => {
   const keys = useMemo(() => rows.map((row) => row.key), [rows]);
   const list = useRef<HTMLDivElement>(null);
   const aligned = useRef<{ target: typeof target; pass: number }>({ target: undefined, pass: 0 });
   const [, reconcile] = useState(0);
   const targetIndex = target ? keys.indexOf(target.key) : -1;
-  const virtual = useVirtualRows(keys, viewport, [...pinned, targetIndex], list);
+  const virtual = useVirtualRows(keys, viewport, [...pinned, targetIndex], list, {
+    estimate,
+    overscan,
+  });
   useLayoutEffect(() => {
     const element = viewport.current;
     const node = list.current?.querySelector<HTMLElement>('[data-row-key="' + target?.key + '"]');

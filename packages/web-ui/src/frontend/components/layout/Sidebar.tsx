@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { flushSync } from "react-dom";
 
 import { isRemoteClient } from "../../lib/remote-session";
+import { useManualScheduleSessions } from "../../hooks/useManualScheduleSessions";
 import { useProjectSessions } from "../../hooks/useProjectSessions";
 import { SidebarSessionSection } from "../projects/SidebarSessionSection";
 import { useProjects } from "../../hooks/useProjects";
@@ -28,7 +29,19 @@ export const Sidebar = () => {
   const [addedProjectId, setAddedProjectId] = useState<string>();
   const projectList = useRef<HTMLDivElement>(null);
   const scroll = useSidebarClipping();
+  const automation = useWorkspace((state) => state.automation);
   const toggle = useWorkspace((state) => state.toggleSidebar);
+  const submissions = useManualScheduleSessions();
+  const latest = submissions[0];
+  const revealed = useRef<string>(undefined);
+  useEffect(() => {
+    if (!latest || revealed.current === latest.requestId) return;
+    const index = projects.data?.findIndex((project) => project.id === latest.projectId) ?? -1;
+    if (index < 0) return;
+    revealed.current = latest.requestId;
+    setProjectsExpanded(true);
+    setVisibleProjects((count) => Math.max(count, index + 1));
+  }, [latest, projects.data]);
   const activateProjects = (heading: HTMLElement) => {
     preserveSidebarScroll(heading, () => flushSync(() => setProjectsExpanded((value) => !value)));
   };
@@ -59,6 +72,27 @@ export const Sidebar = () => {
         </ActionButton>
       </div>
       <NewTaskButton projects={projects.data ?? []} />
+      {!isRemoteClient() && (
+        <div className="sidebar-new-task sidebar-automation">
+          <ActionButton
+            className="ghost"
+            aria-current={automation ? "page" : undefined}
+            onClick={() => useWorkspace.getState().showAutomation(true)}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 6v6l4 2" />
+            </svg>
+            Automation
+          </ActionButton>
+        </div>
+      )}
       <div className="sidebar-scroll" ref={scroll}>
         <PinnedSessions projects={projects.data ?? []} />
         <SidebarSessionSection
@@ -128,7 +162,11 @@ export const Sidebar = () => {
           {projects.isPending && <p>{t("loading")}</p>}
           <ErrorNotice error={projects.error} />
           {projects.data?.slice(0, visibleProjects).map((project) => (
-            <ProjectItem key={project.id} project={project} />
+            <ProjectItem
+              key={project.id}
+              project={project}
+              pending={submissions.filter((item) => item.projectId === project.id)}
+            />
           ))}
           {(projects.data?.length ?? 0) > visibleProjects && (
             <ActionButton

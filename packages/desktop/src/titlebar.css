@@ -157,7 +157,8 @@
 .desktop-macos-titlebar .navigation-bar { min-width: 0; transition: opacity 200ms ease, transform 240ms ease; }
 .desktop-macos-titlebar .app-shell[data-sidebar-collapsed="true"] .navigation-bar { opacity: 0; transform: translateX(-16px); pointer-events: none; }
 .desktop-macos-titlebar .app-shell[data-sidebar-collapsed="true"]::before { width: 0; opacity: 0; }
-.desktop-macos-titlebar .app-shell[data-sidebar-collapsed="true"] .session-header { padding-left: 144px; }
+.desktop-macos-titlebar .app-shell[data-sidebar-collapsed="true"] .session-header,
+.desktop-macos-titlebar .app-shell[data-sidebar-collapsed="true"] .automation-toolbar { padding-left: 144px; }
 .desktop-macos-titlebar:has(.app-shell[data-sidebar-collapsed="true"]) .desktop-titlebar-drag { display: none; }
 .desktop-macos-titlebar .app-shell:has(.sidebar-resizer:active)::before,
 .desktop-macos-titlebar .app-shell:has(.sidebar-resizer:active) .app-shell-home,

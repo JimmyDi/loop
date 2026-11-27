@@ -124,6 +124,10 @@ export class SessionController {
     signal.throwIfAborted();
   }
 
+  waitForCompletion(): Promise<void> {
+    return this.active;
+  }
+
   async abort(): Promise<void> {
     await this.session.abort();
     await this.active;

@@ -1,0 +1,32 @@
+.schedule-row { cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 2px 6px; border-radius: 8px; min-width: 0; }
+.schedule-row:hover, .schedule-row:focus-within { background: var(--surface-hover); }
+.schedule-row > span { color: var(--ink-muted); font-size: 13px; }
+.schedule-row-name, .schedule-row-actions button, .schedule-row-menu button { background: transparent; border: 0; border-radius: 6px; color: inherit; font: inherit; cursor: pointer; }
+.schedule-row-name { max-width: 35%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 0; }
+.schedule-row-actions { display: flex; flex: none; }
+.schedule-row-project, .schedule-row-repeat { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.schedule-row-project { max-width: 22ch; }
+.schedule-row-status { flex: none; margin-inline-start: auto; white-space: nowrap; }
+.schedule-row-actions button { display: grid; place-items: center; width: 32px; height: 32px; }
+.schedule-row-actions svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+@media (hover: hover) and (pointer: fine) {
+  .schedule-row:is(:hover, :focus-within, :has(.schedule-row-actions[data-open="true"])) .schedule-row-status time { display: none; }
+  .schedule-row:not(:hover):not(:focus-within) .schedule-row-actions[data-open="false"] { position: absolute; opacity: 0; pointer-events: none; }
+}
+.schedule-row-menu { position: fixed; z-index: 60; display: grid; min-width: 130px; padding: 4px; background: var(--surface-raised); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 20px var(--shadow); }
+.schedule-row-menu button { padding: 6px 10px; text-align: start; }
+.schedule-row-menu button:hover, .schedule-row-menu button:focus-visible { background: var(--surface-hover); }
+
+@media (max-width: 600px) {
+  .schedule-row { flex-wrap: wrap; }
+  .schedule-row-repeat { max-width: 45%; }
+}
+
+.schedule-status-icon { flex: none; width: 16px; height: 16px; color: var(--ink-muted); }
+.schedule-status-icon circle { fill: currentColor; fill-opacity: .12; stroke: currentColor; }
+.schedule-status-icon path { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.schedule-status-icon[data-status="active"] { color: var(--accent); }
+.schedule-status-icon[data-status="running"] { color: light-dark(#187349, #7ddcad); }
+.schedule-status-icon[data-status="running"] path { fill: currentColor; }
+.schedule-status-icon[data-status="paused"] { color: light-dark(#945900, #efbb67); }
+.schedule-status-icon[data-status="missed"] { color: var(--error-ink); }

@@ -21,6 +21,10 @@ export class MaintenanceCoordinator implements ServerMaintenance {
     private readonly stopBackground: () => Promise<void>,
   ) {}
 
+  get accepting(): boolean {
+    return !this.locked;
+  }
+
   status(): ServerActivity {
     const sessions = [...this.sessions()];
     return {

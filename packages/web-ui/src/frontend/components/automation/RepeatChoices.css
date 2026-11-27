@@ -1,0 +1,6 @@
+.schedule-form .repeat-choices { border-block-start: 1px solid var(--line); }
+.schedule-form .repeat-choices summary { display:grid; grid-template-columns:var(--field-columns); align-items:center; min-height:44px; gap:12px; padding:0; margin:0; color:var(--ink); }
+.repeat-choices summary span:last-child { padding-inline:5px 26px; text-align:end; color:var(--ink-muted); }
+.repeat-choices fieldset { display:flex; flex-wrap:wrap; gap:4px; border:0; padding:4px 0 10px; }
+.repeat-choices legend { position:absolute; clip-path:inset(50%); }
+.schedule-fields .repeat-choices fieldset label { display:inline-flex; align-items:center; min-height:30px; gap:4px; border:0; padding-inline:5px; }

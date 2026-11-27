@@ -1,0 +1,6 @@
+.daily-time-field { display:flex; align-items:center; min-height:44px; border-block:1px solid var(--line); font-size:14px; }
+.daily-time-field label { margin-inline-end:auto; }
+.daily-time-field input { min-width:0; padding:5px 0; border:0; background:transparent; color:var(--ink-muted); font:inherit; text-align:end; }
+.daily-time-field input::-webkit-calendar-picker-indicator { display:none; }
+.daily-time-field .schedule-select-trigger { width:24px; height:32px; padding:0; font-size:0; }
+.daily-time-field .schedule-select-list { min-width:min(9rem,75vw); }

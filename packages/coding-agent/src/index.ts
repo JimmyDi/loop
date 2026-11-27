@@ -1,3 +1,14 @@
+export { ScheduleService, ScheduleUnavailableError } from "./core/scheduling/service";
+export { nextOccurrence, ScheduleInputError } from "./core/scheduling/time";
+export type {
+  Schedule,
+  ScheduleInput,
+  ScheduleTrigger,
+  ScheduleRun,
+  ScheduleRunCursor,
+  ScheduleRunPage,
+  ScheduleHost,
+} from "./core/scheduling/types";
 export { AgentSession } from "./core/agent-session";
 export type { QueuedMessage } from "./core/message-queue";
 export type { PromptContent } from "@loop/agent";

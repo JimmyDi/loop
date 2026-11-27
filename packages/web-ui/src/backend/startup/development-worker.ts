@@ -9,7 +9,7 @@ import { attachVoiceUpgrade } from "../http/voice-upgrade";
 // The supervisor sends this ephemeral capability only over its private IPC channel.
 process.once("message", async (message: { token: string; invalidated?: string[] }) => {
   if (typeof message?.token !== "string" || message.token.length !== 64) process.exit(1);
-  const service = createBusinessService();
+  const service = await createBusinessService();
   process.on("message", (value: unknown) => {
     if (
       value &&

@@ -3,7 +3,7 @@ import { once } from "node:events";
 import { Readable } from "node:stream";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { expect, test } from "vitest";
 
@@ -39,6 +39,8 @@ test("session discovery skips unsupported formats without rewriting them or hidi
   const root = await mkdtemp(join(import.meta.dirname, ".session-discovery-test-"));
   try {
     const current = await SessionManager.create(root, root);
+    // The writer can create the directory before committing the first metadata file.
+    await mkdir(join(root, crypto.randomUUID()));
     const unsupported = join(root, "unsupported.jsonl");
     for (const header of [
       { ...current.getHeader(), version: 1 },

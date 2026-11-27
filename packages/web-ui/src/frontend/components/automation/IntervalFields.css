@@ -1,0 +1,5 @@
+.repeat-interval { display:flex; align-items:center; min-height:44px; gap:4px; border-top:1px solid var(--line); font-size:14px; }
+.repeat-interval > label:first-child { flex:1; min-width:0; display:flex; align-items:center; justify-content:space-between; }
+.repeat-interval input { box-sizing:border-box; width:var(--repeat-number-width); max-width:100%; min-width:0; text-align:end; color:inherit; font:inherit; border:0; background:transparent; }
+.repeat-interval .schedule-select { display:block; }
+.interval-unit-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }

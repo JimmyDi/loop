@@ -33,21 +33,24 @@ SSE responses use text/event-stream with Cache-Control: no-cache, no-transform a
 
 Aborting a request or cancelling its stream removes only that connection's listeners and timer, without cancelling AgentSession. Disposing an instance closes its connections. Server restart creates a new streamId. Replay is not a durable event log, does not recover unsaved execution, and does not re-execute commands.
 
+A local Web or Desktop viewer on a different host can read the active scheduled session snapshot, history and SSE stream through the authenticated scheduler connection. The event stream forwards model deltas and replay cursors without waiting for disk writes. The project session list overlays the active scheduled session from the owner, so interim saves do not switch a running item to unread. Local project requests share a one-second active-session cache, including idle results. Run-file notifications invalidate it, and only the active scheduled session uses the peer chat endpoints. The owner closes this subscription when the scheduled run ends, so the view reconnects to local saved history. The forwarded stream is a read-only viewer and does not register a remote-host approval handler.
+
 ## List Change Notifications
 
 Connect once per page to `GET /api/workspaces/events` independently of the selected session. SSE data is a JSON ListFrame with streamId and seq, using the same id format and onmessage handling as session events.
 
 | Frame type | Client action |
 | --- | --- |
-| lists.reset | Refresh projects, cached session lists and archived chats |
+| lists.reset | Refresh projects, cached session lists, archived chats and Automation |
 | sessions.changed | Refresh the session list for workspaceId and archived chats |
+| schedules.changed | Refresh Automation tasks, run history and pending manual runs |
 | projects.changed | Refresh projects, the session list for workspaceId and archived chats |
 
-Incremental notifications contain only workspaceId and cursor metadata, without messages or snapshots. They are published after project registration/rename/removal and archive/restore/deletion operations, on accepted runs, first user messages, command-state changes, run settlement, asynchronous title updates and durable read receipts. All loaded controllers are observed, even without a per-session browser connection. Token deltas and tool events do not trigger list refreshes. Operations that partially complete before failing also notify clients so completed changes remain visible.
+Incremental notifications contain cursor metadata and a workspaceId for project or session changes. Automation notifications are emitted when committed schedule or run files change, including writes by the scheduler on another local host. The client batches notifications and refetches only active queries. They are published after project registration/rename/removal and archive/restore/deletion operations, on accepted runs, first user messages, command-state changes, run settlement, asynchronous title updates and durable read receipts. All loaded controllers are observed, even without a per-session browser connection. Token deltas and tool events do not trigger list refreshes. Operations that partially complete before failing also notify clients so completed changes remain visible.
 
 Each new connection always receives lists.reset at the current sequence, even if Last-Event-ID is supplied. The list stream retains no replay buffer; clients reload lists to recover missed changes. It shares the transport's 15-second named heartbeat, backpressure and disconnect cleanup. Heartbeats do not read history or refresh lists. Controller disposal removes its watcher; registry shutdown closes all list connections.
 
-Notifications cover changes made through this Web process. They do not watch external CLI writes or filesystem edits; reload the page to pick up those changes. This stream synchronizes list queries, not another page's selected session or unsent drafts.
+Notifications cover changes made through this Web process. A host that shares its data directory with the scheduler watches committed session metadata. When new messages extend an idle cached chat, it closes the stale stream so the client reconnects to an updated snapshot. Other session and project notifications do not generally watch external CLI writes or filesystem edits; reload the page to pick up those changes. This stream synchronizes list queries, not another page's selected session or unsent drafts.
 
 ## Source and Tests
 

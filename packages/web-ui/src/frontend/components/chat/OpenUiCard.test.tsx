@@ -44,6 +44,8 @@ beforeAll(async () => {
   );
   vi.stubGlobal("cancelAnimationFrame", clearTimeout);
   testing = await import("@testing-library/react/pure");
+  // Load the renderer outside the DOM assertion timeout on slower CI runners.
+  await import("./OpenUiCard");
 });
 afterEach(() => testing?.cleanup());
 afterAll(async () => {

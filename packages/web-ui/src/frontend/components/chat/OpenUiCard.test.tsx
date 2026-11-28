@@ -44,6 +44,8 @@ beforeAll(async () => {
   );
   vi.stubGlobal("cancelAnimationFrame", clearTimeout);
   testing = await import("@testing-library/react/pure");
+  // Load the renderer after installing DOM globals, before timing its UI assertions.
+  await import("./OpenUiCard");
 });
 afterEach(() => testing?.cleanup());
 afterAll(async () => {

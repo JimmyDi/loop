@@ -7,6 +7,7 @@ import type { LoadedSkill } from "../../../shared/skills";
 import { queuedContent } from "../../../shared/queued-content";
 import { IMAGE_TYPES } from "../../../shared/prompt-images";
 import { copySkillMessage } from "../../lib/skill-clipboard";
+import { MarkdownText } from "./MarkdownText";
 import { MessageThumbnail } from "./MessageThumbnail";
 import { MessageFooter } from "./MessageFooter";
 import { TextFileAttachment } from "./TextFileAttachment";
@@ -57,7 +58,7 @@ const UserMessageView = ({
           {skills.map((skill) => (
             <UserMessageSkill key={skill.id} skill={skill} workspaceId={workspaceId} />
           ))}
-          {text}
+          {text && <MarkdownText text={text} />}
         </div>
       )}
       <MessageFooter

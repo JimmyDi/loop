@@ -1,10 +1,11 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { Window } from "happy-dom";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import type { SessionSnapshot, Message } from "../../../shared/protocol";
 import { applyEvent, applyFrame } from "../../../shared/session-projection";
 import { projectTools } from "../../../shared/tool-projection";
+import * as markdownRenderer from "../../lib/markdown";
 import "../../i18n/setup";
 import { MessageTimeline } from "./MessageTimeline";
 import { AssistantTurn } from "./AssistantTurn";
@@ -48,6 +49,7 @@ test("phase text, multiple tool batches and final replies stay flat through stre
   const previous = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, { window, document: window.document });
   const { render, cleanup, act, waitFor } = await import("@testing-library/react/pure");
+  const parse = vi.spyOn(markdownRenderer, "renderMarkdown");
   try {
     let snapshot = applyEvent(initial, {
       type: "prompt_timing",
@@ -74,11 +76,12 @@ test("phase text, multiple tool batches and final replies stay flat through stre
         1,
       );
       ui.rerender(<MessageTimeline snapshot={snapshot} connected />);
-      phaseNode ??= ui.container.querySelector(".markdown-text");
-      expect(ui.container.querySelector(".markdown-text")).toBe(phaseNode);
+      phaseNode ??= ui.container.querySelector(".assistant-message .markdown-text");
+      expect(ui.container.querySelector(".assistant-message .markdown-text")).toBe(phaseNode);
       expect(phaseNode?.textContent).toContain(phaseText);
       expect(ui.container.querySelector(".run-activity-card")).toBeNull();
     }
+    expect(parse.mock.calls.filter(([text]) => text === "Check files")).toHaveLength(1);
     const batch: typeof draft = {
       ...draft,
       stopReason: "toolUse",
@@ -99,7 +102,7 @@ test("phase text, multiple tool batches and final replies stay flat through stre
       1,
     );
     ui.rerender(<MessageTimeline snapshot={snapshot} connected />);
-    expect(ui.container.querySelector(".markdown-text")).toBe(phaseNode);
+    expect(ui.container.querySelector(".assistant-message .markdown-text")).toBe(phaseNode);
     expect(ui.container.querySelectorAll(".tool-card")).toHaveLength(2);
     expect(ui.container.querySelector(".tool-group-label")?.textContent).toBe("Run pnpm test");
     expect(ui.container.textContent).not.toContain("Hidden thinking");
@@ -166,7 +169,7 @@ test("phase text, multiple tool batches and final replies stay flat through stre
     const nextResult = { ...result, toolCallId: "references" };
     snapshot = applyEvent(snapshot, { type: "message_end", message: nextResult }, 5);
     ui.rerender(<MessageTimeline snapshot={snapshot} connected />);
-    expect(ui.container.querySelector(".markdown-text")).toBe(phaseNode);
+    expect(ui.container.querySelector(".assistant-message .markdown-text")).toBe(phaseNode);
     expect(ui.container.querySelector(".tool-card")).toBe(card);
     expect(ui.container.querySelectorAll(".tool-card")).toHaveLength(3);
     expect(
@@ -209,8 +212,10 @@ test("phase text, multiple tool batches and final replies stay flat through stre
         6,
       );
       ui.rerender(<MessageTimeline snapshot={snapshot} connected />);
-      answerNode ??= ui.container.querySelectorAll(".markdown-text")[1]!;
-      expect(ui.container.querySelectorAll(".markdown-text")[1]).toBe(answerNode);
+      answerNode ??= ui.container.querySelectorAll(".assistant-message .markdown-text")[1]!;
+      expect(ui.container.querySelectorAll(".assistant-message .markdown-text")[1]).toBe(
+        answerNode,
+      );
       expect(answerNode.textContent).toContain(answerText);
       expect(ui.container.querySelector(".looping-indicator")).not.toBeNull();
       expect(ui.container.querySelector(".tool-card")).toBe(card);
@@ -227,7 +232,7 @@ test("phase text, multiple tool batches and final replies stay flat through stre
       state: { ...snapshot.state, isRunning: false, outcome: "success" },
     };
     ui.rerender(<MessageTimeline snapshot={snapshot} connected />);
-    expect(ui.container.querySelectorAll(".markdown-text")[1]).toBe(answerNode);
+    expect(ui.container.querySelectorAll(".assistant-message .markdown-text")[1]).toBe(answerNode);
     expect(card.open).toBe(true);
     expect(ui.container.querySelector(".looping-indicator")).toBeNull();
     expect(ui.container.querySelector(".prompt-duration")?.textContent).toBe("Worked for 29s");
@@ -248,6 +253,7 @@ test("phase text, multiple tool batches and final replies stay flat through stre
     expect(history.container.querySelectorAll(".prompt-duration")).toHaveLength(1);
     expect(history.container.textContent).toContain("Worked for 29s");
   } finally {
+    parse.mockRestore();
     try {
       await act(async () => {
         cleanup();

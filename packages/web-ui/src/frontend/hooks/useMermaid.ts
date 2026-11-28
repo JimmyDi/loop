@@ -29,14 +29,16 @@ export const useMermaid = (html: string, streaming: boolean) => {
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
-    const controller = new AbortController();
     const codes = [...root.querySelectorAll<HTMLElement>("pre > code.language-mermaid")];
-    const restores: (() => void)[] = [];
 
     // Keep only current blocks, not an ever-growing cache of streamed drafts.
     for (const index of cache.current.keys()) {
       if (index >= codes.length) cache.current.delete(index);
     }
+    if (!codes.length) return;
+
+    const controller = new AbortController();
+    const restores: (() => void)[] = [];
 
     const draw = async () => {
       for (const [index, code] of codes.entries()) {

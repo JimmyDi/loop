@@ -1,10 +1,12 @@
-import { expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { Window } from "happy-dom";
+import { JSDOM } from "jsdom";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import type { SessionSnapshot } from "../../../shared/protocol";
 import type { Message } from "../../../shared/protocol";
 import { projectTools } from "../../../shared/tool-projection";
+import * as markdownRenderer from "../../lib/markdown";
 import "../../i18n/setup";
 import { MessageTimeline } from "./MessageTimeline";
 
@@ -23,6 +25,20 @@ const snapshot: SessionSnapshot = {
     listenerErrors: [],
   },
 };
+
+let browser: JSDOM["window"];
+
+beforeEach(() => {
+  browser = new JSDOM().window;
+  vi.stubGlobal("window", browser);
+  vi.stubGlobal("document", browser.document);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  browser.close();
+});
 
 test("MessageTimeline renders the session state without unsupported controls", () => {
   const html = renderToStaticMarkup(
@@ -45,10 +61,13 @@ test("opening long history renders the latest three user rounds", () => {
       connected
     />,
   );
-  expect(html).not.toContain('class="user-message-text">History request 4');
-  expect(html).toContain("History request 5");
-  expect(html).toContain("History request 6");
-  expect(html).toContain("History request 7");
+  browser.document.body.innerHTML = html;
+  const bubbles = browser.document.querySelectorAll(".user-message .markdown-text");
+  expect([...bubbles].map((bubble) => bubble.textContent?.trim())).toEqual([
+    "History request 5",
+    "History request 6",
+    "History request 7",
+  ]);
 });
 
 test("sending aligns the actual user message and keeps it steady through snapshot updates", async () => {
@@ -77,6 +96,7 @@ test("sending aligns the actual user message and keeps it steady through snapsho
   };
 
   try {
+    const parse = vi.spyOn(markdownRenderer, "renderMarkdown");
     const ui = render(<MessageTimeline snapshot={{ ...snapshot, operation: "idle" }} connected />);
     const timeline = ui.container.querySelector<HTMLDivElement>(".message-timeline")!;
     const content = ui.container.querySelector<HTMLDivElement>(".timeline-content")!;
@@ -96,10 +116,13 @@ test("sending aligns the actual user message and keeps it steady through snapsho
       ...snapshot,
       state: {
         ...snapshot.state,
-        messages: [{ role: "user", content: "Example request", timestamp: 0 }],
+        messages: [{ role: "user", content: "**Example request**", timestamp: 0 }],
       },
     };
     ui.rerender(<MessageTimeline snapshot={sent} connected />);
+    expect(ui.container.querySelector(".user-message .markdown-text strong")?.textContent).toBe(
+      "Example request",
+    );
     expect(scrollTop).toBe(800);
     expect(ui.container.querySelector(".user-message")?.getBoundingClientRect().top).toBe(0);
     fireEvent.scroll(timeline);
@@ -113,6 +136,7 @@ test("sending aligns the actual user message and keeps it steady through snapsho
     scrollTop = 500;
     fireEvent.scroll(timeline);
     ui.rerender(<MessageTimeline snapshot={structuredClone(codemode)} connected />);
+    expect(parse).toHaveBeenCalledTimes(1);
     expect(scrollTop).toBe(800);
     expect(ui.container.querySelector(".user-message")?.getBoundingClientRect().top).toBe(0);
     contentHeight = 1900;
@@ -370,9 +394,11 @@ test("saved skill selections appear only in their associated user message", asyn
       expect(bubbles[0]?.querySelectorAll(".user-message-skill")).toHaveLength(1);
       expect(bubbles[1]?.querySelectorAll(".user-message-skill")).toHaveLength(2);
       expect(bubbles[2]?.querySelectorAll(".user-message-skill")).toHaveLength(0);
-      expect(bubbles[0]?.lastChild?.textContent).toBe("First request");
-      expect(bubbles[1]?.lastChild?.textContent).toBe("Second request");
-      expect(bubbles[2]?.textContent).toBe("Review is plain text");
+      expect(bubbles[0]?.querySelector(".markdown-text p")?.textContent).toBe("First request");
+      expect(bubbles[1]?.querySelector(".markdown-text p")?.textContent).toBe("Second request");
+      expect(bubbles[2]?.querySelector(".markdown-text p")?.textContent).toBe(
+        "Review is plain text",
+      );
       expect(window.document.querySelectorAll("details")).toHaveLength(0);
       expect(window.document.body.textContent).not.toContain("Loaded skill");
       expect(window.document.body.textContent).not.toContain(skill.path);

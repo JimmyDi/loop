@@ -8,25 +8,26 @@ import { expect, test, vi } from "vitest";
 import type { Frequency } from "./schedule-form-trigger";
 import { repeatDefaults, formTrigger, localDateTime } from "./schedule-form-trigger";
 
+// Deadline tests use one scheduler per directory, so let the OS choose an available port.
 vi.mock(import("node:net"), async (importOriginal) => {
   const net = await importOriginal();
-  type ConnectionListener = (socket: Socket) => void;
-  const createServer: typeof net.createServer = (
-    options?: ServerOpts | ConnectionListener,
-    listener?: ConnectionListener,
-  ) => {
-    const server =
-      typeof options === "function"
-        ? net.createServer(options)
-        : net.createServer(options, listener);
-    const listen = server.listen.bind(server);
-    // These cases verify timer dispatch. Let the OS choose an available port for the lock.
-    vi.spyOn(server, "listen").mockImplementation((options: unknown, callback?: () => void) =>
-      listen({ ...(options as ListenOptions), port: 0 }, callback),
-    );
-    return server;
+  return {
+    ...net,
+    createServer: (
+      options?: ServerOpts | ((socket: Socket) => void),
+      listener?: (socket: Socket) => void,
+    ) => {
+      const server =
+        typeof options === "function"
+          ? net.createServer(options)
+          : net.createServer(options, listener);
+      const listen = server.listen.bind(server);
+      return Object.assign(server, {
+        listen: (options: ListenOptions, callback: () => void) =>
+          listen({ ...options, port: 0 }, callback),
+      });
+    },
   };
-  return { ...net, createServer };
 });
 
 test("round trips daily wall time and timezone without changing other cron schedules", () => {

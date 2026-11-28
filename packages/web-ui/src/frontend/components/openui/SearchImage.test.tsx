@@ -25,6 +25,15 @@ test("fetches image previews only after a click and filters untrusted domains", 
             ],
           },
           {
+            title: "File:Stone garden",
+            imageinfo: [
+              {
+                thumburl: "https://thumb.wikimedia.org/stone.jpg",
+                descriptionurl: "https://commons.wikimedia.org/wiki/File:Stone_garden",
+              },
+            ],
+          },
+          {
             title: "File:Other",
             imageinfo: [
               {
@@ -43,5 +52,9 @@ test("fetches image previews only after a click and filters untrusted domains", 
   fireEvent.click(ui.getByRole("button"));
   const source = await ui.findByRole("link", { name: "Blue fabric" });
   expect(source.getAttribute("href")).toBe("https://commons.wikimedia.org/wiki/File:Blue_fabric");
+  const stone = ui.getByRole("link", { name: "Stone garden" });
+  expect(stone.querySelector("img")?.getAttribute("src")).toBe(
+    "https://thumb.wikimedia.org/stone.jpg",
+  );
   expect(ui.queryByText("Other")).toBeNull();
 });

@@ -4,6 +4,10 @@ version = "0.9.1"
 edition = "2021"
 rust-version = "1.90"
 
+[[bin]]
+name = "Loop"
+path = "src/main.rs"
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

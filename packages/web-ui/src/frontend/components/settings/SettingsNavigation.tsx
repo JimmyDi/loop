@@ -101,6 +101,8 @@ export const SettingsNavigation = ({
                         <rect x="9" y="2" width="6" height="13" rx="3" />
                         <path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8" />
                       </>
+                    ) : item === "debug" ? (
+                      <path d="M8 6l4-4 4 4M8 6h8v9a4 4 0 0 1-8 0V6ZM5 8l3 2m8 0 3-2M4 13h4m8 0h4M5 19l3-2m8 0 3 2" />
                     ) : item === "appearance" ? (
                       <>
                         <circle cx="12" cy="12" r="4" />

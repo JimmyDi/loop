@@ -8,6 +8,7 @@ import { McpSettings } from "./McpSettings";
 import { SkillsSettings } from "./SkillsSettings";
 import { ArchivedChats } from "./ArchivedChats";
 import { RemoteAccessPanel } from "./RemoteAccessPanel";
+import { DebugSettings } from "./DebugSettings";
 import { VoiceSettings } from "./VoiceSettings";
 import { SettingsNavigation } from "./SettingsNavigation";
 import { Modal } from "../ui/Modal";
@@ -24,7 +25,11 @@ export const SettingsPanel = ({
 }) => {
   const { t } = useTranslation();
   const id = useId();
-  const [section, setSection] = useState<SettingsSection>(initialSection);
+  const [section, setSection] = useState<SettingsSection>(() =>
+    settingsGroups.some((group) => group.items.some((item) => item === initialSection))
+      ? initialSection
+      : "general",
+  );
   const panel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,6 +65,8 @@ export const SettingsPanel = ({
                   <ModelsSettings />
                 ) : item === "voice" ? (
                   <VoiceSettings />
+                ) : item === "debug" ? (
+                  <DebugSettings />
                 ) : item === "appearance" ? (
                   <AppearanceSettings />
                 ) : item === "mcps" ? (

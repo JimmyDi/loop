@@ -75,6 +75,7 @@ test("Settings opens from its menu in a dialog and closes without losing workspa
       "Archived chats",
     ]);
     expect(view.getByRole("tablist", { name: "Archived" })).toBeTruthy();
+    expect(view.queryByRole("tab", { name: "Debug" })).toBeNull();
     expect(view.queryByRole("button", { name: "Manage" })).toBeNull();
     fireEvent.click(view.getByRole("tab", { name: "Archived chats" }));
     expect(view.getByRole("tabpanel", { name: "Archived chats" })).toBeTruthy();
@@ -206,9 +207,10 @@ test("Integrations Add menus keep their actions and forms within each section", 
     await i18n.changeLanguage("en");
     const view = render(
       <QueryClientProvider client={client}>
-        <SettingsPanel onClose={() => {}} />
+        <SettingsPanel initialSection="debug" onClose={() => {}} />
       </QueryClientProvider>,
     );
+    expect(view.getByRole("tabpanel", { name: "General" })).toBeTruthy();
     expect(view.queryByRole("tab", { name: "Plugins" })).toBeNull();
     fireEvent.click(view.getByRole("tab", { name: "MCPs" }));
     expect(view.getByRole("tabpanel", { name: "MCPs" })).toBeTruthy();

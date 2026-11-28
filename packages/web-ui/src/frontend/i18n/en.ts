@@ -356,6 +356,8 @@ export const en = {
   personal: "Personal",
   general: "General",
   languageDescription: "Language for the app UI",
+  debug: "Debug",
+  openUiDevtools: "OpenUI DevTools",
   appearance: "Appearance",
   theme: "Theme",
   light: "Light",

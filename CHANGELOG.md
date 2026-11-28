@@ -6,6 +6,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
+- Web and Desktop: add a local development Debug setting for the floating OpenUI inspector. It defaults to on and remembers the local choice. Production hides the setting and disables the inspector.
+
 - Web and Desktop: choose OpenUI components automatically in chat replies, including charts, tables, layouts, and forms. Form submissions show the action message in chat and pass raw values and display labels to the model as saved form data. Follow-up buttons send ordinary user messages. The model can use charts for trends, tables for multi-criteria comparisons, and forms for preference choices without an explicit component request. Component documentation loads by topic when needed, and renderer assets load when a chat displays an OpenUI block. Saved interfaces replay from history with official OpenUI components, and unsupported, malformed, or interrupted blocks remain readable as source. Bar chart category labels sit below the plot. Cards with extra positional arguments still render when the OpenUI parser can ignore them. Numeric metric display values render as text in overview and comparison cards.
 
 - Web and Desktop: render illustrated step guides, adjustable shopping lists, countdowns, interactive maps with walking routes, Wikimedia Commons image searches, color swatches, what-if sales dashboards, and playable 16-step drum sequencers in chat. Maps load near the viewport, retain their view when adding a route, and show each stop number once in the card. The chat cards use OpenUI buttons, sliders, and table styling. The cooking topic includes a recipe card paired with a countdown.

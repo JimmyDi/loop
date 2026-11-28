@@ -11,10 +11,31 @@ const openUiShellSelector =
 const openUiShellAnimation =
   /^openui-(?:agent-|tool-|behind-the-scenes|model-switcher|detailed-view)/;
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   root: fileURLToPath(new URL("./src/frontend", import.meta.url)),
   publicDir: "assets",
-  plugins: [react(), pwaPlugin()],
+  define: {
+    "import.meta.env.LOOP_ENVIRONMENT": JSON.stringify(
+      command === "serve" ? "local-dev" : "production",
+    ),
+    ...(command === "build" && { "process.env.NODE_ENV": JSON.stringify("production") }),
+  },
+  plugins: [
+    react(),
+    pwaPlugin(),
+    {
+      name: "loop-openui-devtools",
+      apply: "serve",
+      transformIndexHtml: () => [
+        {
+          tag: "script",
+          injectTo: "head-prepend",
+          // Loop mounts the inspector itself so the preference controls its full lifecycle.
+          children: 'globalThis[Symbol.for("openui.devtools.autoMount")] = true;',
+        },
+      ],
+    },
+  ],
   css: {
     postcss: {
       plugins: [
@@ -56,4 +77,4 @@ export default defineConfig({
     assetsInlineLimit: 0,
     license: { fileName: "THIRD_PARTY_LICENSES.md" },
   },
-});
+}));

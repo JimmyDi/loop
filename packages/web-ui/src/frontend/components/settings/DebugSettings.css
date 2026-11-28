@@ -1,0 +1,59 @@
+@import "./SettingsSection.css";
+
+.debug-settings-title {
+  margin-bottom: 12px;
+}
+.debug-settings-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 60px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-subtle);
+  cursor: pointer;
+}
+.debug-settings-option input {
+  appearance: none;
+  display: grid;
+  align-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 22px;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid var(--ink-muted);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.debug-settings-option input::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.debug-settings-option input:checked {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+.debug-settings-option input:checked::before {
+  justify-self: end;
+}
+.debug-settings-option input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+@media (forced-colors: active) {
+  .debug-settings-option input {
+    appearance: auto;
+  }
+  .debug-settings-option input::before {
+    content: none;
+  }
+}

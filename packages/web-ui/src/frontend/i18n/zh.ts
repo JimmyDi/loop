@@ -353,6 +353,8 @@ export const zh = {
   personal: "个人",
   general: "通用",
   languageDescription: "应用界面使用的语言",
+  debug: "调试",
+  openUiDevtools: "OpenUI 调试工具",
   appearance: "外观",
   theme: "主题",
   light: "浅色",

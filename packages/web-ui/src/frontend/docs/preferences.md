@@ -46,6 +46,10 @@ The theme applies to the entire interface: sidebar, settings and project dialogs
 
 Theme colors use CSS `light-dark()` with `color-scheme`, requiring a modern browser (Chrome/Edge 123+, Firefox 120+, Safari 17.5+). Browser-managed System mode needs no JavaScript event listener.
 
+## Debug
+
+Local Web and Desktop development sessions expose **Settings → Debug → OpenUI DevTools**. The floating inspector is enabled by default. Switching it off removes the inspector immediately, and Loop remembers the choice for that browser origin. Release builds hide the Debug section and keep the inspector off regardless of any saved preference.
+
 ## Local State
 
 All persistent browser keys use the `loop.web.` prefix and belong to the browser origin. Different ports or browsers do not share these browser preferences. The Permission default, session pins and read receipts are stored on the server and are shared by browsers using the same Loop server.
@@ -53,6 +57,7 @@ All persistent browser keys use the `loop.web.` prefix and belong to the browser
 | State | Storage and restoration |
 | --- | --- |
 | language | Restore a manually selected `en` or `zh`; missing, corrupt, or unsupported values use browser language matching |
+| openUiDevtools | Enable the floating OpenUI inspector by default in local development unless explicitly switched off |
 | theme | Restore `light`, `dark`, or `system`; default to `system` |
 | sidebarWidth | Restore a sidebar width within the allowed range |
 | activeSession | Restore the selected session ID and its project ID; no title or open-session list is stored |

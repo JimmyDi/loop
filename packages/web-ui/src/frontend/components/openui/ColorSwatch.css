@@ -1,0 +1,19 @@
+.loop-openui-color-swatch {
+  flex: 1 1 9rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.loop-openui-color-swatch > div {
+  height: 3rem;
+  border: 1px solid var(--openui-border-default);
+  border-radius: var(--openui-radius-m);
+}
+
+.loop-openui-color-swatch figcaption {
+  margin-block-start: var(--openui-space-xs);
+}
+
+.loop-openui-color-swatch figcaption span {
+  display: block;
+}

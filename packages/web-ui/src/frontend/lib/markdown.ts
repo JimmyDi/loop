@@ -4,7 +4,9 @@ import { Marked } from "marked";
 import { localImagePath } from "../../shared/message-images";
 import { localFilePath } from "../../shared/message-files";
 
-const parser = new Marked({ gfm: true, breaks: true });
+import { markdownCjk } from "./markdown-cjk";
+
+const parser = new Marked({ gfm: true, breaks: true }, { extensions: [markdownCjk] });
 
 export type MarkdownEnhancements = {
   math?: Marked;

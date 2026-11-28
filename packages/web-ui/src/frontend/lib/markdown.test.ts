@@ -58,3 +58,33 @@ test("Markdown sanitizer rejects scripts and unsafe links, retaining tables and 
     window.close();
   }
 });
+
+test("renders CJK bold labels before adjacent text and preserves literal code and escapes", async () => {
+  const { window } = new JSDOM("<!doctype html><html><body></body></html>");
+  const previous = { window: globalThis.window, document: globalThis.document };
+  Object.assign(globalThis, { window, document: window.document });
+  try {
+    const { renderMarkdown } = await import("./markdown");
+    const { mathParser } = await import("./markdown-math");
+    const tick = String.fromCharCode(96);
+    const source = [
+      "1. **站点：**沿路走，约 **10 分钟**。",
+      "**准备：**15 克咖啡粉。",
+      tick + "**站点：**沿路走" + tick,
+      "\\*\\*站点：**沿路走",
+    ].join("\n\n");
+    for (const math of [undefined, mathParser]) {
+      const root = window.document.createElement("div");
+      root.innerHTML = renderMarkdown(source, "Copy", "Table", { math });
+      expect([...root.querySelectorAll("strong")].map((node) => node.textContent)).toEqual([
+        "站点：",
+        "10 分钟",
+        "准备：",
+      ]);
+      expect(root.querySelector("code")?.textContent).toBe("**站点：**沿路走");
+    }
+  } finally {
+    Object.assign(globalThis, previous);
+    window.close();
+  }
+});

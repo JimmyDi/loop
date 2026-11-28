@@ -53,8 +53,27 @@ export const groupTimelineTurns = (
   return turns;
 };
 
+export const appendTimelineDraft = (
+  turns: readonly TimelineTurn[],
+  entry: TurnMessage,
+  userMessageIndex: number | undefined,
+  breakBefore: boolean,
+): TimelineTurn[] => {
+  const tail = turns.at(-1);
+  if (tail?.type === "assistant" && !breakBefore) {
+    return [...turns.slice(0, -1), { ...tail, messages: [...tail.messages, entry] }];
+  }
+  return [...turns, { type: "assistant", index: entry.index, userMessageIndex, messages: [entry] }];
+};
+
+// Turn message arrays are immutable after grouping and shared across draft updates.
+const assistantEntries = new WeakMap<readonly TurnMessage[], TurnMessage[]>();
+
 /** Keep visible content in history order, merging paired results into their tool rows. */
 export const projectAssistantTurn = (messages: readonly TurnMessage[]): TurnMessage[] => {
+  const cached = assistantEntries.get(messages);
+  if (cached) return cached;
+
   const calls = new Set(
     messages.flatMap(({ message }) =>
       message.role === "assistant"
@@ -63,7 +82,7 @@ export const projectAssistantTurn = (messages: readonly TurnMessage[]): TurnMess
     ),
   );
 
-  return messages.filter(({ message }) =>
+  const entries = messages.filter(({ message }) =>
     message.role === "toolResult"
       ? !calls.has(message.toolCallId)
       : Boolean(message.errorMessage) ||
@@ -71,4 +90,6 @@ export const projectAssistantTurn = (messages: readonly TurnMessage[]): TurnMess
           (part) => part.type === "toolCall" || (part.type === "text" && part.text.trim()),
         ),
   );
+  assistantEntries.set(messages, entries);
+  return entries;
 };

@@ -1,0 +1,5 @@
+.loop-openui-guide svg {
+  display: block;
+  width: min(100%, 28rem);
+  margin: 0.75rem auto;
+}

@@ -1,0 +1,65 @@
+.loop-openui-map-viewport {
+  height: 18rem;
+  border-radius: 0.65rem;
+}
+
+.loop-openui-map-viewport[data-expanded="true"] {
+  height: min(60vh, 30rem);
+}
+
+.loop-openui-route-map {
+  display: grid;
+  gap: 0.75rem;
+  padding: clamp(0.75rem, 3vw, 1rem);
+  border: 1px solid var(--openui-border-default);
+  border-radius: 0.75rem;
+}
+
+.loop-openui-route-map > :is(h3, p, ol) {
+  margin: 0;
+}
+
+.loop-openui-route-source {
+  color: var(--ink-muted, var(--ink));
+  font-size: 0.8rem;
+}
+
+.loop-openui-route-source a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.loop-openui-route-source a + a {
+  margin-inline-start: 0.5rem;
+}
+
+.loop-openui-map-stops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0;
+  list-style: none;
+}
+
+.loop-openui-stop-number {
+  display: grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: #1559ad;
+  color: white;
+  font-size: 0.75em;
+}
+
+.loop-openui-map-marker {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #1559ad;
+  color: white;
+  font-weight: 700;
+}

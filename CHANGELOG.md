@@ -30,6 +30,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Desktop: show Loop when hovering over the macOS Dock icon during desktop development.
+
 - Web and Desktop: stream scheduled chat replies live across local hosts, show a spinner while the chat opens or generates, and show the unread dot after generation ends.
 
 - Web and Desktop: refresh Automation tasks and run history as soon as schedule changes are saved, so completed runs clear the running icon and restore the run action.

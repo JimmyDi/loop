@@ -1,1 +1,8 @@
 .timeline-content > .virtual-list { min-width: 0; }
+.timeline-content > .virtual-list > .virtual-row:has(> :is(.assistant-message, .tool-group, .tool-card)) {
+  min-height: 0;
+  padding-block: calc(var(--assistant-content-gap) / 2);
+}
+.timeline-content > .virtual-list > .virtual-row > .tool-card > summary {
+  padding-block: 4px;
+}

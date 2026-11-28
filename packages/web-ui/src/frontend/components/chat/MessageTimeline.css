@@ -12,6 +12,7 @@
   padding: 20px 32px 30px 56px;
 }
 .timeline-content {
+  --assistant-content-gap: 8px;
   max-width: 1040px;
   margin: 0 auto;
   display: flex;
@@ -23,9 +24,6 @@
   text-align: center;
   color: var(--ink-muted);
   margin-top: 15vh;
-}
-.user-message + :is(.assistant-message, .tool-group, .tool-card, .looping-indicator) {
-  margin-top: 4px;
 }
 @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
   .message-timeline {

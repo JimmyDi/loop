@@ -4,6 +4,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-28
+
 ### Added
 
 - Web and Desktop: add a local development Debug setting for the floating OpenUI inspector. It defaults to on and remembers the local choice. Production hides the setting and disables the inspector.

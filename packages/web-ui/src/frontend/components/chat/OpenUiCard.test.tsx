@@ -44,7 +44,7 @@ beforeAll(async () => {
   );
   vi.stubGlobal("cancelAnimationFrame", clearTimeout);
   testing = await import("@testing-library/react/pure");
-  // Keep the rendering assertions independent of the lazy chunk's cold-load time.
+  // Load the renderer after installing DOM globals, before timing its UI assertions.
   await import("./OpenUiCard");
 });
 afterEach(() => testing?.cleanup());

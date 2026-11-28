@@ -1,11 +1,12 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
+import { Window } from "happy-dom";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { SessionSnapshot } from "../../../shared/protocol";
 import { useTimelineProjection } from "../../hooks/useTimelineProjection";
 import { TimelineMessages } from "./TimelineMessages";
 import "../../i18n/setup";
 
-test("timeline rows retain absolute user keys in a detached window", () => {
+test("timeline rows retain absolute user keys in a detached window", async () => {
   const snapshot = {
     sessionId: "test",
     streamId: "stream",
@@ -32,5 +33,13 @@ test("timeline rows retain absolute user keys in a detached window", () => {
       onTarget={() => {}}
     />
   );
-  expect(renderToStaticMarkup(<View />)).toContain('data-row-key="test:40"');
+  const browser = new Window();
+  vi.stubGlobal("window", browser);
+  vi.stubGlobal("document", browser.document);
+  try {
+    expect(renderToStaticMarkup(<View />)).toContain('data-row-key="test:40"');
+  } finally {
+    vi.unstubAllGlobals();
+    await browser.happyDOM.close();
+  }
 });

@@ -7,12 +7,16 @@
   margin: 16px 0 4px;
 }
 .user-message-text {
+  box-sizing: border-box;
+  max-width: 100%;
   padding: 13px 18px;
   border-radius: 16px 16px 4px 16px;
   background: var(--surface-user);
   color: var(--ink);
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+.user-message-skill + .markdown-container {
+  margin-top: 6px;
 }
 .user-message .user-images {
   display: flex;

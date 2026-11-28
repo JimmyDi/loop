@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useCopy } from "../../hooks/useCopy";
@@ -9,13 +9,7 @@ import { MessageFiles } from "./MessageFiles";
 import "./MarkdownText.css";
 import "./MarkdownHighlight.css";
 
-export const MarkdownText = ({
-  text,
-  streaming = false,
-}: {
-  text: string;
-  streaming?: boolean;
-}) => {
+const MarkdownTextView = ({ text, streaming = false }: { text: string; streaming?: boolean }) => {
   const { t } = useTranslation();
   const { copy, status } = useCopy();
   const html = useMarkdown(text, t("copy"), t("table"));
@@ -64,11 +58,13 @@ export const MarkdownText = ({
           if (code !== null && code !== undefined) void copy(code);
         }}
       />
-      <MessageImageGallery images={images} />
-      <MessageFiles files={files} />
+      {images.length > 0 && <MessageImageGallery images={images} />}
+      {files.length > 0 && <MessageFiles files={files} />}
       <span className="sr-only" aria-live="polite">
         {status !== "copy" ? t(status) : ""}
       </span>
     </div>
   );
 };
+
+export const MarkdownText = memo(MarkdownTextView);

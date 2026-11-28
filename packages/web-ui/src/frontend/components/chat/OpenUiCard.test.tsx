@@ -56,13 +56,16 @@ afterAll(async () => {
 });
 
 test("renders a growing native table and restores a saved OpenUI block with its Markdown", async () => {
-  const { render } = testing;
+  const { act, render } = testing;
   const draft = "Summary\n\n```openui\n" + sample.slice(0, -2);
   const saved = message(
     "[Summary][docs]\n\n" + fenced(sample) + "\n\nMore details\n\n[docs]: https://example.com",
   );
   const ui = render(<AssistantContent message={message(draft)} tools={{}} generating streaming />);
-  expect(await ui.findByRole("table", {}, { timeout: 8000 })).toBeTruthy();
+  await act(async () => {
+    await vi.dynamicImportSettled();
+  });
+  expect(ui.getByRole("table")).toBeTruthy();
   expect(ui.getByText("Test results")).toBeTruthy();
   expect(ui.getByText("Parser")).toBeTruthy();
 

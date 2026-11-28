@@ -16,6 +16,8 @@ On devices with a fine primary pointer, creating a new session or switching sess
 
 Sending requires a connected session with no pending save and text or at least one image or text file; submissions during generation or a pause enter the queue. New messages are blocked during attachment reads, model or permission changes, save operations, send confirmation, or disconnection. Queued items appear above the composer in execution order. The [permission menu](permissions.md) sits beside the attachment button in the toolbar below the text input; approval cards stay above the composer.
 
+Sent messages and restored history render user text as sanitized Markdown, including lists, tables, links, and code blocks. Use **Copy message** to copy the original text.
+
 Composer and session error notices, including run cancellation, have an **×** button at the top right. Closing a notice hides that occurrence without changing the draft, attachments, validation rules or recorded session outcome. Reconnection and pending-save recovery remain available. A new error is displayed again, including a repeated failed upload; dismissal does not carry over to another session.
 
 When a remembered conversation returns session_not_found (404), clear only its active selection and open a new independent chat. Unsent drafts and attachments are retained. Other request failures keep the selection for Retry; generic API failures display the backend error detail instead of replacing it with an uninformative label.

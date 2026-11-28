@@ -20,6 +20,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Changed
 
+- Web and Desktop: render user messages in chat history as Markdown, with formatting such as lists, tables, links, and code blocks.
+
 - Web and Desktop: share active scheduled chat lookups across project lists and forward chat reads only for the active scheduled session.
 
 - coding-agent and Web UI: update the built-in model catalog to pi-ai 1.6.1, which removes the legacy OpenAI GPT-4 entry.

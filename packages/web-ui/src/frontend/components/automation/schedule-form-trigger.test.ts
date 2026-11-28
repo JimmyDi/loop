@@ -1,4 +1,5 @@
 import { mkdtemp, rm } from "node:fs/promises";
+import type { ListenOptions, ServerOpts, Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as waitForIO } from "node:timers/promises";
@@ -6,6 +7,27 @@ import { ScheduleService } from "@loop/coding-agent";
 import { expect, test, vi } from "vitest";
 import type { Frequency } from "./schedule-form-trigger";
 import { repeatDefaults, formTrigger, localDateTime } from "./schedule-form-trigger";
+
+vi.mock(import("node:net"), async (importOriginal) => {
+  const net = await importOriginal();
+  type ConnectionListener = (socket: Socket) => void;
+  const createServer: typeof net.createServer = (
+    options?: ServerOpts | ConnectionListener,
+    listener?: ConnectionListener,
+  ) => {
+    const server =
+      typeof options === "function"
+        ? net.createServer(options)
+        : net.createServer(options, listener);
+    const listen = server.listen.bind(server);
+    // These cases verify timer dispatch. Let the OS choose an available port for the lock.
+    vi.spyOn(server, "listen").mockImplementation((options: unknown, callback?: () => void) =>
+      listen({ ...(options as ListenOptions), port: 0 }, callback),
+    );
+    return server;
+  };
+  return { ...net, createServer };
+});
 
 test("round trips daily wall time and timezone without changing other cron schedules", () => {
   const trigger = formTrigger("daily", (key) => (key === "time" ? "09:05" : "Asia/Shanghai"));

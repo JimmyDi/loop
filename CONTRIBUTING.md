@@ -2,10 +2,6 @@
 
 Use Node.js 24+, pnpm, Vitest, TypeScript and Biome. Run pnpm build before integration tests that launch the distribution. Keep examples synthetic and provider credentials in environment variables.
 
-## Coding agents
-
-Use the [agent launcher](docs/agent-worktrees.md) for terminal sessions and native worktree mode for editing sessions opened in the GUI. Both workflows keep concurrent tasks in separate checkouts when needed.
-
 ## Validation
 
 Run only tests covering the changed behavior and directly affected consumers by default, using `pnpm exec vitest run <affected test files>`. Do not automatically run the full suite when finishing work or preparing a PR. Broaden coverage only for an explicit request or a concrete risk that targeted tests cannot verify, and explain why. Keep applicable formatting, type, architecture and build checks; Markdown-only edits normally require content/link checks instead of application tests. See [agent validation rules](AGENTS.md#validation).

@@ -43,6 +43,7 @@ That sample enables coding tools and runs once before exiting. Without an argume
 | `settingsManager` | Override loaded default-model settings. |
 | `model` | Explicit model configuration, overriding a saved/default selection. |
 | `tools` | Array of built-in tool names; defaults to read, bash, edit, write. Empty disables built-ins. |
+| `additionalTools` | Trusted host tools added in execute mode. Names must be unique and cannot shadow built-in tools. The host implements any required permission checks. |
 | `mcpManager` | Optional shared MCP manager; snapshots its ready tools at each prompt. The host owns cleanup. |
 | `skillManager` | Optional shared skill manager owned by the host; otherwise the SDK creates one. See [skills](skills.md). |
 | permissionPreset | Trusted-host choice of read-only, workspace-write or danger-full-access. Overrides saved/default selection; see [permissions](permissions.md). |

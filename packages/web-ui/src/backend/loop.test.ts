@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { mkdtemp, rm } from "node:fs/promises";
 import { setTimeout as sleep } from "node:timers/promises";
 import { existsSync } from "node:fs";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import { SessionManager, getSessionDir, getTraceDir } from "@loop/coding-agent";
 import { createLoopBridge } from "./loop";
@@ -209,7 +209,33 @@ test("Web effort reaches model request, survives reload and becomes the new-sess
     port: 0,
     hostname: "127.0.0.1",
     async fetch(request) {
-      requests.push(await request.json());
+      const body = await request.json();
+      requests.push(body);
+      if (
+        body.messages.at(-1)?.content ===
+        "My commute took 35, 42, 38, 61, and 36 minutes this week. Which day was unusual?"
+      ) {
+        const toolCall = {
+          index: 0,
+          id: "call_docs",
+          type: "function",
+          function: { name: "load_openui_docs", arguments: '{"topic":"charts"}' },
+        };
+        return new Response(
+          "data: " +
+            JSON.stringify({
+              choices: [
+                {
+                  index: 0,
+                  delta: { role: "assistant", tool_calls: [toolCall] },
+                  finish_reason: null,
+                },
+              ],
+            }) +
+            '\n\ndata: {"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+          { headers: { "Content-Type": "text/event-stream" } },
+        );
+      }
       return new Response(
         'data: {"choices":[{"index":0,"delta":{"role":"assistant","content":"OK"},"finish_reason":null}]}\n\ndata: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n',
         { headers: { "Content-Type": "text/event-stream" } },
@@ -277,6 +303,12 @@ test("Web effort reaches model request, survives reload and becomes the new-sess
     expect(controller.busy).toBe(false);
     expect(controller.session.state.outcome).toBe("success");
     expect(requests).toHaveLength(1);
+    const modelRequest = JSON.stringify(requests[0]);
+    expect(modelRequest).toContain("Before each batch of tool calls");
+    expect(modelRequest).not.toContain("<additional_instructions>");
+    expect(modelRequest).toContain("load_openui_docs");
+    expect(modelRequest).not.toContain("BarChart(labels:");
+    expect(modelRequest).not.toContain("FollowUpBlock(items:");
     expect(requests[0]).toMatchObject({ reasoning_effort: "high" });
     expect(JSON.stringify(requests[0])).toContain("data:image/png;base64," + image.data);
     const next = await registry.create(project.id);
@@ -300,6 +332,53 @@ test("Web effort reaches model request, survives reload and becomes the new-sess
     ).toBe(true);
     await controller.session.prompt("default request");
     expect(requests.at(-1)).not.toHaveProperty("reasoning_effort");
+    const beforeChart = requests.length;
+    await controller.session.prompt(
+      "My commute took 35, 42, 38, 61, and 36 minutes this week. Which day was unusual?",
+    );
+    expect(requests).toHaveLength(beforeChart + 2);
+    expect(requests[beforeChart]).toMatchObject({
+      tools: expect.arrayContaining([
+        expect.objectContaining({
+          function: expect.objectContaining({
+            name: "load_openui_docs",
+            description: expect.stringContaining(
+              "trend or outlier across several numeric observations",
+            ),
+          }),
+        }),
+      ]),
+    });
+    expect(JSON.stringify(requests[beforeChart])).not.toContain("BarChart(labels:");
+    const continuation = JSON.stringify(requests.at(-1));
+    expect(continuation).toContain("BarChart(labels:");
+    expect(continuation).not.toContain("FollowUpBlock(items:");
+    const form = {
+      name: "preferences",
+      fields: [{ name: "frequency", label: "通知频率", value: "weekly", displayText: "每周" }],
+    };
+    const submitForm = (form: unknown) =>
+      router(
+        new Request("http://localhost/api/sessions/" + controller.session.sessionId + "/prompt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ requestId: "form-request", text: "已提交偏好", form }),
+        }),
+      );
+    expect((await submitForm({ name: "preferences", fields: [] })).status).toBe(400);
+    expect((await submitForm(form)).status).toBe(202);
+    await vi.waitFor(() => expect(controller.busy).toBe(false));
+    expect(JSON.stringify(requests.at(-1))).toContain("weekly");
+    expect(JSON.stringify(requests.at(-1))).toContain("每周");
+    const reopened = await fresh.load(project, controller.session.sessionId);
+    try {
+      await reopened.prompt("Continue with my preferences");
+      expect(JSON.stringify(requests.at(-1))).toContain("Submitted form data (user input):");
+      expect(JSON.stringify(requests.at(-1))).toContain("weekly");
+      expect(JSON.stringify(requests.at(-1))).toContain("每周");
+    } finally {
+      reopened.dispose();
+    }
   } finally {
     await registry.close();
     await server.stop(true);

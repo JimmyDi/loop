@@ -4,6 +4,9 @@ import { useTranslation } from "react-i18next";
 
 import type { SessionSnapshot } from "../../../shared/protocol";
 import { useAutoScroll } from "../../hooks/useAutoScroll";
+import { usePrompt } from "../../hooks/usePrompt";
+import { OpenUiActionContext } from "../../lib/openui-actions";
+import { ErrorNotice } from "../ui/ErrorNotice";
 import { useReadReceipt } from "../../hooks/useReadReceipt";
 import { useTimelineHistory } from "../../hooks/useTimelineHistory";
 import { HistoryMediaContext } from "../../lib/history-media-context";
@@ -26,6 +29,24 @@ export const MessageTimeline = ({
   connected: boolean;
 }) => {
   const { t } = useTranslation();
+  const prompt = usePrompt(live);
+  const sendOpenUiAction: NonNullable<React.ContextType<typeof OpenUiActionContext>> = async ({
+    text,
+    form,
+  }) => {
+    if (
+      !connected ||
+      live.operation !== "idle" ||
+      live.state.hasPendingSave ||
+      live.state.pendingApprovals?.length ||
+      live.state.pendingUserInputs?.length ||
+      live.state.queue?.length ||
+      prompt.pending ||
+      prompt.uncertain
+    )
+      return;
+    await prompt.submitText(text, false, form);
+  };
   const viewport = useRef<HTMLDivElement>(null);
   const window = useTimelineWindow(live, viewport);
   const snapshot = window.snapshot;
@@ -120,16 +141,19 @@ export const MessageTimeline = ({
                 {!messages.length && !looping && (
                   <p className="timeline-empty">{t("emptySession")}</p>
                 )}
-                <TimelineMessages
-                  key={snapshot.sessionId + ":" + snapshot.streamId}
-                  snapshot={snapshot}
-                  projection={projection}
-                  start={history.start}
-                  userMessageRef={scroll.userMessageRef}
-                  viewport={scroll.ref}
-                  target={window.target}
-                  onTarget={window.complete}
-                />
+                <OpenUiActionContext value={sendOpenUiAction}>
+                  <TimelineMessages
+                    key={snapshot.sessionId + ":" + snapshot.streamId}
+                    snapshot={snapshot}
+                    projection={projection}
+                    start={history.start}
+                    userMessageRef={scroll.userMessageRef}
+                    viewport={scroll.ref}
+                    target={window.target}
+                    onTarget={window.complete}
+                  />
+                </OpenUiActionContext>
+                <ErrorNotice error={prompt.error} />
                 {looping && !window.detached && <LoopingIndicator />}
                 {compacting && (
                   <CompactionStatus

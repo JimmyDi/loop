@@ -25,8 +25,11 @@ export const useQueuedComposer = (snapshot: SessionSnapshot, focus: () => void) 
             .fetchQuery(skillQueryOptions(snapshot.workspaceId ?? undefined))
             .catch(() => undefined)
         : undefined;
+      const { text, images, files } = queuedContent(item.content);
       useQueueEdits.getState().begin(sessionId, id, {
-        ...queuedContent(item.content),
+        text,
+        images,
+        files,
         skills: item.skills.map((id) => ({
           id,
           name: catalog?.skills.find((skill) => skill.id === id)?.name ?? id,

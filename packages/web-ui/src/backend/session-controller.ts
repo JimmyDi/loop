@@ -8,9 +8,9 @@ import type { SessionPort } from "./loop";
 import { SessionEvents } from "./session-events";
 import { SessionApprovals } from "./session-approvals";
 import { sessionModel, settledSnapshot } from "./session-model";
-import { promptContent } from "../shared/prompt-images";
-import type { PromptImage } from "../shared/prompt-images";
+import { type PromptImage, promptContent } from "../shared/prompt-images";
 import type { PromptFile } from "../shared/prompt-files";
+import type { PromptForm } from "../shared/prompt-form";
 
 export class SessionController {
   readonly createdAt = new Date().toISOString();
@@ -57,8 +57,9 @@ export class SessionController {
     files: PromptFile[] = [],
     skills: string[] = [],
     steering = false,
+    form?: PromptForm,
   ): string {
-    const content = structuredClone(promptContent(text, images, files));
+    const content = structuredClone(promptContent(text, images, files, form));
     const signature = createHash("sha256")
       .update(JSON.stringify({ content, skills, steering }))
       .digest("hex");

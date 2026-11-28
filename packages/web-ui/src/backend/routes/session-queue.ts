@@ -45,7 +45,7 @@ export const queueRoute = async (
         throw new HttpError(400, "invalid_skills");
       session.editQueued(
         id,
-        promptContent(body.text, images, files),
+        promptContent(body.text, images, files, original.form),
         skills as string[] | undefined,
       );
     } else if (body.action === "begin-edit" && session.beginQueuedEdit) session.beginQueuedEdit(id);

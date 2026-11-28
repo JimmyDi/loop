@@ -2,6 +2,9 @@ import type { PromptContent } from "@loop/coding-agent";
 import { fileContent } from "./prompt-files";
 import type { PromptFile } from "./prompt-files";
 
+import { formContent } from "./prompt-form";
+import type { PromptForm } from "./prompt-form";
+
 export type PromptImage = Extract<Exclude<PromptContent, string>[number], { type: "image" }>;
 
 export const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
@@ -33,10 +36,12 @@ export const promptContent = (
   text: string,
   images: PromptImage[] = [],
   files: PromptFile[] = [],
+  form?: PromptForm,
 ): PromptContent =>
-  images.length || files.length
+  images.length || files.length || form
     ? [
         ...(text ? [{ type: "text" as const, text }] : []),
+        ...(form ? [{ type: "text" as const, text: formContent(form) }] : []),
         ...images,
         ...files.map((file) => ({ type: "text" as const, text: fileContent(file) })),
       ]

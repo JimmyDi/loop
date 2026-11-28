@@ -138,3 +138,11 @@ History requests use high fetch priority. During paging, thumbnail image sources
 - [Timeline projection](../hooks/useTimelineProjection.ts) / [tests](../hooks/useTimelineProjection.test.tsx).
 
 - [Virtual row window and measurements](../hooks/useVirtualRows.ts) / [tests](../hooks/useVirtualRows.test.tsx).
+
+## OpenUI components
+
+Ask in the composer for a chart, comparison, or interactive form. Requests to spot a trend, weigh several options, or choose preferences can trigger an interface without naming a component. Simple answers stay in Markdown. In Web and Desktop sessions, the model can call the read-only `load_openui_docs` tool for component signatures and examples. A call loads one topic into the conversation, with tables, charts, forms, layout, and cards available. Markdown remains the default, and an assistant reply can mix Markdown with top-level `openui` blocks.
+
+The browser loads the OpenUI renderer and styles when a chat displays its first OpenUI block. The supported components include both official OpenUI React generative libraries. Blocks can combine layout, charts, cards, tables, media, and form controls under a `Stack` root. Tables use the official column-based `Table([Col(...)])` syntax and paginate results. Earlier standalone `Table(title, columns, rows)` blocks appear as source.
+
+Components can appear while a reply streams. Clicking a follow-up or submitting a form with `@ToAssistant` sends a normal user message in the current idle chat. The chat bubble shows the action message. The model also receives the submitted field names, labels, raw values, and display text as a separate user input block. Form data is saved with the message and is available when the session is reopened. Local UI state resets when a card remounts. The renderer uses data included in the reply and does not run queries or mutations. Incomplete, invalid, or interrupted blocks remain visible as Markdown code. Saved messages retain their source for copying and history replay.

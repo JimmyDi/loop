@@ -15,8 +15,6 @@ The launcher prints the location of each worktree it creates. It uses a detached
 
 ## GUI and editor sessions
 
-Before editing in Codex desktop or another GUI, check for staged, unstaged, and untracked changes and for other active agents in the same checkout. Edit the current checkout directly when it has no unrelated changes and no other agent is working there. A session in a different worktree is already isolated.
-
-If the checkout contains unrelated changes or another agent is working there, use the editor's Worktree mode or its managed worktree action before writing. Clients without a worktree picker can open a directory prepared with `git worktree add --detach <unused-path> HEAD`. Reuse a worktree already assigned to the task. If the task depends on uncommitted changes in a checkout with a conflict, continue in the worktree that owns those changes or ask which changes to carry over.
+Use Worktree mode when starting an editing task in Codex desktop. For an existing session, use its managed worktree action when available, or open the isolated checkout in the editor and start the task there. Clients without a worktree picker can open a directory prepared with `git worktree add --detach <unused-path> HEAD`. Continue any work that depends on uncommitted files in its assigned checkout.
 
 The repository's [Codex hook](../.codex/hooks.json) and [Claude Code hook](../.claude/settings.json) check the starting checkout on startup and resume. They give the agent guidance if they detect a conflict. The hooks run inside an existing session and cannot change its working root. Review the Codex hook via `/hooks` in a trusted project, and trust the Claude Code project before loading its hooks. Codex and clients that support `AGENTS.md` read the [shared instructions](../AGENTS.md). Claude Code imports them through [CLAUDE.md](../CLAUDE.md).

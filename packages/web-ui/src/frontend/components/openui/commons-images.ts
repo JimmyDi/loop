@@ -44,7 +44,10 @@ export const findCommonsImages = async (query: string, signal: AbortSignal) => {
     const image = imageinfo?.[0];
     if (
       !image ||
-      !onHost(image.thumburl, "upload.wikimedia.org") ||
+      !(
+        onHost(image.thumburl, "upload.wikimedia.org") ||
+        onHost(image.thumburl, "thumb.wikimedia.org")
+      ) ||
       !onHost(image.descriptionurl, "commons.wikimedia.org")
     )
       return [];

@@ -40,7 +40,7 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
-- Web and Desktop: show photo search results inside mood boards and route OpenUI external links through the normal link handler.
+- Web and Desktop: show photo search results inside mood boards, support thumbnails from Wikimedia’s dedicated thumbnail domain, and route OpenUI external links through the normal link handler.
 
 - Web and Desktop: render OpenUI cards when the model supplies a Card gap after the variant and omits the optional direction.
 

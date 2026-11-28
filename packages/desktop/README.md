@@ -28,6 +28,8 @@ The desktop:dev command runs the backend source with the same Node installation 
 
 Frontend and application-backend edits keep the native window open. Restart desktop:dev after editing the desktop development launcher, supervisor or gateway. Tauri watches the native Rust project. Resource builds write Cargo version files only when the version changes.
 
+On macOS, the development build runs as the `Loop` executable so the Dock shows `Loop` on hover. Tauri uses `mainBinaryName` when packaging the release executable.
+
 ## Runtime
 
 The sidebar Settings button opens a menu with Settings and Feedback. Settings opens a centered modal dialog with category navigation and a close button. Escape dismisses it and returns focus to its trigger. Conversation and sidebar state persist underneath. Feedback opens its link from the sidebar menu.

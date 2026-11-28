@@ -158,8 +158,8 @@
 .message-timeline { padding-inline: 24px; scrollbar-gutter: auto; }
 .timeline-content { max-width: 860px; }
 .composer-region { width: min(calc(100% - 48px), 860px); }
-.tool-group { margin-block: 2px; font-size: 12px; }
-.tool-group-summary { padding-block: 2px; gap: 6px; }
+.tool-group { font-size: 12px; }
+.tool-group-summary { gap: 6px; }
 
 }
 

@@ -1,17 +1,13 @@
 .assistant-message {
   width: 100%;
-  margin: 6px 0;
-}
-.assistant-message + .assistant-message {
-  margin-top: 0;
 }
 .assistant-body {
   min-width: 0;
-  padding-top: 1px;
 }
-.assistant-body > .tool-group:first-child {
-  margin-top: 0;
+.assistant-body > .tool-group:not(:first-child),
+.assistant-body > .tool-group + :is(.markdown-container, .loop-openui) {
+  margin-block-start: var(--assistant-content-gap);
 }
-.assistant-body > .tool-group:last-child {
-  margin-bottom: 0;
+.assistant-body > .loop-openui:has(+ .tool-group) {
+  margin-block-end: 0;
 }

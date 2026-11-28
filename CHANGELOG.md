@@ -30,6 +30,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Fixed
 
+- Web and Desktop: use consistent vertical spacing between assistant messages and tool calls in the chat timeline.
+
 - Desktop: show Loop when hovering over the macOS Dock icon during desktop development.
 
 - Web and Desktop: stream scheduled chat replies live across local hosts, show a spinner while the chat opens or generates, and show the unread dot after generation ends.

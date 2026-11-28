@@ -1,4 +1,5 @@
 import { mkdtemp, rm } from "node:fs/promises";
+import type { ListenOptions, ServerOpts, Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as waitForIO } from "node:timers/promises";
@@ -6,6 +7,28 @@ import { ScheduleService } from "@loop/coding-agent";
 import { expect, test, vi } from "vitest";
 import type { Frequency } from "./schedule-form-trigger";
 import { repeatDefaults, formTrigger, localDateTime } from "./schedule-form-trigger";
+
+// Deadline tests use one scheduler per directory, so let the OS choose an available port.
+vi.mock(import("node:net"), async (importOriginal) => {
+  const net = await importOriginal();
+  return {
+    ...net,
+    createServer: (
+      options?: ServerOpts | ((socket: Socket) => void),
+      listener?: (socket: Socket) => void,
+    ) => {
+      const server =
+        typeof options === "function"
+          ? net.createServer(options)
+          : net.createServer(options, listener);
+      const listen = server.listen.bind(server);
+      return Object.assign(server, {
+        listen: (options: ListenOptions, callback: () => void) =>
+          listen({ ...options, port: 0 }, callback),
+      });
+    },
+  };
+});
 
 test("round trips daily wall time and timezone without changing other cron schedules", () => {
   const trigger = formTrigger("daily", (key) => (key === "time" ? "09:05" : "Asia/Shanghai"));

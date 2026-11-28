@@ -14,6 +14,7 @@ import type { PermissionPreset } from "../shared/protocol";
 import type { ModelChoice, ModelSelection, Project, SessionSummary } from "../shared/protocol";
 import { ProviderSettings } from "./providers/provider-settings";
 import { WebSettings } from "./settings/web-settings";
+import { openUiDocsTool } from "./openui-prompt";
 import { HttpError } from "./http/errors";
 
 export type SessionPort = Pick<
@@ -163,6 +164,7 @@ export const createLoopBridge = (
       const { session } = await createAgentSession({
         mcpManager,
         skillManager,
+        additionalTools: [openUiDocsTool],
         cwd,
         agentDir,
         sessionManager,

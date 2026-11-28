@@ -3,6 +3,7 @@ import { realpathSync } from "node:fs";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import { TraceRecorder, pruneTraces } from "@loop/telemetry";
 import type { TraceOptions } from "@loop/telemetry";
+import type { AgentTool } from "@loop/agent";
 
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, getSessionDir, getTraceDir } from "../config";
 import { AgentSession } from "./agent-session";
@@ -27,6 +28,7 @@ export type CreateAgentSessionOptions = ServiceOptions & {
   mcpManager?: McpManager;
   skillManager?: SkillManager;
   tools?: readonly string[];
+  additionalTools?: readonly AgentTool[];
   sessionManager?: SessionManager;
   maxTurns?: number;
   maxTokens?: number;
@@ -51,6 +53,7 @@ export async function createAgentSession(
     "noContextFiles",
     "model",
     "tools",
+    "additionalTools",
     "sessionManager",
     "maxTurns",
     "maxTokens",
@@ -96,6 +99,21 @@ export async function createAgentSession(
     throw new Error("Model unavailable: " + provider + "/" + id + ". Select a configured model.");
 
   // Validate selected tool names before creating any storage.
+  const toolNames = new Set([
+    "read",
+    "bash",
+    "edit",
+    "write",
+    "request_user_input",
+    "load_skill",
+    "codemode",
+    "submit_plan",
+  ]);
+  const additionalTools = [...(options.additionalTools ?? [])];
+  for (const { name } of additionalTools) {
+    if (toolNames.has(name)) throw new Error("Duplicate or reserved tool name: " + name);
+    toolNames.add(name);
+  }
   createTools(services.cwd, options.tools);
   if (
     options.effort !== undefined &&
@@ -130,7 +148,7 @@ export async function createAgentSession(
     },
     () => sessionManager.getHeader().permissionPreset,
   );
-  const tools = createTools(services.cwd, options.tools, permissionPolicy);
+  const tools = [...createTools(services.cwd, options.tools, permissionPolicy), ...additionalTools];
 
   if (
     !saved ||

@@ -1,0 +1,10 @@
+.loop-openui {
+  min-width: 0;
+  margin: 12px 0;
+}
+
+/* WebKit positions CJK glyphs above the hanging baseline. */
+.loop-openui .openui-bar-chart-x-tick[dominant-baseline="hanging"] {
+  dominant-baseline: alphabetic;
+  transform: translateY(0.9em);
+}

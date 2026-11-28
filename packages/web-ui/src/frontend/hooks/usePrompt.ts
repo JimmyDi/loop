@@ -7,7 +7,8 @@ import type { PendingRequest } from "../state/request-store";
 import { useWorkspace } from "../state/workspace-store";
 import type { PromptImage } from "../../shared/prompt-images";
 import type { PromptFile } from "../../shared/prompt-files";
-import type { PromptControl, PromptSubmission, PromptVoiceInput } from "./prompt-types";
+import type { PromptForm } from "../../shared/prompt-form";
+import type { PromptControl, PromptSubmission, PromptTextInput } from "./prompt-types";
 
 const EMPTY_IMAGES: PromptImage[] = [];
 const EMPTY_FILES: PromptFile[] = [];
@@ -55,7 +56,7 @@ export const usePrompt = (snapshot: SessionSnapshot, hasProject = true): PromptC
     if (request && acknowledged(snapshot, request)) releaseDraft(id, request);
   }, [snapshot, id, request]);
 
-  const submit = async (retry = false, voice?: PromptVoiceInput): Promise<PromptSubmission> => {
+  const submit = async (retry = false, input?: PromptTextInput): Promise<PromptSubmission> => {
     const existing = useRequests.getState().pending[id];
     if (
       !hasProject ||
@@ -67,16 +68,16 @@ export const usePrompt = (snapshot: SessionSnapshot, hasProject = true): PromptC
     if (
       retry
         ? !existing
-        : existing || (voice ? !voice.text.trim() : !text.trim() && !images.length && !files.length)
+        : existing || (input ? !input.text.trim() : !text.trim() && !images.length && !files.length)
     )
       return "skipped";
     setError(undefined);
     const next = existing ?? {
       requestId: crypto.randomUUID(),
-      text: voice?.text ?? text,
+      text: input?.text ?? text,
       streamId: snapshot.streamId,
-      ...(voice
-        ? { preserveDraft: true, steering: voice.steering }
+      ...(input
+        ? { preserveDraft: true, steering: input.steering, form: input.form }
         : {
             ...(images.length ? { images } : {}),
             ...(files.length ? { files } : {}),
@@ -104,6 +105,7 @@ export const usePrompt = (snapshot: SessionSnapshot, hasProject = true): PromptC
         text: next.text,
         images: next.images,
         files: next.files,
+        form: next.form,
         skills: next.skills,
         ...(next.steering ? { steering: true } : {}),
       });
@@ -131,7 +133,8 @@ export const usePrompt = (snapshot: SessionSnapshot, hasProject = true): PromptC
     submit: async (retry = false): Promise<void> => {
       await submit(retry);
     },
-    submitText: (value: string, steering = false) => submit(false, { text: value, steering }),
+    submitText: (value: string, steering = false, form?: PromptForm) =>
+      submit(false, { text: value, steering, form }),
     pending,
     error,
     uncertain,

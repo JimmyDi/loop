@@ -4,8 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import type { Message } from "../../../shared/protocol";
 import type { LoadedSkill } from "../../../shared/skills";
-import { messageText } from "../../../shared/message-text";
-import { readFileContent } from "../../../shared/prompt-files";
+import { queuedContent } from "../../../shared/queued-content";
 import { IMAGE_TYPES } from "../../../shared/prompt-images";
 import { copySkillMessage } from "../../lib/skill-clipboard";
 import { MessageThumbnail } from "./MessageThumbnail";
@@ -25,26 +24,10 @@ const UserMessageView = ({
   workspaceId?: string;
   ref?: Ref<HTMLElement>;
 }) => {
-  const parts = typeof message.content === "string" ? [] : message.content;
-  const files = parts.flatMap((part) => {
-    const file = part.type === "text" ? readFileContent(part.text) : undefined;
-    return file ? [file] : [];
-  });
-  const text = messageText({
-    ...message,
-    content:
-      typeof message.content === "string"
-        ? message.content
-        : parts.filter((part) => part.type !== "text" || !readFileContent(part.text)),
-  });
+  const { text, files, images: attachedImages } = queuedContent(message.content);
   const { t } = useTranslation();
   const copied = copySkillMessage(text, skills);
-  const images =
-    typeof message.content === "string"
-      ? []
-      : message.content.filter(
-          (part) => part.type === "image" && IMAGE_TYPES.includes(part.mimeType),
-        );
+  const images = attachedImages.filter((part) => IMAGE_TYPES.includes(part.mimeType));
 
   return (
     <article className="user-message" ref={ref}>

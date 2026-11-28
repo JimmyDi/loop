@@ -6,6 +6,10 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Added
 
+- Web and Desktop: choose OpenUI components automatically in chat replies, including charts, tables, layouts, and forms. Form submissions show the action message in chat and pass raw values and display labels to the model as saved form data. Follow-up buttons send ordinary user messages. The model can use charts for trends, tables for multi-criteria comparisons, and forms for preference choices without an explicit component request. Component documentation loads by topic when needed, and renderer assets load when a chat displays an OpenUI block. Saved interfaces replay from history with official OpenUI components, and unsupported, malformed, or interrupted blocks remain readable as source. Bar chart category labels sit below the plot. Cards with extra positional arguments still render when the OpenUI parser can ignore them. Numeric metric display values render as text in overview and comparison cards.
+
+- Coding-agent SDK: register host-supplied tools with `additionalTools`.
+
 - Web and Desktop: mark read chats as unread from the sidebar context menu. The coding-agent SDK also supports marking saved sessions unread.
 
 - Coding-agent, Web and Desktop: schedule project prompts with one-time, fixed-interval, calendar and time-zone-aware recurrence. Automation supports previewing upcoming runs, testing, editing, pausing and deleting tasks, and choosing a permission preset. Run history is grouped by date, loads on demand, and supports opening, archiving, restoring and deleting run records. Schedules use local files, recover after restart, and are also available through the CLI and SDK.

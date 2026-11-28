@@ -12,6 +12,8 @@ import { isModelEffort, isPermissionPreset } from "@loop/coding-agent";
 import { validImages } from "../../shared/prompt-images";
 import { validTextFiles } from "../../shared/prompt-files";
 
+import { validPromptForm } from "../../shared/prompt-form";
+
 export const sessionRoutes =
   (registry: SessionRegistry) =>
   async (request: Request, url: URL): Promise<Response | undefined> => {
@@ -119,6 +121,8 @@ export const sessionRoutes =
       const images = body.images ?? [];
       const files = body.files ?? [];
       const skills = body.skills ?? [];
+      const form = body.form;
+      if (form !== undefined && !validPromptForm(form)) throw new HttpError(400, "invalid_form");
       if (body.steering !== undefined && typeof body.steering !== "boolean")
         throw new HttpError(400, "invalid_steering");
       if (
@@ -129,7 +133,10 @@ export const sessionRoutes =
         throw new HttpError(400, "invalid_skill_selection");
       if (!validImages(images)) throw new HttpError(400, "invalid_images");
       if (!validTextFiles(files)) throw new HttpError(400, "invalid_text_files");
-      if (typeof body.text !== "string" || (!body.text.trim() && !images.length && !files.length))
+      if (
+        typeof body.text !== "string" ||
+        (!body.text.trim() && (form || (!images.length && !files.length)))
+      )
         throw new HttpError(400, "invalid_text");
       await controller.prepareSkills(requestId, skills as string[], request.signal);
       if (body.streamId !== undefined && body.streamId !== controller.snapshot.streamId)
@@ -141,6 +148,7 @@ export const sessionRoutes =
         files,
         skills as string[],
         body.steering === true,
+        form,
       );
       return Response.json({ runId }, { status: 202 });
     }

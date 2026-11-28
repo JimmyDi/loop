@@ -6,12 +6,16 @@ import type { PromptImage } from "../../shared/prompt-images";
 import { validTextFiles } from "../../shared/prompt-files";
 import type { PromptFile } from "../../shared/prompt-files";
 
+import { validPromptForm } from "../../shared/prompt-form";
+import type { PromptForm } from "../../shared/prompt-form";
+
 export type PendingRequest = {
   requestId: string;
   text: string;
   streamId: string;
   images?: PromptImage[];
   files?: PromptFile[];
+  form?: PromptForm;
   skills?: string[];
   steering?: boolean;
   preserveDraft?: boolean;
@@ -38,6 +42,7 @@ const pending = Object.fromEntries(
       (value.preserveDraft === undefined || typeof value.preserveDraft === "boolean") &&
       (value.images === undefined || validImages(value.images)) &&
       (value.files === undefined || validTextFiles(value.files)) &&
+      (value.form === undefined || validPromptForm(value.form)) &&
       (value.skills === undefined ||
         (Array.isArray(value.skills) &&
           value.skills.length <= 8 &&

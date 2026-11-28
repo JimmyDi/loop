@@ -83,6 +83,8 @@ The request identity includes text and image content; retrying the same requestI
 
 ## Text File Attachments
 
+POST /api/sessions/:id/prompt accepts an optional form object with a name and a nonempty fields array. Each field supplies name, label, value, and displayText. The form must fit within 24 KiB of serialized UTF-8 data and accompany nonblank message text. Loop stores the form as a separate user input block for the model. Chat bubbles display the message text.
+
 POST /api/sessions/:id/prompt also accepts an optional files array of objects with name and text strings. Text may be empty when files are present. Up to four UTF-8 text/code files are accepted without a per-file or combined text byte limit. The prompt route reads JSON with an unlimited byte budget, and the Node HTTP adapter does not impose a separate attachment limit. Other JSON routes retain their bounded reads.
 
 The server validates filenames, supported text/code extensions (or extensionless names), text controls, Unicode and file count before accepting a run. Paths in filenames, binary contents and unsupported formats reject with invalid_text_files. The browser additionally decodes source bytes with strict UTF-8 validation. See [the shared contract](../../shared/prompt-files.ts).

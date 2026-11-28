@@ -90,3 +90,19 @@ test("skill-only user messages retain a bubble and copy action", () => {
   expect(html).toContain("Copy");
   expect(message.content).toBe("");
 });
+
+test("form submissions display only the message text", () => {
+  const form = {
+    name: "preferences",
+    fields: [{ name: "frequency", label: "通知频率", value: "weekly", displayText: "每周" }],
+  };
+  const html = renderToStaticMarkup(
+    <UserMessage
+      message={{ role: "user", timestamp: 0, content: promptContent("已提交偏好", [], [], form) }}
+    />,
+  );
+  expect(html).toContain("已提交偏好");
+  expect(html).not.toContain("weekly");
+  expect(html).not.toContain("每周");
+  expect(html).not.toContain("Submitted form data");
+});

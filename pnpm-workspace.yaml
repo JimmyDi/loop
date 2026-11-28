@@ -8,6 +8,7 @@ overrides:
   # Mermaid's 0.16.x range cannot select the patched KaTeX; use the app's tested version.
   "mermaid>katex": 0.19.1
 allowBuilds:
+  "@openuidev/lang-core": false
   esbuild: true
   sharp: true
   "@google/genai": false

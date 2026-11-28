@@ -10,9 +10,10 @@
 
 ## Agent worktrees
 
-- Before editing or running commands that write to the checkout, establish the working directory. Reuse an isolated worktree already assigned to this task. For a CLI session started with the repository's [agent launcher](docs/agent-worktrees.md), use the directory selected by the launcher.
-- When a GUI or editor starts a session directly in a shared checkout, use its native worktree mode or create an isolated worktree from the current committed `HEAD` before the first write. Keep file operations, commands, and validation rooted in the assigned worktree. Read-only tasks can stay in the shared checkout.
-- If existing uncommitted changes belong to the requested task, use the task's assigned worktree or ask which changes to carry over. Avoid copying another task's changes or altering its checkout. Preserve the existing Git authorization rules for unrelated operations.
+- Before the first write, establish the working directory. Reuse an isolated worktree already assigned to the task. For a CLI session started with the [agent launcher](docs/agent-worktrees.md), use the directory selected by the launcher.
+- When starting a new editing task in a GUI or editor, check the current checkout for staged, unstaged, and untracked changes and check for other agents working in that same checkout using available session or launcher information. If the checkout has no unrelated changes and no other agent is working there, edit it directly. Read-only tasks can stay in the current checkout.
+- If unrelated changes exist or another agent is working in the same checkout, use the editor's worktree mode or create an isolated worktree from the current committed `HEAD` before editing. An agent working in a different worktree is already isolated. If a conflict exists and the task depends on existing uncommitted changes, use the worktree that owns those changes or ask which changes to carry over.
+- Keep file operations, commands, and validation rooted in the selected checkout. A read-only checkout status check and the worktree setup required by this section are authorized for this decision. All other Git operations follow the Git and external state rules below.
 
 ## Runtime and dependencies
 

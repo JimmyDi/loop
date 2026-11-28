@@ -8,6 +8,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Web and Desktop: choose OpenUI components automatically in chat replies, including charts, tables, layouts, and forms. Form submissions show the action message in chat and pass raw values and display labels to the model as saved form data. Follow-up buttons send ordinary user messages. The model can use charts for trends, tables for multi-criteria comparisons, and forms for preference choices without an explicit component request. Component documentation loads by topic when needed, and renderer assets load when a chat displays an OpenUI block. Saved interfaces replay from history with official OpenUI components, and unsupported, malformed, or interrupted blocks remain readable as source. Bar chart category labels sit below the plot. Cards with extra positional arguments still render when the OpenUI parser can ignore them. Numeric metric display values render as text in overview and comparison cards.
 
+- Web and Desktop: render illustrated step guides, adjustable shopping lists, countdowns, interactive maps with walking routes, Wikimedia Commons image searches, color swatches, what-if sales dashboards, and playable 16-step drum sequencers in chat. Maps load near the viewport, retain their view when adding a route, and show each stop number once in the card. The chat cards use OpenUI buttons, sliders, and table styling. The cooking topic includes a recipe card paired with a countdown.
+
 - Coding-agent SDK: register host-supplied tools with `additionalTools`.
 
 - Web and Desktop: mark read chats as unread from the sidebar context menu. The coding-agent SDK also supports marking saved sessions unread.
@@ -22,6 +24,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 ### Changed
 
+- Web and Desktop: reduce first-load OpenUI styles and reuse parsed statements and completed chat history while replies stream.
+
 - Web and Desktop: render user messages in chat history as Markdown, with formatting such as lists, tables, links, and code blocks.
 
 - Web and Desktop: share active scheduled chat lookups across project lists and forward chat reads only for the active scheduled session.
@@ -33,6 +37,24 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 - Desktop: start development with the workspace Node runtime and Web assets for phone access, skip production packaging during startup, build the packaged backend directly from workspace sources, and generate only the native icons used by Desktop.
 
 ### Fixed
+
+- Web and Desktop: show photo search results inside mood boards and route OpenUI external links through the normal link handler.
+
+- Web and Desktop: render OpenUI cards when the model supplies a Card gap after the variant and omits the optional direction.
+
+- Web and Desktop: offer retry and external walking directions when a map card cannot load an in-app walking route.
+
+- Web and Desktop: keep the current OpenUI preview visible when a partial streaming update temporarily fails validation.
+
+- Web and Desktop: reject malformed OpenUI documentation and demo sales query arguments, and prevent empty labels on interactive scenario cards.
+
+- Web and Desktop: render OpenUI charts and cards when the model uses accented or non-Latin binding names.
+
+- Web and Desktop: load each OpenUI scenario view on demand and show loading and failure messages for interactive chat cards.
+
+- Web and Desktop: render OpenUI map cards when the model emits a named Stack gap beside a list of component references.
+
+- Web and Desktop: render bold Markdown labels ending in a colon when followed directly by CJK text or a digit.
 
 - Web and Desktop: use consistent vertical spacing between assistant messages and tool calls in the chat timeline.
 

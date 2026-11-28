@@ -7,6 +7,12 @@ export const plansForTimelineEntry = (
   messages: readonly TurnMessage[],
   plans: NonNullable<SessionSnapshot["state"]["planning"]>["plans"],
 ) => {
+  if (
+    !plans.length ||
+    (entry.message.role === "toolResult" && entry.message.toolName !== "submit_plan")
+  )
+    return [];
+
   const calls = new Set(
     entry.message.role === "assistant"
       ? entry.message.content.flatMap((part) =>
@@ -14,6 +20,8 @@ export const plansForTimelineEntry = (
         )
       : [entry.message.toolCallId],
   );
+  if (!calls.size) return [];
+
   const ids = new Set<string>();
   for (const { message } of messages) {
     if (

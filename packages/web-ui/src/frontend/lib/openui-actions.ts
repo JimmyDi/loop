@@ -102,3 +102,14 @@ export const openUiActionUrl = (value: unknown): string | undefined => {
     ? url.href
     : undefined;
 };
+
+// A real anchor also goes through the desktop webview's external navigation handler.
+export const openUiExternalLink = (url: string) => {
+  const link = document.createElement("a");
+  link.href = url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  document.body.append(link);
+  link.click();
+  link.remove();
+};

@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import { Window } from "happy-dom";
 
 import type { SessionSnapshot } from "../../shared/protocol";
+import { groupTimelineTurns, projectAssistantTurn } from "../components/chat/timeline-turns";
 import { useTimelineProjection } from "./useTimelineProjection";
 
 test("paged metadata uses absolute history indexes and preserves reusable indexes through drafts", async () => {
@@ -43,7 +44,9 @@ test("paged metadata uses absolute history indexes and preserves reusable indexe
       outcome: "idle",
       listenerErrors: [],
       skillLoads: [{ userTurn: 5, skills }],
-      promptTimings: [{ userMessageIndex: 10, messageStartIndex: 11, startedAt: 100 }],
+      promptTimings: [
+        { userMessageIndex: 10, messageStartIndex: 11, messageEndIndex: 12, startedAt: 100 },
+      ],
     },
   };
   try {
@@ -54,6 +57,8 @@ test("paged metadata uses absolute history indexes and preserves reusable indexe
     expect(hook.result.current.turnTimings[1]?.userMessageIndex).toBe(0);
     expect(hook.result.current.turnTimings[1]?.messageStartIndex).toBe(1);
     const index = hook.result.current.skillsByIndex;
+    const completed = hook.result.current.turns;
+    const timings = hook.result.current.turnTimings;
     const draft: NonNullable<SessionSnapshot["state"]["draft"]> = {
       role: "assistant",
       content: [],
@@ -77,6 +82,37 @@ test("paged metadata uses absolute history indexes and preserves reusable indexe
     expect(hook.result.current.draftIndex).toBe(2);
     expect(hook.result.current.skillsByIndex).toBe(index);
     expect(snapshot.state.messages).toHaveLength(2);
+    expect(hook.result.current.turns[0]).toBe(completed[0]);
+    expect(hook.result.current.turnTimings).toBe(timings);
+
+    const separated = {
+      ...snapshot,
+      state: {
+        ...snapshot.state,
+        promptTimings: [
+          ...snapshot.state.promptTimings!,
+          { userMessageIndex: 10, messageStartIndex: 12, startedAt: 200 },
+        ],
+        draft,
+      },
+    };
+    hook.rerender({ snapshot: separated });
+    const prior = hook.result.current.turns[1]!;
+    if (prior.type !== "assistant") throw new Error("Expected a completed assistant turn");
+    const entries = projectAssistantTurn(prior.messages);
+    expect(hook.result.current.turnTimings[2]?.startedAt).toBe(200);
+
+    const updated = { ...draft, content: [{ type: "text" as const, text: "Streaming" }] };
+    hook.rerender({ snapshot: { ...separated, state: { ...separated.state, draft: updated } } });
+    expect(hook.result.current.turns[1]).toBe(prior);
+    expect(projectAssistantTurn(prior.messages)).toBe(entries);
+    expect(hook.result.current.turns).toEqual(
+      groupTimelineTurns([...snapshot.state.messages, updated], [1, 2]),
+    );
+    hook.rerender({ snapshot: { ...separated, draftIndex: 11 } });
+    expect(hook.result.current.turns).toEqual(
+      groupTimelineTurns([snapshot.state.messages[0]!, draft], [1, 2]),
+    );
   } finally {
     cleanup();
     Object.assign(globalThis, previous);

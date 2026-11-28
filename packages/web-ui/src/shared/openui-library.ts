@@ -1,11 +1,24 @@
 import { openuiChatLibrary, openuiLibrary } from "@openuidev/react-ui/genui-lib";
 
-// The standalone library supplies layouts and modals. Add the chat-only components
-// so they are available inside Stack as well.
+import { scenarioComponents } from "./openui-scenarios";
+import type { ScenarioTopic } from "./openui-topics";
+
 export const openUiLibrary = openuiLibrary.extend!({
   components: {
-    add: Object.values(openuiChatLibrary.components).filter(
-      ({ name }) => !Object.hasOwn(openuiLibrary.components, name),
-    ),
+    add: [
+      ...Object.values(openuiChatLibrary.components).filter(
+        ({ name }) => !Object.hasOwn(openuiLibrary.components, name),
+      ),
+      ...Object.values(scenarioComponents).map(({ definition }) => definition),
+    ],
   },
 });
+
+export const openUiTopicComponents = new Map<ScenarioTopic, string[]>();
+for (const { definition, topics } of Object.values(scenarioComponents)) {
+  for (const topic of topics) {
+    const names = openUiTopicComponents.get(topic) ?? [];
+    names.push(definition.name);
+    openUiTopicComponents.set(topic, names);
+  }
+}

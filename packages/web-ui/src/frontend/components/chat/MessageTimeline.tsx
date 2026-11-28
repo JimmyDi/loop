@@ -51,7 +51,7 @@ export const MessageTimeline = ({
   const window = useTimelineWindow(live, viewport);
   const snapshot = window.snapshot;
   const projection = useTimelineProjection(snapshot);
-  const { messages, turns } = projection;
+  const { hasMessages, turns } = projection;
   const disclosures = useMemo(
     () => new Map<string, boolean>(),
     [snapshot.sessionId, snapshot.streamId],
@@ -138,9 +138,7 @@ export const MessageTimeline = ({
                     {t("retry")}
                   </button>
                 )}
-                {!messages.length && !looping && (
-                  <p className="timeline-empty">{t("emptySession")}</p>
-                )}
+                {!hasMessages && !looping && <p className="timeline-empty">{t("emptySession")}</p>}
                 <OpenUiActionContext value={sendOpenUiAction}>
                   <TimelineMessages
                     key={snapshot.sessionId + ":" + snapshot.streamId}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 
 import type { SessionHistoryPage, SessionSnapshot } from "../../shared/protocol";
@@ -22,15 +22,19 @@ export const useTimelineWindow = (
   const sequence = useRef(0);
   const current =
     page?.sessionId === live.sessionId && page.streamId === live.streamId ? page : undefined;
-  const joined = current && current.end >= (live.history?.start ?? 0);
-  const messages = current
-    ? joined
-      ? [
-          ...current.messages.slice(0, Math.max(0, (live.history?.start ?? 0) - current.start)),
-          ...live.state.messages,
-        ]
-      : current.messages
-    : live.state.messages;
+  const liveStart = live.history?.start ?? 0;
+  const liveMessages = live.state.messages;
+  const joined = current !== undefined && current.end >= liveStart;
+  const messages = useMemo(() => {
+    if (!current) return liveMessages;
+    if (!joined) return current.messages;
+    return [...current.messages.slice(0, Math.max(0, liveStart - current.start)), ...liveMessages];
+  }, [current, joined, liveStart, liveMessages]);
+  const historyTools = useMemo(() => (current ? projectTools(messages) : {}), [current, messages]);
+  const tools = useMemo(
+    () => (joined ? { ...historyTools, ...live.tools } : historyTools),
+    [joined, historyTools, live.tools],
+  );
   const snapshot: SessionSnapshot = current
     ? {
         ...live,
@@ -46,7 +50,7 @@ export const useTimelineWindow = (
           isRunning: !!joined && live.state.isRunning,
           draft: joined ? live.state.draft : undefined,
         },
-        tools: { ...projectTools(messages), ...(joined ? live.tools : {}) },
+        tools,
       }
     : live;
   const cancel = () => {
@@ -105,7 +109,6 @@ export const useTimelineWindow = (
   const select = (index: number) => {
     cancel();
     setSelected(true);
-    const liveStart = live.history?.start ?? 0;
     if (index >= liveStart && index < liveStart + live.state.messages.length) {
       setPage(undefined);
       setTarget({ key: live.sessionId + ":" + index, request: ++sequence.current });

@@ -1,0 +1,21 @@
+.loop-openui-pattern {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.loop-openui-pattern .loop-openui-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(2rem, 1fr));
+  gap: 0.25rem;
+}
+
+.loop-openui-pattern button {
+  padding-inline: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.loop-openui-pattern button[data-active="true"] {
+  outline: 2px solid #1267cf;
+  outline-offset: -2px;
+}

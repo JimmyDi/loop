@@ -8,3 +8,17 @@
   dominant-baseline: alphabetic;
   transform: translateY(0.9em);
 }
+
+.loop-openui-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.loop-openui-slider {
+  width: min(100%, 22rem);
+}
+
+.loop-openui-slider > p {
+  margin-block: 0.5rem;
+}

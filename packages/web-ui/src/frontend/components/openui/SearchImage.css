@@ -1,0 +1,19 @@
+.loop-openui-image-search ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.loop-openui-image-search img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+
+.loop-openui-image-search a {
+  overflow-wrap: anywhere;
+}

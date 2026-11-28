@@ -18,6 +18,8 @@ Notable changes across Agent, coding-agent, and Web UI are recorded here. Pendin
 
 - Website: add desktop downloads for macOS Apple Silicon, macOS Intel and Windows x64 to the right of the startup command on wide screens, hiding the download controls on mobile layouts and resolving the latest published desktop installer on each download with platform requirements and a release-page fallback.
 
+- Website: add a responsive WebP cover to the OpenUI article and its blog listing in both languages.
+
 ### Changed
 
 - Web and Desktop: render user messages in chat history as Markdown, with formatting such as lists, tables, links, and code blocks.
